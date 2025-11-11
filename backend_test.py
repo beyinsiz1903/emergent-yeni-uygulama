@@ -189,6 +189,7 @@ class RoomOpsAPITester:
         # Test create booking (if we have room and guest)
         if self.created_resources['rooms'] and self.created_resources['guests']:
             booking_data = {
+                "tenant_id": "dummy",  # Will be overwritten by backend
                 "guest_id": self.created_resources['guests'][0],
                 "room_id": self.created_resources['rooms'][0],
                 "check_in": (datetime.now() + timedelta(days=1)).isoformat(),
