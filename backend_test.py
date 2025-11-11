@@ -158,6 +158,7 @@ class RoomOpsAPITester:
         
         # Test create guest
         guest_data = {
+            "tenant_id": "dummy",  # Will be overwritten by backend
             "name": "John Doe",
             "email": "john.doe@example.com",
             "phone": "+1234567890",
