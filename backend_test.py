@@ -410,6 +410,7 @@ class RoomOpsAPITester:
         
         # Test create order
         order_data = {
+            "tenant_id": "dummy",  # Will be overwritten by backend
             "items": [
                 {
                     "product_id": "sample-product-1",
