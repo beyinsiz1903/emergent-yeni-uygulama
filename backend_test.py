@@ -306,6 +306,7 @@ class RoomOpsAPITester:
         
         # Test create price analysis
         analysis_data = {
+            "tenant_id": "dummy",  # Will be overwritten by backend
             "room_type": "deluxe",
             "date": datetime.now().isoformat(),
             "current_price": 150.00,
