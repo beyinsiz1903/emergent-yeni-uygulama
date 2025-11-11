@@ -370,6 +370,7 @@ class RoomOpsAPITester:
         # Test create loyalty transaction
         if self.created_resources['guests']:
             transaction_data = {
+                "tenant_id": "dummy",  # Will be overwritten by backend
                 "guest_id": self.created_resources['guests'][0],
                 "points": 50,
                 "transaction_type": "earned",
