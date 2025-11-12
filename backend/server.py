@@ -1252,8 +1252,7 @@ async def get_forecast(days: int = 30, current_user: User = Depends(get_current_
         forecast_data.append({'date': forecast_date.isoformat(), 'bookings': bookings, 'total_rooms': total_rooms, 'occupancy_rate': occupancy})
     return forecast_data
 
-# Include router at the end after all endpoints are defined
-app.include_router(api_router)
+# Router will be included at the very end after ALL endpoints are defined
 
 logger = logging.getLogger(__name__)
 
