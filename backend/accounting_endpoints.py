@@ -342,6 +342,8 @@ async def create_accounting_invoice(
         items=invoice_items,
         subtotal=subtotal,
         total_vat=total_vat,
+        vat_withholding=vat_withholding,
+        total_additional_taxes=total_additional_taxes,
         total=total,
         due_date=datetime.fromisoformat(due_date),
         booking_id=booking_id,
