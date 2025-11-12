@@ -1729,18 +1729,21 @@ async def create_stock_movement(
 # ============= ADVANCED INVOICING =============
 
 
+class AccountingInvoiceCreateRequest(BaseModel):
+    invoice_type: str
+    customer_name: str
+    customer_email: Optional[str] = None
+    customer_tax_office: Optional[str] = None
+    customer_tax_number: Optional[str] = None
+    customer_address: Optional[str] = None
+    items: List[Dict[str, Any]] = []
+    due_date: str
+    booking_id: Optional[str] = None
+    notes: Optional[str] = None
+
 @api_router.post("/accounting/invoices")
 async def create_accounting_invoice(
-    invoice_type: str,
-    customer_name: str,
-    customer_email: Optional[str] = None,
-    customer_tax_office: Optional[str] = None,
-    customer_tax_number: Optional[str] = None,
-    customer_address: Optional[str] = None,
-    items: List[Dict[str, Any]] = [],
-    due_date: str = None,
-    booking_id: Optional[str] = None,
-    notes: Optional[str] = None,
+    request: AccountingInvoiceCreateRequest,
     current_user: User = Depends(get_current_user)
 ):
     # Models are now imported at the top of the file
