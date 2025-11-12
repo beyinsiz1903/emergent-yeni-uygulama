@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { toast } from 'sonner';
+import { useTranslation } from 'react-i18next';
 import Layout from '@/components/Layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -12,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Award, Plus, TrendingUp, TrendingDown, Star, Users, Gift, Crown } from 'lucide-react';
 
 const LoyaltyModule = ({ user, tenant, onLogout }) => {
+  const { t } = useTranslation();
   const [programs, setPrograms] = useState([]);
   const [guests, setGuests] = useState([]);
   const [loading, setLoading] = useState(true);
