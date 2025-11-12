@@ -811,18 +811,18 @@ const InvoiceModule = ({ user, tenant, onLogout }) => {
             <form onSubmit={handleCreateInvoice} className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label>Invoice Type</Label>
+                  <Label>{t('invoice.invoiceType')}</Label>
                   <Select value={newInvoice.invoice_type} onValueChange={(v) => setNewInvoice({...newInvoice, invoice_type: v})}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="sales">Sales Invoice</SelectItem>
-                      <SelectItem value="e_invoice">E-Invoice</SelectItem>
-                      <SelectItem value="proforma">Proforma</SelectItem>
+                      <SelectItem value="sales">{t('invoice.salesInvoice')}</SelectItem>
+                      <SelectItem value="e_invoice">{t('invoice.eInvoice')}</SelectItem>
+                      <SelectItem value="proforma">{t('invoice.proforma')}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
                 <div>
-                  <Label>Customer Name *</Label>
+                  <Label>{t('invoice.customerName')} *</Label>
                   <Input value={newInvoice.customer_name} onChange={(e) => setNewInvoice({...newInvoice, customer_name: e.target.value})} required />
                 </div>
               </div>
