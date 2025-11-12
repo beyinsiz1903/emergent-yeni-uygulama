@@ -393,5 +393,14 @@ Keep under 80 words."""
         return response
 
 
-# Singleton instance
-ai_service = AIService()
+# Lazy-loaded singleton instance
+_ai_service_instance = None
+
+def get_ai_service():
+    global _ai_service_instance
+    if _ai_service_instance is None:
+        _ai_service_instance = AIService()
+    return _ai_service_instance
+
+# For backwards compatibility
+ai_service = None  # Will be initialized on first use
