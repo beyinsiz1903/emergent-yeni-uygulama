@@ -346,8 +346,8 @@ const InvoiceModule = ({ user, tenant, onLogout }) => {
     <Layout user={user} tenant={tenant} onLogout={onLogout} currentModule="invoices">
       <div className="p-6 space-y-6">
         <div>
-          <h1 className="text-4xl font-bold mb-2" style={{ fontFamily: 'Space Grotesk' }}>Accounting & Invoicing</h1>
-          <p className="text-gray-600">Complete financial management system</p>
+          <h1 className="text-4xl font-bold mb-2" style={{ fontFamily: 'Space Grotesk' }}>{t('invoice.title')}</h1>
+          <p className="text-gray-600">{t('invoice.subtitle')}</p>
         </div>
 
         {/* Dashboard Cards */}
