@@ -11,6 +11,7 @@ import { Hotel, User } from 'lucide-react';
 import LanguageSelector from '@/components/LanguageSelector';
 
 const AuthPage = ({ onLogin }) => {
+  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState('hotel-login');
   const [loading, setLoading] = useState(false);
   
