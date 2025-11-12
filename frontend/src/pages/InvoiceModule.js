@@ -854,9 +854,9 @@ const InvoiceModule = ({ user, tenant, onLogout }) => {
                   {newInvoice.items.map((item, index) => (
                     <div key={index} className="border rounded-lg p-3 space-y-2">
                       <div className="grid grid-cols-6 gap-2 items-center">
-                        <Input placeholder="Description" value={item.description} onChange={(e) => calculateInvoiceItem(index, 'description', e.target.value)} required />
-                        <Input type="number" placeholder="Qty" value={item.quantity} onChange={(e) => calculateInvoiceItem(index, 'quantity', parseFloat(e.target.value))} required />
-                        <Input type="number" step="0.01" placeholder="Price" value={item.unit_price} onChange={(e) => calculateInvoiceItem(index, 'unit_price', parseFloat(e.target.value))} required />
+                        <Input placeholder={t('invoice.description')} value={item.description} onChange={(e) => calculateInvoiceItem(index, 'description', e.target.value)} required />
+                        <Input type="number" placeholder={t('invoice.qty')} value={item.quantity} onChange={(e) => calculateInvoiceItem(index, 'quantity', parseFloat(e.target.value))} required />
+                        <Input type="number" step="0.01" placeholder={t('invoice.price')} value={item.unit_price} onChange={(e) => calculateInvoiceItem(index, 'unit_price', parseFloat(e.target.value))} required />
                         <Select value={item.vat_rate.toString()} onValueChange={(v) => calculateInvoiceItem(index, 'vat_rate', parseFloat(v))}>
                           <SelectTrigger><SelectValue /></SelectTrigger>
                           <SelectContent>
@@ -868,8 +868,8 @@ const InvoiceModule = ({ user, tenant, onLogout }) => {
                             <SelectItem value="20">20%</SelectItem>
                           </SelectContent>
                         </Select>
-                        <Input type="number" placeholder="Total" value={item.total.toFixed(2)} readOnly />
-                        <Button type="button" size="sm" variant="outline" onClick={() => openAddTaxDialog(index)} title="Add Additional Tax">
+                        <Input type="number" placeholder={t('invoice.total')} value={item.total.toFixed(2)} readOnly />
+                        <Button type="button" size="sm" variant="outline" onClick={() => openAddTaxDialog(index)} title={t('invoice.addAdditionalTax')}>
                           <Plus className="w-4 h-4" />
                         </Button>
                       </div>
