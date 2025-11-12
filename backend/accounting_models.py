@@ -153,6 +153,15 @@ class StockMovement(BaseModel):
     created_by: str
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
+class AdditionalTax(BaseModel):
+    tax_type: AdditionalTaxType
+    tax_name: str  # Display name
+    rate: Optional[float] = None  # For percentage-based taxes
+    amount: Optional[float] = None  # For fixed amount taxes
+    is_percentage: bool = True
+    withholding_rate: Optional[str] = None  # For withholding taxes (e.g., "7/10")
+    calculated_amount: float = 0.0
+
 class AccountingInvoiceItem(BaseModel):
     description: str
     quantity: float
@@ -160,6 +169,7 @@ class AccountingInvoiceItem(BaseModel):
     vat_rate: float
     vat_amount: float
     total: float
+    additional_taxes: Optional[List[AdditionalTax]] = []
 
 class AccountingInvoice(BaseModel):
     model_config = ConfigDict(extra="ignore")
