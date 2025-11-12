@@ -162,9 +162,9 @@ const MarketplaceModule = ({ user, tenant, onLogout }) => {
 
         <Tabs defaultValue="products" className="w-full">
           <TabsList>
-            <TabsTrigger value="products" data-testid="tab-products">Products</TabsTrigger>
-            <TabsTrigger value="cart" data-testid="tab-cart">Cart ({cart.length})</TabsTrigger>
-            <TabsTrigger value="orders" data-testid="tab-orders">Orders</TabsTrigger>
+            <TabsTrigger value="products" data-testid="tab-products">{t('marketplace.products')}</TabsTrigger>
+            <TabsTrigger value="cart" data-testid="tab-cart">{t('marketplace.cart')} ({cart.length})</TabsTrigger>
+            <TabsTrigger value="orders" data-testid="tab-orders">{t('marketplace.orders')}</TabsTrigger>
           </TabsList>
 
           <TabsContent value="products" className="space-y-4">
