@@ -51,22 +51,22 @@ const Dashboard = ({ user, tenant, onLogout }) => {
       stats: stats?.invoices
     },
     {
-      title: 'RMS',
-      description: 'Revenue Management',
+      title: t('nav.rms'),
+      description: t('dashboard.revenueManagement'),
       icon: TrendingUp,
       path: '/rms',
       color: '#4facfe'
     },
     {
-      title: 'Loyalty',
-      description: 'Guest Rewards Program',
+      title: t('nav.loyalty'),
+      description: t('dashboard.guestRewards'),
       icon: Award,
       path: '/loyalty',
       color: '#43e97b'
     },
     {
-      title: 'Marketplace',
-      description: 'Wholesale Purchasing',
+      title: t('nav.marketplace'),
+      description: t('dashboard.wholesalePurchasing'),
       icon: ShoppingCart,
       path: '/marketplace',
       color: '#fa709a'
