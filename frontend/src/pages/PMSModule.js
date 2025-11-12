@@ -94,8 +94,25 @@ const PMSModule = ({ user, tenant, onLogout }) => {
       setArrivals(arrivalsRes.data);
       setDepartures(departuresRes.data);
       setInhouse(inhouseRes.data);
+      
+      // Load AI insights
+      loadAIInsights();
     } catch (error) {
       toast.error('Failed to load front desk data');
+    }
+  };
+
+  const loadAIInsights = async () => {
+    try {
+      const [predictionRes, patternsRes] = await Promise.all([
+        axios.get('/ai/pms/occupancy-prediction').catch(() => null),
+        axios.get('/ai/pms/guest-patterns').catch(() => null)
+      ]);
+      if (predictionRes) setAiPrediction(predictionRes.data);
+      if (patternsRes) setAiPatterns(patternsRes.data);
+    } catch (error) {
+      // Fail silently - AI features are optional
+      console.error('AI insights not available');
     }
   };
 
