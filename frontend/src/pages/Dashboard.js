@@ -17,7 +17,21 @@ const Dashboard = ({ user, tenant, onLogout }) => {
 
   useEffect(() => {
     loadDashboardStats();
+    loadAIBriefing();
   }, []);
+
+  const loadAIBriefing = async () => {
+    setLoadingAI(true);
+    try {
+      const response = await axios.get('/ai/dashboard/briefing');
+      setAiBriefing(response.data);
+    } catch (error) {
+      console.error('Failed to load AI briefing:', error);
+      // Fail silently - AI features are optional
+    } finally {
+      setLoadingAI(false);
+    }
+  };
 
   const loadDashboardStats = async () => {
     try {
