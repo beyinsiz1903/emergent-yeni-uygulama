@@ -1647,7 +1647,7 @@ async def create_inventory_item(
     notes: Optional[str] = None,
     current_user: User = Depends(get_current_user)
 ):
-    from accounting_models import InventoryItem
+    # InventoryItem model imported at top
     item = InventoryItem(
         tenant_id=current_user.tenant_id,
         name=name,
