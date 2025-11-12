@@ -923,6 +923,297 @@ app.add_middleware(
 )
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+
+# ============= FRONT DESK OPERATIONS =============
+
+@api_router.post("/frontdesk/checkin/{booking_id}")
+async def check_in_guest(booking_id: str, current_user: User = Depends(get_current_user)):
+    booking = await db.bookings.find_one({'id': booking_id, 'tenant_id': current_user.tenant_id}, {'_id': 0})
+    if not booking:
+        raise HTTPException(status_code=404, detail="Booking not found")
+    
+    checked_in_time = datetime.now(timezone.utc)
+    await db.bookings.update_one({'id': booking_id}, {'$set': {'status': 'checked_in', 'checked_in_at': checked_in_time.isoformat()}})
+    await db.rooms.update_one({'id': booking['room_id']}, {'$set': {'status': 'occupied', 'current_booking_id': booking_id}})
+    
+    nights = (datetime.fromisoformat(booking['check_out']) - datetime.fromisoformat(booking['check_in'])).days
+    room = await db.rooms.find_one({'id': booking['room_id']}, {'_id': 0})
+    
+    folio_charge = FolioCharge(
+        tenant_id=current_user.tenant_id, booking_id=booking_id, charge_type='room',
+        description=f"Room {room['room_number']} - {nights} nights",
+        amount=room['base_price'], quantity=nights, total=room['base_price'] * nights, posted_by=current_user.name
+    )
+    
+    charge_dict = folio_charge.model_dump()
+    charge_dict['date'] = charge_dict['date'].isoformat()
+    await db.folio_charges.insert_one(charge_dict)
+    await db.guests.update_one({'id': booking['guest_id']}, {'$inc': {'total_stays': 1}})
+    
+    return {'message': 'Check-in completed', 'checked_in_at': checked_in_time.isoformat()}
+
+@api_router.post("/frontdesk/checkout/{booking_id}")
+async def check_out_guest(booking_id: str, current_user: User = Depends(get_current_user)):
+    booking = await db.bookings.find_one({'id': booking_id, 'tenant_id': current_user.tenant_id}, {'_id': 0})
+    if not booking:
+        raise HTTPException(status_code=404, detail="Booking not found")
+    
+    charges = await db.folio_charges.find({'booking_id': booking_id}, {'_id': 0}).to_list(1000)
+    payments = await db.payments.find({'booking_id': booking_id}, {'_id': 0}).to_list(1000)
+    total_charges = sum(c['total'] for c in charges)
+    total_paid = sum(p['amount'] for p in payments if p['status'] == 'paid')
+    balance = total_charges - total_paid
+    
+    if balance > 0:
+        raise HTTPException(status_code=400, detail=f"Outstanding balance: ${balance:.2f}")
+    
+    checked_out_time = datetime.now(timezone.utc)
+    await db.bookings.update_one({'id': booking_id}, {'$set': {'status': 'checked_out', 'checked_out_at': checked_out_time.isoformat()}})
+    await db.rooms.update_one({'id': booking['room_id']}, {'$set': {'status': 'dirty', 'current_booking_id': None}})
+    
+    task = HousekeepingTask(tenant_id=current_user.tenant_id, room_id=booking['room_id'], task_type='cleaning', priority='high', notes='Guest checked out')
+    task_dict = task.model_dump()
+    task_dict['created_at'] = task_dict['created_at'].isoformat()
+    await db.housekeeping_tasks.insert_one(task_dict)
+    
+    return {'message': 'Check-out completed', 'balance': balance}
+
+@api_router.post("/frontdesk/folio/{booking_id}/charge")
+async def add_folio_charge(booking_id: str, charge_type: str, description: str, amount: float, quantity: float = 1.0, current_user: User = Depends(get_current_user)):
+    folio_charge = FolioCharge(tenant_id=current_user.tenant_id, booking_id=booking_id, charge_type=charge_type, description=description,
+                               amount=amount, quantity=quantity, total=amount * quantity, posted_by=current_user.name)
+    charge_dict = folio_charge.model_dump()
+    charge_dict['date'] = charge_dict['date'].isoformat()
+    await db.folio_charges.insert_one(charge_dict)
+    return folio_charge
+
+@api_router.get("/frontdesk/folio/{booking_id}")
+async def get_folio(booking_id: str, current_user: User = Depends(get_current_user)):
+    charges = await db.folio_charges.find({'booking_id': booking_id, 'tenant_id': current_user.tenant_id}, {'_id': 0}).to_list(1000)
+    payments = await db.payments.find({'booking_id': booking_id, 'tenant_id': current_user.tenant_id}, {'_id': 0}).to_list(1000)
+    total_charges = sum(c['total'] for c in charges)
+    total_paid = sum(p['amount'] for p in payments if p['status'] == 'paid')
+    return {'charges': charges, 'payments': payments, 'total_charges': total_charges, 'total_paid': total_paid, 'balance': total_charges - total_paid}
+
+@api_router.post("/frontdesk/payment/{booking_id}")
+async def process_payment(booking_id: str, amount: float, method: str, reference: Optional[str] = None, notes: Optional[str] = None, current_user: User = Depends(get_current_user)):
+    payment = Payment(tenant_id=current_user.tenant_id, booking_id=booking_id, amount=amount, method=method, status='paid',
+                     reference=reference, notes=notes, processed_by=current_user.name)
+    payment_dict = payment.model_dump()
+    payment_dict['processed_at'] = payment_dict['processed_at'].isoformat()
+    await db.payments.insert_one(payment_dict)
+    await db.bookings.update_one({'id': booking_id}, {'$inc': {'paid_amount': amount}})
+    return payment
+
+@api_router.get("/frontdesk/arrivals")
+async def get_arrivals(date: Optional[str] = None, current_user: User = Depends(get_current_user)):
+    target_date = datetime.fromisoformat(date).date() if date else datetime.now(timezone.utc).date()
+    start_of_day = datetime.combine(target_date, datetime.min.time())
+    end_of_day = datetime.combine(target_date, datetime.max.time())
+    bookings = await db.bookings.find({'tenant_id': current_user.tenant_id, 'status': {'$in': ['confirmed', 'checked_in']},
+                                       'check_in': {'$gte': start_of_day.isoformat(), '$lte': end_of_day.isoformat()}}, {'_id': 0}).to_list(1000)
+    enriched = []
+    for booking in bookings:
+        guest = await db.guests.find_one({'id': booking['guest_id']}, {'_id': 0})
+        room = await db.rooms.find_one({'id': booking['room_id']}, {'_id': 0})
+        enriched.append({**booking, 'guest': guest, 'room': room})
+    return enriched
+
+@api_router.get("/frontdesk/departures")
+async def get_departures(date: Optional[str] = None, current_user: User = Depends(get_current_user)):
+    target_date = datetime.fromisoformat(date).date() if date else datetime.now(timezone.utc).date()
+    start_of_day = datetime.combine(target_date, datetime.min.time())
+    end_of_day = datetime.combine(target_date, datetime.max.time())
+    bookings = await db.bookings.find({'tenant_id': current_user.tenant_id, 'status': 'checked_in',
+                                       'check_out': {'$gte': start_of_day.isoformat(), '$lte': end_of_day.isoformat()}}, {'_id': 0}).to_list(1000)
+    enriched = []
+    for booking in bookings:
+        guest = await db.guests.find_one({'id': booking['guest_id']}, {'_id': 0})
+        room = await db.rooms.find_one({'id': booking['room_id']}, {'_id': 0})
+        charges = await db.folio_charges.find({'booking_id': booking['id']}, {'_id': 0}).to_list(1000)
+        payments = await db.payments.find({'booking_id': booking['id']}, {'_id': 0}).to_list(1000)
+        balance = sum(c['total'] for c in charges) - sum(p['amount'] for p in payments if p['status'] == 'paid')
+        enriched.append({**booking, 'guest': guest, 'room': room, 'balance': balance})
+    return enriched
+
+@api_router.get("/frontdesk/inhouse")
+async def get_inhouse_guests(current_user: User = Depends(get_current_user)):
+    bookings = await db.bookings.find({'tenant_id': current_user.tenant_id, 'status': 'checked_in'}, {'_id': 0}).to_list(1000)
+    enriched = []
+    for booking in bookings:
+        guest = await db.guests.find_one({'id': booking['guest_id']}, {'_id': 0})
+        room = await db.rooms.find_one({'id': booking['room_id']}, {'_id': 0})
+        enriched.append({**booking, 'guest': guest, 'room': room})
+    return enriched
+
+# ============= HOUSEKEEPING =============
+
+@api_router.get("/housekeeping/tasks")
+async def get_housekeeping_tasks(status: Optional[str] = None, current_user: User = Depends(get_current_user)):
+    query = {'tenant_id': current_user.tenant_id}
+    if status:
+        query['status'] = status
+    tasks = await db.housekeeping_tasks.find(query, {'_id': 0}).to_list(1000)
+    enriched = []
+    for task in tasks:
+        room = await db.rooms.find_one({'id': task['room_id']}, {'_id': 0})
+        enriched.append({**task, 'room': room})
+    return enriched
+
+@api_router.post("/housekeeping/tasks")
+async def create_housekeeping_task(room_id: str, task_type: str, priority: str = "normal", notes: Optional[str] = None, current_user: User = Depends(get_current_user)):
+    task = HousekeepingTask(tenant_id=current_user.tenant_id, room_id=room_id, task_type=task_type, priority=priority, notes=notes)
+    task_dict = task.model_dump()
+    task_dict['created_at'] = task_dict['created_at'].isoformat()
+    await db.housekeeping_tasks.insert_one(task_dict)
+    return task
+
+@api_router.put("/housekeeping/tasks/{task_id}")
+async def update_housekeeping_task(task_id: str, status: Optional[str] = None, assigned_to: Optional[str] = None, current_user: User = Depends(get_current_user)):
+    updates = {}
+    if status:
+        updates['status'] = status
+        if status == 'in_progress':
+            updates['started_at'] = datetime.now(timezone.utc).isoformat()
+        elif status == 'completed':
+            updates['completed_at'] = datetime.now(timezone.utc).isoformat()
+            task = await db.housekeeping_tasks.find_one({'id': task_id}, {'_id': 0})
+            if task and task['task_type'] == 'cleaning':
+                await db.rooms.update_one({'id': task['room_id']}, {'$set': {'status': 'inspected', 'last_cleaned': datetime.now(timezone.utc).isoformat()}})
+    if assigned_to:
+        updates['assigned_to'] = assigned_to
+    await db.housekeeping_tasks.update_one({'id': task_id, 'tenant_id': current_user.tenant_id}, {'$set': updates})
+    task = await db.housekeeping_tasks.find_one({'id': task_id}, {'_id': 0})
+    return task
+
+@api_router.get("/housekeeping/room-status")
+async def get_room_status_board(current_user: User = Depends(get_current_user)):
+    rooms = await db.rooms.find({'tenant_id': current_user.tenant_id}, {'_id': 0}).to_list(1000)
+    status_counts = {s: 0 for s in ['available', 'occupied', 'dirty', 'cleaning', 'inspected', 'maintenance', 'out_of_order']}
+    for room in rooms:
+        status_counts[room['status']] += 1
+    return {'rooms': rooms, 'status_counts': status_counts, 'total_rooms': len(rooms)}
+
+# ============= CHANNEL MANAGER =============
+
+@api_router.post("/channel/rates")
+async def update_channel_rates(room_type: str, channel: str, start_date: str, end_date: str, rate: float, availability: int, current_user: User = Depends(get_current_user)):
+    start = datetime.fromisoformat(start_date).date()
+    end = datetime.fromisoformat(end_date).date()
+    current_date = start
+    while current_date <= end:
+        channel_rate = ChannelRate(tenant_id=current_user.tenant_id, room_type=room_type, channel=channel, date=current_date, rate=rate, availability=availability)
+        await db.channel_rates.update_one({'tenant_id': current_user.tenant_id, 'room_type': room_type, 'channel': channel, 'date': current_date.isoformat()},
+                                          {'$set': channel_rate.model_dump()}, upsert=True)
+        current_date += timedelta(days=1)
+    return {'message': f'Rates updated for {(end - start).days + 1} days'}
+
+@api_router.get("/channel/rates")
+async def get_channel_rates(room_type: Optional[str] = None, channel: Optional[str] = None, start_date: Optional[str] = None, current_user: User = Depends(get_current_user)):
+    query = {'tenant_id': current_user.tenant_id}
+    if room_type:
+        query['room_type'] = room_type
+    if channel:
+        query['channel'] = channel
+    if start_date:
+        query['date'] = {'$gte': start_date}
+    rates = await db.channel_rates.find(query, {'_id': 0}).to_list(1000)
+    return rates
+
+@api_router.get("/channel/performance")
+async def get_channel_performance(start_date: Optional[str] = None, end_date: Optional[str] = None, current_user: User = Depends(get_current_user)):
+    query = {'tenant_id': current_user.tenant_id}
+    if start_date and end_date:
+        query['check_in'] = {'$gte': start_date, '$lte': end_date}
+    bookings = await db.bookings.find(query, {'_id': 0}).to_list(1000)
+    channel_stats = {}
+    for booking in bookings:
+        channel = booking['channel']
+        if channel not in channel_stats:
+            channel_stats[channel] = {'bookings': 0, 'revenue': 0.0, 'avg_rate': 0.0}
+        channel_stats[channel]['bookings'] += 1
+        channel_stats[channel]['revenue'] += booking['total_amount']
+    for channel in channel_stats:
+        if channel_stats[channel]['bookings'] > 0:
+            channel_stats[channel]['avg_rate'] = channel_stats[channel]['revenue'] / channel_stats[channel]['bookings']
+    return channel_stats
+
+# ============= REPORTING =============
+
+@api_router.get("/reports/occupancy")
+async def get_occupancy_report(start_date: str, end_date: str, current_user: User = Depends(get_current_user)):
+    start = datetime.fromisoformat(start_date)
+    end = datetime.fromisoformat(end_date)
+    total_rooms = await db.rooms.count_documents({'tenant_id': current_user.tenant_id})
+    bookings = await db.bookings.find({'tenant_id': current_user.tenant_id, 'status': {'$in': ['confirmed', 'checked_in', 'checked_out']},
+                                       '$or': [{'check_in': {'$gte': start.isoformat(), '$lte': end.isoformat()}},
+                                              {'check_out': {'$gte': start.isoformat(), '$lte': end.isoformat()}},
+                                              {'check_in': {'$lte': start.isoformat()}, 'check_out': {'$gte': end.isoformat()}}]}, {'_id': 0}).to_list(1000)
+    days = (end - start).days + 1
+    total_room_nights = total_rooms * days
+    occupied_room_nights = 0
+    for booking in bookings:
+        check_in = datetime.fromisoformat(booking['check_in'])
+        check_out = datetime.fromisoformat(booking['check_out'])
+        overlap_start = max(start, check_in)
+        overlap_end = min(end, check_out)
+        if overlap_start < overlap_end:
+            occupied_room_nights += (overlap_end - overlap_start).days
+    occupancy_rate = (occupied_room_nights / total_room_nights * 100) if total_room_nights > 0 else 0
+    return {'start_date': start_date, 'end_date': end_date, 'total_rooms': total_rooms, 'total_room_nights': total_room_nights,
+            'occupied_room_nights': occupied_room_nights, 'occupancy_rate': round(occupancy_rate, 2)}
+
+@api_router.get("/reports/revenue")
+async def get_revenue_report(start_date: str, end_date: str, current_user: User = Depends(get_current_user)):
+    start = datetime.fromisoformat(start_date)
+    end = datetime.fromisoformat(end_date)
+    bookings = await db.bookings.find({'tenant_id': current_user.tenant_id, 'status': {'$in': ['checked_in', 'checked_out']},
+                                       'check_in': {'$gte': start.isoformat(), '$lte': end.isoformat()}}, {'_id': 0}).to_list(1000)
+    total_revenue = sum(b['total_amount'] for b in bookings)
+    total_room_nights = sum((datetime.fromisoformat(b['check_out']) - datetime.fromisoformat(b['check_in'])).days for b in bookings)
+    adr = (total_revenue / total_room_nights) if total_room_nights > 0 else 0
+    total_rooms = await db.rooms.count_documents({'tenant_id': current_user.tenant_id})
+    days = (end - start).days + 1
+    total_available_room_nights = total_rooms * days
+    rev_par = (total_revenue / total_available_room_nights) if total_available_room_nights > 0 else 0
+    folio_charges = await db.folio_charges.find({'tenant_id': current_user.tenant_id, 'date': {'$gte': start.isoformat(), '$lte': end.isoformat()}}, {'_id': 0}).to_list(1000)
+    revenue_by_type = {}
+    for charge in folio_charges:
+        charge_type = charge['charge_type']
+        revenue_by_type[charge_type] = revenue_by_type.get(charge_type, 0.0) + charge['total']
+    return {'start_date': start_date, 'end_date': end_date, 'total_revenue': round(total_revenue, 2), 'room_nights_sold': total_room_nights,
+            'adr': round(adr, 2), 'rev_par': round(rev_par, 2), 'revenue_by_type': revenue_by_type, 'bookings_count': len(bookings)}
+
+@api_router.get("/reports/daily-summary")
+async def get_daily_summary(date_str: Optional[str] = None, current_user: User = Depends(get_current_user)):
+    target_date = datetime.fromisoformat(date_str).date() if date_str else datetime.now(timezone.utc).date()
+    start_of_day = datetime.combine(target_date, datetime.min.time())
+    end_of_day = datetime.combine(target_date, datetime.max.time())
+    arrivals = await db.bookings.count_documents({'tenant_id': current_user.tenant_id, 'check_in': {'$gte': start_of_day.isoformat(), '$lte': end_of_day.isoformat()}})
+    departures = await db.bookings.count_documents({'tenant_id': current_user.tenant_id, 'check_out': {'$gte': start_of_day.isoformat(), '$lte': end_of_day.isoformat()}})
+    inhouse = await db.bookings.count_documents({'tenant_id': current_user.tenant_id, 'status': 'checked_in'})
+    total_rooms = await db.rooms.count_documents({'tenant_id': current_user.tenant_id})
+    payments = await db.payments.find({'tenant_id': current_user.tenant_id, 'status': 'paid',
+                                       'processed_at': {'$gte': start_of_day.isoformat(), '$lte': end_of_day.isoformat()}}, {'_id': 0}).to_list(1000)
+    daily_revenue = sum(p['amount'] for p in payments)
+    return {'date': target_date.isoformat(), 'arrivals': arrivals, 'departures': departures, 'inhouse': inhouse, 'total_rooms': total_rooms,
+            'occupancy_rate': round((inhouse / total_rooms * 100) if total_rooms > 0 else 0, 2), 'daily_revenue': round(daily_revenue, 2)}
+
+@api_router.get("/reports/forecast")
+async def get_forecast(days: int = 30, current_user: User = Depends(get_current_user)):
+    today = datetime.now(timezone.utc).date()
+    forecast_data = []
+    for i in range(days):
+        forecast_date = today + timedelta(days=i)
+        start_of_day = datetime.combine(forecast_date, datetime.min.time())
+        end_of_day = datetime.combine(forecast_date, datetime.max.time())
+        bookings = await db.bookings.count_documents({'tenant_id': current_user.tenant_id, 'status': {'$in': ['confirmed', 'checked_in']},
+                                                       'check_in': {'$lte': end_of_day.isoformat()}, 'check_out': {'$gte': start_of_day.isoformat()}})
+        total_rooms = await db.rooms.count_documents({'tenant_id': current_user.tenant_id})
+        occupancy = round((bookings / total_rooms * 100) if total_rooms > 0 else 0, 2)
+        forecast_data.append({'date': forecast_date.isoformat(), 'bookings': bookings, 'total_rooms': total_rooms, 'occupancy_rate': occupancy})
+    return forecast_data
+
 logger = logging.getLogger(__name__)
 
 @app.on_event("shutdown")
