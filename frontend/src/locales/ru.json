@@ -156,5 +156,23 @@
   "rms": {
     "title": "Система управления доходами",
     "subtitle": "Оптимизация ценообразования и максимизация доходов"
+  },
+  "ai": {
+    "dailyBriefing": "Ежедневный брифинг",
+    "aiInsights": "ИИ-аналитика",
+    "predictions": "Прогнозы",
+    "recommendations": "Рекомендации",
+    "occupancyPrediction": "Прогноз заполняемости",
+    "guestPatterns": "Паттерны гостей",
+    "expenseCategory": "Категория расходов",
+    "anomalyDetection": "Обнаружение аномалий",
+    "guestSegmentation": "Сегментация гостей",
+    "churnRisk": "Риск оттока",
+    "productRecommendations": "Рекомендации товаров",
+    "revenueAnalysis": "Анализ доходов",
+    "viewInsights": "Посмотреть аналитику",
+    "loading": "Генерация ИИ-аналитики...",
+    "refreshInsights": "Обновить аналитику",
+    "poweredBy": "На основе ИИ"
   }
 }

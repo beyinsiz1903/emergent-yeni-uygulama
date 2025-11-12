@@ -156,5 +156,23 @@
   "rms": {
     "title": "نظام إدارة الإيرادات",
     "subtitle": "تحسين التسعير وتعظيم الإيرادات"
+  },
+  "ai": {
+    "dailyBriefing": "الإحاطة اليومية",
+    "aiInsights": "رؤى الذكاء الاصطناعي",
+    "predictions": "التوقعات",
+    "recommendations": "التوصيات",
+    "occupancyPrediction": "توقع الإشغال",
+    "guestPatterns": "أنماط النزلاء",
+    "expenseCategory": "فئة المصروفات",
+    "anomalyDetection": "كشف الشذوذ",
+    "guestSegmentation": "تقسيم النزلاء",
+    "churnRisk": "خطر فقدان العملاء",
+    "productRecommendations": "توصيات المنتجات",
+    "revenueAnalysis": "تحليل الإيرادات",
+    "viewInsights": "عرض الرؤى",
+    "loading": "جاري إنشاء رؤى الذكاء الاصطناعي...",
+    "refreshInsights": "تحديث الرؤى",
+    "poweredBy": "مدعوم بالذكاء الاصطناعي"
   }
 }

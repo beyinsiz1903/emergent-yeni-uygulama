@@ -156,5 +156,23 @@
   "rms": {
     "title": "Sistema di Gestione Ricavi",
     "subtitle": "Ottimizza i prezzi e massimizza i ricavi"
+  },
+  "ai": {
+    "dailyBriefing": "Briefing Giornaliero",
+    "aiInsights": "Insights AI",
+    "predictions": "Predizioni",
+    "recommendations": "Raccomandazioni",
+    "occupancyPrediction": "Previsione Occupazione",
+    "guestPatterns": "Pattern Ospiti",
+    "expenseCategory": "Categoria Spese",
+    "anomalyDetection": "Rilevamento Anomalie",
+    "guestSegmentation": "Segmentazione Ospiti",
+    "churnRisk": "Rischio Abbandono",
+    "productRecommendations": "Raccomandazioni Prodotti",
+    "revenueAnalysis": "Analisi Ricavi",
+    "viewInsights": "Visualizza Insights",
+    "loading": "Generazione insights AI...",
+    "refreshInsights": "Aggiorna Insights",
+    "poweredBy": "Alimentato da AI"
   }
 }

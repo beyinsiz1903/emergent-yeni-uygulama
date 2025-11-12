@@ -156,5 +156,23 @@
   "rms": {
     "title": "Système de Gestion des Revenus",
     "subtitle": "Optimisez les prix et maximisez les revenus"
+  },
+  "ai": {
+    "dailyBriefing": "Briefing Quotidien",
+    "aiInsights": "Insights IA",
+    "predictions": "Prédictions",
+    "recommendations": "Recommandations",
+    "occupancyPrediction": "Prédiction d'Occupation",
+    "guestPatterns": "Modèles de Clients",
+    "expenseCategory": "Catégorie de Dépenses",
+    "anomalyDetection": "Détection d'Anomalies",
+    "guestSegmentation": "Segmentation des Clients",
+    "churnRisk": "Risque d'Attrition",
+    "productRecommendations": "Recommandations de Produits",
+    "revenueAnalysis": "Analyse des Revenus",
+    "viewInsights": "Voir les Insights",
+    "loading": "Génération d'insights IA...",
+    "refreshInsights": "Actualiser les Insights",
+    "poweredBy": "Propulsé par IA"
   }
 }

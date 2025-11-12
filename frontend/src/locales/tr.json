@@ -156,5 +156,23 @@
   "rms": {
     "title": "Gelir Yönetim Sistemi",
     "subtitle": "Fiyatlandırmayı optimize edin ve geliri maksimize edin"
+  },
+  "ai": {
+    "dailyBriefing": "Günlük Brifing",
+    "aiInsights": "Yapay Zeka Öngörüleri",
+    "predictions": "Tahminler",
+    "recommendations": "Öneriler",
+    "occupancyPrediction": "Doluluk Tahmini",
+    "guestPatterns": "Misafir Kalıpları",
+    "expenseCategory": "Gider Kategorisi",
+    "anomalyDetection": "Anormallik Tespiti",
+    "guestSegmentation": "Misafir Segmentasyonu",
+    "churnRisk": "Kayıp Riski",
+    "productRecommendations": "Ürün Önerileri",
+    "revenueAnalysis": "Gelir Analizi",
+    "viewInsights": "Öngörüleri Görüntüle",
+    "loading": "Yapay zeka öngörüleri oluşturuluyor...",
+    "refreshInsights": "Öngörüleri Yenile",
+    "poweredBy": "Yapay Zeka Destekli"
   }
 }

@@ -156,5 +156,23 @@
   "rms": {
     "title": "Revenue Management System",
     "subtitle": "Optimize pricing and maximize revenue"
+  },
+  "ai": {
+    "dailyBriefing": "Daily Briefing",
+    "aiInsights": "AI Insights",
+    "predictions": "Predictions",
+    "recommendations": "Recommendations",
+    "occupancyPrediction": "Occupancy Prediction",
+    "guestPatterns": "Guest Patterns",
+    "expenseCategory": "Expense Category",
+    "anomalyDetection": "Anomaly Detection",
+    "guestSegmentation": "Guest Segmentation",
+    "churnRisk": "Churn Risk",
+    "productRecommendations": "Product Recommendations",
+    "revenueAnalysis": "Revenue Analysis",
+    "viewInsights": "View Insights",
+    "loading": "Generating AI insights...",
+    "refreshInsights": "Refresh Insights",
+    "poweredBy": "Powered by AI"
   }
 }
