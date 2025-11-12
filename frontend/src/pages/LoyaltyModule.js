@@ -153,8 +153,8 @@ const LoyaltyModule = ({ user, tenant, onLogout }) => {
       <div className="p-6 space-y-6">
         <div className="flex justify-between items-center">
           <div>
-            <h1 className="text-4xl font-bold mb-2" style={{ fontFamily: 'Space Grotesk' }}>Guest Loyalty Program</h1>
-            <p className="text-gray-600">Reward your loyal guests and track their benefits</p>
+            <h1 className="text-4xl font-bold mb-2" style={{ fontFamily: 'Space Grotesk' }}>{t('loyalty.title')}</h1>
+            <p className="text-gray-600">{t('loyalty.subtitle')}</p>
           </div>
           <Dialog open={openDialog === 'transaction'} onOpenChange={(open) => setOpenDialog(open ? 'transaction' : null)}>
             <DialogTrigger asChild>
