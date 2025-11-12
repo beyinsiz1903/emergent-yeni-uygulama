@@ -103,13 +103,18 @@ const AuthPage = ({ onLogin }) => {
           <p style={{ color: 'rgba(255,255,255,0.9)', fontSize: '1.1rem' }}>
             Complete Hotel Management Platform
           </p>
+          
+          {/* Language Selector */}
+          <div className="flex justify-center mt-4">
+            <LanguageSelector />
+          </div>
         </div>
 
         <Card>
           <CardHeader>
-            <CardTitle>Welcome</CardTitle>
+            <CardTitle>{t('common.welcome')}</CardTitle>
             <CardDescription>
-              Sign in to your account or create a new one
+              {t('auth.signIn')}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -117,11 +122,11 @@ const AuthPage = ({ onLogin }) => {
               <TabsList className="grid w-full grid-cols-2 mb-4">
                 <TabsTrigger value="hotel-login" data-testid="hotel-login-tab">
                   <Hotel className="w-4 h-4 mr-2" />
-                  Hotel
+                  {t('auth.hotel')}
                 </TabsTrigger>
                 <TabsTrigger value="guest-login" data-testid="guest-login-tab">
                   <User className="w-4 h-4 mr-2" />
-                  Guest
+                  {t('auth.guest')}
                 </TabsTrigger>
               </TabsList>
               
