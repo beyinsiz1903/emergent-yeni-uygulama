@@ -160,7 +160,7 @@ const LoyaltyModule = ({ user, tenant, onLogout }) => {
             <DialogTrigger asChild>
               <Button data-testid="add-points-btn" size="lg">
                 <Plus className="w-4 h-4 mr-2" />
-                Award Points
+                {t('loyalty.awardPoints')}
               </Button>
             </DialogTrigger>
             <DialogContent>
