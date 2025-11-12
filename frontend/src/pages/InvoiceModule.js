@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { toast } from 'sonner';
+import { useTranslation } from 'react-i18next';
 import Layout from '@/components/Layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -16,6 +17,7 @@ import {
 } from 'lucide-react';
 
 const InvoiceModule = ({ user, tenant, onLogout }) => {
+  const { t } = useTranslation();
   const [invoices, setInvoices] = useState([]);
   const [expenses, setExpenses] = useState([]);
   const [suppliers, setSuppliers] = useState([]);
