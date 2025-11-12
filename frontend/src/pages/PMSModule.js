@@ -27,6 +27,8 @@ const PMSModule = ({ user, tenant, onLogout }) => {
   const [housekeepingTasks, setHousekeepingTasks] = useState([]);
   const [roomStatusBoard, setRoomStatusBoard] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [aiPrediction, setAiPrediction] = useState(null);
+  const [aiPatterns, setAiPatterns] = useState(null);
   const [openDialog, setOpenDialog] = useState(null);
   const [selectedBooking, setSelectedBooking] = useState(null);
   const [folio, setFolio] = useState(null);
