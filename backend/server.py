@@ -479,11 +479,20 @@ async def get_pms_dashboard(current_user: User = Depends(get_current_user)):
 # ============= INVOICE ENDPOINTS =============
 
 @api_router.post("/invoices", response_model=Invoice)
-async def create_invoice(invoice: Invoice, current_user: User = Depends(get_current_user)):
-    invoice.tenant_id = current_user.tenant_id
+async def create_invoice(invoice_data: InvoiceCreate, current_user: User = Depends(get_current_user)):
     # Generate invoice number
     count = await db.invoices.count_documents({'tenant_id': current_user.tenant_id})
-    invoice.invoice_number = f"INV-{count + 1:05d}"
+    invoice_number = f"INV-{count + 1:05d}"
+    
+    # Parse due date
+    due_date_dt = datetime.fromisoformat(invoice_data.due_date.replace('Z', '+00:00'))
+    
+    invoice = Invoice(
+        tenant_id=current_user.tenant_id,
+        invoice_number=invoice_number,
+        due_date=due_date_dt,
+        **{k: v for k, v in invoice_data.model_dump().items() if k != 'due_date'}
+    )
     
     invoice_dict = invoice.model_dump()
     invoice_dict['issue_date'] = invoice_dict['issue_date'].isoformat()
