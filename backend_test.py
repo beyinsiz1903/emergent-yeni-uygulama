@@ -948,6 +948,9 @@ def main():
     tester.test_loyalty_module()
     tester.test_marketplace_module()
     
+    # Test accounting invoice with additional taxes (NEW FUNCTIONALITY)
+    tester.test_accounting_invoice_with_taxes()
+    
     # Test multi-tenant isolation
     tester.test_multi_tenant_isolation()
     
