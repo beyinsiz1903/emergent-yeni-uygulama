@@ -103,6 +103,64 @@ const Dashboard = ({ user, tenant, onLogout }) => {
           <div className="text-center py-12">{t('common.loading')}</div>
         ) : (
           <>
+            {/* AI Daily Briefing Card */}
+            {aiBriefing && (
+              <Card className="bg-gradient-to-r from-blue-500 to-purple-600 text-white mb-6">
+                <CardHeader>
+                  <CardTitle className="flex items-center justify-between">
+                    <span className="flex items-center">
+                      <span className="text-2xl mr-2">🤖</span>
+                      {t('ai.dailyBriefing')}
+                    </span>
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      onClick={loadAIBriefing}
+                      className="text-white hover:bg-white/20"
+                      disabled={loadingAI}
+                    >
+                      {loadingAI ? t('ai.loading') : t('ai.refreshInsights')}
+                    </Button>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-lg leading-relaxed mb-4">{aiBriefing.briefing}</p>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm bg-white/10 rounded-lg p-4">
+                    <div>
+                      <div className="opacity-75">Occupancy</div>
+                      <div className="text-xl font-bold">{aiBriefing.metrics?.occupancy_rate?.toFixed(1)}%</div>
+                    </div>
+                    <div>
+                      <div className="opacity-75">Check-ins Today</div>
+                      <div className="text-xl font-bold">{aiBriefing.metrics?.today_checkins}</div>
+                    </div>
+                    <div>
+                      <div className="opacity-75">Check-outs Today</div>
+                      <div className="text-xl font-bold">{aiBriefing.metrics?.today_checkouts}</div>
+                    </div>
+                    <div>
+                      <div className="opacity-75">Monthly Revenue</div>
+                      <div className="text-xl font-bold">${(aiBriefing.metrics?.monthly_revenue || 0).toFixed(0)}</div>
+                    </div>
+                  </div>
+                  <div className="text-xs opacity-75 mt-3 text-right">
+                    {t('ai.poweredBy')} • Generated: {new Date(aiBriefing.generated_at).toLocaleTimeString()}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {loadingAI && !aiBriefing && (
+              <Card className="bg-gradient-to-r from-blue-500 to-purple-600 text-white mb-6">
+                <CardContent className="py-8">
+                  <div className="flex items-center justify-center">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white mr-3"></div>
+                    <span className="text-lg">{t('ai.loading')}</span>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
             {/* Quick Stats */}
             {stats?.pms && (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
