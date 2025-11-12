@@ -12,6 +12,8 @@ const Dashboard = ({ user, tenant, onLogout }) => {
   const { t } = useTranslation();
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [aiBriefing, setAiBriefing] = useState(null);
+  const [loadingAI, setLoadingAI] = useState(false);
 
   useEffect(() => {
     loadDashboardStats();
