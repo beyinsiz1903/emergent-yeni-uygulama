@@ -185,6 +185,8 @@ class AccountingInvoice(BaseModel):
     items: List[AccountingInvoiceItem]
     subtotal: float
     total_vat: float
+    vat_withholding: float = 0.0  # Tevkifat on VAT
+    total_additional_taxes: float = 0.0  # Other additional taxes (ÖTV, etc.)
     total: float
     status: PaymentStatus = PaymentStatus.PENDING
     issue_date: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
