@@ -944,6 +944,109 @@ const InvoiceModule = ({ user, tenant, onLogout }) => {
           </DialogContent>
         </Dialog>
 
+        {/* Additional Tax Dialog */}
+        <Dialog open={showAdditionalTaxDialog} onOpenChange={setShowAdditionalTaxDialog}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Add Additional Tax</DialogTitle>
+              <DialogDescription>Add special taxes like ÖTV, withholding, or accommodation tax</DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div>
+                <Label>Tax Type</Label>
+                <Select 
+                  value={newAdditionalTax.tax_type} 
+                  onValueChange={(v) => {
+                    let taxName = 'ÖTV';
+                    if (v === 'withholding') taxName = 'Tevkifat';
+                    else if (v === 'accommodation') taxName = 'Konaklama Vergisi';
+                    else if (v === 'special_communication') taxName = 'ÖİV';
+                    setNewAdditionalTax({...newAdditionalTax, tax_type: v, tax_name: taxName});
+                  }}
+                >
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="otv">ÖTV (Special Consumption Tax)</SelectItem>
+                    <SelectItem value="withholding">Tevkifat (Withholding Tax)</SelectItem>
+                    <SelectItem value="accommodation">Konaklama Vergisi (Accommodation Tax)</SelectItem>
+                    <SelectItem value="special_communication">ÖİV (Special Communication Tax)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {newAdditionalTax.tax_type === 'withholding' ? (
+                <div>
+                  <Label>Withholding Rate</Label>
+                  <Select 
+                    value={newAdditionalTax.withholding_rate || ''} 
+                    onValueChange={(v) => setNewAdditionalTax({...newAdditionalTax, withholding_rate: v})}
+                  >
+                    <SelectTrigger><SelectValue placeholder="Select rate" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="10/10">Tümüne Tevkifat Uygula (All)</SelectItem>
+                      <SelectItem value="9/10">9/10 Tevkifat Uygula (90%)</SelectItem>
+                      <SelectItem value="7/10">7/10 Tevkifat Uygula (70%)</SelectItem>
+                      <SelectItem value="5/10">5/10 Tevkifat Uygula (50%)</SelectItem>
+                      <SelectItem value="4/10">4/10 Tevkifat Uygula (40%)</SelectItem>
+                      <SelectItem value="3/10">3/10 Tevkifat Uygula (30%)</SelectItem>
+                      <SelectItem value="2/10">2/10 Tevkifat Uygula (20%)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              ) : (
+                <>
+                  <div>
+                    <Label>Calculation Method</Label>
+                    <Select 
+                      value={newAdditionalTax.is_percentage ? 'percentage' : 'fixed'} 
+                      onValueChange={(v) => setNewAdditionalTax({...newAdditionalTax, is_percentage: v === 'percentage'})}
+                    >
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="percentage">Percentage (%)</SelectItem>
+                        <SelectItem value="fixed">Fixed Amount (₺)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {newAdditionalTax.is_percentage ? (
+                    <div>
+                      <Label>Tax Rate (%)</Label>
+                      <Input 
+                        type="number" 
+                        step="0.01" 
+                        value={newAdditionalTax.rate} 
+                        onChange={(e) => setNewAdditionalTax({...newAdditionalTax, rate: parseFloat(e.target.value)})} 
+                        placeholder="Enter percentage"
+                      />
+                    </div>
+                  ) : (
+                    <div>
+                      <Label>Tax Amount ($)</Label>
+                      <Input 
+                        type="number" 
+                        step="0.01" 
+                        value={newAdditionalTax.amount} 
+                        onChange={(e) => setNewAdditionalTax({...newAdditionalTax, amount: parseFloat(e.target.value)})} 
+                        placeholder="Enter amount"
+                      />
+                    </div>
+                  )}
+                </>
+              )}
+
+              <div className="flex gap-2">
+                <Button type="button" variant="outline" onClick={() => setShowAdditionalTaxDialog(false)} className="flex-1">
+                  Cancel
+                </Button>
+                <Button type="button" onClick={addAdditionalTax} className="flex-1">
+                  Add Tax
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+
         {/* Expense Dialog */}
         <Dialog open={openDialog === 'expense'} onOpenChange={(open) => !open && setOpenDialog(null)}>
           <DialogContent>
