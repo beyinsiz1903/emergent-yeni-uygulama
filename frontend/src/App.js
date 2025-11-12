@@ -9,12 +9,12 @@ import InvoiceModule from "@/pages/InvoiceModule";
 import RMSModule from "@/pages/RMSModule";
 import LoyaltyModule from "@/pages/LoyaltyModule";
 import MarketplaceModule from "@/pages/MarketplaceModule";
+import GuestPortal from "@/pages/GuestPortal";
 import { Toaster } from "@/components/ui/sonner";
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
 
-// Set up axios defaults
 axios.defaults.baseURL = API;
 
 function App() {
@@ -28,10 +28,12 @@ function App() {
     const storedUser = localStorage.getItem('user');
     const storedTenant = localStorage.getItem('tenant');
     
-    if (token && storedUser && storedTenant) {
+    if (token && storedUser) {
       axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
       setUser(JSON.parse(storedUser));
-      setTenant(JSON.parse(storedTenant));
+      if (storedTenant && storedTenant !== 'null') {
+        setTenant(JSON.parse(storedTenant));
+      }
       setIsAuthenticated(true);
     }
     setLoading(false);
@@ -40,7 +42,7 @@ function App() {
   const handleLogin = (token, userData, tenantData) => {
     localStorage.setItem('token', token);
     localStorage.setItem('user', JSON.stringify(userData));
-    localStorage.setItem('tenant', JSON.stringify(tenantData));
+    localStorage.setItem('tenant', tenantData ? JSON.stringify(tenantData) : 'null');
     axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
     setUser(userData);
     setTenant(tenantData);
@@ -61,6 +63,21 @@ function App() {
     return <div className="loading-screen">Loading...</div>;
   }
 
+  // Guest user routes
+  if (isAuthenticated && user?.role === 'guest') {
+    return (
+      <div className="App">
+        <Toaster position="top-right" />
+        <BrowserRouter>
+          <Routes>
+            <Route path="/*" element={<GuestPortal user={user} onLogout={handleLogout} />} />
+          </Routes>
+        </BrowserRouter>
+      </div>
+    );
+  }
+
+  // Hotel admin routes
   return (
     <div className="App">
       <Toaster position="top-right" />
