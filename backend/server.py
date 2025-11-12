@@ -33,11 +33,7 @@ try:
     print("✅ Accounting models imported successfully")
 except ImportError as e:
     print(f"❌ Failed to import accounting models: {e}")
-    # Define minimal models to prevent server crash
-    class AccountingInvoice(BaseModel):
-        pass
-    class AccountingInvoiceItem(BaseModel):
-        pass
+    raise e  # Don't continue if accounting models can't be imported
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
