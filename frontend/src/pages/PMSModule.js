@@ -375,6 +375,55 @@ const PMSModule = ({ user, tenant, onLogout }) => {
               </Card>
             </div>
 
+            {/* AI Insights */}
+            {(aiPrediction || aiPatterns) && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {aiPrediction && (
+                  <Card className="bg-gradient-to-br from-green-50 to-blue-50 border-green-200">
+                    <CardHeader>
+                      <CardTitle className="flex items-center text-green-700">
+                        <TrendingUp className="w-5 h-5 mr-2" />
+                        {t('ai.occupancyPrediction')}
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-2 text-sm">
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Current Occupancy:</span>
+                          <span className="font-semibold">{aiPrediction.current_occupancy?.toFixed(1)}%</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Upcoming Bookings:</span>
+                          <span className="font-semibold">{aiPrediction.upcoming_bookings}</span>
+                        </div>
+                        {aiPrediction.prediction && (
+                          <div className="mt-3 p-3 bg-white rounded border border-green-100">
+                            <p className="text-xs text-gray-700">{JSON.stringify(aiPrediction.prediction).substring(0, 200)}</p>
+                          </div>
+                        )}
+                      </div>
+                      <div className="text-xs text-gray-500 mt-2">{t('ai.poweredBy')}</div>
+                    </CardContent>
+                  </Card>
+                )}
+                
+                {aiPatterns && (
+                  <Card className="bg-gradient-to-br from-purple-50 to-pink-50 border-purple-200">
+                    <CardHeader>
+                      <CardTitle className="flex items-center text-purple-700">
+                        <Users className="w-5 h-5 mr-2" />
+                        {t('ai.guestPatterns')}
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-sm text-gray-700">{aiPatterns.analysis}</p>
+                      <div className="text-xs text-gray-500 mt-2">{t('ai.poweredBy')}</div>
+                    </CardContent>
+                  </Card>
+                )}
+              </div>
+            )}
+
             <Tabs defaultValue="arrivals">
               <TabsList>
                 <TabsTrigger value="arrivals">{t('pms.arrivals')}</TabsTrigger>
