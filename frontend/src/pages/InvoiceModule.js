@@ -310,7 +310,35 @@ const InvoiceModule = ({ user, tenant, onLogout }) => {
 
   const invoiceSubtotal = newInvoice.items.reduce((sum, item) => sum + (item.quantity * item.unit_price), 0);
   const invoiceTotalVAT = newInvoice.items.reduce((sum, item) => sum + item.vat_amount, 0);
-  const invoiceTotal = invoiceSubtotal + invoiceTotalVAT;
+  
+  // Calculate withholding tax (deduction from VAT)
+  let invoiceVATWithholding = 0;
+  let invoiceAdditionalTaxes = 0;
+  
+  newInvoice.items.forEach(item => {
+    if (item.additional_taxes && item.additional_taxes.length > 0) {
+      item.additional_taxes.forEach(tax => {
+        if (tax.tax_type === 'withholding') {
+          // Withholding tax calculation
+          if (tax.withholding_rate) {
+            const rateParts = tax.withholding_rate.split('/');
+            const ratePercent = (parseInt(rateParts[0]) / parseInt(rateParts[1])) * 100;
+            invoiceVATWithholding += item.vat_amount * (ratePercent / 100);
+          }
+        } else {
+          // Other taxes (ÖTV, accommodation, etc.)
+          const subtotal = item.quantity * item.unit_price;
+          if (tax.is_percentage) {
+            invoiceAdditionalTaxes += subtotal * (tax.rate / 100);
+          } else {
+            invoiceAdditionalTaxes += tax.amount;
+          }
+        }
+      });
+    }
+  });
+  
+  const invoiceTotal = invoiceSubtotal + invoiceTotalVAT + invoiceAdditionalTaxes - invoiceVATWithholding;
 
   return (
     <Layout user={user} tenant={tenant} onLogout={onLogout} currentModule="invoices">
