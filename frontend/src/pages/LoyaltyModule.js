@@ -305,8 +305,8 @@ const LoyaltyModule = ({ user, tenant, onLogout }) => {
               <Card>
                 <CardContent className="py-12 text-center text-gray-500">
                   <Award className="w-16 h-16 mx-auto mb-4 text-gray-300" />
-                  <p className="text-lg font-medium mb-2">No enrolled members yet</p>
-                  <p className="text-sm">Start enrolling guests to build your loyalty program</p>
+                  <p className="text-lg font-medium mb-2">{t('loyalty.noMembers')}</p>
+                  <p className="text-sm">{t('loyalty.startEnrolling')}</p>
                 </CardContent>
               </Card>
             ) : (
