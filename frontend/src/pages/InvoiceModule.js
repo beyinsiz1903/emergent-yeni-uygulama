@@ -820,24 +820,52 @@ const InvoiceModule = ({ user, tenant, onLogout }) => {
                     <Plus className="w-4 h-4 mr-1" /> Add Item
                   </Button>
                 </div>
-                <div className="space-y-2">
+                <div className="space-y-3">
                   {newInvoice.items.map((item, index) => (
-                    <div key={index} className="grid grid-cols-5 gap-2">
-                      <Input placeholder="Description" value={item.description} onChange={(e) => calculateInvoiceItem(index, 'description', e.target.value)} required />
-                      <Input type="number" placeholder="Qty" value={item.quantity} onChange={(e) => calculateInvoiceItem(index, 'quantity', parseFloat(e.target.value))} required />
-                      <Input type="number" step="0.01" placeholder="Price" value={item.unit_price} onChange={(e) => calculateInvoiceItem(index, 'unit_price', parseFloat(e.target.value))} required />
-                      <Select value={item.vat_rate.toString()} onValueChange={(v) => calculateInvoiceItem(index, 'vat_rate', parseFloat(v))}>
-                        <SelectTrigger><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="0">0% (Exempt)</SelectItem>
-                          <SelectItem value="1">1%</SelectItem>
-                          <SelectItem value="8">8%</SelectItem>
-                          <SelectItem value="10">10%</SelectItem>
-                          <SelectItem value="18">18%</SelectItem>
-                          <SelectItem value="20">20%</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <Input type="number" placeholder="Total" value={item.total.toFixed(2)} readOnly />
+                    <div key={index} className="border rounded-lg p-3 space-y-2">
+                      <div className="grid grid-cols-6 gap-2 items-center">
+                        <Input placeholder="Description" value={item.description} onChange={(e) => calculateInvoiceItem(index, 'description', e.target.value)} required />
+                        <Input type="number" placeholder="Qty" value={item.quantity} onChange={(e) => calculateInvoiceItem(index, 'quantity', parseFloat(e.target.value))} required />
+                        <Input type="number" step="0.01" placeholder="Price" value={item.unit_price} onChange={(e) => calculateInvoiceItem(index, 'unit_price', parseFloat(e.target.value))} required />
+                        <Select value={item.vat_rate.toString()} onValueChange={(v) => calculateInvoiceItem(index, 'vat_rate', parseFloat(v))}>
+                          <SelectTrigger><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="0">0%</SelectItem>
+                            <SelectItem value="1">1%</SelectItem>
+                            <SelectItem value="8">8%</SelectItem>
+                            <SelectItem value="10">10%</SelectItem>
+                            <SelectItem value="18">18%</SelectItem>
+                            <SelectItem value="20">20%</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <Input type="number" placeholder="Total" value={item.total.toFixed(2)} readOnly />
+                        <Button type="button" size="sm" variant="outline" onClick={() => openAddTaxDialog(index)} title="Add Additional Tax">
+                          <Plus className="w-4 h-4" />
+                        </Button>
+                      </div>
+                      
+                      {/* Display additional taxes for this item */}
+                      {item.additional_taxes && item.additional_taxes.length > 0 && (
+                        <div className="ml-4 space-y-1">
+                          {item.additional_taxes.map((tax, taxIndex) => (
+                            <div key={taxIndex} className="flex items-center justify-between text-sm bg-blue-50 px-2 py-1 rounded">
+                              <span className="text-blue-700">
+                                {tax.tax_name}: {tax.is_percentage ? `${tax.rate}%` : `$${tax.amount}`}
+                                {tax.withholding_rate && ` (${tax.withholding_rate})`}
+                              </span>
+                              <Button 
+                                type="button" 
+                                size="sm" 
+                                variant="ghost" 
+                                onClick={() => removeAdditionalTax(index, taxIndex)}
+                                className="h-6 w-6 p-0 text-red-600"
+                              >
+                                ×
+                              </Button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
