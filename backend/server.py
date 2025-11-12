@@ -1505,7 +1505,7 @@ async def create_bank_account(
     balance: float = 0.0,
     current_user: User = Depends(get_current_user)
 ):
-    from accounting_models import BankAccount
+    # BankAccount model imported at top
     bank_account = BankAccount(
         tenant_id=current_user.tenant_id,
         name=name,
