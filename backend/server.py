@@ -1758,7 +1758,17 @@ async def create_accounting_invoice(
     total_additional_taxes = 0.0
     
     for item_data in request.items:
-        item = AccountingInvoiceItem(**item_data)
+        # Handle additional_taxes parsing
+        additional_taxes = []
+        if 'additional_taxes' in item_data and item_data['additional_taxes']:
+            for tax_data in item_data['additional_taxes']:
+                additional_taxes.append(AdditionalTax(**tax_data))
+        
+        # Create item with parsed additional taxes
+        item_dict = {k: v for k, v in item_data.items() if k != 'additional_taxes'}
+        item_dict['additional_taxes'] = additional_taxes
+        item = AccountingInvoiceItem(**item_dict)
+        
         invoice_items.append(item)
         subtotal += item.quantity * item.unit_price
         total_vat += item.vat_amount
