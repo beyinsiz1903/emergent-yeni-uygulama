@@ -15,15 +15,16 @@ import LanguageSelector from '@/components/LanguageSelector';
 
 const Layout = ({ children, user, tenant, onLogout, currentModule }) => {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const navigation = [
-    { name: 'Dashboard', path: '/', icon: Home, id: 'dashboard' },
-    { name: 'PMS', path: '/pms', icon: Hotel, id: 'pms' },
-    { name: 'Invoices', path: '/invoices', icon: FileText, id: 'invoices' },
-    { name: 'RMS', path: '/rms', icon: TrendingUp, id: 'rms' },
-    { name: 'Loyalty', path: '/loyalty', icon: Award, id: 'loyalty' },
-    { name: 'Marketplace', path: '/marketplace', icon: ShoppingCart, id: 'marketplace' },
+    { name: t('nav.dashboard'), path: '/', icon: Home, id: 'dashboard' },
+    { name: t('nav.pms'), path: '/pms', icon: Hotel, id: 'pms' },
+    { name: t('nav.invoices'), path: '/invoices', icon: FileText, id: 'invoices' },
+    { name: t('nav.rms'), path: '/rms', icon: TrendingUp, id: 'rms' },
+    { name: t('nav.loyalty'), path: '/loyalty', icon: Award, id: 'loyalty' },
+    { name: t('nav.marketplace'), path: '/marketplace', icon: ShoppingCart, id: 'marketplace' },
   ];
 
   return (
