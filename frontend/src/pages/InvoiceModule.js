@@ -829,25 +829,25 @@ const InvoiceModule = ({ user, tenant, onLogout }) => {
               
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label>Email</Label>
+                  <Label>{t('common.email')}</Label>
                   <Input type="email" value={newInvoice.customer_email} onChange={(e) => setNewInvoice({...newInvoice, customer_email: e.target.value})} />
                 </div>
                 <div>
-                  <Label>Tax Number</Label>
+                  <Label>{t('invoice.taxNumber')}</Label>
                   <Input value={newInvoice.customer_tax_number} onChange={(e) => setNewInvoice({...newInvoice, customer_tax_number: e.target.value})} />
                 </div>
               </div>
               
               <div>
-                <Label>Address</Label>
+                <Label>{t('invoice.address')}</Label>
                 <Textarea value={newInvoice.customer_address} onChange={(e) => setNewInvoice({...newInvoice, customer_address: e.target.value})} rows={2} />
               </div>
 
               <div>
                 <div className="flex justify-between items-center mb-2">
-                  <Label>Invoice Items</Label>
+                  <Label>{t('invoice.invoiceItems')}</Label>
                   <Button type="button" size="sm" variant="outline" onClick={addInvoiceItem}>
-                    <Plus className="w-4 h-4 mr-1" /> Add Item
+                    <Plus className="w-4 h-4 mr-1" /> {t('invoice.addItem')}
                   </Button>
                 </div>
                 <div className="space-y-3">
