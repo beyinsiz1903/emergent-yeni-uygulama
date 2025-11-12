@@ -134,14 +134,14 @@ const AuthPage = ({ onLogin }) => {
               <TabsContent value="hotel-login" className="space-y-4">
                 <Tabs defaultValue="login">
                   <TabsList className="grid w-full grid-cols-2">
-                    <TabsTrigger value="login">Login</TabsTrigger>
-                    <TabsTrigger value="register">Register</TabsTrigger>
+                    <TabsTrigger value="login">{t('common.login')}</TabsTrigger>
+                    <TabsTrigger value="register">{t('common.register')}</TabsTrigger>
                   </TabsList>
                   
                   <TabsContent value="login">
                     <form onSubmit={handleHotelLogin} className="space-y-4">
                       <div>
-                        <Label>Email</Label>
+                        <Label>{t('common.email')}</Label>
                         <Input
                           type="email"
                           value={hotelLoginData.email}
@@ -151,7 +151,7 @@ const AuthPage = ({ onLogin }) => {
                         />
                       </div>
                       <div>
-                        <Label>Password</Label>
+                        <Label>{t('common.password')}</Label>
                         <Input
                           type="password"
                           value={hotelLoginData.password}
@@ -161,7 +161,7 @@ const AuthPage = ({ onLogin }) => {
                         />
                       </div>
                       <Button type="submit" className="w-full" disabled={loading} data-testid="hotel-login-btn">
-                        {loading ? 'Logging in...' : 'Login'}
+                        {loading ? t('common.loading') : t('common.login')}
                       </Button>
                     </form>
                   </TabsContent>
