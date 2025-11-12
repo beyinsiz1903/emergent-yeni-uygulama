@@ -327,31 +327,31 @@ const PMSModule = ({ user, tenant, onLogout }) => {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <Card className="cursor-pointer hover:shadow-lg transition" onClick={loadFrontDeskData}>
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-sm">Today's Arrivals</CardTitle>
+                  <CardTitle className="text-sm">{t('pms.todayArrivals')}</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="text-3xl font-bold">{arrivals.length}</div>
-                  <p className="text-xs text-gray-500">Expected check-ins</p>
+                  <p className="text-xs text-gray-500">{t('pms.expectedCheckins')}</p>
                 </CardContent>
               </Card>
               
               <Card className="cursor-pointer hover:shadow-lg transition" onClick={loadFrontDeskData}>
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-sm">Today's Departures</CardTitle>
+                  <CardTitle className="text-sm">{t('pms.todayDepartures')}</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="text-3xl font-bold">{departures.length}</div>
-                  <p className="text-xs text-gray-500">Expected check-outs</p>
+                  <p className="text-xs text-gray-500">{t('pms.expectedCheckouts')}</p>
                 </CardContent>
               </Card>
               
               <Card className="cursor-pointer hover:shadow-lg transition" onClick={loadFrontDeskData}>
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-sm">In-House Guests</CardTitle>
+                  <CardTitle className="text-sm">{t('pms.inHouseGuests')}</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="text-3xl font-bold">{inhouse.length}</div>
-                  <p className="text-xs text-gray-500">Currently staying</p>
+                  <p className="text-xs text-gray-500">{t('pms.currentlyStaying')}</p>
                 </CardContent>
               </Card>
             </div>
