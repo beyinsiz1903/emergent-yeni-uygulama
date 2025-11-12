@@ -2053,3 +2053,6 @@ async def get_accounting_dashboard(current_user: User = Depends(get_current_user
         'overdue_invoices': overdue_invoices,
         'total_bank_balance': round(total_bank_balance, 2)
     }
+
+# Include router at the very end after ALL endpoints are defined
+app.include_router(api_router)
