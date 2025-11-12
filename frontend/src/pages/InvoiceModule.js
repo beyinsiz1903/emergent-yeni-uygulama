@@ -968,17 +968,17 @@ const InvoiceModule = ({ user, tenant, onLogout }) => {
                 >
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="otv">ÖTV (Special Consumption Tax)</SelectItem>
-                    <SelectItem value="withholding">Tevkifat (Withholding Tax)</SelectItem>
-                    <SelectItem value="accommodation">Konaklama Vergisi (Accommodation Tax)</SelectItem>
-                    <SelectItem value="special_communication">ÖİV (Special Communication Tax)</SelectItem>
+                    <SelectItem value="otv">{t('invoice.specialConsumptionTax')}</SelectItem>
+                    <SelectItem value="withholding">{t('invoice.withholdingTax')}</SelectItem>
+                    <SelectItem value="accommodation">{t('invoice.accommodationTax')}</SelectItem>
+                    <SelectItem value="special_communication">{t('invoice.specialCommunicationTax')}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
               {newAdditionalTax.tax_type === 'withholding' ? (
                 <div>
-                  <Label>Withholding Rate</Label>
+                  <Label>{t('invoice.withholdingRate')}</Label>
                   <Select 
                     value={newAdditionalTax.withholding_rate || ''} 
                     onValueChange={(v) => setNewAdditionalTax({...newAdditionalTax, withholding_rate: v})}
