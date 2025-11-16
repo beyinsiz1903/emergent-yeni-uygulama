@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Hotel, DoorOpen, DoorClosed, TrendingUp, Calendar, Users } from 'lucide-react';
+import { Card, CardContent } from '@/components/ui/card';
+import { Hotel, TrendingUp, Calendar, Users, FileText, Award, ShoppingBag } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import api from '@/lib/api';
 import { toast } from 'sonner';
 
@@ -27,96 +28,119 @@ const Dashboard = () => {
   if (loading) {
     return (
       <div data-testid="dashboard-loading" className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-amber-500"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
       </div>
     );
   }
 
-  const statCards = [
+  const summaryCards = [
     {
-      title: 'Toplam Oda',
+      title: 'Total Rooms',
       value: stats?.total_rooms || 0,
       icon: Hotel,
-      color: 'from-blue-500 to-blue-600',
-      testId: 'stat-total-rooms'
+      color: 'bg-blue-100',
+      iconColor: 'text-blue-600'
     },
     {
-      title: 'Dolu Odalar',
-      value: stats?.occupied_rooms || 0,
-      icon: DoorClosed,
-      color: 'from-amber-500 to-amber-600',
-      testId: 'stat-occupied-rooms'
-    },
-    {
-      title: 'Müsait Odalar',
-      value: stats?.available_rooms || 0,
-      icon: DoorOpen,
-      color: 'from-green-500 to-green-600',
-      testId: 'stat-available-rooms'
-    },
-    {
-      title: 'Doluluk Oranı',
+      title: 'Occupancy Rate',
       value: `${stats?.occupancy_rate || 0}%`,
       icon: TrendingUp,
-      color: 'from-purple-500 to-purple-600',
-      testId: 'stat-occupancy-rate'
+      color: 'bg-green-100',
+      iconColor: 'text-green-600'
     },
     {
-      title: 'Bugün Giriş',
+      title: "Today's Check-ins",
       value: stats?.today_checkins || 0,
       icon: Calendar,
-      color: 'from-cyan-500 to-cyan-600',
-      testId: 'stat-today-checkins'
+      color: 'bg-purple-100',
+      iconColor: 'text-purple-600'
     },
     {
-      title: 'Bugün Çıkış',
-      value: stats?.today_checkouts || 0,
-      icon: Calendar,
-      color: 'from-rose-500 to-rose-600',
-      testId: 'stat-today-checkouts'
-    },
-    {
-      title: 'Bekleyen Rezervasyonlar',
-      value: stats?.pending_reservations || 0,
+      title: 'Total Guests',
+      value: stats?.occupied_rooms || 0,
       icon: Users,
-      color: 'from-orange-500 to-orange-600',
-      testId: 'stat-pending-reservations'
+      color: 'bg-orange-100',
+      iconColor: 'text-orange-600'
+    }
+  ];
+
+  const modules = [
+    {
+      title: 'PMS',
+      subtitle: 'Property Management System',
+      icon: Hotel,
+      color: 'bg-blue-100',
+      iconColor: 'text-blue-600',
+      link: '/reservations',
+      stats: [
+        { label: 'Total Rooms', value: stats?.total_rooms || 0 },
+        { label: 'Occupied Rooms', value: stats?.occupied_rooms || 0 }
+      ]
     },
     {
-      title: 'Bugün Gelir',
-      value: `$${stats?.revenue_today || 0}`,
-      icon: TrendingUp,
-      color: 'from-emerald-500 to-emerald-600',
-      testId: 'stat-revenue-today'
+      title: 'Invoices',
+      subtitle: 'Billing & Reporting',
+      icon: FileText,
+      color: 'bg-pink-100',
+      iconColor: 'text-pink-600',
+      link: '/invoices',
+      stats: [
+        { label: 'Total Invoices', value: 0 },
+        { label: 'Total Revenue', value: 0 }
+      ]
     },
+    {
+      title: 'RMS',
+      subtitle: 'Revenue Management',
+      icon: TrendingUp,
+      color: 'bg-cyan-100',
+      iconColor: 'text-cyan-600',
+      link: '/rms',
+      stats: []
+    },
+    {
+      title: 'Loyalty',
+      subtitle: 'Guest Rewards Program',
+      icon: Award,
+      color: 'bg-green-100',
+      iconColor: 'text-green-600',
+      link: '/loyalty',
+      stats: []
+    },
+    {
+      title: 'Marketplace',
+      subtitle: 'Wholesale Purchasing',
+      icon: ShoppingBag,
+      color: 'bg-rose-100',
+      iconColor: 'text-rose-600',
+      link: '/marketplace',
+      stats: []
+    }
   ];
 
   return (
-    <div data-testid="dashboard-page" className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-slate-900 mb-1" style={{fontFamily: 'Plus Jakarta Sans'}}>Dashboard</h1>
-          <p className="text-slate-500">Otel işletmenizin genel görünümü</p>
-        </div>
-        <div className="text-sm text-slate-500">
-          {new Date().toLocaleDateString('tr-TR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
-        </div>
+    <div data-testid="dashboard-page" className="max-w-7xl mx-auto space-y-8">
+      {/* Welcome Header */}
+      <div>
+        <h1 className="text-4xl font-bold text-gray-900 mb-2">Welcome back, Hotel Administrator</h1>
+        <p className="text-lg text-gray-600">Grand Canyon Hotel</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {statCards.map((stat, index) => {
-          const Icon = stat.icon;
+      {/* Summary Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        {summaryCards.map((card, index) => {
+          const Icon = card.icon;
           return (
-            <Card key={index} data-testid={stat.testId} className="bg-white border-slate-200 hover:shadow-lg transition-all duration-300">
+            <Card key={index} data-testid={`summary-${index}`} className="bg-white border-gray-200">
               <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-xs font-medium text-slate-500 mb-2">{stat.title}</p>
-                    <p className="text-2xl font-bold text-slate-900" style={{fontFamily: 'Plus Jakarta Sans'}}>{stat.value}</p>
+                <div className="flex items-center justify-between mb-4">
+                  <div className={`w-12 h-12 rounded-lg ${card.color} flex items-center justify-center`}>
+                    <Icon className={`w-6 h-6 ${card.iconColor}`} />
                   </div>
-                  <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${stat.color} flex items-center justify-center shadow-lg shadow-blue-500/20`}>
-                    <Icon className="w-6 h-6 text-white" />
-                  </div>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600 mb-1">{card.title}</p>
+                  <p className="text-3xl font-bold text-gray-900">{card.value}</p>
                 </div>
               </CardContent>
             </Card>
@@ -124,34 +148,41 @@ const Dashboard = () => {
         })}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <Card className="bg-white border-slate-200 lg:col-span-2">
-          <CardHeader>
-            <CardTitle className="text-slate-900" style={{fontFamily: 'Plus Jakarta Sans'}}>Aylık Gelir</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent" style={{fontFamily: 'Plus Jakarta Sans'}}>
-              ${stats?.revenue_month || 0}
-            </div>
-            <p className="text-sm text-slate-500 mt-2">Bu ay toplam gelir</p>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-gradient-to-br from-blue-600 to-indigo-600 border-0 text-white">
-          <CardHeader>
-            <CardTitle className="text-white" style={{fontFamily: 'Plus Jakarta Sans'}}>Hızlı İşlemler</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <a href="/reservations/new" data-testid="quick-new-reservation" className="block p-4 rounded-xl bg-white/10 hover:bg-white/20 transition-colors backdrop-blur-sm border border-white/20">
-              <p className="text-white font-semibold">Yeni Rezervasyon</p>
-              <p className="text-xs text-blue-100">Hızlı rezervasyon oluştur</p>
-            </a>
-            <a href="/calendar" data-testid="quick-calendar" className="block p-4 rounded-xl bg-white/10 hover:bg-white/20 transition-colors backdrop-blur-sm border border-white/20">
-              <p className="text-white font-semibold">Oda Takvimi</p>
-              <p className="text-xs text-blue-100">Müsaitlik ve fiyatları gör</p>
-            </a>
-          </CardContent>
-        </Card>
+      {/* Your Modules */}
+      <div>
+        <h2 className="text-2xl font-bold text-gray-900 mb-6">Your Modules</h2>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {modules.map((module, index) => {
+            const Icon = module.icon;
+            return (
+              <Link key={index} to={module.link}>
+                <Card data-testid={`module-${index}`} className="bg-white border-gray-200 hover:shadow-lg transition-shadow cursor-pointer">
+                  <CardContent className="p-6">
+                    <div className="flex items-center gap-4 mb-4">
+                      <div className={`w-14 h-14 rounded-xl ${module.color} flex items-center justify-center`}>
+                        <Icon className={`w-7 h-7 ${module.iconColor}`} />
+                      </div>
+                      <div>
+                        <h3 className="text-lg font-bold text-gray-900">{module.title}</h3>
+                        <p className="text-sm text-gray-600">{module.subtitle}</p>
+                      </div>
+                    </div>
+                    {module.stats && module.stats.length > 0 && (
+                      <div className="flex items-center justify-between pt-4 border-t border-gray-100">
+                        {module.stats.map((stat, idx) => (
+                          <div key={idx}>
+                            <p className="text-xs text-gray-600">{stat.label}</p>
+                            <p className="text-xl font-bold text-gray-900">{stat.value}</p>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </Link>
+            );
+          })}
+        </div>
       </div>
     </div>
   );
