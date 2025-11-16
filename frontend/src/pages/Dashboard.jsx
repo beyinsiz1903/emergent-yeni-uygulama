@@ -118,6 +118,37 @@ const Dashboard = () => {
     }
   ];
 
+  const quickActions = [
+    {
+      title: 'New Reservation',
+      description: 'Create a new booking',
+      icon: Calendar,
+      color: 'bg-blue-600',
+      link: '/reservations/new'
+    },
+    {
+      title: 'View Calendar',
+      description: 'Check room availability',
+      icon: Calendar,
+      color: 'bg-green-600',
+      action: () => window.location.href = '/reservations?tab=calendar'
+    },
+    {
+      title: 'Check-in Guest',
+      description: 'Process arrival',
+      icon: Users,
+      color: 'bg-purple-600',
+      link: '/reservations?tab=arrivals'
+    },
+    {
+      title: 'View Reports',
+      description: 'Revenue & occupancy',
+      icon: TrendingUp,
+      color: 'bg-orange-600',
+      link: '/rms'
+    }
+  ];
+
   return (
     <div data-testid="dashboard-page" className="max-w-7xl mx-auto space-y-8">
       {/* Welcome Header */}
