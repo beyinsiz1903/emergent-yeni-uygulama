@@ -30,11 +30,11 @@ const Reservations = () => {
 
   const getStatusColor = (status) => {
     const colors = {
-      pending: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
-      confirmed: 'bg-green-500/20 text-green-400 border-green-500/30',
-      checked_in: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
-      checked_out: 'bg-gray-500/20 text-gray-400 border-gray-500/30',
-      cancelled: 'bg-red-500/20 text-red-400 border-red-500/30',
+      pending: 'bg-yellow-100 text-yellow-700 border-yellow-200',
+      confirmed: 'bg-green-100 text-green-700 border-green-200',
+      checked_in: 'bg-blue-100 text-blue-700 border-blue-200',
+      checked_out: 'bg-gray-100 text-gray-700 border-gray-200',
+      cancelled: 'bg-red-100 text-red-700 border-red-200',
     };
     return colors[status] || colors.pending;
   };
