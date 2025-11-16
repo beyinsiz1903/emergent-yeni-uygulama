@@ -179,6 +179,31 @@ const Dashboard = () => {
         })}
       </div>
 
+      {/* Quick Actions */}
+      <div>
+        <h2 className="text-2xl font-bold text-gray-900 mb-6">Quick Actions</h2>
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          {quickActions.map((action, index) => {
+            const Icon = action.icon;
+            const Component = action.link ? Link : 'button';
+            const props = action.link ? { to: action.link } : { onClick: action.action };
+            return (
+              <Component key={index} {...props} className="block">
+                <Card className="bg-white border-gray-200 hover:shadow-lg transition-all cursor-pointer">
+                  <CardContent className="p-6">
+                    <div className={`w-12 h-12 rounded-xl ${action.color} flex items-center justify-center mb-4`}>
+                      <Icon className="w-6 h-6 text-white" />
+                    </div>
+                    <h3 className="font-bold text-gray-900 mb-1">{action.title}</h3>
+                    <p className="text-sm text-gray-600">{action.description}</p>
+                  </CardContent>
+                </Card>
+              </Component>
+            );
+          })}
+        </div>
+      </div>
+
       {/* Your Modules */}
       <div>
         <h2 className="text-2xl font-bold text-gray-900 mb-6">Your Modules</h2>
