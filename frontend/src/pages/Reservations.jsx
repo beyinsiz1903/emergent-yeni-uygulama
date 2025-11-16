@@ -37,7 +37,16 @@ const Reservations = () => {
     adults: 1,
     children: 0,
     channel: 'direct',
-    special_requests: ''
+    special_requests: '',
+    rate_type: 'standard',
+    market_segment: 'direct',
+    source: 'website',
+    payment_method: 'credit_card',
+    deposit_amount: 0,
+    auto_invoice: false,
+    housekeeping_notes: '',
+    eta: '',
+    promotion_code: ''
   });
 
   useEffect(() => {
