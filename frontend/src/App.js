@@ -13,6 +13,7 @@ import RMS from '@/pages/RMS';
 import Loyalty from '@/pages/Loyalty';
 import Marketplace from '@/pages/Marketplace';
 import Invoices from '@/pages/Invoices';
+import ChannelManager from '@/pages/ChannelManager';
 import Settings from '@/pages/Settings';
 import PaymentSuccess from '@/pages/PaymentSuccess';
 import { Toaster } from '@/components/ui/sonner';
@@ -37,6 +38,7 @@ function App() {
             <Route path="loyalty" element={<Loyalty />} />
             <Route path="marketplace" element={<Marketplace />} />
             <Route path="invoices" element={<Invoices />} />
+            <Route path="channels" element={<ChannelManager />} />
             <Route path="settings" element={<Settings />} />
             <Route path="payment-success" element={<PaymentSuccess />} />
           </Route>
