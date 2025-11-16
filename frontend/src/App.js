@@ -9,6 +9,9 @@ import Calendar from '@/pages/Calendar';
 import Guests from '@/pages/Guests';
 import Rooms from '@/pages/Rooms';
 import RoomTypes from '@/pages/RoomTypes';
+import RMS from '@/pages/RMS';
+import Loyalty from '@/pages/Loyalty';
+import Marketplace from '@/pages/Marketplace';
 import Invoices from '@/pages/Invoices';
 import Settings from '@/pages/Settings';
 import PaymentSuccess from '@/pages/PaymentSuccess';
@@ -30,6 +33,9 @@ function App() {
             <Route path="guests" element={<Guests />} />
             <Route path="rooms" element={<Rooms />} />
             <Route path="room-types" element={<RoomTypes />} />
+            <Route path="rms" element={<RMS />} />
+            <Route path="loyalty" element={<Loyalty />} />
+            <Route path="marketplace" element={<Marketplace />} />
             <Route path="invoices" element={<Invoices />} />
             <Route path="settings" element={<Settings />} />
             <Route path="payment-success" element={<PaymentSuccess />} />
