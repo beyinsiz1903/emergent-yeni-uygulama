@@ -92,25 +92,30 @@ const Dashboard = () => {
   ];
 
   return (
-    <div data-testid="dashboard-page" className="space-y-8">
-      <div>
-        <h1 className="text-4xl font-bold text-white mb-2" style={{fontFamily: 'Space Grotesk'}}>Dashboard</h1>
-        <p className="text-gray-400">Otel işletmenizin genel görünümü</p>
+    <div data-testid="dashboard-page" className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-slate-900 mb-1" style={{fontFamily: 'Plus Jakarta Sans'}}>Dashboard</h1>
+          <p className="text-slate-500">Otel işletmenizin genel görünümü</p>
+        </div>
+        <div className="text-sm text-slate-500">
+          {new Date().toLocaleDateString('tr-TR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {statCards.map((stat, index) => {
           const Icon = stat.icon;
           return (
-            <Card key={index} data-testid={stat.testId} className="bg-[#16161a] border-[#2a2a2d] hover:border-amber-500/30 transition-all duration-300">
+            <Card key={index} data-testid={stat.testId} className="bg-white border-slate-200 hover:shadow-lg transition-all duration-300">
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-gray-400 mb-1">{stat.title}</p>
-                    <p className="text-3xl font-bold text-white" style={{fontFamily: 'Space Grotesk'}}>{stat.value}</p>
+                    <p className="text-xs font-medium text-slate-500 mb-2">{stat.title}</p>
+                    <p className="text-2xl font-bold text-slate-900" style={{fontFamily: 'Plus Jakarta Sans'}}>{stat.value}</p>
                   </div>
-                  <div className={`w-14 h-14 rounded-xl bg-gradient-to-br ${stat.color} flex items-center justify-center shadow-lg`}>
-                    <Icon className="w-7 h-7 text-white" />
+                  <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${stat.color} flex items-center justify-center shadow-lg shadow-blue-500/20`}>
+                    <Icon className="w-6 h-6 text-white" />
                   </div>
                 </div>
               </CardContent>
@@ -119,31 +124,31 @@ const Dashboard = () => {
         })}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card className="bg-[#16161a] border-[#2a2a2d]">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <Card className="bg-white border-slate-200 lg:col-span-2">
           <CardHeader>
-            <CardTitle className="text-white" style={{fontFamily: 'Space Grotesk'}}>Aylık Gelir</CardTitle>
+            <CardTitle className="text-slate-900" style={{fontFamily: 'Plus Jakarta Sans'}}>Aylık Gelir</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-4xl font-bold text-amber-400" style={{fontFamily: 'Space Grotesk'}}>
+            <div className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent" style={{fontFamily: 'Plus Jakarta Sans'}}>
               ${stats?.revenue_month || 0}
             </div>
-            <p className="text-sm text-gray-400 mt-2">Bu ay toplam gelir</p>
+            <p className="text-sm text-slate-500 mt-2">Bu ay toplam gelir</p>
           </CardContent>
         </Card>
 
-        <Card className="bg-[#16161a] border-[#2a2a2d]">
+        <Card className="bg-gradient-to-br from-blue-600 to-indigo-600 border-0 text-white">
           <CardHeader>
-            <CardTitle className="text-white" style={{fontFamily: 'Space Grotesk'}}>Hızlı İşlemler</CardTitle>
+            <CardTitle className="text-white" style={{fontFamily: 'Plus Jakarta Sans'}}>Hızlı İşlemler</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            <a href="/reservations/new" data-testid="quick-new-reservation" className="block p-4 rounded-lg bg-[#1f1f23] hover:bg-[#2a2a2d] transition-colors border border-[#2a2a2d] hover:border-amber-500/30">
-              <p className="text-white font-medium">Yeni Rezervasyon</p>
-              <p className="text-sm text-gray-400">Hızlı rezervasyon oluştur</p>
+            <a href="/reservations/new" data-testid="quick-new-reservation" className="block p-4 rounded-xl bg-white/10 hover:bg-white/20 transition-colors backdrop-blur-sm border border-white/20">
+              <p className="text-white font-semibold">Yeni Rezervasyon</p>
+              <p className="text-xs text-blue-100">Hızlı rezervasyon oluştur</p>
             </a>
-            <a href="/calendar" data-testid="quick-calendar" className="block p-4 rounded-lg bg-[#1f1f23] hover:bg-[#2a2a2d] transition-colors border border-[#2a2a2d] hover:border-amber-500/30">
-              <p className="text-white font-medium">Oda Takvimi</p>
-              <p className="text-sm text-gray-400">Müsaitlik ve fiyatları gör</p>
+            <a href="/calendar" data-testid="quick-calendar" className="block p-4 rounded-xl bg-white/10 hover:bg-white/20 transition-colors backdrop-blur-sm border border-white/20">
+              <p className="text-white font-semibold">Oda Takvimi</p>
+              <p className="text-xs text-blue-100">Müsaitlik ve fiyatları gör</p>
             </a>
           </CardContent>
         </Card>
