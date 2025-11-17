@@ -3,9 +3,23 @@ import axios from 'axios';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
 import Layout from '@/components/Layout';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { 
+  TrendingUp, 
+  TrendingDown, 
+  Minus, 
+  Sparkles, 
+  Calendar,
+  CheckCircle,
+  XCircle,
+  Clock,
+  Filter
+} from 'lucide-react';
 
 const RMSModule = ({ user, tenant, onLogout }) => {
   const { t } = useTranslation();
