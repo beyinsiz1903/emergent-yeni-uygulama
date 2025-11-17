@@ -205,15 +205,18 @@ backend:
   
   - task: "Create void charge endpoint"
     implemented: true
-    working: "NA"
+    working: true
     file: "/app/backend/server.py"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: "NA"
         agent: "main"
         comment: "POST /api/folio/{id}/void-charge/{charge_id} with void tracking (reason, user, timestamp)"
+      - working: true
+        agent: "testing"
+        comment: "✅ COMPREHENSIVE TESTING COMPLETED - Void charge endpoint working perfectly. POST /api/folio/{id}/void-charge/{charge_id}: Successfully voids charges with full audit trail. Tested void_reason, voided_by, voided_at field updates, automatic balance recalculation (excluding voided charges), FolioOperation record creation. Void validation (charge exists, not already voided) working correctly. Voided charges properly excluded from balance calculations."
   
   - task: "Create close folio endpoint"
     implemented: true
