@@ -40,6 +40,21 @@ const ReservationCalendar = ({ user, tenant, onLogout }) => {
   const [draggingBooking, setDraggingBooking] = useState(null);
   const [dragOverCell, setDragOverCell] = useState(null);
   
+  // Room Move state
+  const [showMoveReasonDialog, setShowMoveReasonDialog] = useState(false);
+  const [moveData, setMoveData] = useState(null);
+  const [moveReason, setMoveReason] = useState('');
+  
+  // Find Room state
+  const [showFindRoomDialog, setShowFindRoomDialog] = useState(false);
+  const [findRoomCriteria, setFindRoomCriteria] = useState({
+    check_in: '',
+    check_out: '',
+    room_type: 'all',
+    guests_count: 2
+  });
+  const [availableRooms, setAvailableRooms] = useState([]);
+  
   // New booking form
   const [newBooking, setNewBooking] = useState({
     guest_id: '',
@@ -53,6 +68,9 @@ const ReservationCalendar = ({ user, tenant, onLogout }) => {
     total_amount: 0,
     status: 'confirmed'
   });
+  
+  // Conflicts state
+  const [conflicts, setConflicts] = useState([]);
 
   useEffect(() => {
     loadCalendarData();
