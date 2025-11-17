@@ -1210,49 +1210,280 @@ const PMSModule = ({ user, tenant, onLogout }) => {
 
         {/* Booking Dialog */}
         <Dialog open={openDialog === 'booking'} onOpenChange={(open) => !open && setOpenDialog(null)}>
-          <DialogContent>
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Create New Booking</DialogTitle>
+              <DialogDescription>Fill in the booking details below</DialogDescription>
             </DialogHeader>
-            <form onSubmit={handleCreateBooking} className="space-y-4">
-              <div>
-                <Label>Guest</Label>
-                <Select value={newBooking.guest_id} onValueChange={(v) => setNewBooking({...newBooking, guest_id: v})}>
-                  <SelectTrigger><SelectValue placeholder="Select guest" /></SelectTrigger>
-                  <SelectContent>
-                    {guests.map(g => <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>)}
-                  </SelectContent>
-                </Select>
+            <form onSubmit={handleCreateBooking} className="space-y-6">
+              {/* Guest and Room Selection */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label>Guest *</Label>
+                  <Select value={newBooking.guest_id} onValueChange={(v) => setNewBooking({...newBooking, guest_id: v})}>
+                    <SelectTrigger><SelectValue placeholder="Select guest" /></SelectTrigger>
+                    <SelectContent>
+                      {guests.map(g => <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>Room *</Label>
+                  <Select value={newBooking.room_id} onValueChange={(v) => setNewBooking({...newBooking, room_id: v})}>
+                    <SelectTrigger><SelectValue placeholder="Select room" /></SelectTrigger>
+                    <SelectContent>
+                      {rooms.filter(r => r.status === 'available').map(r => (
+                        <SelectItem key={r.id} value={r.id}>Room {r.room_number} - {r.room_type}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
+
+              {/* Check-in and Check-out */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label>Check-in *</Label>
+                  <Input type="date" value={newBooking.check_in} onChange={(e) => setNewBooking({...newBooking, check_in: e.target.value})} required />
+                </div>
+                <div>
+                  <Label>Check-out *</Label>
+                  <Input type="date" value={newBooking.check_out} onChange={(e) => setNewBooking({...newBooking, check_out: e.target.value})} required />
+                </div>
+              </div>
+
+              {/* Adults and Children */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label>Adults *</Label>
+                  <Input 
+                    type="number" 
+                    min="1" 
+                    value={newBooking.adults} 
+                    onChange={(e) => {
+                      const adults = parseInt(e.target.value) || 1;
+                      setNewBooking({...newBooking, adults, guests_count: adults + newBooking.children});
+                    }} 
+                    required 
+                  />
+                </div>
+                <div>
+                  <Label>Children</Label>
+                  <Input 
+                    type="number" 
+                    min="0" 
+                    value={newBooking.children} 
+                    onChange={(e) => handleChildrenChange(e.target.value)} 
+                  />
+                </div>
+              </div>
+
+              {/* Children Ages - Show only if children > 0 */}
+              {newBooking.children > 0 && (
+                <div>
+                  <Label>Children Ages</Label>
+                  <div className="grid grid-cols-4 gap-2 mt-2">
+                    {Array.from({ length: newBooking.children }).map((_, index) => (
+                      <Input
+                        key={index}
+                        type="number"
+                        min="0"
+                        max="17"
+                        placeholder={`Child ${index + 1} age`}
+                        value={newBooking.children_ages[index] || ''}
+                        onChange={(e) => handleChildAgeChange(index, e.target.value)}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Company Selection */}
               <div>
-                <Label>Room</Label>
-                <Select value={newBooking.room_id} onValueChange={(v) => setNewBooking({...newBooking, room_id: v})}>
-                  <SelectTrigger><SelectValue placeholder="Select room" /></SelectTrigger>
+                <div className="flex justify-between items-center mb-2">
+                  <Label>Company (Optional)</Label>
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => setOpenDialog('company')}
+                  >
+                    <Plus className="w-4 h-4 mr-1" />
+                    New Company
+                  </Button>
+                </div>
+                <Select value={newBooking.company_id} onValueChange={handleCompanySelect}>
+                  <SelectTrigger><SelectValue placeholder="Select company (optional)" /></SelectTrigger>
                   <SelectContent>
-                    {rooms.filter(r => r.status === 'available').map(r => (
-                      <SelectItem key={r.id} value={r.id}>Room {r.room_number} - {r.room_type}</SelectItem>
+                    <SelectItem value="">None</SelectItem>
+                    {companies.filter(c => c.status === 'active').map(c => (
+                      <SelectItem key={c.id} value={c.id}>{c.name} - {c.corporate_code}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
-              <div className="grid grid-cols-2 gap-4">
+
+              {/* Contracted Rate */}
+              {newBooking.company_id && (
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label>Contracted Rate</Label>
+                    <Select value={newBooking.contracted_rate} onValueChange={handleContractedRateSelect}>
+                      <SelectTrigger><SelectValue placeholder="Select rate" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="corp_std">Standard Corporate</SelectItem>
+                        <SelectItem value="corp_pref">Preferred Corporate</SelectItem>
+                        <SelectItem value="gov">Government Rate</SelectItem>
+                        <SelectItem value="ta">Travel Agent Rate</SelectItem>
+                        <SelectItem value="crew">Airline Crew Rate</SelectItem>
+                        <SelectItem value="mice">Event/Conference Rate</SelectItem>
+                        <SelectItem value="lts">Long Stay/Project Rate</SelectItem>
+                        <SelectItem value="tou">Tour Operator Rate</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label>Rate Type</Label>
+                    <Select value={newBooking.rate_type} onValueChange={(v) => setNewBooking({...newBooking, rate_type: v})}>
+                      <SelectTrigger><SelectValue placeholder="Select type" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="bar">BAR / Rack Rate</SelectItem>
+                        <SelectItem value="corporate">Corporate Rate</SelectItem>
+                        <SelectItem value="government">Government Rate</SelectItem>
+                        <SelectItem value="wholesale">Wholesale Rate</SelectItem>
+                        <SelectItem value="package">Package Rate</SelectItem>
+                        <SelectItem value="promotional">Promotional Rate</SelectItem>
+                        <SelectItem value="non_refundable">Non-Refundable</SelectItem>
+                        <SelectItem value="long_stay">Long Stay Rate</SelectItem>
+                        <SelectItem value="day_use">Day Use Rate</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              )}
+
+              {/* Market Segment and Cancellation Policy */}
+              {newBooking.company_id && (
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label>Market Segment</Label>
+                    <Select value={newBooking.market_segment} onValueChange={(v) => setNewBooking({...newBooking, market_segment: v})}>
+                      <SelectTrigger><SelectValue placeholder="Select segment" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="corporate">Corporate</SelectItem>
+                        <SelectItem value="leisure">Leisure</SelectItem>
+                        <SelectItem value="group">Group</SelectItem>
+                        <SelectItem value="mice">MICE/Event</SelectItem>
+                        <SelectItem value="government">Government</SelectItem>
+                        <SelectItem value="crew">Airline Crew</SelectItem>
+                        <SelectItem value="wholesale">Wholesale</SelectItem>
+                        <SelectItem value="long_stay">Long Stay</SelectItem>
+                        <SelectItem value="complimentary">Complimentary</SelectItem>
+                        <SelectItem value="other">Other</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label>Cancellation Policy</Label>
+                    <Select value={newBooking.cancellation_policy} onValueChange={(v) => setNewBooking({...newBooking, cancellation_policy: v})}>
+                      <SelectTrigger><SelectValue placeholder="Select policy" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="same_day">Same Day (18:00)</SelectItem>
+                        <SelectItem value="h24">24 Hours</SelectItem>
+                        <SelectItem value="h48">48 Hours</SelectItem>
+                        <SelectItem value="h72">72 Hours</SelectItem>
+                        <SelectItem value="d7">7 Days</SelectItem>
+                        <SelectItem value="d14">14 Days</SelectItem>
+                        <SelectItem value="non_refundable">Non-Refundable</SelectItem>
+                        <SelectItem value="flexible">Flexible</SelectItem>
+                        <SelectItem value="special_event">Special Event</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              )}
+
+              {/* Billing Information */}
+              {newBooking.company_id && (
+                <div className="space-y-4 border-t pt-4">
+                  <h3 className="font-semibold">Billing Information</h3>
+                  <div>
+                    <Label>Billing Address</Label>
+                    <Textarea 
+                      value={newBooking.billing_address} 
+                      onChange={(e) => setNewBooking({...newBooking, billing_address: e.target.value})}
+                      rows={2}
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label>Tax Number</Label>
+                      <Input 
+                        value={newBooking.billing_tax_number} 
+                        onChange={(e) => setNewBooking({...newBooking, billing_tax_number: e.target.value})}
+                      />
+                    </div>
+                    <div>
+                      <Label>Contact Person</Label>
+                      <Input 
+                        value={newBooking.billing_contact_person} 
+                        onChange={(e) => setNewBooking({...newBooking, billing_contact_person: e.target.value})}
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Rate Information */}
+              <div className="grid grid-cols-3 gap-4 border-t pt-4">
                 <div>
-                  <Label>Check-in</Label>
-                  <Input type="date" value={newBooking.check_in} onChange={(e) => setNewBooking({...newBooking, check_in: e.target.value})} required />
+                  <Label>Base Rate</Label>
+                  <Input 
+                    type="number" 
+                    step="0.01" 
+                    value={newBooking.base_rate} 
+                    onChange={(e) => setNewBooking({...newBooking, base_rate: parseFloat(e.target.value) || 0})}
+                  />
                 </div>
                 <div>
-                  <Label>Check-out</Label>
-                  <Input type="date" value={newBooking.check_out} onChange={(e) => setNewBooking({...newBooking, check_out: e.target.value})} required />
+                  <Label>Total Amount *</Label>
+                  <Input 
+                    type="number" 
+                    step="0.01" 
+                    value={newBooking.total_amount} 
+                    onChange={(e) => setNewBooking({...newBooking, total_amount: parseFloat(e.target.value) || 0})} 
+                    required 
+                  />
+                </div>
+                <div>
+                  <Label>Channel</Label>
+                  <Select value={newBooking.channel} onValueChange={(v) => setNewBooking({...newBooking, channel: v})}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="direct">Direct</SelectItem>
+                      <SelectItem value="booking_com">Booking.com</SelectItem>
+                      <SelectItem value="expedia">Expedia</SelectItem>
+                      <SelectItem value="airbnb">Airbnb</SelectItem>
+                      <SelectItem value="agoda">Agoda</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
-              <div>
-                <Label>Number of Guests</Label>
-                <Input type="number" min="1" value={newBooking.guests_count} onChange={(e) => setNewBooking({...newBooking, guests_count: parseInt(e.target.value)})} required />
-              </div>
-              <div>
-                <Label>Total Amount</Label>
-                <Input type="number" step="0.01" value={newBooking.total_amount} onChange={(e) => setNewBooking({...newBooking, total_amount: parseFloat(e.target.value)})} required />
-              </div>
+
+              {/* Override Reason - Show if rate is different from base */}
+              {newBooking.base_rate > 0 && newBooking.base_rate !== newBooking.total_amount && (
+                <div className="bg-yellow-50 border border-yellow-200 p-4 rounded">
+                  <Label className="text-yellow-800">Override Reason * (Required for rate change)</Label>
+                  <Textarea 
+                    value={newBooking.override_reason} 
+                    onChange={(e) => setNewBooking({...newBooking, override_reason: e.target.value})}
+                    placeholder="Explain why the rate is different from the base rate..."
+                    className="mt-2"
+                    required
+                  />
+                </div>
+              )}
+
               <Button type="submit" className="w-full">Create Booking</Button>
             </form>
           </DialogContent>
