@@ -125,6 +125,55 @@ class ChannelType(str, Enum):
     AGODA = "agoda"
     OWN_WEBSITE = "own_website"
 
+class ContractedRateType(str, Enum):
+    CORP_STD = "corp_std"  # Standard Corporate
+    CORP_PREF = "corp_pref"  # Preferred Corporate
+    GOV = "gov"  # Government Rate
+    TA = "ta"  # Travel Agent Rate
+    CREW = "crew"  # Airline Crew Rate
+    MICE = "mice"  # Event/Conference Rate
+    LTS = "lts"  # Long Stay/Project Rate
+    TOU = "tou"  # Tour Operator/Series Group Rate
+
+class RateType(str, Enum):
+    BAR = "bar"  # Best Available Rate / Rack Rate
+    CORPORATE = "corporate"
+    GOVERNMENT = "government"
+    WHOLESALE = "wholesale"
+    PACKAGE = "package"
+    PROMOTIONAL = "promotional"
+    NON_REFUNDABLE = "non_refundable"
+    LONG_STAY = "long_stay"
+    DAY_USE = "day_use"
+
+class MarketSegment(str, Enum):
+    CORPORATE = "corporate"
+    LEISURE = "leisure"
+    GROUP = "group"
+    MICE = "mice"
+    GOVERNMENT = "government"
+    CREW = "crew"
+    WHOLESALE = "wholesale"
+    LONG_STAY = "long_stay"
+    COMPLIMENTARY = "complimentary"
+    OTHER = "other"
+
+class CancellationPolicyType(str, Enum):
+    SAME_DAY = "same_day"  # Free cancellation until 18:00
+    H24 = "h24"  # 24 hours before check-in
+    H48 = "h48"  # 48 hours before check-in
+    H72 = "h72"  # 72 hours before check-in
+    D7 = "d7"  # 7 days before check-in
+    D14 = "d14"  # 14 days before check-in
+    NON_REFUNDABLE = "non_refundable"
+    FLEXIBLE = "flexible"
+    SPECIAL_EVENT = "special_event"
+
+class CompanyStatus(str, Enum):
+    ACTIVE = "active"
+    PENDING = "pending"  # Quick-created from booking form
+    INACTIVE = "inactive"
+
 # ============= MODELS =============
 
 class Tenant(BaseModel):
