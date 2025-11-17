@@ -259,6 +259,42 @@ backend:
         agent: "testing"
         comment: "✅ COMPREHENSIVE TESTING COMPLETED - Balance calculation logic working perfectly. calculate_folio_balance() function: Correctly calculates total charges - total payments, properly excludes voided charges from calculation, handles multiple charge categories and payment types. Tested scenarios: room charge (100) + food charge (50) + minibar charge (15) - prepayment (50) - interim payment (100) = 15.0 balance. Voided charges correctly excluded from balance. All balance calculations accurate."
   
+  - task: "Add GUARANTEED status to BookingStatus enum"
+    implemented: true
+    working: "NA"
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Added GUARANTEED status between CONFIRMED and CHECKED_IN for pre-authorized bookings"
+  
+  - task: "Enhanced check-in endpoint with validations"
+    implemented: true
+    working: "NA"
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "POST /api/frontdesk/checkin/{booking_id}: Room status validation (available/inspected), auto guest folio creation, already checked-in validation, guest total_stays increment"
+  
+  - task: "Enhanced check-out endpoint with balance validation"
+    implemented: true
+    working: "NA"
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "POST /api/frontdesk/checkout/{booking_id}: Multi-folio balance check, auto folio closure, outstanding balance error, room status → dirty, auto housekeeping task creation"
+  
   - task: "Create Company model and CompanyCreate pydantic model"
     implemented: true
     working: true
