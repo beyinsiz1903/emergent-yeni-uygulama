@@ -1277,6 +1277,219 @@ const PMSModule = ({ user, tenant, onLogout }) => {
                 </CardContent>
               </Card>
             )}
+
+            {/* MANAGEMENT DASHBOARD */}
+            <div className="border-t pt-6 mt-6">
+              <h3 className="text-xl font-bold mb-4">📊 Management Dashboard</h3>
+              
+              {/* Daily Flash Report */}
+              {reports.dailyFlash && (
+                <Card className="mb-6 bg-gradient-to-r from-blue-50 to-purple-50">
+                  <CardHeader>
+                    <CardTitle className="flex items-center">
+                      <span className="text-2xl mr-2">⚡</span>
+                      Daily Flash Report - {new Date(reports.dailyFlash.date).toLocaleDateString()}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                      {/* Occupancy */}
+                      <div className="bg-white p-4 rounded-lg shadow">
+                        <h4 className="font-semibold text-gray-700 mb-3">Occupancy</h4>
+                        <div className="space-y-2">
+                          <div className="flex justify-between">
+                            <span className="text-sm">Occupied:</span>
+                            <span className="font-bold">{reports.dailyFlash.occupancy.occupied_rooms} / {reports.dailyFlash.occupancy.total_rooms}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-sm">Rate:</span>
+                            <span className="font-bold text-blue-600">{reports.dailyFlash.occupancy.occupancy_rate}%</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Movements */}
+                      <div className="bg-white p-4 rounded-lg shadow">
+                        <h4 className="font-semibold text-gray-700 mb-3">Movements</h4>
+                        <div className="space-y-2">
+                          <div className="flex justify-between">
+                            <span className="text-sm">Arrivals:</span>
+                            <span className="font-bold text-green-600">{reports.dailyFlash.movements.arrivals}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-sm">Departures:</span>
+                            <span className="font-bold text-red-600">{reports.dailyFlash.movements.departures}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-sm">Stayovers:</span>
+                            <span className="font-bold">{reports.dailyFlash.movements.stayovers}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Revenue */}
+                      <div className="bg-white p-4 rounded-lg shadow">
+                        <h4 className="font-semibold text-gray-700 mb-3">Revenue</h4>
+                        <div className="space-y-2">
+                          <div className="flex justify-between">
+                            <span className="text-sm">Room:</span>
+                            <span className="font-bold">${reports.dailyFlash.revenue.room_revenue.toFixed(2)}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-sm">F&B:</span>
+                            <span className="font-bold">${reports.dailyFlash.revenue.fb_revenue.toFixed(2)}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-sm">Other:</span>
+                            <span className="font-bold">${reports.dailyFlash.revenue.other_revenue.toFixed(2)}</span>
+                          </div>
+                          <div className="flex justify-between border-t pt-2 mt-2">
+                            <span className="text-sm font-semibold">Total:</span>
+                            <span className="font-bold text-lg text-purple-600">${reports.dailyFlash.revenue.total_revenue.toFixed(2)}</span>
+                          </div>
+                          <div className="flex justify-between text-xs text-gray-600">
+                            <span>ADR: ${reports.dailyFlash.revenue.adr.toFixed(2)}</span>
+                            <span>RevPAR: ${reports.dailyFlash.revenue.rev_par.toFixed(2)}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Market Segment & Rate Type */}
+              {reports.marketSegment && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>📈 Market Segment Performance</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-3">
+                        {Object.entries(reports.marketSegment.market_segments || {}).map(([segment, data]) => (
+                          <div key={segment} className="border-b pb-2">
+                            <div className="flex justify-between items-center">
+                              <span className="font-medium capitalize">{segment.replace('_', ' ')}</span>
+                              <span className="text-sm text-gray-600">{data.bookings} bookings</span>
+                            </div>
+                            <div className="flex justify-between text-sm mt-1">
+                              <span className="text-gray-600">{data.nights} nights</span>
+                              <span className="font-semibold">${data.revenue.toFixed(2)} (ADR: ${data.adr.toFixed(2)})</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>💰 Rate Type Performance</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-3">
+                        {Object.entries(reports.marketSegment.rate_types || {}).map(([rateType, data]) => (
+                          <div key={rateType} className="border-b pb-2">
+                            <div className="flex justify-between items-center">
+                              <span className="font-medium capitalize">{rateType.replace('_', ' ')}</span>
+                              <span className="text-sm text-gray-600">{data.bookings} bookings</span>
+                            </div>
+                            <div className="flex justify-between text-sm mt-1">
+                              <span className="text-gray-600">{data.nights} nights</span>
+                              <span className="font-semibold">${data.revenue.toFixed(2)} (ADR: ${data.adr.toFixed(2)})</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              )}
+
+              {/* Company Aging Report */}
+              {reports.companyAging && (
+                <Card className="mb-6">
+                  <CardHeader>
+                    <CardTitle className="flex items-center justify-between">
+                      <span>🏢 Company AR Aging Report</span>
+                      <span className="text-lg font-bold text-red-600">Total AR: ${reports.companyAging.total_ar.toFixed(2)}</span>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="overflow-x-auto">
+                      <table className="w-full">
+                        <thead className="bg-gray-50">
+                          <tr>
+                            <th className="px-4 py-2 text-left text-sm font-semibold">Company</th>
+                            <th className="px-4 py-2 text-left text-sm font-semibold">Code</th>
+                            <th className="px-4 py-2 text-right text-sm font-semibold">0-7 Days</th>
+                            <th className="px-4 py-2 text-right text-sm font-semibold">8-14 Days</th>
+                            <th className="px-4 py-2 text-right text-sm font-semibold">15-30 Days</th>
+                            <th className="px-4 py-2 text-right text-sm font-semibold">30+ Days</th>
+                            <th className="px-4 py-2 text-right text-sm font-semibold">Total</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {reports.companyAging.companies.slice(0, 10).map((company, idx) => (
+                            <tr key={idx} className="border-b hover:bg-gray-50">
+                              <td className="px-4 py-2 text-sm">{company.company_name}</td>
+                              <td className="px-4 py-2 text-sm text-gray-600">{company.corporate_code}</td>
+                              <td className="px-4 py-2 text-sm text-right">${company.aging['0-7 days'].toFixed(2)}</td>
+                              <td className="px-4 py-2 text-sm text-right">${company.aging['8-14 days'].toFixed(2)}</td>
+                              <td className="px-4 py-2 text-sm text-right text-yellow-600">${company.aging['15-30 days'].toFixed(2)}</td>
+                              <td className="px-4 py-2 text-sm text-right text-red-600">${company.aging['30+ days'].toFixed(2)}</td>
+                              <td className="px-4 py-2 text-sm text-right font-bold">${company.total_balance.toFixed(2)}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                      {reports.companyAging.companies.length > 10 && (
+                        <div className="text-center text-sm text-gray-500 mt-3">
+                          Showing top 10 of {reports.companyAging.company_count} companies
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Housekeeping Efficiency */}
+              {reports.hkEfficiency && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center justify-between">
+                      <span>🧹 Housekeeping Efficiency</span>
+                      <span className="text-sm text-gray-600">
+                        {reports.hkEfficiency.total_tasks_completed} tasks in {reports.hkEfficiency.date_range_days} days
+                      </span>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="mb-4 p-3 bg-blue-50 rounded">
+                      <div className="text-center">
+                        <div className="text-sm text-gray-600">Average Tasks Per Day (All Staff)</div>
+                        <div className="text-2xl font-bold text-blue-600">{reports.hkEfficiency.daily_average_all_staff}</div>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      {Object.entries(reports.hkEfficiency.staff_performance || {}).map(([staff, data]) => (
+                        <div key={staff} className="border rounded p-3">
+                          <div className="font-semibold">{staff}</div>
+                          <div className="text-sm text-gray-600 mt-1">Tasks: {data.tasks_completed}</div>
+                          <div className="text-sm text-gray-600">Daily Avg: {data.daily_average}</div>
+                          <div className="text-xs text-gray-500 mt-2">
+                            {Object.entries(data.by_type).map(([type, count]) => (
+                              <span key={type} className="mr-2">{type}: {count}</span>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
           </TabsContent>
         </Tabs>
 
