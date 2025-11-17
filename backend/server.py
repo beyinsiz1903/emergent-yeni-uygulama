@@ -72,6 +72,7 @@ class RoomStatus(str, Enum):
 class BookingStatus(str, Enum):
     PENDING = "pending"
     CONFIRMED = "confirmed"
+    GUARANTEED = "guaranteed"
     CHECKED_IN = "checked_in"
     CHECKED_OUT = "checked_out"
     NO_SHOW = "no_show"
