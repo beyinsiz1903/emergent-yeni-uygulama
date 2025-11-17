@@ -1,7 +1,8 @@
 import requests
 import sys
 import json
-from datetime import datetime, timedelta
+import uuid
+from datetime import datetime, timedelta, timezone
 
 class RoomOpsAPITester:
     def __init__(self, base_url="https://auto-corp-rates.preview.emergentagent.com"):
