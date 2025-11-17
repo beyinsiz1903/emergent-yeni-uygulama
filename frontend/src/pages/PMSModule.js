@@ -815,17 +815,153 @@ const PMSModule = ({ user, tenant, onLogout }) => {
               </Button>
             </div>
 
+            {/* Status Overview */}
             {roomStatusBoard && (
-              <div className="grid grid-cols-3 md:grid-cols-7 gap-4 mb-6">
+              <div className="grid grid-cols-3 md:grid-cols-7 gap-4">
                 {Object.entries(roomStatusBoard.status_counts).map(([status, count]) => (
-                  <Card key={status}>
+                  <Card key={status} className={`border-2 ${
+                    status === 'dirty' ? 'border-red-200 bg-red-50' :
+                    status === 'cleaning' ? 'border-yellow-200 bg-yellow-50' :
+                    status === 'inspected' ? 'border-green-200 bg-green-50' :
+                    status === 'available' ? 'border-blue-200 bg-blue-50' :
+                    'border-gray-200'
+                  }`}>
                     <CardContent className="pt-4">
-                      <div className="text-2xl font-bold">{count}</div>
-                      <div className="text-xs capitalize">{status.replace('_', ' ')}</div>
+                      <div className="text-3xl font-bold">{count}</div>
+                      <div className="text-xs capitalize font-semibold">{status.replace('_', ' ')}</div>
                     </CardContent>
                   </Card>
                 ))}
               </div>
+            )}
+
+            {/* Due Out / Stayover / Arrivals Lists */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {/* Due Out Today */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg flex items-center">
+                    <LogOut className="w-5 h-5 mr-2 text-red-600" />
+                    Due Out ({dueOutRooms.length})
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2 max-h-96 overflow-y-auto">
+                  {dueOutRooms.length === 0 ? (
+                    <div className="text-center text-gray-400 py-4">No departures</div>
+                  ) : (
+                    dueOutRooms.map((room, idx) => (
+                      <div key={idx} className={`p-3 rounded border ${room.is_today ? 'bg-red-50 border-red-200' : 'bg-orange-50 border-orange-200'}`}>
+                        <div className="font-bold">Room {room.room_number}</div>
+                        <div className="text-sm text-gray-600">{room.guest_name}</div>
+                        <div className="text-xs text-gray-500">
+                          {new Date(room.checkout_date).toLocaleDateString()}
+                          {room.is_today && <span className="ml-2 text-red-600 font-semibold">TODAY</span>}
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Stayovers */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg flex items-center">
+                    <Home className="w-5 h-5 mr-2 text-blue-600" />
+                    Stayovers ({stayoverRooms.length})
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2 max-h-96 overflow-y-auto">
+                  {stayoverRooms.length === 0 ? (
+                    <div className="text-center text-gray-400 py-4">No stayovers</div>
+                  ) : (
+                    stayoverRooms.map((room, idx) => (
+                      <div key={idx} className="p-3 rounded border bg-blue-50 border-blue-200">
+                        <div className="font-bold">Room {room.room_number}</div>
+                        <div className="text-sm text-gray-600">{room.guest_name}</div>
+                        <div className="text-xs text-gray-500">
+                          {room.nights_remaining} night(s) remaining
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Arrivals */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg flex items-center">
+                    <LogIn className="w-5 h-5 mr-2 text-green-600" />
+                    Arrivals ({arrivalRooms.length})
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2 max-h-96 overflow-y-auto">
+                  {arrivalRooms.length === 0 ? (
+                    <div className="text-center text-gray-400 py-4">No arrivals</div>
+                  ) : (
+                    arrivalRooms.map((room, idx) => (
+                      <div key={idx} className={`p-3 rounded border ${
+                        room.ready ? 'bg-green-50 border-green-200' : 'bg-yellow-50 border-yellow-200'
+                      }`}>
+                        <div className="font-bold">Room {room.room_number}</div>
+                        <div className="text-sm text-gray-600">{room.guest_name}</div>
+                        <div className="text-xs flex items-center justify-between">
+                          <span className={room.ready ? 'text-green-600 font-semibold' : 'text-yellow-600'}>
+                            {room.ready ? '✓ Ready' : `⚠ ${room.room_status}`}
+                          </span>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Room Status Board */}
+            {roomStatusBoard && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Room Status Board</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
+                    {roomStatusBoard.rooms.map((room) => (
+                      <Card key={room.id} className={`cursor-pointer hover:shadow-lg transition-shadow ${
+                        room.status === 'dirty' ? 'bg-red-100 border-red-300' :
+                        room.status === 'cleaning' ? 'bg-yellow-100 border-yellow-300' :
+                        room.status === 'inspected' ? 'bg-green-100 border-green-300' :
+                        room.status === 'available' ? 'bg-blue-100 border-blue-300' :
+                        room.status === 'occupied' ? 'bg-purple-100 border-purple-300' :
+                        'bg-gray-100 border-gray-300'
+                      }`}>
+                        <CardContent className="p-3">
+                          <div className="font-bold text-lg">{room.room_number}</div>
+                          <div className="text-xs capitalize">{room.room_type}</div>
+                          <div className="text-xs font-semibold mt-1 capitalize">{room.status.replace('_', ' ')}</div>
+                          <div className="flex gap-1 mt-2">
+                            {room.status === 'dirty' && (
+                              <Button size="sm" variant="outline" className="h-6 text-xs" onClick={() => quickUpdateRoomStatus(room.id, 'cleaning')}>
+                                Clean
+                              </Button>
+                            )}
+                            {room.status === 'cleaning' && (
+                              <Button size="sm" variant="outline" className="h-6 text-xs" onClick={() => quickUpdateRoomStatus(room.id, 'inspected')}>
+                                Done
+                              </Button>
+                            )}
+                            {room.status === 'inspected' && (
+                              <Button size="sm" variant="outline" className="h-6 text-xs" onClick={() => quickUpdateRoomStatus(room.id, 'available')}>
+                                Ready
+                              </Button>
+                            )}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
             )}
 
             <div className="space-y-4">
