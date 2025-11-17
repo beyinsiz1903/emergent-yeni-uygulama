@@ -503,6 +503,7 @@ agent_communication:
       - POST /api/pms/bookings - Now supports all new fields and auto-creates override log when rate changes
       
       Ready for backend testing.
+  
   - agent: "testing"
     message: |
       🎉 COMPREHENSIVE BACKEND TESTING COMPLETED - ALL CORPORATE BOOKING FEATURES WORKING PERFECTLY!
