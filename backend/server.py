@@ -867,6 +867,87 @@ async def update_room(room_id: str, updates: Dict[str, Any], current_user: User 
 
 # ============= PMS - GUESTS MANAGEMENT =============
 
+# ============= COMPANY MANAGEMENT =============
+
+@api_router.post("/companies", response_model=Company)
+async def create_company(company_data: CompanyCreate, current_user: User = Depends(get_current_user)):
+    """Create a new company. Status is 'pending' by default for quick-created companies from booking form."""
+    company = Company(
+        tenant_id=current_user.tenant_id,
+        **company_data.model_dump()
+    )
+    company_dict = company.model_dump()
+    company_dict['created_at'] = company_dict['created_at'].isoformat()
+    company_dict['updated_at'] = company_dict['updated_at'].isoformat()
+    await db.companies.insert_one(company_dict)
+    return company
+
+@api_router.get("/companies", response_model=List[Company])
+async def get_companies(
+    search: Optional[str] = None,
+    status: Optional[CompanyStatus] = None,
+    current_user: User = Depends(get_current_user)
+):
+    """Get all companies with optional search and status filter."""
+    query = {'tenant_id': current_user.tenant_id}
+    
+    if status:
+        query['status'] = status
+    
+    if search:
+        query['$or'] = [
+            {'name': {'$regex': search, '$options': 'i'}},
+            {'corporate_code': {'$regex': search, '$options': 'i'}}
+        ]
+    
+    companies = await db.companies.find(query, {'_id': 0}).to_list(1000)
+    return companies
+
+@api_router.get("/companies/{company_id}", response_model=Company)
+async def get_company(company_id: str, current_user: User = Depends(get_current_user)):
+    """Get a specific company by ID."""
+    company = await db.companies.find_one({
+        'id': company_id,
+        'tenant_id': current_user.tenant_id
+    }, {'_id': 0})
+    
+    if not company:
+        raise HTTPException(status_code=404, detail="Company not found")
+    
+    return company
+
+@api_router.put("/companies/{company_id}", response_model=Company)
+async def update_company(
+    company_id: str,
+    company_data: CompanyCreate,
+    current_user: User = Depends(get_current_user)
+):
+    """Update company information. Used by sales team to complete pending company profiles."""
+    company = await db.companies.find_one({
+        'id': company_id,
+        'tenant_id': current_user.tenant_id
+    })
+    
+    if not company:
+        raise HTTPException(status_code=404, detail="Company not found")
+    
+    update_data = company_data.model_dump()
+    update_data['updated_at'] = datetime.now(timezone.utc).isoformat()
+    
+    await db.companies.update_one(
+        {'id': company_id, 'tenant_id': current_user.tenant_id},
+        {'$set': update_data}
+    )
+    
+    updated_company = await db.companies.find_one({
+        'id': company_id,
+        'tenant_id': current_user.tenant_id
+    }, {'_id': 0})
+    
+    return updated_company
+
+# ============= GUEST MANAGEMENT =============
+
 @api_router.post("/pms/guests", response_model=Guest)
 async def create_guest(guest_data: GuestCreate, current_user: User = Depends(get_current_user)):
     guest = Guest(tenant_id=current_user.tenant_id, **guest_data.model_dump())
