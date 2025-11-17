@@ -2338,6 +2338,280 @@ async def get_forecast(days: int = 30, current_user: User = Depends(get_current_
         forecast_data.append({'date': forecast_date.isoformat(), 'bookings': bookings, 'total_rooms': total_rooms, 'occupancy_rate': occupancy})
     return forecast_data
 
+# ============= MANAGEMENT REPORTS =============
+
+@api_router.get("/reports/daily-flash")
+async def get_daily_flash_report(date_str: Optional[str] = None, current_user: User = Depends(get_current_user)):
+    """Daily Flash Report - GM/CFO Dashboard"""
+    target_date = datetime.fromisoformat(date_str).date() if date_str else datetime.now(timezone.utc).date()
+    start_of_day = datetime.combine(target_date, datetime.min.time())
+    end_of_day = datetime.combine(target_date, datetime.max.time())
+    
+    # Get total rooms
+    total_rooms = await db.rooms.count_documents({'tenant_id': current_user.tenant_id})
+    
+    # Get occupancy (checked-in bookings)
+    occupied_rooms = await db.bookings.count_documents({
+        'tenant_id': current_user.tenant_id,
+        'status': 'checked_in',
+        'check_in': {'$lte': end_of_day.isoformat()},
+        'check_out': {'$gte': start_of_day.isoformat()}
+    })
+    
+    occupancy_rate = round((occupied_rooms / total_rooms * 100) if total_rooms > 0 else 0, 2)
+    
+    # Get arrivals & departures count
+    arrivals = await db.bookings.count_documents({
+        'tenant_id': current_user.tenant_id,
+        'check_in': {'$gte': start_of_day.isoformat(), '$lte': end_of_day.isoformat()}
+    })
+    
+    departures = await db.bookings.count_documents({
+        'tenant_id': current_user.tenant_id,
+        'check_out': {'$gte': start_of_day.isoformat(), '$lte': end_of_day.isoformat()}
+    })
+    
+    # Get all bookings for the day for revenue calculation
+    bookings = await db.bookings.find({
+        'tenant_id': current_user.tenant_id,
+        'status': {'$in': ['checked_in', 'checked_out']},
+        'check_in': {'$lte': end_of_day.isoformat()},
+        'check_out': {'$gte': start_of_day.isoformat()}
+    }).to_list(1000)
+    
+    # Calculate revenue from folio charges posted today
+    charges = await db.folio_charges.find({
+        'tenant_id': current_user.tenant_id,
+        'date': {'$gte': start_of_day.isoformat(), '$lte': end_of_day.isoformat()},
+        'voided': False
+    }).to_list(10000)
+    
+    total_revenue = sum(c['total'] for c in charges)
+    
+    # Revenue breakdown by category
+    room_revenue = sum(c['total'] for c in charges if c['charge_category'] == 'room')
+    fb_revenue = sum(c['total'] for c in charges if c['charge_category'] in ['food', 'beverage'])
+    other_revenue = total_revenue - room_revenue - fb_revenue
+    
+    # Calculate ADR and RevPAR
+    adr = round(room_revenue / occupied_rooms, 2) if occupied_rooms > 0 else 0
+    rev_par = round(total_revenue / total_rooms, 2) if total_rooms > 0 else 0
+    
+    return {
+        'date': target_date.isoformat(),
+        'occupancy': {
+            'occupied_rooms': occupied_rooms,
+            'total_rooms': total_rooms,
+            'occupancy_rate': occupancy_rate
+        },
+        'movements': {
+            'arrivals': arrivals,
+            'departures': departures,
+            'stayovers': occupied_rooms - arrivals
+        },
+        'revenue': {
+            'total_revenue': round(total_revenue, 2),
+            'room_revenue': round(room_revenue, 2),
+            'fb_revenue': round(fb_revenue, 2),
+            'other_revenue': round(other_revenue, 2),
+            'adr': adr,
+            'rev_par': rev_par
+        }
+    }
+
+@api_router.get("/reports/market-segment")
+async def get_market_segment_report(
+    start_date: str,
+    end_date: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Market Segment & Rate Type Performance Report"""
+    start = datetime.fromisoformat(start_date)
+    end = datetime.fromisoformat(end_date)
+    
+    # Get all bookings in date range
+    bookings = await db.bookings.find({
+        'tenant_id': current_user.tenant_id,
+        'check_in': {'$gte': start.isoformat()},
+        'check_out': {'$lte': end.isoformat()}
+    }).to_list(10000)
+    
+    # Aggregate by market segment
+    segment_data = {}
+    rate_type_data = {}
+    
+    for booking in bookings:
+        segment = booking.get('market_segment', 'other')
+        rate_type = booking.get('rate_type', 'bar')
+        
+        # Calculate nights
+        check_in = datetime.fromisoformat(booking['check_in'])
+        check_out = datetime.fromisoformat(booking['check_out'])
+        nights = (check_out - check_in).days
+        revenue = booking.get('total_amount', 0)
+        
+        # Market segment aggregation
+        if segment not in segment_data:
+            segment_data[segment] = {'bookings': 0, 'nights': 0, 'revenue': 0}
+        segment_data[segment]['bookings'] += 1
+        segment_data[segment]['nights'] += nights
+        segment_data[segment]['revenue'] += revenue
+        
+        # Rate type aggregation
+        if rate_type not in rate_type_data:
+            rate_type_data[rate_type] = {'bookings': 0, 'nights': 0, 'revenue': 0}
+        rate_type_data[rate_type]['bookings'] += 1
+        rate_type_data[rate_type]['nights'] += nights
+        rate_type_data[rate_type]['revenue'] += revenue
+    
+    # Calculate averages
+    for segment in segment_data:
+        segment_data[segment]['adr'] = round(
+            segment_data[segment]['revenue'] / segment_data[segment]['nights'], 2
+        ) if segment_data[segment]['nights'] > 0 else 0
+    
+    for rate_type in rate_type_data:
+        rate_type_data[rate_type]['adr'] = round(
+            rate_type_data[rate_type]['revenue'] / rate_type_data[rate_type]['nights'], 2
+        ) if rate_type_data[rate_type]['nights'] > 0 else 0
+    
+    return {
+        'start_date': start_date,
+        'end_date': end_date,
+        'total_bookings': len(bookings),
+        'market_segments': segment_data,
+        'rate_types': rate_type_data
+    }
+
+@api_router.get("/reports/company-aging")
+async def get_company_aging_report(current_user: User = Depends(get_current_user)):
+    """Company Accounts Receivable Aging Report"""
+    today = datetime.now(timezone.utc).date()
+    
+    # Get all company folios with outstanding balance
+    folios = await db.folios.find({
+        'tenant_id': current_user.tenant_id,
+        'folio_type': 'company',
+        'status': 'open'
+    }).to_list(10000)
+    
+    company_balances = {}
+    
+    for folio in folios:
+        balance = await calculate_folio_balance(folio['id'], current_user.tenant_id)
+        
+        if balance > 0:
+            company_id = folio.get('company_id')
+            if not company_id:
+                continue
+            
+            # Get company details
+            company = await db.companies.find_one({'id': company_id}, {'_id': 0})
+            if not company:
+                continue
+            
+            # Calculate aging based on folio creation date
+            folio_created = datetime.fromisoformat(folio['created_at']).date()
+            age_days = (today - folio_created).days
+            
+            # Determine aging bucket
+            if age_days <= 7:
+                aging_bucket = '0-7 days'
+            elif age_days <= 14:
+                aging_bucket = '8-14 days'
+            elif age_days <= 30:
+                aging_bucket = '15-30 days'
+            else:
+                aging_bucket = '30+ days'
+            
+            # Aggregate by company
+            if company_id not in company_balances:
+                company_balances[company_id] = {
+                    'company_name': company['name'],
+                    'corporate_code': company.get('corporate_code', 'N/A'),
+                    'total_balance': 0,
+                    'aging': {
+                        '0-7 days': 0,
+                        '8-14 days': 0,
+                        '15-30 days': 0,
+                        '30+ days': 0
+                    },
+                    'folio_count': 0
+                }
+            
+            company_balances[company_id]['total_balance'] += balance
+            company_balances[company_id]['aging'][aging_bucket] += balance
+            company_balances[company_id]['folio_count'] += 1
+    
+    # Sort by total balance descending
+    sorted_companies = sorted(
+        company_balances.values(),
+        key=lambda x: x['total_balance'],
+        reverse=True
+    )
+    
+    total_ar = sum(c['total_balance'] for c in sorted_companies)
+    
+    return {
+        'report_date': today.isoformat(),
+        'total_ar': round(total_ar, 2),
+        'company_count': len(sorted_companies),
+        'companies': sorted_companies
+    }
+
+@api_router.get("/reports/housekeeping-efficiency")
+async def get_housekeeping_efficiency_report(
+    start_date: str,
+    end_date: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Housekeeping Efficiency Report"""
+    start = datetime.fromisoformat(start_date)
+    end = datetime.fromisoformat(end_date)
+    
+    # Get completed housekeeping tasks in date range
+    tasks = await db.housekeeping_tasks.find({
+        'tenant_id': current_user.tenant_id,
+        'status': 'completed',
+        'created_at': {'$gte': start.isoformat(), '$lte': end.isoformat()}
+    }).to_list(10000)
+    
+    # Aggregate by assigned staff
+    staff_performance = {}
+    
+    for task in tasks:
+        assigned_to = task.get('assigned_to', 'Unassigned')
+        task_type = task.get('task_type', 'cleaning')
+        
+        if assigned_to not in staff_performance:
+            staff_performance[assigned_to] = {
+                'tasks_completed': 0,
+                'by_type': {}
+            }
+        
+        staff_performance[assigned_to]['tasks_completed'] += 1
+        
+        if task_type not in staff_performance[assigned_to]['by_type']:
+            staff_performance[assigned_to]['by_type'][task_type] = 0
+        staff_performance[assigned_to]['by_type'][task_type] += 1
+    
+    # Calculate daily averages
+    date_range_days = (end.date() - start.date()).days + 1
+    
+    for staff in staff_performance:
+        staff_performance[staff]['daily_average'] = round(
+            staff_performance[staff]['tasks_completed'] / date_range_days, 2
+        )
+    
+    return {
+        'start_date': start_date,
+        'end_date': end_date,
+        'date_range_days': date_range_days,
+        'total_tasks_completed': len(tasks),
+        'staff_performance': staff_performance,
+        'daily_average_all_staff': round(len(tasks) / date_range_days, 2) if date_range_days > 0 else 0
+    }
+
 # Router will be included at the very end after ALL endpoints are defined
 
 logger = logging.getLogger(__name__)
