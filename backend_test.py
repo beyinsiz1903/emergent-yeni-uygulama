@@ -1857,7 +1857,6 @@ class RoomOpsAPITester:
             if balance > 0:
                 # Add payment to clear balance
                 payment_data = {
-                    "folio_id": folio_id,
                     "amount": balance,
                     "method": "card",
                     "payment_type": "final"
