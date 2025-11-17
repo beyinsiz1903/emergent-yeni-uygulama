@@ -57,18 +57,20 @@ const ChannelManagerModule = ({ user, tenant, onLogout }) => {
   const loadConnections = async () => {
     try {
       const response = await axios.get('/channel-manager/connections');
-      setConnections(response.data);
+      setConnections(Array.isArray(response.data) ? response.data : []);
     } catch (error) {
       console.error('Failed to load connections:', error);
+      setConnections([]);
     }
   };
 
   const loadOtaReservations = async () => {
     try {
       const response = await axios.get(`/channel-manager/ota-reservations?status=${reservationFilter}`);
-      setOtaReservations(response.data);
+      setOtaReservations(Array.isArray(response.data) ? response.data : []);
     } catch (error) {
       console.error('Failed to load OTA reservations:', error);
+      setOtaReservations([]);
     }
   };
 
@@ -78,9 +80,10 @@ const ChannelManagerModule = ({ user, tenant, onLogout }) => {
         ? '/channel-manager/exceptions'
         : `/channel-manager/exceptions?status=${exceptionFilter}`;
       const response = await axios.get(url);
-      setExceptions(response.data);
+      setExceptions(Array.isArray(response.data) ? response.data : []);
     } catch (error) {
       console.error('Failed to load exceptions:', error);
+      setExceptions([]);
     }
   };
 
