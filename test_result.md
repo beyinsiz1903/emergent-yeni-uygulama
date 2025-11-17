@@ -949,12 +949,30 @@ metadata:
 
 test_plan:
   current_focus:
-    - "Channel Manager & RMS system testing completed - all core features working"
+    - "Comprehensive end-to-end testing of entire application"
+    - "Testing all screens: Reservations, Payments, Check-ins, Check-outs, Folios, Invoices, RMS, Channel Manager"
   stuck_tasks: []
   test_all: true
-  test_priority: "sequential"
+  test_priority: "comprehensive_e2e"
 
 agent_communication:
+  - agent: "main"
+    message: |
+      🎯 COMPREHENSIVE END-TO-END TESTING REQUEST
+      
+      User requested full application testing covering:
+      - New reservation creation flow
+      - Payment processing
+      - Check-in/check-out operations
+      - Folio management
+      - Invoice generation
+      - RMS functionality
+      - Channel Manager
+      - All PMS screens and features
+      
+      Fixed AI endpoints issue (missing litellm dependency) - all AI endpoints now working.
+      
+      Starting comprehensive backend testing of all modules before frontend testing.
   - agent: "main"
     message: |
       Backend implementation complete for corporate booking features:
