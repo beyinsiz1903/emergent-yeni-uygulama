@@ -893,12 +893,40 @@ async def create_booking(booking_data: BookingCreate, current_user: User = Depen
         room_id=booking_data.room_id,
         check_in=check_in_dt,
         check_out=check_out_dt,
+        adults=booking_data.adults,
+        children=booking_data.children,
+        children_ages=booking_data.children_ages,
         guests_count=booking_data.guests_count,
         total_amount=booking_data.total_amount,
+        base_rate=booking_data.base_rate,
         channel=booking_data.channel,
         rate_plan=booking_data.rate_plan,
-        special_requests=booking_data.special_requests
+        special_requests=booking_data.special_requests,
+        company_id=booking_data.company_id,
+        contracted_rate=booking_data.contracted_rate,
+        rate_type=booking_data.rate_type,
+        market_segment=booking_data.market_segment,
+        cancellation_policy=booking_data.cancellation_policy,
+        billing_address=booking_data.billing_address,
+        billing_tax_number=booking_data.billing_tax_number,
+        billing_contact_person=booking_data.billing_contact_person
     )
+    
+    # Check for rate override and log it
+    if booking_data.base_rate and booking_data.base_rate != booking_data.total_amount:
+        if booking_data.override_reason:
+            override_log = RateOverrideLog(
+                tenant_id=current_user.tenant_id,
+                booking_id=booking.id,
+                user_id=current_user.id,
+                user_name=current_user.name,
+                base_rate=booking_data.base_rate,
+                new_rate=booking_data.total_amount,
+                override_reason=booking_data.override_reason
+            )
+            override_dict = override_log.model_dump()
+            override_dict['timestamp'] = override_dict['timestamp'].isoformat()
+            await db.rate_override_logs.insert_one(override_dict)
     
     qr_token = generate_time_based_qr_token(booking.id, expiry_hours=72)
     qr_data = f"booking:{booking.id}:token:{qr_token}"
