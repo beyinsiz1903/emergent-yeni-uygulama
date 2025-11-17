@@ -219,6 +219,54 @@ const PMSModule = ({ user, tenant, onLogout }) => {
     }
   };
 
+  const loadChannelManagerData = async () => {
+    try {
+      const [otaRes, suggestionsRes, exceptionsRes] = await Promise.all([
+        axios.get('/channel-manager/ota-reservations?status=pending'),
+        axios.get('/rms/suggestions?status=pending'),
+        axios.get('/channel-manager/exceptions?status=pending')
+      ]);
+      setOtaReservations(otaRes.data.reservations || []);
+      setRmsSuggestions(suggestionsRes.data.suggestions || []);
+      setExceptions(exceptionsRes.data.exceptions || []);
+    } catch (error) {
+      console.error('Failed to load channel manager data:', error);
+    }
+  };
+
+  const handleImportOTA = async (otaId) => {
+    try {
+      const response = await axios.post(`/channel-manager/import-reservation/${otaId}`);
+      toast.success(`✅ ${response.data.message} - Room ${response.data.room_number}`);
+      loadChannelManagerData();
+      loadData();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Failed to import reservation');
+    }
+  };
+
+  const handleApplyRMSSuggestion = async (suggestionId) => {
+    try {
+      const response = await axios.post(`/rms/apply-suggestion/${suggestionId}`);
+      toast.success(`✅ ${response.data.message}`);
+      loadChannelManagerData();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Failed to apply suggestion');
+    }
+  };
+
+  const handleGenerateRMSSuggestions = async () => {
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      const nextWeek = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+      const response = await axios.post(`/rms/generate-suggestions?start_date=${today}&end_date=${nextWeek}`);
+      toast.success(`✅ ${response.data.message}`);
+      loadChannelManagerData();
+    } catch (error) {
+      toast.error('Failed to generate suggestions');
+    }
+  };
+
   const checkPermission = async (permission) => {
     try {
       const response = await axios.post('/permissions/check', null, {
