@@ -135,6 +135,7 @@ const PMSModule = ({ user, tenant, onLogout }) => {
   useEffect(() => {
     loadData();
     loadAuditLogs();
+    loadChannelManagerData();
   }, []);
 
   const loadData = async () => {
