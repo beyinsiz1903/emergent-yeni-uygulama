@@ -1036,6 +1036,167 @@ const ReservationCalendar = ({ user, tenant, onLogout }) => {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Room Move Reason Dialog */}
+      <Dialog open={showMoveReasonDialog} onOpenChange={setShowMoveReasonDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Room Move - Reason Required</DialogTitle>
+          </DialogHeader>
+          {moveData && (
+            <div className="space-y-4">
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <div className="text-sm text-blue-900">
+                  <div className="font-semibold mb-2">Moving Booking:</div>
+                  <div>Guest: <strong>{moveData.booking.guest_name}</strong></div>
+                  <div>From: <strong>Room {moveData.oldRoom}</strong> → <strong>Room {moveData.newRoom}</strong></div>
+                  <div>Dates: <strong>{moveData.newCheckIn}</strong> to <strong>{moveData.newCheckOut}</strong></div>
+                </div>
+              </div>
+
+              <div>
+                <Label>Reason for Move *</Label>
+                <select
+                  className="w-full border rounded-md p-2 mb-2"
+                  value={moveReason}
+                  onChange={(e) => setMoveReason(e.target.value)}
+                >
+                  <option value="">Select reason...</option>
+                  <option value="Guest Request">Guest Request</option>
+                  <option value="Room Maintenance">Room Maintenance</option>
+                  <option value="Upgrade">Room Upgrade</option>
+                  <option value="Downgrade">Room Downgrade</option>
+                  <option value="Overbooking">Overbooking Resolution</option>
+                  <option value="VIP Guest">VIP Guest Priority</option>
+                  <option value="Room Issue">Room Issue / Complaint</option>
+                  <option value="Operational">Operational Reasons</option>
+                  <option value="Other">Other</option>
+                </select>
+                {moveReason === 'Other' && (
+                  <Input
+                    placeholder="Please specify..."
+                    onChange={(e) => setMoveReason(e.target.value)}
+                  />
+                )}
+              </div>
+
+              <div className="text-xs text-gray-600 bg-gray-50 p-3 rounded">
+                <strong>Note:</strong> This move will be recorded in the room move history with timestamp and your user details for audit purposes.
+              </div>
+
+              <div className="flex space-x-2">
+                <Button onClick={handleConfirmMove} className="flex-1">
+                  Confirm Move
+                </Button>
+                <Button 
+                  variant="outline" 
+                  onClick={() => {
+                    setShowMoveReasonDialog(false);
+                    setMoveReason('');
+                    setMoveData(null);
+                  }}
+                >
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Find Room Dialog */}
+      <Dialog open={showFindRoomDialog} onOpenChange={setShowFindRoomDialog}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>Find Available Room</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="grid grid-cols-4 gap-4">
+              <div>
+                <Label>Check-in</Label>
+                <Input
+                  type="date"
+                  value={findRoomCriteria.check_in}
+                  onChange={(e) => setFindRoomCriteria({...findRoomCriteria, check_in: e.target.value})}
+                />
+              </div>
+              <div>
+                <Label>Check-out</Label>
+                <Input
+                  type="date"
+                  value={findRoomCriteria.check_out}
+                  onChange={(e) => setFindRoomCriteria({...findRoomCriteria, check_out: e.target.value})}
+                />
+              </div>
+              <div>
+                <Label>Room Type</Label>
+                <select
+                  className="w-full border rounded-md p-2"
+                  value={findRoomCriteria.room_type}
+                  onChange={(e) => setFindRoomCriteria({...findRoomCriteria, room_type: e.target.value})}
+                >
+                  <option value="all">All Types</option>
+                  <option value="standard">Standard</option>
+                  <option value="deluxe">Deluxe</option>
+                  <option value="suite">Suite</option>
+                </select>
+              </div>
+              <div>
+                <Label>Guests</Label>
+                <Input
+                  type="number"
+                  min="1"
+                  value={findRoomCriteria.guests_count}
+                  onChange={(e) => setFindRoomCriteria({...findRoomCriteria, guests_count: Number(e.target.value)})}
+                />
+              </div>
+            </div>
+
+            <Button onClick={handleFindRoom} className="w-full">
+              <Search className="w-4 h-4 mr-2" />
+              Search Available Rooms
+            </Button>
+
+            {availableRooms.length > 0 && (
+              <div className="border rounded-lg p-4 max-h-96 overflow-y-auto">
+                <h3 className="font-semibold mb-3 flex items-center">
+                  <CheckCircle className="w-5 h-5 text-green-600 mr-2" />
+                  {availableRooms.length} Room{availableRooms.length > 1 ? 's' : ''} Available
+                </h3>
+                <div className="space-y-2">
+                  {availableRooms.map(room => (
+                    <div key={room.id} className="flex items-center justify-between p-3 bg-green-50 border border-green-200 rounded">
+                      <div>
+                        <div className="font-semibold">Room {room.room_number}</div>
+                        <div className="text-sm text-gray-600 capitalize">
+                          {room.room_type} • Floor {room.floor} • Capacity: {room.capacity}
+                        </div>
+                        <div className="text-sm font-semibold text-green-600">
+                          ${room.base_price}/night
+                        </div>
+                      </div>
+                      <Button size="sm" onClick={() => {
+                        handleCellClick(room.id, new Date(findRoomCriteria.check_in));
+                        setShowFindRoomDialog(false);
+                      }}>
+                        Book Now
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {findRoomCriteria.check_in && findRoomCriteria.check_out && availableRooms.length === 0 && (
+              <div className="text-center py-8 text-red-600">
+                <AlertCircle className="w-12 h-12 mx-auto mb-3" />
+                <p className="font-semibold">No rooms available for selected dates</p>
+                <p className="text-sm">Try different dates or room type</p>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </Layout>
   );
 };
