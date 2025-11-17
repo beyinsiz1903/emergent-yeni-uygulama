@@ -1832,30 +1832,96 @@ async def check_in_guest(booking_id: str, create_folio: bool = True, current_use
     }
 
 @api_router.post("/frontdesk/checkout/{booking_id}")
-async def check_out_guest(booking_id: str, current_user: User = Depends(get_current_user)):
+async def check_out_guest(
+    booking_id: str,
+    force: bool = False,
+    auto_close_folios: bool = True,
+    current_user: User = Depends(get_current_user)
+):
+    """Check-out guest with balance validation and folio closure"""
     booking = await db.bookings.find_one({'id': booking_id, 'tenant_id': current_user.tenant_id}, {'_id': 0})
     if not booking:
         raise HTTPException(status_code=404, detail="Booking not found")
     
-    charges = await db.folio_charges.find({'booking_id': booking_id}, {'_id': 0}).to_list(1000)
-    payments = await db.payments.find({'booking_id': booking_id}, {'_id': 0}).to_list(1000)
-    total_charges = sum(c['total'] for c in charges)
-    total_paid = sum(p['amount'] for p in payments if p['status'] == 'paid')
-    balance = total_charges - total_paid
+    if booking['status'] == 'checked_out':
+        raise HTTPException(status_code=400, detail="Guest already checked out")
     
-    if balance > 0:
-        raise HTTPException(status_code=400, detail=f"Outstanding balance: ${balance:.2f}")
+    # Get all folios for this booking
+    folios = await db.folios.find({
+        'booking_id': booking_id,
+        'tenant_id': current_user.tenant_id,
+        'status': 'open'
+    }).to_list(100)
     
+    # Calculate total balance across all folios
+    total_balance = 0.0
+    folio_details = []
+    
+    for folio in folios:
+        balance = await calculate_folio_balance(folio['id'], current_user.tenant_id)
+        total_balance += balance
+        folio_details.append({
+            'folio_number': folio['folio_number'],
+            'folio_type': folio['folio_type'],
+            'balance': balance
+        })
+    
+    # Check for outstanding balance
+    if total_balance > 0.01 and not force:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Outstanding balance: ${total_balance:.2f}. Folios: {folio_details}"
+        )
+    
+    # Close all open folios if requested
+    if auto_close_folios and total_balance <= 0.01:
+        for folio in folios:
+            await db.folios.update_one(
+                {'id': folio['id']},
+                {'$set': {
+                    'status': 'closed',
+                    'balance': 0.0,
+                    'closed_at': datetime.now(timezone.utc).isoformat()
+                }}
+            )
+    
+    # Update booking and room status
     checked_out_time = datetime.now(timezone.utc)
-    await db.bookings.update_one({'id': booking_id}, {'$set': {'status': 'checked_out', 'checked_out_at': checked_out_time.isoformat()}})
-    await db.rooms.update_one({'id': booking['room_id']}, {'$set': {'status': 'dirty', 'current_booking_id': None}})
+    await db.bookings.update_one(
+        {'id': booking_id},
+        {'$set': {
+            'status': 'checked_out',
+            'checked_out_at': checked_out_time.isoformat()
+        }}
+    )
     
-    task = HousekeepingTask(tenant_id=current_user.tenant_id, room_id=booking['room_id'], task_type='cleaning', priority='high', notes='Guest checked out')
+    # Update room to dirty and create housekeeping task
+    await db.rooms.update_one(
+        {'id': booking['room_id']},
+        {'$set': {
+            'status': 'dirty',
+            'current_booking_id': None
+        }}
+    )
+    
+    task = HousekeepingTask(
+        tenant_id=current_user.tenant_id,
+        room_id=booking['room_id'],
+        task_type='cleaning',
+        priority='high',
+        notes='Guest checked out - departure clean required'
+    )
     task_dict = task.model_dump()
     task_dict['created_at'] = task_dict['created_at'].isoformat()
     await db.housekeeping_tasks.insert_one(task_dict)
     
-    return {'message': 'Check-out completed', 'balance': balance}
+    return {
+        'message': 'Check-out completed successfully',
+        'checked_out_at': checked_out_time.isoformat(),
+        'total_balance': total_balance,
+        'folios_closed': len(folios) if auto_close_folios else 0,
+        'folio_details': folio_details
+    }
 
 @api_router.post("/frontdesk/folio/{booking_id}/charge")
 async def add_folio_charge(booking_id: str, charge_type: str, description: str, amount: float, quantity: float = 1.0, current_user: User = Depends(get_current_user)):
