@@ -47,6 +47,7 @@ const Reservations = () => {
     auto_invoice: false,
     housekeeping_notes: '',
     eta: '',
+    edt: '',
     promotion_code: '',
     // Company/Agency
     is_corporate: false,
