@@ -280,7 +280,7 @@ backend:
 
 frontend:
   - task: "Add Adults and Children count inputs to booking form"
-    implemented: false
+    implemented: true
     working: "NA"
     file: "/app/frontend/src/pages/PMSModule.js"
     stuck_count: 0
@@ -289,10 +289,10 @@ frontend:
     status_history:
       - working: "NA"
         agent: "main"
-        comment: "Need to add adults and children count inputs"
+        comment: "Added adults and children count inputs with automatic guests_count calculation"
   
   - task: "Add Children Ages dynamic inputs (show only if children > 0)"
-    implemented: false
+    implemented: true
     working: "NA"
     file: "/app/frontend/src/pages/PMSModule.js"
     stuck_count: 0
@@ -301,10 +301,10 @@ frontend:
     status_history:
       - working: "NA"
         agent: "main"
-        comment: "Conditionally render children ages inputs based on children count"
+        comment: "Children ages inputs conditionally rendered only when children > 0, with dynamic array management"
   
   - task: "Add Company selection with autocomplete"
-    implemented: false
+    implemented: true
     working: "NA"
     file: "/app/frontend/src/pages/PMSModule.js"
     stuck_count: 0
@@ -313,10 +313,10 @@ frontend:
     status_history:
       - working: "NA"
         agent: "main"
-        comment: "Company select with search/autocomplete functionality"
+        comment: "Company select dropdown with filtering for active companies only"
   
   - task: "Add Quick Company Create dialog"
-    implemented: false
+    implemented: true
     working: "NA"
     file: "/app/frontend/src/pages/PMSModule.js"
     stuck_count: 0
@@ -325,10 +325,10 @@ frontend:
     status_history:
       - working: "NA"
         agent: "main"
-        comment: "Quick company create from booking form with pending status"
+        comment: "Quick company create dialog with pending status, includes name, corporate_code, tax_number, billing_address, contact info"
   
   - task: "Add Contracted Rate selection"
-    implemented: false
+    implemented: true
     working: "NA"
     file: "/app/frontend/src/pages/PMSModule.js"
     stuck_count: 0
@@ -337,10 +337,10 @@ frontend:
     status_history:
       - working: "NA"
         agent: "main"
-        comment: "Contracted rate dropdown with all options"
+        comment: "Contracted rate dropdown with all 8 options (corp_std, corp_pref, gov, ta, crew, mice, lts, tou)"
   
   - task: "Auto-fill Rate Type, Market Segment, Cancellation Policy from Contracted Rate"
-    implemented: false
+    implemented: true
     working: "NA"
     file: "/app/frontend/src/pages/PMSModule.js"
     stuck_count: 0
@@ -349,10 +349,10 @@ frontend:
     status_history:
       - working: "NA"
         agent: "main"
-        comment: "Auto-populate fields when contracted rate is selected, but allow manual override"
+        comment: "Auto-populate rate_type, market_segment, cancellation_policy when contracted rate is selected with intelligent mapping, fields remain editable for override"
   
   - task: "Auto-fill Billing Address, Tax Number, Contact Person from Company"
-    implemented: false
+    implemented: true
     working: "NA"
     file: "/app/frontend/src/pages/PMSModule.js"
     stuck_count: 0
@@ -361,10 +361,10 @@ frontend:
     status_history:
       - working: "NA"
         agent: "main"
-        comment: "Auto-populate billing info when company is selected"
+        comment: "Auto-populate billing_address, billing_tax_number, billing_contact_person when company is selected via handleCompanySelect function"
   
   - task: "Add Base Rate and Override Reason inputs"
-    implemented: false
+    implemented: true
     working: "NA"
     file: "/app/frontend/src/pages/PMSModule.js"
     stuck_count: 0
@@ -373,7 +373,7 @@ frontend:
     status_history:
       - working: "NA"
         agent: "main"
-        comment: "Add override tracking with reason modal when rate changes"
+        comment: "Added base_rate input, override_reason textarea (required when base_rate != total_amount), validation in form submission"
 
   - task: "Add additional_taxes field to invoice items state"
     implemented: true
