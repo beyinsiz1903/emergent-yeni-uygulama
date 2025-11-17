@@ -574,9 +574,18 @@ metadata:
   run_ui: false
 
 test_plan:
-  current_focus: []
+  current_focus:
+    - "Test folio creation (guest, company, agency types)"
+    - "Test charge posting with different categories"
+    - "Test auto city tax calculation"
+    - "Test payment posting with different payment types"
+    - "Test charge transfer between folios"
+    - "Test void charge functionality"
+    - "Test folio closure with balance validation"
+    - "Test night audit room charge posting"
+    - "Test balance calculation accuracy"
   stuck_tasks: []
-  test_all: false
+  test_all: true
   test_priority: "sequential"
 
 agent_communication:
