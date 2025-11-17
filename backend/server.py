@@ -1067,6 +1067,403 @@ async def update_company(
     
     return updated_company
 
+# ============= FOLIO & BILLING ENGINE =============
+
+async def generate_folio_number(tenant_id: str) -> str:
+    """Generate unique folio number"""
+    year = datetime.now(timezone.utc).year
+    count = await db.folios.count_documents({'tenant_id': tenant_id}) + 1
+    return f"F-{year}-{count:05d}"
+
+async def calculate_folio_balance(folio_id: str, tenant_id: str) -> float:
+    """Calculate folio balance (charges - payments)"""
+    charges = await db.folio_charges.find({
+        'folio_id': folio_id,
+        'tenant_id': tenant_id,
+        'voided': False
+    }).to_list(1000)
+    
+    payments = await db.payments.find({
+        'folio_id': folio_id,
+        'tenant_id': tenant_id,
+        'status': 'paid'
+    }).to_list(1000)
+    
+    total_charges = sum(c['total'] for c in charges)
+    total_payments = sum(p['amount'] for p in payments)
+    
+    return total_charges - total_payments
+
+@api_router.post("/folio/create", response_model=Folio)
+async def create_folio(folio_data: FolioCreate, current_user: User = Depends(get_current_user)):
+    """Create a new folio for a booking"""
+    # Verify booking exists
+    booking = await db.bookings.find_one({
+        'id': folio_data.booking_id,
+        'tenant_id': current_user.tenant_id
+    })
+    
+    if not booking:
+        raise HTTPException(status_code=404, detail="Booking not found")
+    
+    folio_number = await generate_folio_number(current_user.tenant_id)
+    
+    folio = Folio(
+        tenant_id=current_user.tenant_id,
+        folio_number=folio_number,
+        **folio_data.model_dump()
+    )
+    
+    folio_dict = folio.model_dump()
+    folio_dict['created_at'] = folio_dict['created_at'].isoformat()
+    await db.folios.insert_one(folio_dict)
+    
+    return folio
+
+@api_router.get("/folio/booking/{booking_id}", response_model=List[Folio])
+async def get_booking_folios(booking_id: str, current_user: User = Depends(get_current_user)):
+    """Get all folios for a booking"""
+    folios = await db.folios.find({
+        'booking_id': booking_id,
+        'tenant_id': current_user.tenant_id
+    }, {'_id': 0}).to_list(1000)
+    
+    # Calculate current balance for each folio
+    for folio in folios:
+        folio['balance'] = await calculate_folio_balance(folio['id'], current_user.tenant_id)
+    
+    return folios
+
+@api_router.get("/folio/{folio_id}", response_model=Dict[str, Any])
+async def get_folio_details(folio_id: str, current_user: User = Depends(get_current_user)):
+    """Get folio with charges and payments"""
+    folio = await db.folios.find_one({
+        'id': folio_id,
+        'tenant_id': current_user.tenant_id
+    }, {'_id': 0})
+    
+    if not folio:
+        raise HTTPException(status_code=404, detail="Folio not found")
+    
+    charges = await db.folio_charges.find({
+        'folio_id': folio_id,
+        'tenant_id': current_user.tenant_id
+    }, {'_id': 0}).to_list(1000)
+    
+    payments = await db.payments.find({
+        'folio_id': folio_id,
+        'tenant_id': current_user.tenant_id
+    }, {'_id': 0}).to_list(1000)
+    
+    balance = await calculate_folio_balance(folio_id, current_user.tenant_id)
+    folio['balance'] = balance
+    
+    return {
+        'folio': folio,
+        'charges': charges,
+        'payments': payments,
+        'balance': balance
+    }
+
+@api_router.post("/folio/{folio_id}/charge", response_model=FolioCharge)
+async def post_charge_to_folio(
+    folio_id: str,
+    charge_data: ChargeCreate,
+    current_user: User = Depends(get_current_user)
+):
+    """Post a charge to folio"""
+    folio = await db.folios.find_one({
+        'id': folio_id,
+        'tenant_id': current_user.tenant_id,
+        'status': 'open'
+    })
+    
+    if not folio:
+        raise HTTPException(status_code=404, detail="Folio not found or closed")
+    
+    # Calculate amounts
+    amount = charge_data.amount * charge_data.quantity
+    tax_amount = 0.0
+    
+    # Auto-calculate city tax if requested
+    if charge_data.auto_calculate_tax and charge_data.charge_category == ChargeCategory.ROOM:
+        # Get city tax rule
+        tax_rule = await db.city_tax_rules.find_one({
+            'tenant_id': current_user.tenant_id,
+            'active': True
+        })
+        if tax_rule:
+            if tax_rule.get('flat_amount'):
+                tax_amount = tax_rule['flat_amount']
+            else:
+                tax_amount = amount * (tax_rule['tax_percentage'] / 100)
+    
+    total = amount + tax_amount
+    
+    charge = FolioCharge(
+        tenant_id=current_user.tenant_id,
+        folio_id=folio_id,
+        booking_id=folio['booking_id'],
+        charge_category=charge_data.charge_category,
+        description=charge_data.description,
+        unit_price=charge_data.amount,
+        quantity=charge_data.quantity,
+        amount=amount,
+        tax_amount=tax_amount,
+        total=total,
+        posted_by=current_user.id
+    )
+    
+    charge_dict = charge.model_dump()
+    charge_dict['date'] = charge_dict['date'].isoformat()
+    await db.folio_charges.insert_one(charge_dict)
+    
+    # Update folio balance
+    balance = await calculate_folio_balance(folio_id, current_user.tenant_id)
+    await db.folios.update_one(
+        {'id': folio_id},
+        {'$set': {'balance': balance}}
+    )
+    
+    return charge
+
+@api_router.post("/folio/{folio_id}/payment", response_model=Payment)
+async def post_payment_to_folio(
+    folio_id: str,
+    payment_data: PaymentCreate,
+    current_user: User = Depends(get_current_user)
+):
+    """Post a payment to folio"""
+    folio = await db.folios.find_one({
+        'id': folio_id,
+        'tenant_id': current_user.tenant_id
+    })
+    
+    if not folio:
+        raise HTTPException(status_code=404, detail="Folio not found")
+    
+    payment = Payment(
+        tenant_id=current_user.tenant_id,
+        folio_id=folio_id,
+        booking_id=folio['booking_id'],
+        processed_by=current_user.id,
+        **payment_data.model_dump()
+    )
+    
+    payment_dict = payment.model_dump()
+    payment_dict['processed_at'] = payment_dict['processed_at'].isoformat()
+    await db.payments.insert_one(payment_dict)
+    
+    # Update folio balance
+    balance = await calculate_folio_balance(folio_id, current_user.tenant_id)
+    await db.folios.update_one(
+        {'id': folio_id},
+        {'$set': {'balance': balance}}
+    )
+    
+    return payment
+
+@api_router.post("/folio/transfer", response_model=FolioOperation)
+async def transfer_charges(
+    operation_data: FolioOperationCreate,
+    current_user: User = Depends(get_current_user)
+):
+    """Transfer charges from one folio to another"""
+    if operation_data.operation_type != FolioOperationType.TRANSFER:
+        raise HTTPException(status_code=400, detail="Invalid operation type")
+    
+    if not operation_data.to_folio_id:
+        raise HTTPException(status_code=400, detail="Destination folio required for transfer")
+    
+    # Verify both folios exist
+    from_folio = await db.folios.find_one({
+        'id': operation_data.from_folio_id,
+        'tenant_id': current_user.tenant_id
+    })
+    
+    to_folio = await db.folios.find_one({
+        'id': operation_data.to_folio_id,
+        'tenant_id': current_user.tenant_id,
+        'status': 'open'
+    })
+    
+    if not from_folio or not to_folio:
+        raise HTTPException(status_code=404, detail="Folio not found")
+    
+    # Transfer specified charges
+    for charge_id in operation_data.charge_ids:
+        await db.folio_charges.update_one(
+            {'id': charge_id, 'folio_id': operation_data.from_folio_id},
+            {'$set': {'folio_id': operation_data.to_folio_id}}
+        )
+    
+    # Create operation record
+    operation = FolioOperation(
+        tenant_id=current_user.tenant_id,
+        performed_by=current_user.id,
+        **operation_data.model_dump()
+    )
+    
+    operation_dict = operation.model_dump()
+    operation_dict['performed_at'] = operation_dict['performed_at'].isoformat()
+    await db.folio_operations.insert_one(operation_dict)
+    
+    # Update balances
+    from_balance = await calculate_folio_balance(operation_data.from_folio_id, current_user.tenant_id)
+    to_balance = await calculate_folio_balance(operation_data.to_folio_id, current_user.tenant_id)
+    
+    await db.folios.update_one(
+        {'id': operation_data.from_folio_id},
+        {'$set': {'balance': from_balance}}
+    )
+    await db.folios.update_one(
+        {'id': operation_data.to_folio_id},
+        {'$set': {'balance': to_balance}}
+    )
+    
+    return operation
+
+@api_router.post("/folio/{folio_id}/void-charge/{charge_id}")
+async def void_charge(
+    folio_id: str,
+    charge_id: str,
+    void_reason: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Void a charge"""
+    charge = await db.folio_charges.find_one({
+        'id': charge_id,
+        'folio_id': folio_id,
+        'tenant_id': current_user.tenant_id,
+        'voided': False
+    })
+    
+    if not charge:
+        raise HTTPException(status_code=404, detail="Charge not found or already voided")
+    
+    await db.folio_charges.update_one(
+        {'id': charge_id},
+        {'$set': {
+            'voided': True,
+            'void_reason': void_reason,
+            'voided_by': current_user.id,
+            'voided_at': datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    
+    # Update folio balance
+    balance = await calculate_folio_balance(folio_id, current_user.tenant_id)
+    await db.folios.update_one(
+        {'id': folio_id},
+        {'$set': {'balance': balance}}
+    )
+    
+    # Create operation record
+    operation = FolioOperation(
+        tenant_id=current_user.tenant_id,
+        operation_type=FolioOperationType.VOID,
+        from_folio_id=folio_id,
+        charge_ids=[charge_id],
+        amount=charge['total'],
+        reason=void_reason,
+        performed_by=current_user.id
+    )
+    
+    operation_dict = operation.model_dump()
+    operation_dict['performed_at'] = operation_dict['performed_at'].isoformat()
+    await db.folio_operations.insert_one(operation_dict)
+    
+    return {"message": "Charge voided successfully"}
+
+@api_router.post("/folio/{folio_id}/close")
+async def close_folio(
+    folio_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Close a folio"""
+    folio = await db.folios.find_one({
+        'id': folio_id,
+        'tenant_id': current_user.tenant_id,
+        'status': 'open'
+    })
+    
+    if not folio:
+        raise HTTPException(status_code=404, detail="Folio not found or already closed")
+    
+    # Check balance
+    balance = await calculate_folio_balance(folio_id, current_user.tenant_id)
+    
+    if balance > 0.01:  # Allow small rounding differences
+        raise HTTPException(
+            status_code=400,
+            detail=f"Cannot close folio with outstanding balance: {balance}"
+        )
+    
+    await db.folios.update_one(
+        {'id': folio_id},
+        {'$set': {
+            'status': 'closed',
+            'balance': 0.0,
+            'closed_at': datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    
+    return {"message": "Folio closed successfully"}
+
+@api_router.post("/night-audit/post-room-charges")
+async def post_room_charges(current_user: User = Depends(get_current_user)):
+    """Night audit: Post room charges to all active bookings"""
+    # Get all checked-in bookings
+    bookings = await db.bookings.find({
+        'tenant_id': current_user.tenant_id,
+        'status': 'checked_in'
+    }).to_list(1000)
+    
+    charges_posted = 0
+    
+    for booking in bookings:
+        # Get guest folio for this booking
+        folio = await db.folios.find_one({
+            'booking_id': booking['id'],
+            'folio_type': 'guest',
+            'status': 'open'
+        })
+        
+        if folio:
+            # Post room charge
+            charge = FolioCharge(
+                tenant_id=current_user.tenant_id,
+                folio_id=folio['id'],
+                booking_id=booking['id'],
+                charge_category=ChargeCategory.ROOM,
+                description=f"Room {booking.get('room_id', 'N/A')} - Night Charge",
+                unit_price=booking.get('base_rate', booking.get('total_amount', 0)),
+                quantity=1.0,
+                amount=booking.get('base_rate', booking.get('total_amount', 0)),
+                tax_amount=0.0,
+                total=booking.get('base_rate', booking.get('total_amount', 0)),
+                posted_by="SYSTEM"
+            )
+            
+            charge_dict = charge.model_dump()
+            charge_dict['date'] = charge_dict['date'].isoformat()
+            await db.folio_charges.insert_one(charge_dict)
+            
+            # Update folio balance
+            balance = await calculate_folio_balance(folio['id'], current_user.tenant_id)
+            await db.folios.update_one(
+                {'id': folio['id']},
+                {'$set': {'balance': balance}}
+            )
+            
+            charges_posted += 1
+    
+    return {
+        "message": "Night audit completed",
+        "charges_posted": charges_posted,
+        "bookings_processed": len(bookings)
+    }
+
 # ============= GUEST MANAGEMENT =============
 
 @api_router.post("/pms/guests", response_model=Guest)
