@@ -345,11 +345,26 @@ class BookingCreate(BaseModel):
     room_id: str
     check_in: str
     check_out: str
-    guests_count: int
+    adults: int = 1
+    children: int = 0
+    children_ages: List[int] = []
+    guests_count: int  # Total: adults + children
     total_amount: float
+    base_rate: Optional[float] = None  # For override tracking
     channel: ChannelType = ChannelType.DIRECT
     special_requests: Optional[str] = None
     rate_plan: Optional[str] = None
+    # New fields for corporate/contracted bookings
+    company_id: Optional[str] = None
+    contracted_rate: Optional[ContractedRateType] = None
+    rate_type: Optional[RateType] = None
+    market_segment: Optional[MarketSegment] = None
+    cancellation_policy: Optional[CancellationPolicyType] = None
+    billing_address: Optional[str] = None
+    billing_tax_number: Optional[str] = None
+    billing_contact_person: Optional[str] = None
+    # Override tracking
+    override_reason: Optional[str] = None
 
 class Booking(BaseModel):
     model_config = ConfigDict(extra="ignore")
@@ -359,13 +374,27 @@ class Booking(BaseModel):
     room_id: str
     check_in: datetime
     check_out: datetime
+    adults: int = 1
+    children: int = 0
+    children_ages: List[int] = []
     guests_count: int
     total_amount: float
+    base_rate: Optional[float] = None
     paid_amount: float = 0.0
     status: BookingStatus = BookingStatus.PENDING
     channel: ChannelType = ChannelType.DIRECT
     rate_plan: Optional[str] = "Standard"
     special_requests: Optional[str] = None
+    # Corporate/contracted booking fields
+    company_id: Optional[str] = None
+    contracted_rate: Optional[ContractedRateType] = None
+    rate_type: Optional[RateType] = None
+    market_segment: Optional[MarketSegment] = None
+    cancellation_policy: Optional[CancellationPolicyType] = None
+    billing_address: Optional[str] = None
+    billing_tax_number: Optional[str] = None
+    billing_contact_person: Optional[str] = None
+    # System fields
     qr_code: Optional[str] = None
     qr_code_data: Optional[str] = None
     checked_in_at: Optional[datetime] = None
