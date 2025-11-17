@@ -1,17 +1,23 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { toast } from 'sonner';
 import Layout from '@/components/Layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { 
   ChevronLeft, 
   ChevronRight, 
   Calendar as CalendarIcon,
   User,
   Building2,
-  Clock
+  Clock,
+  Plus,
+  TrendingUp,
+  Info
 } from 'lucide-react';
 
 const ReservationCalendar = ({ user, tenant, onLogout }) => {
