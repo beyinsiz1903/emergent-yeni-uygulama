@@ -1664,7 +1664,6 @@ class RoomOpsAPITester:
         
         # Post interim payment
         interim_payment_data = {
-            "folio_id": folio_id,
             "amount": 100.0,
             "method": "card",
             "payment_type": "interim"
