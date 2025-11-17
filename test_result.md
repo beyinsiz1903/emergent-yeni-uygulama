@@ -220,15 +220,18 @@ backend:
   
   - task: "Create close folio endpoint"
     implemented: true
-    working: "NA"
+    working: true
     file: "/app/backend/server.py"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: "NA"
         agent: "main"
         comment: "POST /api/folio/{id}/close with balance validation"
+      - working: true
+        agent: "testing"
+        comment: "✅ COMPREHENSIVE TESTING COMPLETED - Close folio endpoint working perfectly. POST /api/folio/{id}/close: Successfully closes folios with proper balance validation. Tested balance validation (rejects closure with outstanding balance > 0.01), status update to 'closed', closed_at timestamp setting. Folio closure with zero balance works correctly. Closed folio properly prevents further charge posting."
   
   - task: "Create night audit endpoint"
     implemented: true
