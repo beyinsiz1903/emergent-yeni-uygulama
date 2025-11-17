@@ -1951,7 +1951,8 @@ class RoomOpsAPITester:
             "Create Folio for Non-existent Booking (Should Fail)",
             "POST",
             "folio/create",
-            404  # Expecting failure
+            404,  # Expecting failure
+            data=invalid_folio_data
         )
         
         if not success:  # This is expected
