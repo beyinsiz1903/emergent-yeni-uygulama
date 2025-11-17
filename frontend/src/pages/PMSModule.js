@@ -207,18 +207,26 @@ const PMSModule = ({ user, tenant, onLogout }) => {
       const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0];
       const monthEnd = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).toISOString().split('T')[0];
       
-      const [occupancyRes, revenueRes, dailyRes, forecastRes] = await Promise.all([
+      const [occupancyRes, revenueRes, dailyRes, forecastRes, dailyFlashRes, marketSegmentRes, companyAgingRes, hkEfficiencyRes] = await Promise.all([
         axios.get(`/reports/occupancy?start_date=${monthStart}&end_date=${monthEnd}`),
         axios.get(`/reports/revenue?start_date=${monthStart}&end_date=${monthEnd}`),
         axios.get('/reports/daily-summary'),
-        axios.get('/reports/forecast?days=7')
+        axios.get('/reports/forecast?days=7'),
+        axios.get('/reports/daily-flash'),
+        axios.get(`/reports/market-segment?start_date=${monthStart}&end_date=${monthEnd}`),
+        axios.get('/reports/company-aging'),
+        axios.get(`/reports/housekeeping-efficiency?start_date=${monthStart}&end_date=${monthEnd}`)
       ]);
       
       setReports({
         occupancy: occupancyRes.data,
         revenue: revenueRes.data,
         daily: dailyRes.data,
-        forecast: forecastRes.data
+        forecast: forecastRes.data,
+        dailyFlash: dailyFlashRes.data,
+        marketSegment: marketSegmentRes.data,
+        companyAging: companyAgingRes.data,
+        hkEfficiency: hkEfficiencyRes.data
       });
     } catch (error) {
       toast.error('Failed to load reports');
