@@ -888,13 +888,42 @@ const Reservations = () => {
                   </div>
 
                   <div className="space-y-2">
-                    <Label className="text-gray-700">Tax ID</Label>
+                    <Label className="text-gray-700">Tax ID / Tax Number</Label>
                     <Input
                       value={newReservationForm.tax_id}
                       onChange={(e) => setNewReservationForm({...newReservationForm, tax_id: e.target.value})}
                       className="bg-white border-gray-300"
                       placeholder="1234567890"
                     />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label className="text-gray-700">Contact Person</Label>
+                    <Input
+                      value={newReservationForm.contact_person}
+                      onChange={(e) => setNewReservationForm({...newReservationForm, contact_person: e.target.value})}
+                      className="bg-white border-gray-300"
+                      placeholder="John Doe - Travel Manager"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label className="text-gray-700">Contracted Rate</Label>
+                    <Select value={newReservationForm.contracted_rate} onValueChange={(value) => setNewReservationForm({...newReservationForm, contracted_rate: value})}>
+                      <SelectTrigger className="bg-white border-gray-300">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="bg-white border-gray-200">
+                        <SelectItem value="standard">Standard Corporate</SelectItem>
+                        <SelectItem value="tier_1">Tier 1 (20% off)</SelectItem>
+                        <SelectItem value="tier_2">Tier 2 (30% off)</SelectItem>
+                        <SelectItem value="tier_3">Tier 3 (40% off)</SelectItem>
+                        <SelectItem value="government">Government Rate</SelectItem>
+                        <SelectItem value="military">Military Rate</SelectItem>
+                        <SelectItem value="airline_crew">Airline Crew Rate</SelectItem>
+                        <SelectItem value="custom">Custom Contract</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
 
                   <div className="space-y-2 col-span-2">
