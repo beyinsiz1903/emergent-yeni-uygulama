@@ -476,6 +476,77 @@ const PMSModule = ({ user, tenant, onLogout }) => {
     }
   };
 
+  // Folio Management Functions
+  const loadBookingFolios = async (bookingId) => {
+    try {
+      const response = await axios.get(`/folio/booking/${bookingId}`);
+      setFolios(response.data);
+      setSelectedBooking(bookingId);
+      setOpenDialog('folio-view');
+      
+      // Auto-select guest folio if exists
+      const guestFolio = response.data.find(f => f.folio_type === 'guest');
+      if (guestFolio) {
+        loadFolioDetails(guestFolio.id);
+      }
+    } catch (error) {
+      toast.error('Failed to load folios');
+    }
+  };
+
+  const loadFolioDetails = async (folioId) => {
+    try {
+      const response = await axios.get(`/folio/${folioId}`);
+      setSelectedFolio(response.data.folio);
+      setFolioCharges(response.data.charges || []);
+      setFolioPayments(response.data.payments || []);
+    } catch (error) {
+      toast.error('Failed to load folio details');
+    }
+  };
+
+  const handlePostCharge = async (e) => {
+    e.preventDefault();
+    if (!selectedFolio) return;
+    
+    try {
+      await axios.post(`/folio/${selectedFolio.id}/charge`, newFolioCharge);
+      toast.success('Charge posted successfully');
+      loadFolioDetails(selectedFolio.id);
+      setNewFolioCharge({
+        charge_category: 'room',
+        description: '',
+        amount: 0,
+        quantity: 1,
+        auto_calculate_tax: false
+      });
+      setOpenDialog('folio-view');
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Failed to post charge');
+    }
+  };
+
+  const handlePostPayment = async (e) => {
+    e.preventDefault();
+    if (!selectedFolio) return;
+    
+    try {
+      await axios.post(`/folio/${selectedFolio.id}/payment`, newFolioPayment);
+      toast.success('Payment posted successfully');
+      loadFolioDetails(selectedFolio.id);
+      setNewFolioPayment({
+        amount: 0,
+        method: 'card',
+        payment_type: 'interim',
+        reference: '',
+        notes: ''
+      });
+      setOpenDialog('folio-view');
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Failed to post payment');
+    }
+  };
+
   const updateRoomStatus = async (roomId, newStatus) => {
     try {
       await axios.put(`/pms/rooms/${roomId}`, { status: newStatus });
