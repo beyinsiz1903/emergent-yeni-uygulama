@@ -113,20 +113,125 @@ user_problem_statement: |
   7. Balance tracking and folio closure
 
 backend:
-  - task: "Add ContractedRateType, RateType, MarketSegment, CancellationPolicyType enums"
+  - task: "Add Folio enums (FolioType, FolioStatus, ChargeCategory, FolioOperationType, PaymentType)"
     implemented: true
-    working: true
+    working: "NA"
     file: "/app/backend/server.py"
     stuck_count: 0
     priority: "high"
-    needs_retesting: false
+    needs_retesting: true
     status_history:
       - working: "NA"
         agent: "main"
-        comment: "Added all required enums for contracted rates, rate types, market segments, and cancellation policies"
-      - working: true
-        agent: "testing"
-        comment: "✅ COMPREHENSIVE TESTING COMPLETED - All enum values tested and working correctly. Verified ContractedRateType (corp_std, corp_pref, gov, ta, crew, mice, lts, tou), RateType (bar, corporate, government, wholesale, package, promotional, non_refundable, long_stay, day_use), MarketSegment (corporate, leisure, group, mice, government, crew, wholesale, long_stay, complimentary, other), CancellationPolicyType (same_day, h24, h48, h72, d7, d14, non_refundable, flexible, special_event), and CompanyStatus (active, pending, inactive) enums."
+        comment: "Added FolioType (guest, company, agency), FolioStatus (open, closed, transferred, voided), ChargeCategory (12 categories), FolioOperationType (transfer, split, merge, void, refund), PaymentType (prepayment, deposit, interim, final, refund)"
+  
+  - task: "Create Folio models"
+    implemented: true
+    working: "NA"
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Created Folio, FolioCharge (with void support), Payment (with payment_type), FolioOperation, CityTaxRule models"
+  
+  - task: "Create Folio CRUD endpoints"
+    implemented: true
+    working: "NA"
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "POST /api/folio/create, GET /api/folio/booking/{id}, GET /api/folio/{id} with charges and payments"
+  
+  - task: "Create charge posting endpoint"
+    implemented: true
+    working: "NA"
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "POST /api/folio/{id}/charge with auto city tax calculation, automatic balance update"
+  
+  - task: "Create payment posting endpoint"
+    implemented: true
+    working: "NA"
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "POST /api/folio/{id}/payment with payment types, automatic balance update"
+  
+  - task: "Create folio transfer endpoint"
+    implemented: true
+    working: "NA"
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "POST /api/folio/transfer for transferring charges between folios, creates operation log"
+  
+  - task: "Create void charge endpoint"
+    implemented: true
+    working: "NA"
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "POST /api/folio/{id}/void-charge/{charge_id} with void tracking (reason, user, timestamp)"
+  
+  - task: "Create close folio endpoint"
+    implemented: true
+    working: "NA"
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "POST /api/folio/{id}/close with balance validation"
+  
+  - task: "Create night audit endpoint"
+    implemented: true
+    working: "NA"
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "POST /api/night-audit/post-room-charges to post room charges to all checked-in bookings"
+  
+  - task: "Implement balance calculation logic"
+    implemented: true
+    working: "NA"
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "calculate_folio_balance() function calculates charges - payments, excludes voided charges"
   
   - task: "Create Company model and CompanyCreate pydantic model"
     implemented: true
