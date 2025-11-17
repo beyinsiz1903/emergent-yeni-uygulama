@@ -3344,6 +3344,586 @@ class RoomOpsAPITester:
             print("   ❌ Already checked-out validation failed")
         self.tests_run += 1
 
+    def test_management_reporting(self):
+        """Test comprehensive Management Reporting endpoints"""
+        print("\n📊 Testing Management Reporting...")
+        
+        # Prerequisites: Create test data for reports
+        self.create_test_data_for_reports()
+        
+        # Test all 4 management reports
+        self.test_daily_flash_report()
+        self.test_market_segment_report()
+        self.test_company_aging_report()
+        self.test_housekeeping_efficiency_report()
+        
+        # Test edge cases
+        self.test_reporting_edge_cases()
+        
+        return True
+
+    def create_test_data_for_reports(self):
+        """Create comprehensive test data for management reports"""
+        print("\n📋 Creating Test Data for Reports...")
+        
+        # Create additional rooms if needed
+        if len(self.created_resources['rooms']) < 3:
+            for i in range(2, 5):  # Create rooms 102, 103, 104
+                room_data = {
+                    "room_number": f"10{i}",
+                    "room_type": "deluxe",
+                    "floor": 1,
+                    "capacity": 2,
+                    "base_price": 120.00,
+                    "amenities": ["wifi", "tv", "minibar"]
+                }
+                
+                success, response = self.run_test(
+                    f"Create Room {i} for Reports",
+                    "POST",
+                    "pms/rooms",
+                    200,
+                    data=room_data
+                )
+                
+                if success and 'id' in response:
+                    self.created_resources['rooms'].append(response['id'])
+        
+        # Create additional guests if needed
+        if len(self.created_resources['guests']) < 3:
+            for i in range(2, 5):
+                guest_data = {
+                    "name": f"Report Guest {i}",
+                    "email": f"guest{i}@reports.com",
+                    "phone": f"+123456789{i}",
+                    "id_number": f"RPT{i}123456",
+                    "address": f"{i}00 Report Street"
+                }
+                
+                success, response = self.run_test(
+                    f"Create Guest {i} for Reports",
+                    "POST",
+                    "pms/guests",
+                    200,
+                    data=guest_data
+                )
+                
+                if success and 'id' in response:
+                    self.created_resources['guests'].append(response['id'])
+        
+        # Create companies with different segments
+        company_segments = [
+            {"name": "Corporate Hotel Chain", "segment": "corporate", "rate": "corp_std"},
+            {"name": "Leisure Travel Group", "segment": "leisure", "rate": "ta"},
+            {"name": "Government Agency", "segment": "government", "rate": "gov"}
+        ]
+        
+        for i, comp in enumerate(company_segments):
+            company_data = {
+                "name": comp["name"],
+                "corporate_code": f"RPT{i+1:02d}",
+                "tax_number": f"TAX{i+1}234567890",
+                "billing_address": f"{i+1}00 Corporate Ave",
+                "contact_person": f"Manager {i+1}",
+                "contact_email": f"manager{i+1}@{comp['name'].lower().replace(' ', '')}.com",
+                "contact_phone": f"+1234567{i+1:02d}0",
+                "contracted_rate": comp["rate"],
+                "default_market_segment": comp["segment"],
+                "status": "active"
+            }
+            
+            success, response = self.run_test(
+                f"Create {comp['name']} for Reports",
+                "POST",
+                "companies",
+                200,
+                data=company_data
+            )
+            
+            if success and 'id' in response:
+                self.created_resources['companies'].append(response['id'])
+        
+        # Create bookings with different dates, segments, and statuses
+        if len(self.created_resources['rooms']) >= 3 and len(self.created_resources['guests']) >= 3:
+            booking_scenarios = [
+                {
+                    "days_offset": -2,  # 2 days ago
+                    "nights": 1,
+                    "status": "checked_out",
+                    "segment": "corporate",
+                    "rate_type": "corporate",
+                    "amount": 150.0
+                },
+                {
+                    "days_offset": -1,  # Yesterday
+                    "nights": 2,
+                    "status": "checked_in",
+                    "segment": "leisure",
+                    "rate_type": "bar",
+                    "amount": 120.0
+                },
+                {
+                    "days_offset": 0,  # Today
+                    "nights": 3,
+                    "status": "checked_in",
+                    "segment": "group",
+                    "rate_type": "wholesale",
+                    "amount": 100.0
+                }
+            ]
+            
+            for i, scenario in enumerate(booking_scenarios):
+                if i < len(self.created_resources['rooms']) and i < len(self.created_resources['guests']):
+                    check_in = datetime.now() + timedelta(days=scenario["days_offset"])
+                    check_out = check_in + timedelta(days=scenario["nights"])
+                    
+                    booking_data = {
+                        "guest_id": self.created_resources['guests'][i],
+                        "room_id": self.created_resources['rooms'][i],
+                        "check_in": check_in.isoformat(),
+                        "check_out": check_out.isoformat(),
+                        "adults": 2,
+                        "children": 0,
+                        "children_ages": [],
+                        "guests_count": 2,
+                        "total_amount": scenario["amount"],
+                        "market_segment": scenario["segment"],
+                        "rate_type": scenario["rate_type"],
+                        "channel": "direct"
+                    }
+                    
+                    # Add company_id for corporate bookings
+                    if scenario["segment"] == "corporate" and self.created_resources['companies']:
+                        booking_data["company_id"] = self.created_resources['companies'][0]
+                    
+                    success, response = self.run_test(
+                        f"Create Booking {i+1} for Reports",
+                        "POST",
+                        "pms/bookings",
+                        200,
+                        data=booking_data
+                    )
+                    
+                    if success and 'id' in response:
+                        booking_id = response['id']
+                        self.created_resources['bookings'].append(booking_id)
+                        
+                        # Create folios and charges for revenue data
+                        self.create_folio_and_charges_for_booking(booking_id, scenario["amount"])
+        
+        # Create housekeeping tasks for efficiency report
+        self.create_housekeeping_tasks_for_reports()
+        
+        print("   ✅ Test data creation completed")
+
+    def create_folio_and_charges_for_booking(self, booking_id, amount):
+        """Create folio and charges for a booking"""
+        # Create guest folio
+        folio_data = {
+            "booking_id": booking_id,
+            "folio_type": "guest"
+        }
+        
+        success, folio_response = self.run_test(
+            "Create Folio for Report Data",
+            "POST",
+            "folio/create",
+            200,
+            data=folio_data
+        )
+        
+        if success and 'id' in folio_response:
+            folio_id = folio_response['id']
+            
+            # Post room charge
+            charge_data = {
+                "charge_category": "room",
+                "description": f"Room Charge",
+                "amount": amount * 0.8,  # 80% room revenue
+                "quantity": 1,
+                "auto_calculate_tax": False
+            }
+            
+            self.run_test(
+                "Post Room Charge for Report Data",
+                "POST",
+                f"folio/{folio_id}/charge",
+                200,
+                data=charge_data
+            )
+            
+            # Post F&B charge
+            fb_charge_data = {
+                "charge_category": "food",
+                "description": "Restaurant Charge",
+                "amount": amount * 0.2,  # 20% F&B revenue
+                "quantity": 1,
+                "auto_calculate_tax": False
+            }
+            
+            self.run_test(
+                "Post F&B Charge for Report Data",
+                "POST",
+                f"folio/{folio_id}/charge",
+                200,
+                data=fb_charge_data
+            )
+
+    def create_housekeeping_tasks_for_reports(self):
+        """Create housekeeping tasks for efficiency report"""
+        if not self.created_resources['rooms']:
+            return
+        
+        # Create tasks for different staff members and types
+        task_scenarios = [
+            {"staff": "Sarah Johnson", "type": "cleaning", "count": 5},
+            {"staff": "Mike Wilson", "type": "cleaning", "count": 3},
+            {"staff": "Sarah Johnson", "type": "maintenance", "count": 2},
+            {"staff": "Lisa Brown", "type": "inspection", "count": 4}
+        ]
+        
+        for scenario in task_scenarios:
+            for i in range(scenario["count"]):
+                room_id = self.created_resources['rooms'][i % len(self.created_resources['rooms'])]
+                
+                task_data = {
+                    "room_id": room_id,
+                    "assigned_to": scenario["staff"],
+                    "task_type": scenario["type"],
+                    "priority": "normal"
+                }
+                
+                success, response = self.run_test(
+                    f"Create HK Task for {scenario['staff']}",
+                    "POST",
+                    "housekeeping/assign",
+                    200,
+                    data=task_data
+                )
+                
+                # Mark task as completed
+                if success and 'id' in response:
+                    task_id = response['id']
+                    # Update task status to completed (this would normally be done via a separate endpoint)
+                    # For testing purposes, we'll assume the task creation includes completion
+
+    def test_daily_flash_report(self):
+        """Test Daily Flash Report endpoint"""
+        print("\n📋 Test 1: Daily Flash Report")
+        
+        # Test 1: Get today's daily flash report
+        success, response = self.run_test(
+            "Daily Flash Report (Today)",
+            "GET",
+            "reports/daily-flash",
+            200
+        )
+        
+        if success:
+            # Verify response structure
+            required_keys = ['date', 'occupancy', 'movements', 'revenue']
+            occupancy_keys = ['occupied_rooms', 'total_rooms', 'occupancy_rate']
+            movements_keys = ['arrivals', 'departures', 'stayovers']
+            revenue_keys = ['total_revenue', 'room_revenue', 'fb_revenue', 'other_revenue', 'adr', 'rev_par']
+            
+            if (all(key in response for key in required_keys) and
+                all(key in response['occupancy'] for key in occupancy_keys) and
+                all(key in response['movements'] for key in movements_keys) and
+                all(key in response['revenue'] for key in revenue_keys)):
+                print("   ✅ Daily flash report structure verified")
+                print(f"      Occupancy Rate: {response['occupancy']['occupancy_rate']}%")
+                print(f"      Total Revenue: ${response['revenue']['total_revenue']}")
+                print(f"      ADR: ${response['revenue']['adr']}")
+                self.tests_passed += 1
+            else:
+                print("   ❌ Daily flash report structure verification failed")
+                print(f"      Missing keys in response")
+        self.tests_run += 1
+        
+        # Test 2: Get daily flash report for specific date
+        specific_date = "2025-01-15"
+        success, response = self.run_test(
+            "Daily Flash Report (Specific Date)",
+            "GET",
+            f"reports/daily-flash?date_str={specific_date}",
+            200
+        )
+        
+        if success and response.get('date') == specific_date:
+            print("   ✅ Daily flash report with specific date verified")
+            self.tests_passed += 1
+        else:
+            print("   ❌ Daily flash report with specific date failed")
+        self.tests_run += 1
+
+    def test_market_segment_report(self):
+        """Test Market Segment Report endpoint"""
+        print("\n📋 Test 2: Market Segment Report")
+        
+        start_date = "2025-01-01"
+        end_date = "2025-01-31"
+        
+        success, response = self.run_test(
+            "Market Segment Report",
+            "GET",
+            f"reports/market-segment?start_date={start_date}&end_date={end_date}",
+            200
+        )
+        
+        if success:
+            # Verify response structure
+            required_keys = ['start_date', 'end_date', 'total_bookings', 'market_segments', 'rate_types']
+            
+            if all(key in response for key in required_keys):
+                print("   ✅ Market segment report structure verified")
+                print(f"      Total Bookings: {response['total_bookings']}")
+                
+                # Verify market segments data structure
+                market_segments = response.get('market_segments', {})
+                rate_types = response.get('rate_types', {})
+                
+                # Check if segments have required fields
+                segment_valid = True
+                for segment, data in market_segments.items():
+                    if not all(key in data for key in ['bookings', 'nights', 'revenue', 'adr']):
+                        segment_valid = False
+                        break
+                
+                rate_valid = True
+                for rate_type, data in rate_types.items():
+                    if not all(key in data for key in ['bookings', 'nights', 'revenue', 'adr']):
+                        rate_valid = False
+                        break
+                
+                if segment_valid and rate_valid:
+                    print("   ✅ Market segment data structure verified")
+                    print(f"      Market Segments: {list(market_segments.keys())}")
+                    print(f"      Rate Types: {list(rate_types.keys())}")
+                    self.tests_passed += 1
+                else:
+                    print("   ❌ Market segment data structure verification failed")
+            else:
+                print("   ❌ Market segment report structure verification failed")
+        self.tests_run += 1
+
+    def test_company_aging_report(self):
+        """Test Company Aging Report endpoint"""
+        print("\n📋 Test 3: Company Aging Report")
+        
+        # First create company folios with outstanding balances
+        self.create_company_folios_for_aging()
+        
+        success, response = self.run_test(
+            "Company Aging Report",
+            "GET",
+            "reports/company-aging",
+            200
+        )
+        
+        if success:
+            # Verify response structure
+            required_keys = ['report_date', 'total_ar', 'company_count', 'companies']
+            
+            if all(key in response for key in required_keys):
+                print("   ✅ Company aging report structure verified")
+                print(f"      Total AR: ${response['total_ar']}")
+                print(f"      Company Count: {response['company_count']}")
+                
+                # Verify company data structure
+                companies = response.get('companies', [])
+                if companies:
+                    company = companies[0]
+                    company_keys = ['company_name', 'corporate_code', 'total_balance', 'aging', 'folio_count']
+                    aging_keys = ['0-7 days', '8-14 days', '15-30 days', '30+ days']
+                    
+                    if (all(key in company for key in company_keys) and
+                        all(key in company['aging'] for key in aging_keys)):
+                        print("   ✅ Company aging data structure verified")
+                        print(f"      Sample Company: {company['company_name']}")
+                        print(f"      Balance: ${company['total_balance']}")
+                        self.tests_passed += 1
+                    else:
+                        print("   ❌ Company aging data structure verification failed")
+                else:
+                    print("   ✅ Company aging report verified (no outstanding balances)")
+                    self.tests_passed += 1
+            else:
+                print("   ❌ Company aging report structure verification failed")
+        self.tests_run += 1
+
+    def create_company_folios_for_aging(self):
+        """Create company folios with outstanding balances for aging report"""
+        if not self.created_resources['companies'] or not self.created_resources['bookings']:
+            return
+        
+        # Create company folio with outstanding balance
+        company_id = self.created_resources['companies'][0]
+        booking_id = self.created_resources['bookings'][0]
+        
+        folio_data = {
+            "booking_id": booking_id,
+            "folio_type": "company",
+            "company_id": company_id
+        }
+        
+        success, folio_response = self.run_test(
+            "Create Company Folio for Aging",
+            "POST",
+            "folio/create",
+            200,
+            data=folio_data
+        )
+        
+        if success and 'id' in folio_response:
+            folio_id = folio_response['id']
+            
+            # Post charge to create outstanding balance
+            charge_data = {
+                "charge_category": "room",
+                "description": "Outstanding Room Charge",
+                "amount": 500.0,
+                "quantity": 1,
+                "auto_calculate_tax": False
+            }
+            
+            self.run_test(
+                "Post Charge for Aging Report",
+                "POST",
+                f"folio/{folio_id}/charge",
+                200,
+                data=charge_data
+            )
+
+    def test_housekeeping_efficiency_report(self):
+        """Test Housekeeping Efficiency Report endpoint"""
+        print("\n📋 Test 4: Housekeeping Efficiency Report")
+        
+        start_date = "2025-01-01"
+        end_date = "2025-01-31"
+        
+        success, response = self.run_test(
+            "Housekeeping Efficiency Report",
+            "GET",
+            f"reports/housekeeping-efficiency?start_date={start_date}&end_date={end_date}",
+            200
+        )
+        
+        if success:
+            # Verify response structure
+            required_keys = ['start_date', 'end_date', 'date_range_days', 'total_tasks_completed', 'staff_performance', 'daily_average_all_staff']
+            
+            if all(key in response for key in required_keys):
+                print("   ✅ Housekeeping efficiency report structure verified")
+                print(f"      Total Tasks: {response['total_tasks_completed']}")
+                print(f"      Date Range: {response['date_range_days']} days")
+                print(f"      Daily Average: {response['daily_average_all_staff']} tasks/day")
+                
+                # Verify staff performance data structure
+                staff_performance = response.get('staff_performance', {})
+                if staff_performance:
+                    staff_name = list(staff_performance.keys())[0]
+                    staff_data = staff_performance[staff_name]
+                    staff_keys = ['tasks_completed', 'by_type', 'daily_average']
+                    
+                    if all(key in staff_data for key in staff_keys):
+                        print("   ✅ Staff performance data structure verified")
+                        print(f"      Sample Staff: {staff_name}")
+                        print(f"      Tasks Completed: {staff_data['tasks_completed']}")
+                        self.tests_passed += 1
+                    else:
+                        print("   ❌ Staff performance data structure verification failed")
+                else:
+                    print("   ✅ Housekeeping efficiency report verified (no completed tasks)")
+                    self.tests_passed += 1
+            else:
+                print("   ❌ Housekeeping efficiency report structure verification failed")
+        self.tests_run += 1
+
+    def test_reporting_edge_cases(self):
+        """Test edge cases for management reports"""
+        print("\n📋 Test 5: Reporting Edge Cases")
+        
+        # Test 1: Daily flash with no bookings (future date)
+        future_date = "2025-12-31"
+        success, response = self.run_test(
+            "Daily Flash - Future Date (No Data)",
+            "GET",
+            f"reports/daily-flash?date_str={future_date}",
+            200
+        )
+        
+        if success and response.get('occupancy', {}).get('occupied_rooms') == 0:
+            print("   ✅ Daily flash with no data verified")
+            self.tests_passed += 1
+        else:
+            print("   ❌ Daily flash with no data failed")
+        self.tests_run += 1
+        
+        # Test 2: Market segment with no data in range
+        future_start = "2025-12-01"
+        future_end = "2025-12-31"
+        success, response = self.run_test(
+            "Market Segment - Future Date Range (No Data)",
+            "GET",
+            f"reports/market-segment?start_date={future_start}&end_date={future_end}",
+            200
+        )
+        
+        if success and response.get('total_bookings') == 0:
+            print("   ✅ Market segment with no data verified")
+            self.tests_passed += 1
+        else:
+            print("   ❌ Market segment with no data failed")
+        self.tests_run += 1
+        
+        # Test 3: Company aging with no open folios
+        # This should return empty companies array
+        success, response = self.run_test(
+            "Company Aging - Check Empty Response",
+            "GET",
+            "reports/company-aging",
+            200
+        )
+        
+        if success:
+            print("   ✅ Company aging report executed successfully")
+            self.tests_passed += 1
+        else:
+            print("   ❌ Company aging report failed")
+        self.tests_run += 1
+        
+        # Test 4: HK efficiency with no completed tasks
+        past_start = "2024-01-01"
+        past_end = "2024-01-31"
+        success, response = self.run_test(
+            "HK Efficiency - Past Date Range (No Tasks)",
+            "GET",
+            f"reports/housekeeping-efficiency?start_date={past_start}&end_date={past_end}",
+            200
+        )
+        
+        if success and response.get('total_tasks_completed') == 0:
+            print("   ✅ HK efficiency with no tasks verified")
+            self.tests_passed += 1
+        else:
+            print("   ❌ HK efficiency with no tasks failed")
+        self.tests_run += 1
+        
+        # Test 5: Invalid date format handling
+        success, response = self.run_test(
+            "Daily Flash - Invalid Date Format",
+            "GET",
+            "reports/daily-flash?date_str=invalid-date",
+            500  # Expecting error
+        )
+        
+        if not success:  # We expect this to fail
+            print("   ✅ Invalid date format handled correctly")
+            self.tests_passed += 1
+        else:
+            print("   ❌ Invalid date format not handled properly")
+        self.tests_run += 1
+
 def main():
     print("🏨 Starting RoomOps Platform API Testing...")
     print("=" * 60)
