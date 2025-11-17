@@ -446,12 +446,12 @@ metadata:
 
 test_plan:
   current_focus:
-    - "Test invoice creation with 10% VAT rate"
-    - "Test adding ÖTV (Special Consumption Tax) to invoice items"
-    - "Test adding Tevkifat (Withholding Tax) with different rates (7/10, 9/10, etc.)"
-    - "Test adding Accommodation Tax"
-    - "Verify invoice totals calculate correctly with multiple taxes"
-    - "Verify tax breakdown displays correctly in invoice summary"
+    - "Test Company CRUD endpoints (create, list, get, update)"
+    - "Test booking creation with new fields (adults, children, children_ages)"
+    - "Test booking creation with company_id and auto-filled billing info"
+    - "Test booking creation with contracted_rate and auto-filled rate_type/market_segment"
+    - "Test rate override logging when base_rate != total_amount"
+    - "Test rate override log retrieval"
   stuck_tasks: []
   test_all: true
   test_priority: "sequential"
