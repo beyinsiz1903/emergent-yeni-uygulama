@@ -24,8 +24,35 @@ const ReservationCalendar = ({ user, tenant, onLogout }) => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [rooms, setRooms] = useState([]);
   const [bookings, setBookings] = useState([]);
+  const [guests, setGuests] = useState([]);
+  const [companies, setCompanies] = useState([]);
   const [loading, setLoading] = useState(true);
   const [daysToShow, setDaysToShow] = useState(14); // 2 weeks view
+  
+  // Dialog states
+  const [showNewBookingDialog, setShowNewBookingDialog] = useState(false);
+  const [showDetailsDialog, setShowDetailsDialog] = useState(false);
+  const [selectedBooking, setSelectedBooking] = useState(null);
+  const [selectedDate, setSelectedDate] = useState(null);
+  const [selectedRoom, setSelectedRoom] = useState(null);
+  
+  // Drag & Drop state
+  const [draggingBooking, setDraggingBooking] = useState(null);
+  const [dragOverCell, setDragOverCell] = useState(null);
+  
+  // New booking form
+  const [newBooking, setNewBooking] = useState({
+    guest_id: '',
+    room_id: '',
+    check_in: '',
+    check_out: '',
+    guests_count: 2,
+    adults: 2,
+    children: 0,
+    children_ages: [],
+    total_amount: 0,
+    status: 'confirmed'
+  });
 
   useEffect(() => {
     loadCalendarData();
