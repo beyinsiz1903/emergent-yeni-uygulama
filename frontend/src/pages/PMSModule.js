@@ -571,6 +571,17 @@ const PMSModule = ({ user, tenant, onLogout }) => {
     }
   };
 
+  const quickUpdateRoomStatus = async (roomId, newStatus) => {
+    try {
+      const response = await axios.put(`/housekeeping/room/${roomId}/status?new_status=${newStatus}`);
+      toast.success(response.data.message);
+      loadHousekeepingData();
+      loadData();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Failed to update status');
+    }
+  };
+
   if (loading) {
     return (
       <Layout user={user} tenant={tenant} onLogout={onLogout} currentModule="pms">
