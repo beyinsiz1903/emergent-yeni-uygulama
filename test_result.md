@@ -706,15 +706,18 @@ frontend:
   
   - task: "Add Children Ages dynamic inputs (show only if children > 0)"
     implemented: true
-    working: "NA"
+    working: false
     file: "/app/frontend/src/pages/PMSModule.js"
-    stuck_count: 0
+    stuck_count: 1
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: "NA"
         agent: "main"
         comment: "Children ages inputs conditionally rendered only when children > 0, with dynamic array management"
+      - working: false
+        agent: "testing"
+        comment: "❌ CRITICAL: Cannot test children ages dynamic inputs due to authentication system failure. Users cannot access booking form to test this functionality."
   
   - task: "Add Company selection with autocomplete"
     implemented: true
