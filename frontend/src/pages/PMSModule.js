@@ -308,16 +308,151 @@ const PMSModule = ({ user, tenant, onLogout }) => {
     }
   };
 
-  const handleCreateBooking = async (e) => {
+  const handleCreateCompany = async (e) => {
     e.preventDefault();
     try {
-      await axios.post('/pms/bookings', newBooking);
-      toast.success('Booking created');
+      const response = await axios.post('/companies', newCompany);
+      toast.success('Company created successfully');
       setOpenDialog(null);
       loadData();
-      setNewBooking({ guest_id: '', room_id: '', check_in: '', check_out: '', guests_count: 1, total_amount: 0, channel: 'direct' });
+      // Auto-select the newly created company
+      const company = response.data;
+      handleCompanySelect(company.id);
+      setNewCompany({
+        name: '',
+        corporate_code: '',
+        tax_number: '',
+        billing_address: '',
+        contact_person: '',
+        contact_email: '',
+        contact_phone: '',
+        contracted_rate: '',
+        default_rate_type: '',
+        default_market_segment: '',
+        default_cancellation_policy: '',
+        payment_terms: '',
+        status: 'pending'
+      });
     } catch (error) {
-      toast.error('Failed to create booking');
+      toast.error('Failed to create company');
+    }
+  };
+
+  const handleCompanySelect = (companyId) => {
+    const company = companies.find(c => c.id === companyId);
+    if (company) {
+      setSelectedCompany(company);
+      setNewBooking({
+        ...newBooking,
+        company_id: companyId,
+        contracted_rate: company.contracted_rate || '',
+        rate_type: company.default_rate_type || '',
+        market_segment: company.default_market_segment || '',
+        cancellation_policy: company.default_cancellation_policy || '',
+        billing_address: company.billing_address || '',
+        billing_tax_number: company.tax_number || '',
+        billing_contact_person: company.contact_person || ''
+      });
+    }
+  };
+
+  const handleContractedRateSelect = (contractedRate) => {
+    // Auto-fill rate type and market segment based on contracted rate
+    const rateMapping = {
+      'corp_std': { rate_type: 'corporate', market_segment: 'corporate', cancellation_policy: 'h48' },
+      'corp_pref': { rate_type: 'corporate', market_segment: 'corporate', cancellation_policy: 'flexible' },
+      'gov': { rate_type: 'government', market_segment: 'government', cancellation_policy: 'h24' },
+      'ta': { rate_type: 'wholesale', market_segment: 'wholesale', cancellation_policy: 'd7' },
+      'crew': { rate_type: 'corporate', market_segment: 'crew', cancellation_policy: 'same_day' },
+      'mice': { rate_type: 'package', market_segment: 'mice', cancellation_policy: 'd14' },
+      'lts': { rate_type: 'long_stay', market_segment: 'long_stay', cancellation_policy: 'flexible' },
+      'tou': { rate_type: 'wholesale', market_segment: 'wholesale', cancellation_policy: 'd14' }
+    };
+
+    const mapping = rateMapping[contractedRate];
+    if (mapping) {
+      setNewBooking({
+        ...newBooking,
+        contracted_rate: contractedRate,
+        rate_type: mapping.rate_type,
+        market_segment: mapping.market_segment,
+        cancellation_policy: mapping.cancellation_policy
+      });
+    }
+  };
+
+  const handleChildrenChange = (count) => {
+    const childrenCount = parseInt(count) || 0;
+    const currentAges = newBooking.children_ages;
+    
+    // Adjust children_ages array based on new count
+    let newAges = [...currentAges];
+    if (childrenCount > currentAges.length) {
+      // Add default ages for new children
+      newAges = [...currentAges, ...Array(childrenCount - currentAges.length).fill(0)];
+    } else {
+      // Remove excess ages
+      newAges = currentAges.slice(0, childrenCount);
+    }
+    
+    setNewBooking({
+      ...newBooking,
+      children: childrenCount,
+      children_ages: newAges,
+      guests_count: newBooking.adults + childrenCount
+    });
+  };
+
+  const handleChildAgeChange = (index, age) => {
+    const newAges = [...newBooking.children_ages];
+    newAges[index] = parseInt(age) || 0;
+    setNewBooking({
+      ...newBooking,
+      children_ages: newAges
+    });
+  };
+
+  const handleCreateBooking = async (e) => {
+    e.preventDefault();
+    
+    // Check for rate override
+    if (newBooking.base_rate > 0 && newBooking.base_rate !== newBooking.total_amount) {
+      if (!newBooking.override_reason) {
+        toast.error('Please provide a reason for rate override');
+        return;
+      }
+    }
+    
+    try {
+      await axios.post('/pms/bookings', newBooking);
+      toast.success('Booking created successfully');
+      setOpenDialog(null);
+      loadData();
+      setSelectedCompany(null);
+      setNewBooking({
+        guest_id: '',
+        room_id: '',
+        check_in: '',
+        check_out: '',
+        adults: 1,
+        children: 0,
+        children_ages: [],
+        guests_count: 1,
+        total_amount: 0,
+        base_rate: 0,
+        channel: 'direct',
+        company_id: '',
+        contracted_rate: '',
+        rate_type: '',
+        market_segment: '',
+        cancellation_policy: '',
+        billing_address: '',
+        billing_tax_number: '',
+        billing_contact_person: '',
+        override_reason: ''
+      });
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Failed to create booking');
     }
   };
 
