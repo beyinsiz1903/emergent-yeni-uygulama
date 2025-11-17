@@ -544,6 +544,66 @@ backend:
         agent: "testing"
         comment: "✅ COMPREHENSIVE TESTING COMPLETED - Task assignment endpoint working perfectly. POST /api/housekeeping/assign: Successfully creates housekeeping tasks with correct details (room_id, assigned_to='Sarah', task_type='cleaning', priority='high'). Response contains success message and complete task object with generated task ID. Task creation verified with all required fields populated correctly."
 
+  - task: "Create Daily Flash Report endpoint"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "GET /api/reports/daily-flash - Returns occupancy, movements, and revenue data for GM/CFO dashboard"
+      - working: true
+        agent: "testing"
+        comment: "✅ COMPREHENSIVE TESTING COMPLETED - Daily Flash Report working perfectly. GET /api/reports/daily-flash: Successfully returns complete daily operations summary with proper structure (date, occupancy, movements, revenue). Occupancy calculations accurate (occupied_rooms/total_rooms), revenue aggregation from folio charges working ($620.0 total), ADR and RevPAR calculations verified. Date parameter functionality tested with specific date (2025-01-15). All response fields validated and functional."
+
+  - task: "Create Market Segment Report endpoint"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "GET /api/reports/market-segment - Returns market segment and rate type performance analysis"
+      - working: true
+        agent: "testing"
+        comment: "✅ COMPREHENSIVE TESTING COMPLETED - Market Segment Report working perfectly. GET /api/reports/market-segment: Successfully returns market segment and rate type performance with proper aggregation. Response structure verified (start_date, end_date, total_bookings, market_segments, rate_types). Market segment grouping by segment (corporate, leisure, group) and rate type (bar, corporate, wholesale) working correctly. ADR calculations (revenue/nights) accurate for each segment. Date range filtering functional."
+
+  - task: "Create Company Aging Report endpoint"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "GET /api/reports/company-aging - Returns accounts receivable aging analysis for company folios"
+      - working: true
+        agent: "testing"
+        comment: "✅ COMPREHENSIVE TESTING COMPLETED - Company Aging Report working perfectly. GET /api/reports/company-aging: Successfully returns AR aging analysis with proper structure (report_date, total_ar, company_count, companies). Outstanding balance detection from company folios working correctly. Aging calculation based on folio creation date accurate (0-7 days, 8-14 days, 15-30 days, 30+ days). Company data structure complete with company_name, corporate_code, total_balance, aging breakdown, folio_count. Sorting by total_balance descending verified. Tested with $600.0 total AR."
+
+  - task: "Create Housekeeping Efficiency Report endpoint"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "GET /api/reports/housekeeping-efficiency - Returns staff performance analysis for completed housekeeping tasks"
+      - working: true
+        agent: "testing"
+        comment: "✅ COMPREHENSIVE TESTING COMPLETED - Housekeeping Efficiency Report working perfectly. GET /api/reports/housekeeping-efficiency: Successfully returns staff performance analysis with proper structure (start_date, end_date, date_range_days, total_tasks_completed, staff_performance, daily_average_all_staff). Date range calculation accurate (31 days for January). Staff performance aggregation by assigned_to working correctly. Task type breakdown (cleaning, maintenance, inspection) verified. Daily average calculations (tasks_completed/date_range_days) accurate for individual staff and overall average."
+
 frontend:
   - task: "Add Adults and Children count inputs to booking form"
     implemented: true
