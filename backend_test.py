@@ -1337,6 +1337,718 @@ class RoomOpsAPITester:
             print("   ❌ Enum company creation failed")
         self.tests_run += 1
 
+    def test_folio_billing_engine(self):
+        """Test comprehensive Folio & Billing Engine functionality"""
+        print("\n💰 Testing Folio & Billing Engine...")
+        
+        # Prerequisites: Create test guest, room, and booking
+        test_guest_id = None
+        test_room_id = None
+        test_booking_id = None
+        test_company_id = None
+        
+        # Create test guest if not exists
+        if not self.created_resources['guests']:
+            guest_data = {
+                "name": "Folio Test Guest",
+                "email": "folio.guest@example.com",
+                "phone": "+1234567890",
+                "id_number": "FOLIO123456",
+                "address": "123 Folio Street"
+            }
+            
+            success, response = self.run_test(
+                "Create Test Guest for Folio",
+                "POST",
+                "pms/guests",
+                200,
+                data=guest_data
+            )
+            
+            if success and 'id' in response:
+                test_guest_id = response['id']
+                self.created_resources['guests'].append(test_guest_id)
+        else:
+            test_guest_id = self.created_resources['guests'][0]
+        
+        # Create test room if not exists
+        if not self.created_resources['rooms']:
+            room_data = {
+                "room_number": "101",
+                "room_type": "deluxe",
+                "floor": 1,
+                "capacity": 2,
+                "base_price": 100.00,
+                "amenities": ["wifi", "tv", "minibar"]
+            }
+            
+            success, response = self.run_test(
+                "Create Test Room for Folio",
+                "POST",
+                "pms/rooms",
+                200,
+                data=room_data
+            )
+            
+            if success and 'id' in response:
+                test_room_id = response['id']
+                self.created_resources['rooms'].append(test_room_id)
+        else:
+            test_room_id = self.created_resources['rooms'][0]
+        
+        # Create test company if not exists
+        if not self.created_resources['companies']:
+            company_data = {
+                "name": "Folio Test Company",
+                "corporate_code": "FOLIO01",
+                "tax_number": "9876543210",
+                "billing_address": "456 Company Ave",
+                "contact_person": "Jane Smith",
+                "contact_email": "jane@foliocompany.com",
+                "contact_phone": "+1234567891",
+                "status": "active"
+            }
+            
+            success, response = self.run_test(
+                "Create Test Company for Folio",
+                "POST",
+                "companies",
+                200,
+                data=company_data
+            )
+            
+            if success and 'id' in response:
+                test_company_id = response['id']
+                self.created_resources['companies'].append(test_company_id)
+        else:
+            test_company_id = self.created_resources['companies'][0]
+        
+        # Create test booking
+        if test_guest_id and test_room_id:
+            booking_data = {
+                "guest_id": test_guest_id,
+                "room_id": test_room_id,
+                "check_in": datetime.now().isoformat(),
+                "check_out": (datetime.now() + timedelta(days=1)).isoformat(),
+                "adults": 2,
+                "children": 0,
+                "children_ages": [],
+                "guests_count": 2,
+                "total_amount": 100.0,
+                "channel": "direct"
+            }
+            
+            success, response = self.run_test(
+                "Create Test Booking for Folio",
+                "POST",
+                "pms/bookings",
+                200,
+                data=booking_data
+            )
+            
+            if success and 'id' in response:
+                test_booking_id = response['id']
+                self.created_resources['bookings'].append(test_booking_id)
+        
+        if not (test_guest_id and test_room_id and test_booking_id and test_company_id):
+            print("   ⚠️ Skipping folio tests - missing prerequisites")
+            return False
+        
+        # Now run the folio tests
+        guest_folio_id = self.test_folio_creation(test_booking_id, test_company_id)
+        company_folio_id = None
+        
+        if guest_folio_id:
+            company_folio_id = self.test_company_folio_creation(test_booking_id, test_company_id)
+            self.test_charge_posting(guest_folio_id)
+            self.test_payment_posting(guest_folio_id)
+            self.test_folio_details(guest_folio_id)
+            
+            if company_folio_id:
+                self.test_charge_transfer(guest_folio_id, company_folio_id)
+            
+            self.test_void_charge(guest_folio_id)
+            self.test_booking_folios_list(test_booking_id)
+            self.test_folio_closure(guest_folio_id)
+            self.test_night_audit()
+            self.test_folio_edge_cases(test_booking_id, guest_folio_id)
+        
+        return True
+
+    def test_folio_creation(self, booking_id, company_id):
+        """Test 1: FOLIO CREATION"""
+        print("\n📋 Test 1: Folio Creation")
+        
+        # Create guest folio
+        guest_folio_data = {
+            "booking_id": booking_id,
+            "folio_type": "guest"
+        }
+        
+        success, response = self.run_test(
+            "Create Guest Folio",
+            "POST",
+            "folio/create",
+            200,
+            data=guest_folio_data
+        )
+        
+        guest_folio_id = None
+        if success and 'id' in response:
+            guest_folio_id = response['id']
+            
+            # Verify folio details
+            if (response.get('folio_type') == 'guest' and
+                response.get('status') == 'open' and
+                response.get('balance') == 0.0 and
+                'F-' in response.get('folio_number', '')):
+                print("   ✅ Guest folio created successfully")
+                print(f"      Folio Number: {response.get('folio_number')}")
+                self.tests_passed += 1
+            else:
+                print("   ❌ Guest folio creation verification failed")
+        else:
+            print("   ❌ Guest folio creation failed")
+        self.tests_run += 1
+        
+        return guest_folio_id
+
+    def test_company_folio_creation(self, booking_id, company_id):
+        """Create company folio"""
+        company_folio_data = {
+            "booking_id": booking_id,
+            "folio_type": "company",
+            "company_id": company_id
+        }
+        
+        success, response = self.run_test(
+            "Create Company Folio",
+            "POST",
+            "folio/create",
+            200,
+            data=company_folio_data
+        )
+        
+        company_folio_id = None
+        if success and 'id' in response:
+            company_folio_id = response['id']
+            
+            if (response.get('folio_type') == 'company' and
+                response.get('company_id') == company_id and
+                response.get('status') == 'open' and
+                response.get('balance') == 0.0):
+                print("   ✅ Company folio created successfully")
+                self.tests_passed += 1
+            else:
+                print("   ❌ Company folio creation verification failed")
+        else:
+            print("   ❌ Company folio creation failed")
+        self.tests_run += 1
+        
+        return company_folio_id
+
+    def test_charge_posting(self, folio_id):
+        """Test 2: CHARGE POSTING"""
+        print("\n📋 Test 2: Charge Posting")
+        
+        # Post room charge
+        room_charge_data = {
+            "folio_id": folio_id,
+            "charge_category": "room",
+            "description": "Room 101 - Night 1",
+            "amount": 100.0,
+            "quantity": 1,
+            "auto_calculate_tax": False
+        }
+        
+        success, response = self.run_test(
+            "Post Room Charge",
+            "POST",
+            f"folio/{folio_id}/charge",
+            200,
+            data=room_charge_data
+        )
+        
+        room_charge_id = None
+        if success and 'id' in response:
+            room_charge_id = response['id']
+            if (response.get('charge_category') == 'room' and
+                response.get('amount') == 100.0 and
+                response.get('total') == 100.0):
+                print("   ✅ Room charge posted successfully")
+                self.tests_passed += 1
+            else:
+                print("   ❌ Room charge posting verification failed")
+        self.tests_run += 1
+        
+        # Post food charge
+        food_charge_data = {
+            "folio_id": folio_id,
+            "charge_category": "food",
+            "description": "Breakfast",
+            "amount": 25.0,
+            "quantity": 2,
+            "auto_calculate_tax": False
+        }
+        
+        success, response = self.run_test(
+            "Post Food Charge",
+            "POST",
+            f"folio/{folio_id}/charge",
+            200,
+            data=food_charge_data
+        )
+        
+        if success and response.get('amount') == 50.0:  # 25 * 2
+            print("   ✅ Food charge posted successfully")
+            self.tests_passed += 1
+        else:
+            print("   ❌ Food charge posting failed")
+        self.tests_run += 1
+        
+        # Post minibar charge
+        minibar_charge_data = {
+            "folio_id": folio_id,
+            "charge_category": "minibar",
+            "description": "Coca Cola",
+            "amount": 5.0,
+            "quantity": 3,
+            "auto_calculate_tax": False
+        }
+        
+        success, response = self.run_test(
+            "Post Minibar Charge",
+            "POST",
+            f"folio/{folio_id}/charge",
+            200,
+            data=minibar_charge_data
+        )
+        
+        minibar_charge_id = None
+        if success and 'id' in response:
+            minibar_charge_id = response['id']
+            if response.get('amount') == 15.0:  # 5 * 3
+                print("   ✅ Minibar charge posted successfully")
+                self.tests_passed += 1
+            else:
+                print("   ❌ Minibar charge posting failed")
+        self.tests_run += 1
+        
+        return room_charge_id, minibar_charge_id
+
+    def test_payment_posting(self, folio_id):
+        """Test 3: PAYMENT POSTING"""
+        print("\n📋 Test 3: Payment Posting")
+        
+        # Post prepayment
+        prepayment_data = {
+            "folio_id": folio_id,
+            "amount": 50.0,
+            "method": "card",
+            "payment_type": "prepayment"
+        }
+        
+        success, response = self.run_test(
+            "Post Prepayment",
+            "POST",
+            f"folio/{folio_id}/payment",
+            200,
+            data=prepayment_data
+        )
+        
+        if success and response.get('amount') == 50.0 and response.get('payment_type') == 'prepayment':
+            print("   ✅ Prepayment posted successfully")
+            self.tests_passed += 1
+        else:
+            print("   ❌ Prepayment posting failed")
+        self.tests_run += 1
+        
+        # Post interim payment
+        interim_payment_data = {
+            "folio_id": folio_id,
+            "amount": 100.0,
+            "method": "card",
+            "payment_type": "interim"
+        }
+        
+        success, response = self.run_test(
+            "Post Interim Payment",
+            "POST",
+            f"folio/{folio_id}/payment",
+            200,
+            data=interim_payment_data
+        )
+        
+        if success and response.get('amount') == 100.0 and response.get('payment_type') == 'interim':
+            print("   ✅ Interim payment posted successfully")
+            self.tests_passed += 1
+        else:
+            print("   ❌ Interim payment posting failed")
+        self.tests_run += 1
+
+    def test_folio_details(self, folio_id):
+        """Test 4: FOLIO DETAILS"""
+        print("\n📋 Test 4: Folio Details")
+        
+        success, response = self.run_test(
+            "Get Folio Details",
+            "GET",
+            f"folio/{folio_id}",
+            200
+        )
+        
+        if success:
+            folio = response.get('folio', {})
+            charges = response.get('charges', [])
+            payments = response.get('payments', [])
+            balance = response.get('balance', 0)
+            
+            # Expected balance: (100 + 50 + 15) - (50 + 100) = 15
+            expected_balance = 15.0
+            
+            if (len(charges) >= 3 and  # At least 3 charges
+                len(payments) >= 2 and  # At least 2 payments
+                abs(balance - expected_balance) < 0.01):  # Balance matches
+                print(f"   ✅ Folio details verified - Balance: {balance}")
+                self.tests_passed += 1
+            else:
+                print(f"   ❌ Folio details verification failed")
+                print(f"      Charges: {len(charges)}, Payments: {len(payments)}, Balance: {balance}")
+                print(f"      Expected balance: {expected_balance}")
+        else:
+            print("   ❌ Failed to get folio details")
+        self.tests_run += 1
+
+    def test_charge_transfer(self, from_folio_id, to_folio_id):
+        """Test 5: CHARGE TRANSFER"""
+        print("\n📋 Test 5: Charge Transfer")
+        
+        # First, get charges from source folio to find room charge
+        success, folio_details = self.run_test(
+            "Get Source Folio for Transfer",
+            "GET",
+            f"folio/{from_folio_id}",
+            200
+        )
+        
+        room_charge_id = None
+        if success:
+            charges = folio_details.get('charges', [])
+            for charge in charges:
+                if charge.get('charge_category') == 'room' and not charge.get('voided'):
+                    room_charge_id = charge.get('id')
+                    break
+        
+        if not room_charge_id:
+            print("   ⚠️ No room charge found for transfer")
+            self.tests_run += 1
+            return
+        
+        # Transfer room charge to company folio
+        transfer_data = {
+            "operation_type": "transfer",
+            "from_folio_id": from_folio_id,
+            "to_folio_id": to_folio_id,
+            "charge_ids": [room_charge_id],
+            "reason": "Company billing"
+        }
+        
+        success, response = self.run_test(
+            "Transfer Room Charge",
+            "POST",
+            "folio/transfer",
+            200,
+            data=transfer_data
+        )
+        
+        if success and response.get('operation_type') == 'transfer':
+            print("   ✅ Charge transfer completed successfully")
+            self.tests_passed += 1
+        else:
+            print("   ❌ Charge transfer failed")
+        self.tests_run += 1
+
+    def test_void_charge(self, folio_id):
+        """Test 6: VOID CHARGE"""
+        print("\n📋 Test 6: Void Charge")
+        
+        # Get folio details to find minibar charge
+        success, folio_details = self.run_test(
+            "Get Folio for Void",
+            "GET",
+            f"folio/{folio_id}",
+            200
+        )
+        
+        minibar_charge_id = None
+        if success:
+            charges = folio_details.get('charges', [])
+            for charge in charges:
+                if charge.get('charge_category') == 'minibar' and not charge.get('voided'):
+                    minibar_charge_id = charge.get('id')
+                    break
+        
+        if not minibar_charge_id:
+            print("   ⚠️ No minibar charge found for voiding")
+            self.tests_run += 1
+            return
+        
+        # Void the minibar charge
+        success, response = self.run_test(
+            "Void Minibar Charge",
+            "POST",
+            f"folio/{folio_id}/void-charge/{minibar_charge_id}?void_reason=Wrong charge",
+            200
+        )
+        
+        if success:
+            print("   ✅ Charge voided successfully")
+            self.tests_passed += 1
+        else:
+            print("   ❌ Charge void failed")
+        self.tests_run += 1
+
+    def test_booking_folios_list(self, booking_id):
+        """Test 7: BOOKING FOLIOS LIST"""
+        print("\n📋 Test 7: Booking Folios List")
+        
+        success, response = self.run_test(
+            "Get Booking Folios",
+            "GET",
+            f"folio/booking/{booking_id}",
+            200
+        )
+        
+        if success and len(response) >= 1:  # At least guest folio
+            print(f"   ✅ Retrieved {len(response)} folios for booking")
+            self.tests_passed += 1
+        else:
+            print("   ❌ Failed to get booking folios")
+        self.tests_run += 1
+
+    def test_folio_closure(self, folio_id):
+        """Test 8: FOLIO CLOSURE"""
+        print("\n📋 Test 8: Folio Closure")
+        
+        # First try to close with outstanding balance (should fail)
+        success, response = self.run_test(
+            "Try Close Folio with Balance (Should Fail)",
+            "POST",
+            f"folio/{folio_id}/close",
+            400  # Expecting failure
+        )
+        
+        if not success:  # This is expected
+            print("   ✅ Folio closure correctly rejected with outstanding balance")
+            self.tests_passed += 1
+        else:
+            print("   ❌ Folio closure should have failed with outstanding balance")
+        self.tests_run += 1
+        
+        # Add payment to clear balance
+        # Get current balance first
+        success, folio_details = self.run_test(
+            "Get Folio Balance for Closure",
+            "GET",
+            f"folio/{folio_id}",
+            200
+        )
+        
+        if success:
+            balance = folio_details.get('balance', 0)
+            if balance > 0:
+                # Add payment to clear balance
+                payment_data = {
+                    "folio_id": folio_id,
+                    "amount": balance,
+                    "method": "card",
+                    "payment_type": "final"
+                }
+                
+                success, payment_response = self.run_test(
+                    "Add Final Payment to Clear Balance",
+                    "POST",
+                    f"folio/{folio_id}/payment",
+                    200,
+                    data=payment_data
+                )
+                
+                if success:
+                    # Now try to close folio (should succeed)
+                    success, close_response = self.run_test(
+                        "Close Folio After Payment",
+                        "POST",
+                        f"folio/{folio_id}/close",
+                        200
+                    )
+                    
+                    if success:
+                        print("   ✅ Folio closed successfully after payment")
+                        self.tests_passed += 1
+                    else:
+                        print("   ❌ Folio closure failed after payment")
+                else:
+                    print("   ❌ Failed to add final payment")
+            else:
+                # Balance is already zero or negative, try to close
+                success, close_response = self.run_test(
+                    "Close Folio (Zero Balance)",
+                    "POST",
+                    f"folio/{folio_id}/close",
+                    200
+                )
+                
+                if success:
+                    print("   ✅ Folio closed successfully")
+                    self.tests_passed += 1
+                else:
+                    print("   ❌ Folio closure failed")
+        self.tests_run += 1
+
+    def test_night_audit(self):
+        """Test 9: NIGHT AUDIT"""
+        print("\n📋 Test 9: Night Audit")
+        
+        # Update booking status to checked_in if needed
+        if self.created_resources['bookings']:
+            booking_id = self.created_resources['bookings'][0]
+            
+            # Update booking to checked_in status
+            success, update_response = self.run_test(
+                "Update Booking to Checked In",
+                "POST",
+                f"frontdesk/checkin/{booking_id}",
+                200
+            )
+            
+            if success:
+                print("   ✅ Booking checked in for night audit")
+            
+            # Run night audit
+            success, response = self.run_test(
+                "Run Night Audit",
+                "POST",
+                "night-audit/post-room-charges",
+                200
+            )
+            
+            if success:
+                charges_posted = response.get('charges_posted', 0)
+                bookings_processed = response.get('bookings_processed', 0)
+                print(f"   ✅ Night audit completed - {charges_posted} charges posted to {bookings_processed} bookings")
+                self.tests_passed += 1
+            else:
+                print("   ❌ Night audit failed")
+        else:
+            print("   ⚠️ No bookings available for night audit")
+        self.tests_run += 1
+
+    def test_folio_edge_cases(self, booking_id, folio_id):
+        """Test 10: EDGE CASES"""
+        print("\n📋 Test 10: Edge Cases")
+        
+        # Try creating folio for non-existent booking
+        invalid_folio_data = {
+            "booking_id": "non-existent-booking-id",
+            "folio_type": "guest"
+        }
+        
+        success, response = self.run_test(
+            "Create Folio for Non-existent Booking (Should Fail)",
+            "POST",
+            "folio/create",
+            404  # Expecting failure
+        )
+        
+        if not success:  # This is expected
+            print("   ✅ Correctly rejected folio creation for non-existent booking")
+            self.tests_passed += 1
+        else:
+            print("   ❌ Should have failed creating folio for non-existent booking")
+        self.tests_run += 1
+        
+        # Try posting charge to closed folio (if we have a closed folio)
+        # This test might not work if folio isn't actually closed
+        charge_data = {
+            "folio_id": folio_id,
+            "charge_category": "other",
+            "description": "Test charge to closed folio",
+            "amount": 10.0,
+            "quantity": 1,
+            "auto_calculate_tax": False
+        }
+        
+        success, response = self.run_test(
+            "Post Charge to Closed Folio (May Fail)",
+            "POST",
+            f"folio/{folio_id}/charge",
+            404  # Expecting failure if folio is closed
+        )
+        
+        if not success:
+            print("   ✅ Correctly rejected charge to closed folio")
+            self.tests_passed += 1
+        else:
+            print("   ⚠️ Charge posted (folio may not be closed)")
+        self.tests_run += 1
+        
+        # Try voiding already voided charge
+        # Get folio details to find a voided charge
+        success, folio_details = self.run_test(
+            "Get Folio for Void Test",
+            "GET",
+            f"folio/{folio_id}",
+            200
+        )
+        
+        voided_charge_id = None
+        if success:
+            charges = folio_details.get('charges', [])
+            for charge in charges:
+                if charge.get('voided'):
+                    voided_charge_id = charge.get('id')
+                    break
+        
+        if voided_charge_id:
+            success, response = self.run_test(
+                "Try Void Already Voided Charge (Should Fail)",
+                "POST",
+                f"folio/{folio_id}/void-charge/{voided_charge_id}?void_reason=Test double void",
+                404  # Expecting failure
+            )
+            
+            if not success:
+                print("   ✅ Correctly rejected voiding already voided charge")
+                self.tests_passed += 1
+            else:
+                print("   ❌ Should have failed voiding already voided charge")
+        else:
+            print("   ⚠️ No voided charges found for testing")
+        self.tests_run += 1
+        
+        # Try transferring non-existent charge
+        transfer_data = {
+            "operation_type": "transfer",
+            "from_folio_id": folio_id,
+            "to_folio_id": folio_id,  # Same folio for simplicity
+            "charge_ids": ["non-existent-charge-id"],
+            "reason": "Test transfer of non-existent charge"
+        }
+        
+        success, response = self.run_test(
+            "Transfer Non-existent Charge (Should Handle Gracefully)",
+            "POST",
+            "folio/transfer",
+            200  # Should handle gracefully
+        )
+        
+        if success:
+            print("   ✅ Transfer of non-existent charge handled gracefully")
+            self.tests_passed += 1
+        else:
+            print("   ❌ Transfer of non-existent charge not handled properly")
+        self.tests_run += 1
+
 def main():
     print("🏨 Starting RoomOps Platform API Testing...")
     print("=" * 60)
