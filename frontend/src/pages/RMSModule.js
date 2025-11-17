@@ -139,71 +139,198 @@ const RMSModule = ({ user, tenant, onLogout }) => {
     return <Badge className="bg-gray-500">Low Confidence</Badge>;
   };
 
-  if (loading) {
-    return (
-      <Layout user={user} tenant={tenant} onLogout={onLogout} currentModule="rms">
-        <div className="p-6 text-center">Loading...</div>
-      </Layout>
-    );
-  }
-
   return (
     <Layout user={user} tenant={tenant} onLogout={onLogout} currentModule="rms">
       <div className="p-6 space-y-6">
-        <div>
-          <h1 className="text-4xl font-bold mb-2" style={{ fontFamily: 'Space Grotesk' }}>{t('rms.title')}</h1>
-          <p className="text-gray-600">{t('rms.subtitle')}</p>
+        {/* Header */}
+        <div className="flex justify-between items-center">
+          <div>
+            <h1 className="text-4xl font-bold mb-2" style={{ fontFamily: 'Space Grotesk' }}>
+              Revenue Management
+            </h1>
+            <p className="text-gray-600">AI-powered pricing optimization for maximum revenue</p>
+          </div>
+          <Dialog open={showGenerateDialog} onOpenChange={setShowGenerateDialog}>
+            <DialogTrigger asChild>
+              <Button>
+                <Sparkles className="w-4 h-4 mr-2" />
+                Generate Suggestions
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Generate Pricing Suggestions</DialogTitle>
+              </DialogHeader>
+              <form onSubmit={handleGenerateSuggestions} className="space-y-4">
+                <div>
+                  <Label>Start Date</Label>
+                  <Input
+                    type="date"
+                    value={dateRange.start_date}
+                    onChange={(e) => setDateRange({...dateRange, start_date: e.target.value})}
+                    required
+                  />
+                </div>
+                <div>
+                  <Label>End Date</Label>
+                  <Input
+                    type="date"
+                    value={dateRange.end_date}
+                    onChange={(e) => setDateRange({...dateRange, end_date: e.target.value})}
+                    required
+                  />
+                </div>
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm text-blue-800">
+                  <p className="font-semibold mb-1">How it works:</p>
+                  <p>Our AI analyzes occupancy rates, historical data, and market trends to generate optimal pricing for each room type within the selected date range.</p>
+                </div>
+                <Button type="submit" className="w-full" disabled={loading}>
+                  {loading ? 'Generating...' : 'Generate Suggestions'}
+                </Button>
+              </form>
+            </DialogContent>
+          </Dialog>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <Card className="md:col-span-2 lg:col-span-3">
-            <CardHeader>
-              <CardTitle>Pricing Overview</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-sm text-gray-600 mb-4">
-                Our AI analyzes your occupancy rates, historical data, and market trends to suggest optimal pricing strategies.
+        {/* Filter Buttons */}
+        <div className="flex space-x-2">
+          <Button
+            variant={filterStatus === 'all' ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setFilterStatus('all')}
+          >
+            All
+          </Button>
+          <Button
+            variant={filterStatus === 'pending' ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setFilterStatus('pending')}
+          >
+            <Clock className="w-4 h-4 mr-2" />
+            Pending
+          </Button>
+          <Button
+            variant={filterStatus === 'applied' ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setFilterStatus('applied')}
+          >
+            <CheckCircle className="w-4 h-4 mr-2" />
+            Applied
+          </Button>
+          <Button
+            variant={filterStatus === 'rejected' ? 'default' ? 'outline'}
+            size="sm"
+            onClick={() => setFilterStatus('rejected')}
+          >
+            <XCircle className="w-4 h-4 mr-2" />
+            Rejected
+          </Button>
+        </div>
+
+        {/* Suggestions Grid */}
+        {loading ? (
+          <div className="text-center py-12">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+            <p className="mt-4 text-gray-600">Loading suggestions...</p>
+          </div>
+        ) : suggestions.length === 0 ? (
+          <Card>
+            <CardContent className="py-12">
+              <div className="text-center text-gray-500">
+                <Sparkles className="w-16 h-16 mx-auto mb-4 opacity-50" />
+                <p className="text-lg font-semibold mb-2">No suggestions available</p>
+                <p className="text-sm mb-4">Generate AI-powered pricing suggestions to optimize your revenue</p>
+                <Button onClick={() => setShowGenerateDialog(true)}>
+                  <Sparkles className="w-4 h-4 mr-2" />
+                  Generate Suggestions
+                </Button>
               </div>
             </CardContent>
           </Card>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {suggestions.map((suggestion) => {
+              const trend = getPriceTrend(suggestion.current_rate, suggestion.suggested_rate);
+              const TrendIcon = trend.icon;
+              
+              return (
+                <Card key={suggestion.id} className="hover:shadow-lg transition-shadow">
+                  <CardHeader>
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <CardTitle className="text-lg">
+                          {suggestion.date}
+                        </CardTitle>
+                        <p className="text-sm text-gray-600 capitalize mt-1">{suggestion.room_type}</p>
+                      </div>
+                      {getStatusBadge(suggestion.status)}
+                    </div>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    {/* Price Comparison */}
+                    <div className={`${trend.bgColor} rounded-lg p-4 space-y-2`}>
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm text-gray-600">Current Rate</span>
+                        <span className="text-xl font-bold text-gray-800">
+                          ${suggestion.current_rate.toFixed(2)}
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm text-gray-600">Suggested Rate</span>
+                        <div className="flex items-center space-x-2">
+                          <span className="text-2xl font-bold text-blue-600">
+                            ${suggestion.suggested_rate.toFixed(2)}
+                          </span>
+                          <TrendIcon className={`w-5 h-5 ${trend.color}`} />
+                        </div>
+                      </div>
+                      <div className={`text-sm font-medium ${trend.color} text-center pt-2 border-t border-gray-200`}>
+                        {trend.label}
+                      </div>
+                    </div>
 
-          {suggestions.map((suggestion, index) => {
-            const trend = getPriceTrend(suggestion.current_price, suggestion.suggested_price);
-            const TrendIcon = trend.icon;
-            
-            return (
-              <Card key={index} data-testid={`price-suggestion-${suggestion.room_number}`}>
-                <CardHeader>
-                  <CardTitle>Room {suggestion.room_number}</CardTitle>
-                  <p className="text-sm text-gray-600 capitalize">{suggestion.room_type}</p>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="space-y-2">
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-gray-600">Current Price</span>
-                      <span className="text-xl font-bold">${suggestion.current_price.toFixed(2)}</span>
+                    {/* Reasoning */}
+                    <div className="space-y-2">
+                      <div className="text-sm font-semibold text-gray-700">Reasoning:</div>
+                      <p className="text-sm text-gray-600">{suggestion.reason}</p>
                     </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-gray-600">Suggested Price</span>
-                      <div className="flex items-center space-x-2">
-                        <span className="text-xl font-bold text-blue-600">${suggestion.suggested_price.toFixed(2)}</span>
-                        <TrendIcon className={`w-5 h-5 ${trend.color}`} />
-                      </div>
-                    </div>
-                  </div>
 
-                  <div className="pt-4 border-t">
-                    <div className="space-y-2 text-sm">
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">Occupancy Rate</span>
-                        <span className="font-medium">{suggestion.occupancy_rate.toFixed(1)}%</span>
+                    {/* Metrics */}
+                    <div className="pt-3 border-t space-y-2">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-600">Based On:</span>
+                        <span className="font-medium capitalize">{suggestion.based_on}</span>
                       </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">Demand Score</span>
-                        <span className="font-medium">{(suggestion.demand_score * 100).toFixed(0)}%</span>
+                      <div className="flex justify-between text-sm items-center">
+                        <span className="text-gray-600">Confidence:</span>
+                        {getConfidenceBadge(suggestion.confidence_score)}
                       </div>
                     </div>
-                  </div>
+
+                    {/* Actions */}
+                    {suggestion.status === 'pending' && (
+                      <div className="pt-3 border-t flex space-x-2">
+                        <Button
+                          className="flex-1"
+                          size="sm"
+                          onClick={() => handleApplySuggestion(suggestion.id)}
+                          disabled={loading}
+                        >
+                          <CheckCircle className="w-4 h-4 mr-2" />
+                          Apply
+                        </Button>
+                        <Button
+                          variant="outline"
+                          className="flex-1"
+                          size="sm"
+                          onClick={() => handleRejectSuggestion(suggestion.id)}
+                          disabled={loading}
+                        >
+                          <XCircle className="w-4 h-4 mr-2" />
+                          Reject
+                        </Button>
+                      </div>
+                    )}
 
                   <div className="pt-2">
                     <div className={`text-xs px-3 py-2 rounded-lg ${
