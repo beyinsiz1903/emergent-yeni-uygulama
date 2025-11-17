@@ -174,6 +174,45 @@ class CompanyStatus(str, Enum):
     PENDING = "pending"  # Quick-created from booking form
     INACTIVE = "inactive"
 
+class FolioType(str, Enum):
+    GUEST = "guest"
+    COMPANY = "company"
+    AGENCY = "agency"
+
+class FolioStatus(str, Enum):
+    OPEN = "open"
+    CLOSED = "closed"
+    TRANSFERRED = "transferred"
+    VOIDED = "voided"
+
+class ChargeCategory(str, Enum):
+    ROOM = "room"
+    FOOD = "food"
+    BEVERAGE = "beverage"
+    MINIBAR = "minibar"
+    SPA = "spa"
+    LAUNDRY = "laundry"
+    PHONE = "phone"
+    INTERNET = "internet"
+    PARKING = "parking"
+    CITY_TAX = "city_tax"
+    SERVICE_CHARGE = "service_charge"
+    OTHER = "other"
+
+class FolioOperationType(str, Enum):
+    TRANSFER = "transfer"
+    SPLIT = "split"
+    MERGE = "merge"
+    VOID = "void"
+    REFUND = "refund"
+
+class PaymentType(str, Enum):
+    PREPAYMENT = "prepayment"
+    DEPOSIT = "deposit"
+    INTERIM = "interim"
+    FINAL = "final"
+    REFUND = "refund"
+
 # ============= MODELS =============
 
 class Tenant(BaseModel):
