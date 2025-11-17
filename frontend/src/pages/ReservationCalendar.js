@@ -621,6 +621,195 @@ const ReservationCalendar = ({ user, tenant, onLogout }) => {
           </Card>
         </div>
       </div>
+
+      {/* New Booking Dialog */}
+      <Dialog open={showNewBookingDialog} onOpenChange={setShowNewBookingDialog}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Quick Booking</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleCreateBooking} className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>Room</Label>
+                <Input value={selectedRoom?.room_number || ''} disabled />
+              </div>
+              <div>
+                <Label>Guest *</Label>
+                <select
+                  className="w-full border rounded-md p-2"
+                  value={newBooking.guest_id}
+                  onChange={(e) => setNewBooking({...newBooking, guest_id: e.target.value})}
+                  required
+                >
+                  <option value="">Select guest...</option>
+                  {guests.map(guest => (
+                    <option key={guest.id} value={guest.id}>{guest.name}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>Check-in</Label>
+                <Input
+                  type="date"
+                  value={newBooking.check_in}
+                  onChange={(e) => setNewBooking({...newBooking, check_in: e.target.value})}
+                  required
+                />
+              </div>
+              <div>
+                <Label>Check-out</Label>
+                <Input
+                  type="date"
+                  value={newBooking.check_out}
+                  onChange={(e) => setNewBooking({...newBooking, check_out: e.target.value})}
+                  required
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-3 gap-4">
+              <div>
+                <Label>Adults</Label>
+                <Input
+                  type="number"
+                  min="1"
+                  value={newBooking.adults}
+                  onChange={(e) => setNewBooking({
+                    ...newBooking, 
+                    adults: Number(e.target.value),
+                    guests_count: Number(e.target.value) + newBooking.children
+                  })}
+                />
+              </div>
+              <div>
+                <Label>Children</Label>
+                <Input
+                  type="number"
+                  min="0"
+                  value={newBooking.children}
+                  onChange={(e) => setNewBooking({
+                    ...newBooking, 
+                    children: Number(e.target.value),
+                    guests_count: newBooking.adults + Number(e.target.value)
+                  })}
+                />
+              </div>
+              <div>
+                <Label>Total Amount</Label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  value={newBooking.total_amount}
+                  onChange={(e) => setNewBooking({...newBooking, total_amount: Number(e.target.value)})}
+                />
+              </div>
+            </div>
+
+            <div>
+              <Label>Status</Label>
+              <select
+                className="w-full border rounded-md p-2"
+                value={newBooking.status}
+                onChange={(e) => setNewBooking({...newBooking, status: e.target.value})}
+              >
+                <option value="confirmed">Confirmed</option>
+                <option value="guaranteed">Guaranteed</option>
+                <option value="checked_in">Checked-in</option>
+              </select>
+            </div>
+
+            <div className="flex space-x-2 pt-4">
+              <Button type="submit" className="flex-1">Create Booking</Button>
+              <Button type="button" variant="outline" onClick={() => setShowNewBookingDialog(false)}>
+                Cancel
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Booking Details Dialog */}
+      <Dialog open={showDetailsDialog} onOpenChange={setShowDetailsDialog}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Booking Details</DialogTitle>
+          </DialogHeader>
+          {selectedBooking && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <div className="text-sm text-gray-600">Guest Name</div>
+                  <div className="text-lg font-semibold">{selectedBooking.guest_name}</div>
+                </div>
+                <div>
+                  <div className="text-sm text-gray-600">Status</div>
+                  <Badge className={getStatusColor(selectedBooking.status)}>
+                    {getStatusLabel(selectedBooking.status)}
+                  </Badge>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <div className="text-sm text-gray-600">Check-in</div>
+                  <div className="font-semibold">{selectedBooking.check_in}</div>
+                </div>
+                <div>
+                  <div className="text-sm text-gray-600">Check-out</div>
+                  <div className="font-semibold">{selectedBooking.check_out}</div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <div className="text-sm text-gray-600">Room</div>
+                  <div className="font-semibold">
+                    {rooms.find(r => r.id === selectedBooking.room_id)?.room_number}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-sm text-gray-600">Total Amount</div>
+                  <div className="font-semibold">${selectedBooking.total_amount}</div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <div className="text-sm text-gray-600">Adults</div>
+                  <div className="font-semibold">{selectedBooking.adults}</div>
+                </div>
+                <div>
+                  <div className="text-sm text-gray-600">Children</div>
+                  <div className="font-semibold">{selectedBooking.children}</div>
+                </div>
+              </div>
+
+              {selectedBooking.company_name && (
+                <div>
+                  <div className="text-sm text-gray-600">Company</div>
+                  <div className="font-semibold">{selectedBooking.company_name}</div>
+                </div>
+              )}
+
+              <div className="flex space-x-2 pt-4">
+                <Button variant="outline" onClick={() => setShowDetailsDialog(false)}>
+                  Close
+                </Button>
+                <Button variant="outline" onClick={() => {
+                  setShowDetailsDialog(false);
+                  // Navigate to booking edit or folio
+                }}>
+                  Edit Booking
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </Layout>
   );
 };
