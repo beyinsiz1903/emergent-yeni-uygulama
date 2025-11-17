@@ -36,6 +36,7 @@ const Reservations = () => {
     check_out: '',
     adults: 1,
     children: 0,
+    child_ages: [],
     channel: 'direct',
     special_requests: '',
     rate_type: 'standard',
@@ -46,7 +47,32 @@ const Reservations = () => {
     auto_invoice: false,
     housekeeping_notes: '',
     eta: '',
-    promotion_code: ''
+    promotion_code: '',
+    // Company/Agency
+    is_corporate: false,
+    company_name: '',
+    company_code: '',
+    tax_id: '',
+    billing_address: '',
+    // Rate Override
+    base_rate: 0,
+    rate_override: 0,
+    override_reason: '',
+    // Guarantee
+    guarantee_status: 'guaranteed',
+    guarantee_method: 'credit_card',
+    // Cancellation
+    cancellation_policy: 'free_cancellation_3_days',
+    // Room Preferences
+    floor_preference: 'any',
+    bed_type: 'any',
+    view_preference: 'any',
+    smoking: 'non_smoking',
+    near_elevator: false,
+    // Communication
+    communication_preference: 'email',
+    marketing_consent: false,
+    confirmation_email: ''
   });
 
   useEffect(() => {
