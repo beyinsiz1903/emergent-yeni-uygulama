@@ -110,17 +110,89 @@ user_problem_statement: |
   4. Children Ages Conditional Display: Show children ages input fields only when children count > 0
 
 backend:
-  - task: "Add 10% to VATRate enum"
+  - task: "Add ContractedRateType, RateType, MarketSegment, CancellationPolicyType enums"
     implemented: true
-    working: true
-    file: "/app/backend/accounting_models.py"
+    working: "NA"
+    file: "/app/backend/server.py"
     stuck_count: 0
     priority: "high"
-    needs_retesting: false
+    needs_retesting: true
     status_history:
-      - working: true
+      - working: "NA"
         agent: "main"
-        comment: "Added RATE_10 = '10' to VATRate enum"
+        comment: "Added all required enums for contracted rates, rate types, market segments, and cancellation policies"
+  
+  - task: "Create Company model and CompanyCreate pydantic model"
+    implemented: true
+    working: "NA"
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Company model includes contracted_rate, default_rate_type, default_market_segment, default_cancellation_policy, billing_address, tax_number, contact info"
+  
+  - task: "Create RateOverrideLog model"
+    implemented: true
+    working: "NA"
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "RateOverrideLog tracks user_id, timestamp, base_rate, new_rate, override_reason, ip_address, terminal"
+  
+  - task: "Update BookingCreate and Booking models"
+    implemented: true
+    working: "NA"
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Added adults, children, children_ages, company_id, contracted_rate, rate_type, market_segment, cancellation_policy, billing fields"
+  
+  - task: "Create Company CRUD endpoints"
+    implemented: true
+    working: "NA"
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "POST /api/companies, GET /api/companies (with search), GET /api/companies/{id}, PUT /api/companies/{id}"
+  
+  - task: "Create Rate Override endpoints"
+    implemented: true
+    working: "NA"
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "POST /api/bookings/{id}/override, GET /api/bookings/{id}/override-logs"
+  
+  - task: "Update booking creation endpoint"
+    implemented: true
+    working: "NA"
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Updated POST /api/pms/bookings to support all new fields and auto-create override logs when rate changes"
 
   - task: "Create AdditionalTaxType and WithholdingRate enums"
     implemented: true
