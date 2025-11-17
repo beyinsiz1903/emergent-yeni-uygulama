@@ -175,15 +175,18 @@ backend:
   
   - task: "Create payment posting endpoint"
     implemented: true
-    working: "NA"
+    working: true
     file: "/app/backend/server.py"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: "NA"
         agent: "main"
         comment: "POST /api/folio/{id}/payment with payment types, automatic balance update"
+      - working: true
+        agent: "testing"
+        comment: "✅ COMPREHENSIVE TESTING COMPLETED - Payment posting endpoint working perfectly. POST /api/folio/{id}/payment: Successfully posts payments with different payment types (prepayment, interim, final). Tested payment methods (card), automatic balance update after payment posting. Payment amounts properly recorded and balance calculation verified (charges - payments). All payment types tested and functional."
   
   - task: "Create folio transfer endpoint"
     implemented: true
