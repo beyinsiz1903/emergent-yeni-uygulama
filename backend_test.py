@@ -2084,6 +2084,9 @@ def main():
         tester.test_corporate_bookings(company_id)
         tester.test_edge_cases(company_id)
     
+    # Test Folio & Billing Engine (NEW FUNCTIONALITY)
+    tester.test_folio_billing_engine()
+    
     # Test multi-tenant isolation
     tester.test_multi_tenant_isolation()
     
