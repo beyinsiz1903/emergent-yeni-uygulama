@@ -1964,7 +1964,6 @@ class RoomOpsAPITester:
         # Try posting charge to closed folio (if we have a closed folio)
         # This test might not work if folio isn't actually closed
         charge_data = {
-            "folio_id": folio_id,
             "charge_category": "other",
             "description": "Test charge to closed folio",
             "amount": 10.0,
