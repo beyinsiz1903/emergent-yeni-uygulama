@@ -258,17 +258,101 @@ backend:
         comment: "✅ COMPREHENSIVE TESTING COMPLETED - All additional tax functionality working correctly. Tested: 10% VAT rate, ÖTV (percentage & fixed amount), Withholding tax (7/10, 9/10, 5/10, 3/10), Accommodation tax, and complex multi-tax scenarios. All calculations verified accurate including subtotal, VAT, withholding deductions, and additional taxes. Invoice creation endpoint fully functional at /api/accounting/invoices."
 
 frontend:
-  - task: "Add 10% option to VAT rate dropdowns"
-    implemented: true
+  - task: "Add Adults and Children count inputs to booking form"
+    implemented: false
     working: "NA"
-    file: "/app/frontend/src/pages/InvoiceModule.js"
+    file: "/app/frontend/src/pages/PMSModule.js"
     stuck_count: 0
     priority: "high"
     needs_retesting: true
     status_history:
       - working: "NA"
         agent: "main"
-        comment: "Added 10% to both invoice item and expense VAT rate selects"
+        comment: "Need to add adults and children count inputs"
+  
+  - task: "Add Children Ages dynamic inputs (show only if children > 0)"
+    implemented: false
+    working: "NA"
+    file: "/app/frontend/src/pages/PMSModule.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Conditionally render children ages inputs based on children count"
+  
+  - task: "Add Company selection with autocomplete"
+    implemented: false
+    working: "NA"
+    file: "/app/frontend/src/pages/PMSModule.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Company select with search/autocomplete functionality"
+  
+  - task: "Add Quick Company Create dialog"
+    implemented: false
+    working: "NA"
+    file: "/app/frontend/src/pages/PMSModule.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Quick company create from booking form with pending status"
+  
+  - task: "Add Contracted Rate selection"
+    implemented: false
+    working: "NA"
+    file: "/app/frontend/src/pages/PMSModule.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Contracted rate dropdown with all options"
+  
+  - task: "Auto-fill Rate Type, Market Segment, Cancellation Policy from Contracted Rate"
+    implemented: false
+    working: "NA"
+    file: "/app/frontend/src/pages/PMSModule.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Auto-populate fields when contracted rate is selected, but allow manual override"
+  
+  - task: "Auto-fill Billing Address, Tax Number, Contact Person from Company"
+    implemented: false
+    working: "NA"
+    file: "/app/frontend/src/pages/PMSModule.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Auto-populate billing info when company is selected"
+  
+  - task: "Add Base Rate and Override Reason inputs"
+    implemented: false
+    working: "NA"
+    file: "/app/frontend/src/pages/PMSModule.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Add override tracking with reason modal when rate changes"
 
   - task: "Add additional_taxes field to invoice items state"
     implemented: true
