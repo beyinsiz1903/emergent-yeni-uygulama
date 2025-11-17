@@ -777,6 +777,30 @@ const Reservations = () => {
                   />
                 </div>
 
+                {newReservationForm.children > 0 && (
+                  <div className="col-span-2 space-y-2">
+                    <Label className="text-gray-700">Children Ages *</Label>
+                    <div className="grid grid-cols-4 gap-2">
+                      {Array.from({ length: newReservationForm.children }).map((_, index) => (
+                        <Input
+                          key={index}
+                          type="number"
+                          min="0"
+                          max="17"
+                          placeholder={`Child ${index + 1}`}
+                          className="bg-white border-gray-300"
+                          onChange={(e) => {
+                            const ages = [...(newReservationForm.child_ages || [])];
+                            ages[index] = parseInt(e.target.value);
+                            setNewReservationForm({...newReservationForm, child_ages: ages});
+                          }}
+                        />
+                      ))}
+                    </div>
+                    <p className="text-xs text-gray-500">Required for pricing (0-6 free, 6-12 50% off)</p>
+                  </div>
+                )}
+
                 <div className="space-y-2">
                   <Label className="text-gray-700">Estimated Arrival Time</Label>
                   <Input
@@ -785,6 +809,303 @@ const Reservations = () => {
                     onChange={(e) => setNewReservationForm({...newReservationForm, eta: e.target.value})}
                     className="bg-white border-gray-300"
                   />
+                </div>
+              </div>
+            </div>
+
+            {/* Company / Agency Information */}
+            <div className="space-y-4">
+              <div className="flex items-center justify-between border-b pb-2">
+                <h3 className="font-semibold text-gray-900">Company / Agency Information</h3>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    id="is_corporate"
+                    checked={newReservationForm.is_corporate}
+                    onChange={(e) => setNewReservationForm({...newReservationForm, is_corporate: e.target.checked})}
+                    className="w-4 h-4"
+                  />
+                  <Label htmlFor="is_corporate" className="text-sm text-gray-700 cursor-pointer">
+                    Corporate / Agency Booking
+                  </Label>
+                </div>
+              </div>
+              
+              {newReservationForm.is_corporate && (
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label className="text-gray-700">Company Name *</Label>
+                    <Input
+                      value={newReservationForm.company_name}
+                      onChange={(e) => setNewReservationForm({...newReservationForm, company_name: e.target.value})}
+                      className="bg-white border-gray-300"
+                      placeholder="ABC Corporation"
+                      required={newReservationForm.is_corporate}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label className="text-gray-700">Company Code</Label>
+                    <Input
+                      value={newReservationForm.company_code}
+                      onChange={(e) => setNewReservationForm({...newReservationForm, company_code: e.target.value})}
+                      className="bg-white border-gray-300"
+                      placeholder="ABC001"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label className="text-gray-700">Tax ID</Label>
+                    <Input
+                      value={newReservationForm.tax_id}
+                      onChange={(e) => setNewReservationForm({...newReservationForm, tax_id: e.target.value})}
+                      className="bg-white border-gray-300"
+                      placeholder="1234567890"
+                    />
+                  </div>
+
+                  <div className="space-y-2 col-span-2">
+                    <Label className="text-gray-700">Billing Address</Label>
+                    <Textarea
+                      value={newReservationForm.billing_address}
+                      onChange={(e) => setNewReservationForm({...newReservationForm, billing_address: e.target.value})}
+                      className="bg-white border-gray-300"
+                      rows={2}
+                      placeholder="Company billing address for invoice"
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Rate Override */}
+            <div className="space-y-4">
+              <h3 className="font-semibold text-gray-900 border-b pb-2">Rate Override (Manual Price Adjustment)</h3>
+              <div className="grid grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <Label className="text-gray-700">Base Room Rate ($)</Label>
+                  <Input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={newReservationForm.base_rate}
+                    onChange={(e) => setNewReservationForm({...newReservationForm, base_rate: parseFloat(e.target.value)})}
+                    className="bg-white border-gray-300"
+                    placeholder="250.00"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-gray-700">Override Amount ($)</Label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    value={newReservationForm.rate_override}
+                    onChange={(e) => setNewReservationForm({...newReservationForm, rate_override: parseFloat(e.target.value)})}
+                    className="bg-white border-gray-300"
+                    placeholder="-30.00 or +20.00"
+                  />
+                  <p className="text-xs text-gray-500">Negative for discount, positive for upsell</p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-gray-700">Final Rate ($)</Label>
+                  <div className="h-10 px-3 flex items-center bg-gray-100 border border-gray-300 rounded-md">
+                    <span className="font-bold text-green-600">
+                      ${((newReservationForm.base_rate || 0) + (newReservationForm.rate_override || 0)).toFixed(2)}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="col-span-3 space-y-2">
+                  <Label className="text-gray-700">Override Reason</Label>
+                  <Input
+                    value={newReservationForm.override_reason}
+                    onChange={(e) => setNewReservationForm({...newReservationForm, override_reason: e.target.value})}
+                    className="bg-white border-gray-300"
+                    placeholder="VIP discount / Upsell / Campaign / Manager approval"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Guarantee & Cancellation */}
+            <div className="space-y-4">
+              <h3 className="font-semibold text-gray-900 border-b pb-2">Guarantee & Cancellation Policy</h3>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label className="text-gray-700">Guarantee Status *</Label>
+                  <Select value={newReservationForm.guarantee_status} onValueChange={(value) => setNewReservationForm({...newReservationForm, guarantee_status: value})} required>
+                    <SelectTrigger className="bg-white border-gray-300">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="bg-white border-gray-200">
+                      <SelectItem value="guaranteed">Guaranteed</SelectItem>
+                      <SelectItem value="non_guaranteed">Non-Guaranteed (Hold until 18:00)</SelectItem>
+                      <SelectItem value="virtual_card">Virtual Card Guaranteed</SelectItem>
+                      <SelectItem value="company_guarantee">Company Guarantee</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-gray-700">Guarantee Method</Label>
+                  <Select value={newReservationForm.guarantee_method} onValueChange={(value) => setNewReservationForm({...newReservationForm, guarantee_method: value})}>
+                    <SelectTrigger className="bg-white border-gray-300">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="bg-white border-gray-200">
+                      <SelectItem value="credit_card">Credit Card</SelectItem>
+                      <SelectItem value="prepayment">Prepayment</SelectItem>
+                      <SelectItem value="virtual_card">Virtual Card</SelectItem>
+                      <SelectItem value="company_account">Company Account</SelectItem>
+                      <SelectItem value="none">None</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="col-span-2 space-y-2">
+                  <Label className="text-gray-700">Cancellation Policy *</Label>
+                  <Select value={newReservationForm.cancellation_policy} onValueChange={(value) => setNewReservationForm({...newReservationForm, cancellation_policy: value})} required>
+                    <SelectTrigger className="bg-white border-gray-300">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="bg-white border-gray-200">
+                      <SelectItem value="free_cancellation_7_days">Free cancellation up to 7 days before check-in</SelectItem>
+                      <SelectItem value="free_cancellation_3_days">Free cancellation up to 3 days before check-in</SelectItem>
+                      <SelectItem value="free_cancellation_1_day">Free cancellation up to 1 day before check-in</SelectItem>
+                      <SelectItem value="non_refundable">Non-Refundable</SelectItem>
+                      <SelectItem value="no_show_charge_1_night">No-show charge: 1 night</SelectItem>
+                      <SelectItem value="no_show_charge_full">No-show charge: Full amount</SelectItem>
+                      <SelectItem value="flexible">Flexible (No charge)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </div>
+
+            {/* Room Preferences */}
+            <div className="space-y-4">
+              <h3 className="font-semibold text-gray-900 border-b pb-2">Room Assignment Preferences</h3>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label className="text-gray-700">Floor Preference</Label>
+                  <Select value={newReservationForm.floor_preference} onValueChange={(value) => setNewReservationForm({...newReservationForm, floor_preference: value})}>
+                    <SelectTrigger className="bg-white border-gray-300">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="bg-white border-gray-200">
+                      <SelectItem value="any">Any Floor</SelectItem>
+                      <SelectItem value="high">High Floor</SelectItem>
+                      <SelectItem value="low">Low Floor</SelectItem>
+                      <SelectItem value="ground">Ground Floor</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-gray-700">Bed Type</Label>
+                  <Select value={newReservationForm.bed_type} onValueChange={(value) => setNewReservationForm({...newReservationForm, bed_type: value})}>
+                    <SelectTrigger className="bg-white border-gray-300">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="bg-white border-gray-200">
+                      <SelectItem value="any">Any</SelectItem>
+                      <SelectItem value="king">King Bed</SelectItem>
+                      <SelectItem value="queen">Queen Bed</SelectItem>
+                      <SelectItem value="twin">Twin Beds</SelectItem>
+                      <SelectItem value="double">Double Beds</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-gray-700">View Preference</Label>
+                  <Select value={newReservationForm.view_preference} onValueChange={(value) => setNewReservationForm({...newReservationForm, view_preference: value})}>
+                    <SelectTrigger className="bg-white border-gray-300">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="bg-white border-gray-200">
+                      <SelectItem value="any">Any View</SelectItem>
+                      <SelectItem value="sea">Sea View</SelectItem>
+                      <SelectItem value="city">City View</SelectItem>
+                      <SelectItem value="mountain">Mountain View</SelectItem>
+                      <SelectItem value="pool">Pool View</SelectItem>
+                      <SelectItem value="garden">Garden View</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-gray-700">Smoking Preference</Label>
+                  <Select value={newReservationForm.smoking} onValueChange={(value) => setNewReservationForm({...newReservationForm, smoking: value})}>
+                    <SelectTrigger className="bg-white border-gray-300">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="bg-white border-gray-200">
+                      <SelectItem value="non_smoking">Non-Smoking</SelectItem>
+                      <SelectItem value="smoking">Smoking</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="col-span-2 flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    id="near_elevator"
+                    checked={newReservationForm.near_elevator}
+                    onChange={(e) => setNewReservationForm({...newReservationForm, near_elevator: e.target.checked})}
+                    className="w-4 h-4"
+                  />
+                  <Label htmlFor="near_elevator" className="text-gray-700 cursor-pointer">
+                    Near Elevator (Accessibility / Luggage convenience)
+                  </Label>
+                </div>
+              </div>
+            </div>
+
+            {/* Guest Communication */}
+            <div className="space-y-4">
+              <h3 className="font-semibold text-gray-900 border-b pb-2">Guest Communication Preferences</h3>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label className="text-gray-700">Communication Preference *</Label>
+                  <Select value={newReservationForm.communication_preference} onValueChange={(value) => setNewReservationForm({...newReservationForm, communication_preference: value})} required>
+                    <SelectTrigger className="bg-white border-gray-300">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="bg-white border-gray-200">
+                      <SelectItem value="email">Email</SelectItem>
+                      <SelectItem value="sms">SMS</SelectItem>
+                      <SelectItem value="whatsapp">WhatsApp</SelectItem>
+                      <SelectItem value="phone">Phone Call</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-gray-700">Confirmation Email</Label>
+                  <Input
+                    type="email"
+                    value={newReservationForm.confirmation_email}
+                    onChange={(e) => setNewReservationForm({...newReservationForm, confirmation_email: e.target.value})}
+                    className="bg-white border-gray-300"
+                    placeholder="guest@email.com"
+                  />
+                  <p className="text-xs text-gray-500">Leave blank to use guest's email</p>
+                </div>
+
+                <div className="col-span-2 flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    id="marketing_consent"
+                    checked={newReservationForm.marketing_consent}
+                    onChange={(e) => setNewReservationForm({...newReservationForm, marketing_consent: e.target.checked})}
+                    className="w-4 h-4"
+                  />
+                  <Label htmlFor="marketing_consent" className="text-gray-700 cursor-pointer">
+                    Guest consent to receive marketing communications (KVKK / GDPR compliant)
+                  </Label>
                 </div>
               </div>
             </div>
