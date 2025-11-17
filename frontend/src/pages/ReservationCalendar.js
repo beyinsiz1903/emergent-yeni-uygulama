@@ -671,39 +671,77 @@ const ReservationCalendar = ({ user, tenant, onLogout }) => {
           </CardContent>
         </Card>
 
-        {/* Legend & Quick Tips */}
+        {/* Legend - Market Segments & Quick Tips */}
         <Card>
           <CardContent className="py-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-6 text-sm">
-                <div className="flex items-center space-x-2">
-                  <div className="w-4 h-4 bg-blue-500 rounded"></div>
-                  <span>Confirmed</span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <div className="w-4 h-4 bg-green-500 rounded"></div>
-                  <span>In-House</span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <div className="w-4 h-4 bg-purple-500 rounded"></div>
-                  <span>Guaranteed</span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <div className="w-4 h-4 bg-gray-400 rounded"></div>
-                  <span>Departed</span>
+            <div className="space-y-3">
+              {/* Market Segment Colors */}
+              <div>
+                <div className="text-xs font-semibold text-gray-700 mb-2">Market Segments (by color):</div>
+                <div className="flex items-center space-x-4 text-sm">
+                  <div className="flex items-center space-x-2">
+                    <div className="w-4 h-4 bg-blue-600 rounded"></div>
+                    <span>Corporate</span>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <div className="w-4 h-4 bg-purple-600 rounded"></div>
+                    <span>OTA</span>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <div className="w-4 h-4 bg-orange-500 rounded"></div>
+                    <span>Walk-in</span>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <div className="w-4 h-4 bg-green-600 rounded"></div>
+                    <span>Group</span>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <div className="w-4 h-4 bg-pink-500 rounded"></div>
+                    <span>Leisure</span>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <div className="w-4 h-4 bg-indigo-600 rounded"></div>
+                    <span>Government</span>
+                  </div>
                 </div>
               </div>
-              <div className="flex items-center space-x-4 text-xs text-gray-600">
-                <div className="flex items-center space-x-1">
-                  <Plus className="w-3 h-3" />
-                  <span>Click cell = New booking</span>
+
+              {/* Status Indicators */}
+              <div>
+                <div className="text-xs font-semibold text-gray-700 mb-2">Status Indicators:</div>
+                <div className="flex items-center space-x-4 text-sm">
+                  <div className="flex items-center space-x-2">
+                    <div className="bg-white border-2 border-green-600 text-green-600 rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold">↓</div>
+                    <span>Arrival</span>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <div className="bg-white border-2 border-red-600 text-red-600 rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold">↑</div>
+                    <span>Departure</span>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <div className="bg-white border-2 border-blue-600 text-blue-600 rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold">•</div>
+                    <span>Stayover</span>
+                  </div>
                 </div>
-                <div className="flex items-center space-x-1">
-                  <Info className="w-3 h-3" />
-                  <span>Double-click booking = Details</span>
+              </div>
+
+              {/* Quick Tips */}
+              <div className="flex items-center justify-between pt-2 border-t">
+                <div className="flex items-center space-x-4 text-xs text-gray-600">
+                  <div className="flex items-center space-x-1">
+                    <Plus className="w-3 h-3" />
+                    <span>Click cell = New booking</span>
+                  </div>
+                  <div className="flex items-center space-x-1">
+                    <Info className="w-3 h-3" />
+                    <span>Double-click = Details</span>
+                  </div>
+                  <div className="flex items-center space-x-1">
+                    <span>🖱️ Drag & drop = Move</span>
+                  </div>
                 </div>
-                <div className="flex items-center space-x-1">
-                  <span>🖱️ Drag & drop = Move booking</span>
+                <div className="text-xs text-gray-600">
+                  <span className="font-semibold">💡 Hover</span> over booking bars to see ADR & rate codes
                 </div>
               </div>
             </div>
