@@ -302,7 +302,7 @@ def has_permission(user_role: UserRole, permission: Permission) -> bool:
 
 async def create_audit_log(
     tenant_id: str,
-    user: User,
+    user,  # User model instance
     action: str,
     entity_type: str,
     entity_id: str,
