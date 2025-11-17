@@ -459,71 +459,32 @@ test_plan:
 agent_communication:
   - agent: "main"
     message: |
-      Implementation complete for additional tax functionality:
+      Backend implementation complete for corporate booking features:
       
-      Backend Changes:
-      - Added 10% to VATRate enum
-      - Created AdditionalTaxType enum (ÖTV, withholding, accommodation, special_communication)
-      - Created WithholdingRate enum (10/10, 9/10, 7/10, 5/10, 4/10, 3/10, 2/10)
-      - Added AdditionalTax model with support for percentage and fixed amount
-      - Updated AccountingInvoiceItem to include additional_taxes list
-      - Updated AccountingInvoice model with vat_withholding and total_additional_taxes fields
-      - Modified invoice creation endpoint to calculate additional taxes correctly
+      ✅ NEW ENUMS:
+      - ContractedRateType (CORP_STD, CORP_PREF, GOV, TA, CREW, MICE, LTS, TOU)
+      - RateType (BAR, CORPORATE, GOVERNMENT, WHOLESALE, PACKAGE, PROMOTIONAL, NON_REFUNDABLE, LONG_STAY, DAY_USE)
+      - MarketSegment (CORPORATE, LEISURE, GROUP, MICE, GOVERNMENT, CREW, WHOLESALE, LONG_STAY, COMPLIMENTARY, OTHER)
+      - CancellationPolicyType (SAME_DAY, H24, H48, H72, D7, D14, NON_REFUNDABLE, FLEXIBLE, SPECIAL_EVENT)
+      - CompanyStatus (ACTIVE, PENDING, INACTIVE)
       
-      Frontend Changes:
-      - Added 10% to all VAT rate dropdowns
-      - Added "+" button next to each invoice line item
-      - Created Additional Tax Dialog with options for:
-        * ÖTV (Special Consumption Tax) - percentage or fixed amount
-        * Tevkifat (Withholding Tax) - with rate selection (9/10, 7/10, etc.)
-        * Konaklama Vergisi (Accommodation Tax)
-        * ÖİV (Special Communication Tax)
-      - Updated invoice calculation to include additional taxes and withholding deductions
-      - Enhanced invoice summary to show Turkish labels:
-        * Ara Toplam (Subtotal)
-        * Toplam KDV (Total VAT)
-        * Additional Taxes
-        * KDV Tevkifat (VAT Withholding) - shown as deduction
-        * Tevkifat Toplamı (Total Withholding)
-        * Genel Toplam (Grand Total)
+      ✅ NEW MODELS:
+      - Company: Full corporate profile with contracted rates, billing info, and default booking settings
+      - CompanyCreate: Pydantic model for company creation
+      - RateOverrideLog: Tracks all rate changes with user, timestamp, base/new rate, reason, IP
       
-      Ready for backend and frontend testing to verify all functionality works as expected.
-  
-  - agent: "testing"
-    message: |
-      🎉 BACKEND TESTING COMPLETED SUCCESSFULLY - 100% PASS RATE
+      ✅ UPDATED MODELS:
+      - BookingCreate & Booking: Added adults, children, children_ages, company_id, contracted_rate, rate_type, market_segment, cancellation_policy, billing fields, base_rate, override_reason
       
-      ✅ COMPREHENSIVE TAX FUNCTIONALITY VERIFIED:
+      ✅ NEW ENDPOINTS:
+      - POST /api/companies - Create company (status: pending for quick-create from booking form)
+      - GET /api/companies - List with search and status filter
+      - GET /api/companies/{id} - Get specific company
+      - PUT /api/companies/{id} - Update company
+      - POST /api/bookings/{id}/override - Create rate override with logging
+      - GET /api/bookings/{id}/override-logs - Get all override logs for booking
       
-      1. **10% VAT Rate**: Successfully tested invoice creation with 10% VAT rate
-      2. **ÖTV (Special Consumption Tax)**: 
-         - Percentage-based: 5% of subtotal correctly calculated
-         - Fixed amount: $10 fixed tax correctly added
-      3. **Tevkifat (Withholding Tax)**: All rates tested and verified:
-         - 7/10 (70%): Correctly deducted from VAT amount
-         - 9/10 (90%): Correctly deducted from VAT amount  
-         - 5/10 (50%): Correctly deducted from VAT amount
-         - 3/10 (30%): Correctly deducted from VAT amount
-      4. **Accommodation Tax**: 2% percentage-based tax correctly calculated
-      5. **Complex Multi-Tax Scenarios**: Multiple taxes on same invoice working correctly
+      ✅ UPDATED ENDPOINTS:
+      - POST /api/pms/bookings - Now supports all new fields and auto-creates override log when rate changes
       
-      ✅ CALCULATION ACCURACY VERIFIED:
-      - Subtotal = sum of (quantity × unit_price)
-      - Total VAT = sum of VAT amounts  
-      - VAT Withholding = withholding rate × VAT amount (deducted)
-      - Additional Taxes = sum of ÖTV, accommodation taxes (added)
-      - Final Total = Subtotal + VAT + Additional Taxes - Withholding
-      
-      ✅ API ENDPOINT FULLY FUNCTIONAL:
-      - POST /api/accounting/invoices working correctly
-      - All tax types properly parsed and calculated
-      - Response includes all tax breakdown fields
-      - No 500 errors or calculation errors
-      
-      🔧 TECHNICAL FIXES APPLIED:
-      - Fixed accounting model imports in server.py
-      - Removed duplicate model definitions
-      - Fixed endpoint registration order
-      - Corrected request body parsing for additional taxes
-      
-      RECOMMENDATION: Backend functionality is complete and fully tested. Main agent can proceed with frontend testing or summarize completion.
+      Ready for backend testing.
