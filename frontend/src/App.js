@@ -135,6 +135,16 @@ function App() {
             }
           />
           <Route
+            path="/channel-manager"
+            element={
+              isAuthenticated ? (
+                <ChannelManagerModule user={user} tenant={tenant} onLogout={handleLogout} />
+              ) : (
+                <Navigate to="/auth" replace />
+              )
+            }
+          />
+          <Route
             path="/loyalty"
             element={
               isAuthenticated ? (
