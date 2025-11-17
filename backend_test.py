@@ -1582,7 +1582,6 @@ class RoomOpsAPITester:
         
         # Post food charge
         food_charge_data = {
-            "folio_id": folio_id,
             "charge_category": "food",
             "description": "Breakfast",
             "amount": 25.0,
