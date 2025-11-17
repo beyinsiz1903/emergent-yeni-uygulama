@@ -466,15 +466,9 @@ metadata:
   run_ui: false
 
 test_plan:
-  current_focus:
-    - "Test Company CRUD endpoints (create, list, get, update)"
-    - "Test booking creation with new fields (adults, children, children_ages)"
-    - "Test booking creation with company_id and auto-filled billing info"
-    - "Test booking creation with contracted_rate and auto-filled rate_type/market_segment"
-    - "Test rate override logging when base_rate != total_amount"
-    - "Test rate override log retrieval"
+  current_focus: []
   stuck_tasks: []
-  test_all: true
+  test_all: false
   test_priority: "sequential"
 
 agent_communication:
