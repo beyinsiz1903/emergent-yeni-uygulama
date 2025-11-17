@@ -274,14 +274,14 @@ const RMSModule = ({ user, tenant, onLogout }) => {
                       <div className="flex justify-between items-center">
                         <span className="text-sm text-gray-600">Current Rate</span>
                         <span className="text-xl font-bold text-gray-800">
-                          ${suggestion.current_rate.toFixed(2)}
+                          ${currentRate.toFixed(2)}
                         </span>
                       </div>
                       <div className="flex justify-between items-center">
                         <span className="text-sm text-gray-600">Suggested Rate</span>
                         <div className="flex items-center space-x-2">
                           <span className="text-2xl font-bold text-blue-600">
-                            ${suggestion.suggested_rate.toFixed(2)}
+                            ${suggestedRate.toFixed(2)}
                           </span>
                           <TrendIcon className={`w-5 h-5 ${trend.color}`} />
                         </div>
