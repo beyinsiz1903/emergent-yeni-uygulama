@@ -13,7 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { 
   BedDouble, Users, Calendar, Plus, CheckCircle, DollarSign, 
-  ClipboardList, BarChart3, TrendingUp, UserCheck, LogIn, LogOut as LogOutIcon
+  ClipboardList, BarChart3, TrendingUp, UserCheck, LogIn, LogOut, Home
 } from 'lucide-react';
 
 const PMSModule = ({ user, tenant, onLogout }) => {
