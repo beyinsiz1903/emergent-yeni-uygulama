@@ -1670,6 +1670,309 @@ const PMSModule = ({ user, tenant, onLogout }) => {
           </DialogContent>
         </Dialog>
 
+        {/* Folio View Dialog */}
+        <Dialog open={openDialog === 'folio-view'} onOpenChange={(open) => !open && setOpenDialog(null)}>
+          <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Folio Management</DialogTitle>
+              <DialogDescription>
+                {selectedFolio && `Folio ${selectedFolio.folio_number} - ${selectedFolio.folio_type.toUpperCase()}`}
+              </DialogDescription>
+            </DialogHeader>
+
+            {selectedFolio && (
+              <div className="space-y-6">
+                {/* Header Summary */}
+                <div className="bg-gradient-to-r from-blue-50 to-purple-50 p-6 rounded-lg border">
+                  <div className="grid grid-cols-3 gap-4">
+                    <div>
+                      <div className="text-sm text-gray-600">Guest</div>
+                      <div className="font-semibold">
+                        {guests.find(g => g.id === selectedFolio.guest_id)?.name || 'N/A'}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-sm text-gray-600">Booking</div>
+                      <div className="font-semibold">
+                        {(() => {
+                          const booking = bookings.find(b => b.id === selectedFolio.booking_id);
+                          if (!booking) return 'N/A';
+                          return `${new Date(booking.check_in).toLocaleDateString()} - ${new Date(booking.check_out).toLocaleDateString()}`;
+                        })()}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-sm text-gray-600">Current Balance</div>
+                      <div className={`text-2xl font-bold ${selectedFolio.balance > 0 ? 'text-red-600' : selectedFolio.balance < 0 ? 'text-green-600' : 'text-gray-600'}`}>
+                        ${selectedFolio.balance?.toFixed(2) || '0.00'}
+                      </div>
+                      <div className="text-xs text-gray-500">
+                        {selectedFolio.balance > 0 ? 'Guest owes hotel' : selectedFolio.balance < 0 ? 'Hotel owes guest' : 'Balanced'}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex gap-2">
+                  <Button onClick={() => setOpenDialog('post-charge')} variant="default">
+                    <Plus className="w-4 h-4 mr-2" />
+                    Post Charge
+                  </Button>
+                  <Button onClick={() => setOpenDialog('post-payment')} variant="default">
+                    <Plus className="w-4 h-4 mr-2" />
+                    Post Payment
+                  </Button>
+                </div>
+
+                {/* Charges and Payments Lists */}
+                <div className="grid grid-cols-2 gap-6">
+                  {/* Charges List */}
+                  <div>
+                    <h3 className="text-lg font-semibold mb-3 flex items-center">
+                      <ClipboardList className="w-5 h-5 mr-2" />
+                      Charges
+                    </h3>
+                    <div className="space-y-2 max-h-96 overflow-y-auto">
+                      {folioCharges.length === 0 ? (
+                        <div className="text-center text-gray-400 py-8">No charges posted</div>
+                      ) : (
+                        folioCharges.map((charge) => (
+                          <Card key={charge.id} className={charge.voided ? 'opacity-50 bg-gray-50' : ''}>
+                            <CardContent className="p-4">
+                              <div className="flex justify-between items-start">
+                                <div className="flex-1">
+                                  <div className="font-semibold">{charge.description}</div>
+                                  <div className="text-sm text-gray-600">
+                                    {charge.charge_category.replace('_', ' ').toUpperCase()}
+                                  </div>
+                                  <div className="text-xs text-gray-500">
+                                    {new Date(charge.date).toLocaleDateString()} • Qty: {charge.quantity}
+                                  </div>
+                                  {charge.voided && (
+                                    <div className="text-xs text-red-600 mt-1">
+                                      VOIDED: {charge.void_reason}
+                                    </div>
+                                  )}
+                                </div>
+                                <div className="text-right">
+                                  <div className="font-bold">${charge.total.toFixed(2)}</div>
+                                  {charge.tax_amount > 0 && (
+                                    <div className="text-xs text-gray-500">
+                                      +${charge.tax_amount.toFixed(2)} tax
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        ))
+                      )}
+                    </div>
+                    <div className="mt-4 pt-4 border-t">
+                      <div className="flex justify-between font-semibold">
+                        <span>Total Charges:</span>
+                        <span>${folioCharges.filter(c => !c.voided).reduce((sum, c) => sum + c.total, 0).toFixed(2)}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Payments List */}
+                  <div>
+                    <h3 className="text-lg font-semibold mb-3 flex items-center">
+                      <DollarSign className="w-5 h-5 mr-2" />
+                      Payments
+                    </h3>
+                    <div className="space-y-2 max-h-96 overflow-y-auto">
+                      {folioPayments.length === 0 ? (
+                        <div className="text-center text-gray-400 py-8">No payments posted</div>
+                      ) : (
+                        folioPayments.map((payment) => (
+                          <Card key={payment.id} className="bg-green-50">
+                            <CardContent className="p-4">
+                              <div className="flex justify-between items-start">
+                                <div className="flex-1">
+                                  <div className="font-semibold">{payment.method.toUpperCase()}</div>
+                                  <div className="text-sm text-gray-600">
+                                    {payment.payment_type.replace('_', ' ').toUpperCase()}
+                                  </div>
+                                  <div className="text-xs text-gray-500">
+                                    {new Date(payment.processed_at).toLocaleDateString()}
+                                  </div>
+                                  {payment.reference && (
+                                    <div className="text-xs text-gray-500">
+                                      Ref: {payment.reference}
+                                    </div>
+                                  )}
+                                </div>
+                                <div className="text-right">
+                                  <div className="font-bold text-green-600">${payment.amount.toFixed(2)}</div>
+                                </div>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        ))
+                      )}
+                    </div>
+                    <div className="mt-4 pt-4 border-t">
+                      <div className="flex justify-between font-semibold">
+                        <span>Total Payments:</span>
+                        <span className="text-green-600">${folioPayments.reduce((sum, p) => sum + p.amount, 0).toFixed(2)}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Net Balance */}
+                <div className="bg-gray-50 p-6 rounded-lg border-2 border-gray-300">
+                  <div className="flex justify-between items-center">
+                    <span className="text-xl font-semibold">Net Balance:</span>
+                    <span className={`text-3xl font-bold ${selectedFolio.balance > 0 ? 'text-red-600' : selectedFolio.balance < 0 ? 'text-green-600' : 'text-gray-600'}`}>
+                      ${selectedFolio.balance?.toFixed(2) || '0.00'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
+
+        {/* Post Charge Dialog */}
+        <Dialog open={openDialog === 'post-charge'} onOpenChange={(open) => !open && setOpenDialog('folio-view')}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Post Charge</DialogTitle>
+            </DialogHeader>
+            <form onSubmit={handlePostCharge} className="space-y-4">
+              <div>
+                <Label>Charge Category *</Label>
+                <Select value={newFolioCharge.charge_category} onValueChange={(v) => setNewFolioCharge({...newFolioCharge, charge_category: v})}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="room">Room</SelectItem>
+                    <SelectItem value="food">Food & Beverage</SelectItem>
+                    <SelectItem value="minibar">Minibar</SelectItem>
+                    <SelectItem value="spa">Spa</SelectItem>
+                    <SelectItem value="laundry">Laundry</SelectItem>
+                    <SelectItem value="phone">Phone</SelectItem>
+                    <SelectItem value="internet">Internet</SelectItem>
+                    <SelectItem value="parking">Parking</SelectItem>
+                    <SelectItem value="city_tax">City Tax</SelectItem>
+                    <SelectItem value="other">Other</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Description *</Label>
+                <Input 
+                  value={newFolioCharge.description} 
+                  onChange={(e) => setNewFolioCharge({...newFolioCharge, description: e.target.value})}
+                  placeholder="e.g., Room 101 - Night Charge"
+                  required
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label>Amount *</Label>
+                  <Input 
+                    type="number" 
+                    step="0.01"
+                    value={newFolioCharge.amount} 
+                    onChange={(e) => setNewFolioCharge({...newFolioCharge, amount: parseFloat(e.target.value) || 0})}
+                    required
+                  />
+                </div>
+                <div>
+                  <Label>Quantity *</Label>
+                  <Input 
+                    type="number" 
+                    min="1"
+                    value={newFolioCharge.quantity} 
+                    onChange={(e) => setNewFolioCharge({...newFolioCharge, quantity: parseFloat(e.target.value) || 1})}
+                    required
+                  />
+                </div>
+              </div>
+              <div className="flex items-center space-x-2">
+                <input 
+                  type="checkbox" 
+                  id="auto-tax"
+                  checked={newFolioCharge.auto_calculate_tax}
+                  onChange={(e) => setNewFolioCharge({...newFolioCharge, auto_calculate_tax: e.target.checked})}
+                  className="rounded"
+                />
+                <Label htmlFor="auto-tax" className="cursor-pointer">
+                  Auto-calculate city tax
+                </Label>
+              </div>
+              <Button type="submit" className="w-full">Post Charge</Button>
+            </form>
+          </DialogContent>
+        </Dialog>
+
+        {/* Post Payment Dialog */}
+        <Dialog open={openDialog === 'post-payment'} onOpenChange={(open) => !open && setOpenDialog('folio-view')}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Post Payment</DialogTitle>
+            </DialogHeader>
+            <form onSubmit={handlePostPayment} className="space-y-4">
+              <div>
+                <Label>Payment Method *</Label>
+                <Select value={newFolioPayment.method} onValueChange={(v) => setNewFolioPayment({...newFolioPayment, method: v})}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="cash">Cash</SelectItem>
+                    <SelectItem value="card">Credit/Debit Card</SelectItem>
+                    <SelectItem value="bank_transfer">Bank Transfer</SelectItem>
+                    <SelectItem value="online">Online Payment</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Payment Type *</Label>
+                <Select value={newFolioPayment.payment_type} onValueChange={(v) => setNewFolioPayment({...newFolioPayment, payment_type: v})}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="prepayment">Prepayment</SelectItem>
+                    <SelectItem value="deposit">Deposit</SelectItem>
+                    <SelectItem value="interim">Interim Payment</SelectItem>
+                    <SelectItem value="final">Final Payment</SelectItem>
+                    <SelectItem value="refund">Refund</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Amount *</Label>
+                <Input 
+                  type="number" 
+                  step="0.01"
+                  value={newFolioPayment.amount} 
+                  onChange={(e) => setNewFolioPayment({...newFolioPayment, amount: parseFloat(e.target.value) || 0})}
+                  required
+                />
+              </div>
+              <div>
+                <Label>Reference / Auth Code</Label>
+                <Input 
+                  value={newFolioPayment.reference} 
+                  onChange={(e) => setNewFolioPayment({...newFolioPayment, reference: e.target.value})}
+                  placeholder="e.g., AUTH123456"
+                />
+              </div>
+              <div>
+                <Label>Notes</Label>
+                <Textarea 
+                  value={newFolioPayment.notes} 
+                  onChange={(e) => setNewFolioPayment({...newFolioPayment, notes: e.target.value})}
+                  rows={2}
+                />
+              </div>
+              <Button type="submit" className="w-full">Post Payment</Button>
+            </form>
+          </DialogContent>
+        </Dialog>
+
         {/* HK Task Dialog */}
         <Dialog open={openDialog === 'hktask'} onOpenChange={(open) => !open && setOpenDialog(null)}>
           <DialogContent>
