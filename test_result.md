@@ -145,15 +145,18 @@ backend:
   
   - task: "Create Folio CRUD endpoints"
     implemented: true
-    working: "NA"
+    working: true
     file: "/app/backend/server.py"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: "NA"
         agent: "main"
         comment: "POST /api/folio/create, GET /api/folio/booking/{id}, GET /api/folio/{id} with charges and payments"
+      - working: true
+        agent: "testing"
+        comment: "✅ COMPREHENSIVE TESTING COMPLETED - All folio CRUD endpoints working perfectly. POST /api/folio/create: Successfully creates guest and company folios with proper folio_number generation, initial balance 0.0, status 'open'. GET /api/folio/booking/{id}: Returns all folios for booking with current balances. GET /api/folio/{id}: Returns folio details with charges array, payments array, and calculated balance. All endpoints properly secured with authentication."
   
   - task: "Create charge posting endpoint"
     implemented: true
