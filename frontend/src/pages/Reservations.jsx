@@ -805,13 +805,43 @@ const Reservations = () => {
                 )}
 
                 <div className="space-y-2">
-                  <Label className="text-gray-700">Estimated Arrival Time</Label>
-                  <Input
-                    type="time"
-                    value={newReservationForm.eta}
-                    onChange={(e) => setNewReservationForm({...newReservationForm, eta: e.target.value})}
-                    className="bg-white border-gray-300"
-                  />
+                  <Label className="text-gray-700">Estimated Arrival Time (ETA)</Label>
+                  <Select value={newReservationForm.eta} onValueChange={(value) => setNewReservationForm({...newReservationForm, eta: value})}>
+                    <SelectTrigger className="bg-white border-gray-300">
+                      <SelectValue placeholder="Select arrival time" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-white border-gray-200">
+                      <SelectItem value="06:00-08:00">06:00 - 08:00</SelectItem>
+                      <SelectItem value="08:00-10:00">08:00 - 10:00</SelectItem>
+                      <SelectItem value="10:00-12:00">10:00 - 12:00</SelectItem>
+                      <SelectItem value="12:00-14:00">12:00 - 14:00 (Standard Check-in)</SelectItem>
+                      <SelectItem value="14:00-16:00">14:00 - 16:00</SelectItem>
+                      <SelectItem value="16:00-18:00">16:00 - 18:00</SelectItem>
+                      <SelectItem value="18:00-20:00">18:00 - 20:00</SelectItem>
+                      <SelectItem value="20:00-22:00">20:00 - 22:00</SelectItem>
+                      <SelectItem value="22:00-00:00">22:00 - 00:00 (Late Arrival)</SelectItem>
+                      <SelectItem value="00:00-06:00">00:00 - 06:00 (Very Late)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-gray-500">Front desk planning & room preparation</p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-gray-700">Estimated Departure Time (EDT)</Label>
+                  <Select value={newReservationForm.edt} onValueChange={(value) => setNewReservationForm({...newReservationForm, edt: value})}>
+                    <SelectTrigger className="bg-white border-gray-300">
+                      <SelectValue placeholder="Select departure time" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-white border-gray-200">
+                      <SelectItem value="06:00-08:00">06:00 - 08:00 (Early)</SelectItem>
+                      <SelectItem value="08:00-10:00">08:00 - 10:00</SelectItem>
+                      <SelectItem value="10:00-12:00">10:00 - 12:00 (Standard Check-out)</SelectItem>
+                      <SelectItem value="12:00-14:00">12:00 - 14:00 (Late)</SelectItem>
+                      <SelectItem value="14:00-16:00">14:00 - 16:00 (Extended)</SelectItem>
+                      <SelectItem value="16:00-18:00">16:00 - 18:00 (Very Late)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-gray-500">Housekeeping workload planning</p>
                 </div>
               </div>
             </div>
