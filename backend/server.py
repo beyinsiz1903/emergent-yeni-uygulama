@@ -254,6 +254,52 @@ class PaymentType(str, Enum):
     FINAL = "final"
     REFUND = "refund"
 
+# Role-Permission Mapping
+ROLE_PERMISSIONS = {
+    UserRole.ADMIN: [p.value for p in Permission],  # All permissions
+    UserRole.SUPERVISOR: [
+        Permission.VIEW_BOOKINGS, Permission.CREATE_BOOKING, Permission.EDIT_BOOKING,
+        Permission.CHECKIN, Permission.CHECKOUT,
+        Permission.VIEW_FOLIO, Permission.POST_CHARGE, Permission.POST_PAYMENT,
+        Permission.OVERRIDE_RATE, Permission.CLOSE_FOLIO,
+        Permission.VIEW_COMPANIES, Permission.EDIT_COMPANY,
+        Permission.VIEW_HK_BOARD, Permission.UPDATE_ROOM_STATUS, Permission.ASSIGN_TASK,
+        Permission.VIEW_REPORTS, Permission.VIEW_FINANCIAL_REPORTS
+    ],
+    UserRole.FRONT_DESK: [
+        Permission.VIEW_BOOKINGS, Permission.CREATE_BOOKING, Permission.EDIT_BOOKING,
+        Permission.CHECKIN, Permission.CHECKOUT,
+        Permission.VIEW_FOLIO, Permission.POST_CHARGE, Permission.POST_PAYMENT,
+        Permission.VIEW_COMPANIES,
+        Permission.VIEW_HK_BOARD,
+        Permission.VIEW_REPORTS
+    ],
+    UserRole.HOUSEKEEPING: [
+        Permission.VIEW_BOOKINGS,
+        Permission.VIEW_HK_BOARD, Permission.UPDATE_ROOM_STATUS, Permission.ASSIGN_TASK
+    ],
+    UserRole.SALES: [
+        Permission.VIEW_BOOKINGS, Permission.CREATE_BOOKING,
+        Permission.VIEW_COMPANIES, Permission.CREATE_COMPANY, Permission.EDIT_COMPANY,
+        Permission.VIEW_REPORTS
+    ],
+    UserRole.FINANCE: [
+        Permission.VIEW_BOOKINGS,
+        Permission.VIEW_FOLIO, Permission.POST_CHARGE, Permission.POST_PAYMENT,
+        Permission.VOID_CHARGE, Permission.CLOSE_FOLIO,
+        Permission.VIEW_COMPANIES,
+        Permission.VIEW_REPORTS, Permission.VIEW_FINANCIAL_REPORTS, Permission.EXPORT_DATA
+    ],
+    UserRole.STAFF: [
+        Permission.VIEW_BOOKINGS,
+        Permission.VIEW_HK_BOARD
+    ]
+}
+
+def has_permission(user_role: UserRole, permission: Permission) -> bool:
+    """Check if a role has a specific permission"""
+    return permission.value in ROLE_PERMISSIONS.get(user_role, [])
+
 # ============= MODELS =============
 
 class Tenant(BaseModel):
