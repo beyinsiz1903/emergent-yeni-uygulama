@@ -1079,12 +1079,13 @@ const ReservationCalendar = ({ user, tenant, onLogout }) => {
 
       {/* Booking Details Dialog */}
       <Dialog open={showDetailsDialog} onOpenChange={setShowDetailsDialog}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Booking Details</DialogTitle>
           </DialogHeader>
           {selectedBooking && (
             <div className="space-y-4">
+              {/* Main Details */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <div className="text-sm text-gray-600">Guest Name</div>
@@ -1092,9 +1093,14 @@ const ReservationCalendar = ({ user, tenant, onLogout }) => {
                 </div>
                 <div>
                   <div className="text-sm text-gray-600">Status</div>
-                  <Badge className={getStatusColor(selectedBooking.status)}>
-                    {getStatusLabel(selectedBooking.status)}
-                  </Badge>
+                  <div className="flex items-center space-x-2">
+                    <Badge className={getSegmentColor(selectedBooking.market_segment)}>
+                      {selectedBooking.market_segment || 'Standard'}
+                    </Badge>
+                    <Badge className={getStatusColor(selectedBooking.status)}>
+                      {getStatusLabel(selectedBooking.status)}
+                    </Badge>
+                  </div>
                 </div>
               </div>
 
@@ -1122,6 +1128,38 @@ const ReservationCalendar = ({ user, tenant, onLogout }) => {
                 </div>
               </div>
 
+              {/* Rate Details */}
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                <div className="text-sm font-semibold text-blue-900 mb-2">Rate Details</div>
+                <div className="grid grid-cols-3 gap-4 text-sm">
+                  <div>
+                    <div className="text-gray-600">ADR</div>
+                    <div className="font-bold text-lg">
+                      ${selectedBooking.total_amount ? 
+                        (selectedBooking.total_amount / 
+                        Math.ceil((new Date(selectedBooking.check_out) - new Date(selectedBooking.check_in)) / (1000 * 60 * 60 * 24))).toFixed(2) 
+                        : '0.00'}
+                    </div>
+                  </div>
+                  {selectedBooking.rate_type && (
+                    <div>
+                      <div className="text-gray-600">Rate Code</div>
+                      <div className="font-semibold text-blue-600 uppercase">
+                        {selectedBooking.rate_type}
+                      </div>
+                    </div>
+                  )}
+                  {selectedBooking.market_segment && (
+                    <div>
+                      <div className="text-gray-600">Segment</div>
+                      <div className="font-semibold text-blue-600 capitalize">
+                        {selectedBooking.market_segment}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <div className="text-sm text-gray-600">Adults</div>
@@ -1140,7 +1178,43 @@ const ReservationCalendar = ({ user, tenant, onLogout }) => {
                 </div>
               )}
 
-              <div className="flex space-x-2 pt-4">
+              {/* Room Move History */}
+              <div className="border-t pt-4">
+                <div className="text-sm font-semibold text-gray-700 mb-3 flex items-center">
+                  <Clock className="w-4 h-4 mr-2" />
+                  Room Move History
+                </div>
+                {selectedBooking.room_moves && selectedBooking.room_moves.length > 0 ? (
+                  <div className="space-y-2">
+                    {selectedBooking.room_moves.map((move, idx) => (
+                      <div key={idx} className="bg-gray-50 border border-gray-200 rounded p-3 text-sm">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <span className="font-semibold">Room {move.old_room}</span>
+                            <span className="mx-2 text-gray-400">→</span>
+                            <span className="font-semibold">Room {move.new_room}</span>
+                          </div>
+                          <div className="text-xs text-gray-500">
+                            {new Date(move.timestamp).toLocaleString()}
+                          </div>
+                        </div>
+                        <div className="mt-1 text-xs text-gray-600">
+                          <strong>Reason:</strong> {move.reason}
+                        </div>
+                        <div className="mt-1 text-xs text-gray-500">
+                          Moved by: {move.moved_by}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-sm text-gray-500 italic">
+                    No room moves recorded for this booking
+                  </div>
+                )}
+              </div>
+
+              <div className="flex space-x-2 pt-4 border-t">
                 <Button variant="outline" onClick={() => setShowDetailsDialog(false)}>
                   Close
                 </Button>
