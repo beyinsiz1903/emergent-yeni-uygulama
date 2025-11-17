@@ -24,18 +24,72 @@ import {
 const RMSModule = ({ user, tenant, onLogout }) => {
   const { t } = useTranslation();
   const [suggestions, setSuggestions] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [filterStatus, setFilterStatus] = useState('all');
+  const [showGenerateDialog, setShowGenerateDialog] = useState(false);
+  const [dateRange, setDateRange] = useState({
+    start_date: new Date().toISOString().split('T')[0],
+    end_date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+  });
 
   useEffect(() => {
     loadSuggestions();
-  }, []);
+  }, [filterStatus]);
 
   const loadSuggestions = async () => {
+    setLoading(true);
     try {
-      const response = await axios.get('/rms/suggestions');
-      setSuggestions(response.data);
+      const url = filterStatus === 'all' 
+        ? '/rms/suggestions'
+        : `/rms/suggestions?status=${filterStatus}`;
+      const response = await axios.get(url);
+      setSuggestions(response.data || []);
     } catch (error) {
-      toast.error('Failed to load price suggestions');
+      console.error('Failed to load suggestions:', error);
+      setSuggestions([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGenerateSuggestions = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      const response = await axios.post('/rms/generate-suggestions', null, {
+        params: dateRange
+      });
+      toast.success(`Generated ${response.data.total_count || 0} pricing suggestions!`);
+      setShowGenerateDialog(false);
+      loadSuggestions();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Failed to generate suggestions');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleApplySuggestion = async (suggestionId) => {
+    setLoading(true);
+    try {
+      await axios.post(`/rms/apply-suggestion/${suggestionId}`);
+      toast.success('Rate suggestion applied successfully!');
+      loadSuggestions();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Failed to apply suggestion');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRejectSuggestion = async (suggestionId) => {
+    setLoading(true);
+    try {
+      await axios.post(`/rms/reject-suggestion/${suggestionId}`);
+      toast.success('Suggestion rejected');
+      loadSuggestions();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Failed to reject suggestion');
     } finally {
       setLoading(false);
     }
