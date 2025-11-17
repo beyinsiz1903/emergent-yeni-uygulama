@@ -103,14 +103,10 @@
 #====================================================================================================
 
 user_problem_statement: |
-  Professional Hotel PMS - Folio & Billing Engine:
-  1. Multi-folio support (Guest, Company, Agency folios per booking)
-  2. Comprehensive charge posting (Room, F&B, Minibar, Spa, City Tax, etc.)
-  3. Payment processing (Prepayment, Deposit, Interim, Final, Refund)
-  4. Folio operations (Transfer charges, Split, Merge, Void, Refund)
-  5. Night audit room charge posting
-  6. Auto city tax calculation
-  7. Balance tracking and folio closure
+  Professional Hotel PMS - Complete Operational Suite:
+  PHASE 1: Folio & Billing Engine (COMPLETED)
+  PHASE 2: Check-in / Check-out Flow (TESTING NOW)
+  PHASE 3: Housekeeping Board (PENDING)
 
 backend:
   - task: "Add Folio enums (FolioType, FolioStatus, ChargeCategory, FolioOperationType, PaymentType)"
