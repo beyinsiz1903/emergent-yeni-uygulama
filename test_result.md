@@ -701,3 +701,44 @@ agent_communication:
       - Grid layouts for better space utilization
       
       Frontend is ready for testing. Awaiting user confirmation before proceeding with frontend testing.
+  
+  - agent: "main"
+    message: |
+      ✅ FOLIO & BILLING ENGINE BACKEND IMPLEMENTATION COMPLETED
+      
+      🏗️ NEW ENUMS:
+      - FolioType: GUEST, COMPANY, AGENCY
+      - FolioStatus: OPEN, CLOSED, TRANSFERRED, VOIDED
+      - ChargeCategory: ROOM, FOOD, BEVERAGE, MINIBAR, SPA, LAUNDRY, PHONE, INTERNET, PARKING, CITY_TAX, SERVICE_CHARGE, OTHER (12 categories)
+      - FolioOperationType: TRANSFER, SPLIT, MERGE, VOID, REFUND
+      - PaymentType: PREPAYMENT, DEPOSIT, INTERIM, FINAL, REFUND
+      
+      🗂️ NEW MODELS:
+      - Folio: Complete folio model with folio_number, folio_type, status, balance, guest_id/company_id
+      - FolioCharge: Enhanced with void support (voided, void_reason, voided_by, voided_at), tax_amount, unit_price
+      - Payment: Updated with folio_id, payment_type
+      - FolioOperation: Tracks all folio operations with operation_type, from/to folios, charge_ids, reason, performed_by
+      - CityTaxRule: Auto tax calculation rules (percentage or flat, per_night, exempt_market_segments, min/max nights)
+      
+      🔥 NEW ENDPOINTS (9 main endpoints):
+      1. POST /api/folio/create - Create guest/company/agency folio
+      2. GET /api/folio/booking/{booking_id} - Get all folios for booking with current balances
+      3. GET /api/folio/{folio_id} - Get folio details with all charges and payments
+      4. POST /api/folio/{folio_id}/charge - Post charge with auto tax calculation
+      5. POST /api/folio/{folio_id}/payment - Post payment (prepayment, deposit, interim, final, refund)
+      6. POST /api/folio/transfer - Transfer charges between folios
+      7. POST /api/folio/{folio_id}/void-charge/{charge_id} - Void charge with tracking
+      8. POST /api/folio/{folio_id}/close - Close folio with balance validation
+      9. POST /api/night-audit/post-room-charges - Night audit (post room charges to all checked-in bookings)
+      
+      ⚙️ KEY FEATURES:
+      - Multi-folio per booking (guest + company + agency)
+      - Automatic balance calculation (charges - payments, excluding voided)
+      - City tax auto-calculation based on rules
+      - Void tracking with full audit trail
+      - Charge transfer between folios
+      - Balance validation on folio closure
+      - Night audit automation
+      - Credit limit infrastructure ready
+      
+      Ready for backend testing.
