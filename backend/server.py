@@ -2733,6 +2733,131 @@ async def get_housekeeping_efficiency_report(
         'daily_average_all_staff': round(len(tasks) / date_range_days, 2) if date_range_days > 0 else 0
     }
 
+# ============= AUDIT & SECURITY =============
+
+@api_router.get("/audit-logs")
+async def get_audit_logs(
+    entity_type: Optional[str] = None,
+    entity_id: Optional[str] = None,
+    user_id: Optional[str] = None,
+    action: Optional[str] = None,
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+    limit: int = 100,
+    current_user: User = Depends(get_current_user)
+):
+    """Get audit logs with filters"""
+    # Check permission
+    if not has_permission(current_user.role, Permission.VIEW_REPORTS):
+        raise HTTPException(status_code=403, detail="Insufficient permissions")
+    
+    query = {'tenant_id': current_user.tenant_id}
+    
+    if entity_type:
+        query['entity_type'] = entity_type
+    if entity_id:
+        query['entity_id'] = entity_id
+    if user_id:
+        query['user_id'] = user_id
+    if action:
+        query['action'] = action
+    
+    if start_date and end_date:
+        query['timestamp'] = {
+            '$gte': datetime.fromisoformat(start_date).isoformat(),
+            '$lte': datetime.fromisoformat(end_date).isoformat()
+        }
+    
+    logs = await db.audit_logs.find(query, {'_id': 0}).sort('timestamp', -1).limit(limit).to_list(limit)
+    
+    return {
+        'logs': logs,
+        'count': len(logs),
+        'filters_applied': {k: v for k, v in query.items() if k != 'tenant_id'}
+    }
+
+@api_router.get("/export/folio/{folio_id}")
+async def export_folio_csv(folio_id: str, current_user: User = Depends(get_current_user)):
+    """Export folio transactions as CSV"""
+    if not has_permission(current_user.role, Permission.EXPORT_DATA):
+        raise HTTPException(status_code=403, detail="Insufficient permissions")
+    
+    from io import StringIO
+    import csv
+    
+    # Get folio details
+    folio_details = await get_folio_details(folio_id, current_user)
+    folio = folio_details['folio']
+    charges = folio_details['charges']
+    payments = folio_details['payments']
+    
+    # Create CSV
+    output = StringIO()
+    writer = csv.writer(output)
+    
+    # Header
+    writer.writerow([f"Folio Export - {folio['folio_number']}"])
+    writer.writerow([f"Date: {datetime.now().strftime('%Y-%m-%d %H:%M')}"])
+    writer.writerow([])
+    
+    # Charges
+    writer.writerow(['CHARGES'])
+    writer.writerow(['Date', 'Category', 'Description', 'Quantity', 'Unit Price', 'Tax', 'Total', 'Voided'])
+    for charge in charges:
+        writer.writerow([
+            charge['date'],
+            charge['charge_category'],
+            charge['description'],
+            charge['quantity'],
+            charge['unit_price'],
+            charge['tax_amount'],
+            charge['total'],
+            'Yes' if charge.get('voided') else 'No'
+        ])
+    
+    writer.writerow([])
+    
+    # Payments
+    writer.writerow(['PAYMENTS'])
+    writer.writerow(['Date', 'Method', 'Type', 'Amount', 'Reference'])
+    for payment in payments:
+        writer.writerow([
+            payment['processed_at'],
+            payment['method'],
+            payment['payment_type'],
+            payment['amount'],
+            payment.get('reference', '')
+        ])
+    
+    writer.writerow([])
+    writer.writerow(['', '', '', 'Balance:', folio['balance']])
+    
+    csv_content = output.getvalue()
+    output.close()
+    
+    return {
+        'filename': f"folio_{folio['folio_number']}.csv",
+        'content': csv_content,
+        'content_type': 'text/csv'
+    }
+
+@api_router.post("/permissions/check")
+async def check_permission(
+    permission: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Check if current user has a specific permission"""
+    try:
+        perm = Permission(permission)
+        has_perm = has_permission(current_user.role, perm)
+        return {
+            'user_role': current_user.role,
+            'permission': permission,
+            'has_permission': has_perm
+        }
+    except ValueError:
+        raise HTTPException(status_code=400, detail=f"Invalid permission: {permission}")
+
 # Router will be included at the very end after ALL endpoints are defined
 
 logger = logging.getLogger(__name__)
