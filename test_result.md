@@ -103,11 +103,14 @@
 #====================================================================================================
 
 user_problem_statement: |
-  Enhanced Booking/Reservation System with Corporate Features:
-  1. Contracted Rate Auto-fill: When a contracted rate is selected, automatically set rate type, market segment, and cancellation policy
-  2. Rate Override Logging: Log all rate changes with user, timestamp, base rate, new rate, reason, and IP
-  3. Company Billing Auto-fill: When a company is selected, automatically populate billing address, tax number, and contact person
-  4. Children Ages Conditional Display: Show children ages input fields only when children count > 0
+  Professional Hotel PMS - Folio & Billing Engine:
+  1. Multi-folio support (Guest, Company, Agency folios per booking)
+  2. Comprehensive charge posting (Room, F&B, Minibar, Spa, City Tax, etc.)
+  3. Payment processing (Prepayment, Deposit, Interim, Final, Refund)
+  4. Folio operations (Transfer charges, Split, Merge, Void, Refund)
+  5. Night audit room charge posting
+  6. Auto city tax calculation
+  7. Balance tracking and folio closure
 
 backend:
   - task: "Add ContractedRateType, RateType, MarketSegment, CancellationPolicyType enums"
