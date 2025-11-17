@@ -277,6 +277,42 @@ class HousekeepingTask(BaseModel):
     completed_at: Optional[datetime] = None
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
+# Company Models
+class CompanyCreate(BaseModel):
+    name: str
+    corporate_code: Optional[str] = None
+    tax_number: Optional[str] = None
+    billing_address: Optional[str] = None
+    contact_person: Optional[str] = None
+    contact_email: Optional[EmailStr] = None
+    contact_phone: Optional[str] = None
+    contracted_rate: Optional[ContractedRateType] = None
+    default_rate_type: Optional[RateType] = None
+    default_market_segment: Optional[MarketSegment] = None
+    default_cancellation_policy: Optional[CancellationPolicyType] = None
+    payment_terms: Optional[str] = None
+    status: CompanyStatus = CompanyStatus.PENDING
+
+class Company(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    tenant_id: str
+    name: str
+    corporate_code: Optional[str] = None
+    tax_number: Optional[str] = None
+    billing_address: Optional[str] = None
+    contact_person: Optional[str] = None
+    contact_email: Optional[EmailStr] = None
+    contact_phone: Optional[str] = None
+    contracted_rate: Optional[ContractedRateType] = None
+    default_rate_type: Optional[RateType] = None
+    default_market_segment: Optional[MarketSegment] = None
+    default_cancellation_policy: Optional[CancellationPolicyType] = None
+    payment_terms: Optional[str] = None
+    status: CompanyStatus = CompanyStatus.ACTIVE
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
 # Guest & Booking Models
 class GuestCreate(BaseModel):
     name: str
