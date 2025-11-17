@@ -441,31 +441,113 @@ class Booking(BaseModel):
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 # Folio & Payment Models
-class FolioCharge(BaseModel):
+class FolioCreate(BaseModel):
+    booking_id: str
+    folio_type: FolioType
+    guest_id: Optional[str] = None
+    company_id: Optional[str] = None
+    notes: Optional[str] = None
+
+class Folio(BaseModel):
     model_config = ConfigDict(extra="ignore")
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     tenant_id: str
     booking_id: str
-    charge_type: ChargeType
+    folio_number: str  # e.g., "F-2024-0001"
+    folio_type: FolioType
+    status: FolioStatus = FolioStatus.OPEN
+    guest_id: Optional[str] = None
+    company_id: Optional[str] = None
+    balance: float = 0.0  # Total charges - Total payments
+    notes: Optional[str] = None
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    closed_at: Optional[datetime] = None
+
+class ChargeCreate(BaseModel):
+    folio_id: str
+    charge_category: ChargeCategory
     description: str
     amount: float
     quantity: float = 1.0
-    total: float
+    auto_calculate_tax: bool = False
+
+class FolioCharge(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    tenant_id: str
+    folio_id: str
+    booking_id: str
+    charge_category: ChargeCategory
+    description: str
+    unit_price: float
+    quantity: float = 1.0
+    amount: float  # unit_price * quantity
+    tax_amount: float = 0.0
+    total: float  # amount + tax_amount
     date: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     posted_by: Optional[str] = None
+    voided: bool = False
+    void_reason: Optional[str] = None
+    voided_by: Optional[str] = None
+    voided_at: Optional[datetime] = None
+
+class PaymentCreate(BaseModel):
+    folio_id: str
+    amount: float
+    method: PaymentMethod
+    payment_type: PaymentType
+    reference: Optional[str] = None
+    notes: Optional[str] = None
 
 class Payment(BaseModel):
     model_config = ConfigDict(extra="ignore")
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     tenant_id: str
+    folio_id: str
     booking_id: str
     amount: float
     method: PaymentMethod
-    status: PaymentStatus = PaymentStatus.PENDING
+    payment_type: PaymentType
+    status: PaymentStatus = PaymentStatus.PAID
     reference: Optional[str] = None
     notes: Optional[str] = None
     processed_by: Optional[str] = None
     processed_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+class FolioOperationCreate(BaseModel):
+    operation_type: FolioOperationType
+    from_folio_id: str
+    to_folio_id: Optional[str] = None
+    charge_ids: List[str] = []  # For transfer operations
+    amount: Optional[float] = None
+    reason: str
+
+class FolioOperation(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    tenant_id: str
+    operation_type: FolioOperationType
+    from_folio_id: str
+    to_folio_id: Optional[str] = None
+    charge_ids: List[str] = []
+    amount: Optional[float] = None
+    reason: str
+    performed_by: str
+    performed_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+class CityTaxRule(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    tenant_id: str
+    name: str
+    tax_percentage: float
+    flat_amount: Optional[float] = None  # If not percentage-based
+    per_night: bool = True
+    exempt_market_segments: List[MarketSegment] = []
+    min_nights: Optional[int] = None
+    max_nights: Optional[int] = None
+    active: bool = True
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 # Rate Override Log Model
 class RateOverrideLog(BaseModel):
