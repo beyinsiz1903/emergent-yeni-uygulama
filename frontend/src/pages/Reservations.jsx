@@ -54,6 +54,8 @@ const Reservations = () => {
     company_code: '',
     tax_id: '',
     billing_address: '',
+    contact_person: '',
+    contracted_rate: 'standard',
     // Rate Override
     base_rate: 0,
     rate_override: 0,
