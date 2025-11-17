@@ -45,7 +45,11 @@ const PMSModule = ({ user, tenant, onLogout }) => {
     occupancy: null,
     revenue: null,
     daily: null,
-    forecast: []
+    forecast: [],
+    dailyFlash: null,
+    marketSegment: null,
+    companyAging: null,
+    hkEfficiency: null
   });
 
   const [newRoom, setNewRoom] = useState({
