@@ -684,6 +684,57 @@ const PMSModule = ({ user, tenant, onLogout }) => {
     }
   };
 
+  const createRoomBlock = async () => {
+    if (!selectedRoom) {
+      toast.error('Please select a room');
+      return;
+    }
+    if (!newRoomBlock.reason || !newRoomBlock.start_date) {
+      toast.error('Please fill in all required fields');
+      return;
+    }
+    
+    try {
+      const response = await axios.post('/pms/room-blocks', {
+        room_id: selectedRoom.id,
+        ...newRoomBlock
+      });
+      
+      if (response.data.warnings && response.data.warnings.length > 0) {
+        response.data.warnings.forEach(warning => {
+          toast.warning(warning.message);
+        });
+      }
+      
+      toast.success(response.data.message);
+      setOpenDialog(null);
+      setSelectedRoom(null);
+      setNewRoomBlock({
+        type: 'out_of_order',
+        reason: '',
+        details: '',
+        start_date: '',
+        end_date: '',
+        allow_sell: false
+      });
+      loadHousekeepingData();
+      loadData();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Failed to create room block');
+    }
+  };
+
+  const cancelRoomBlock = async (blockId) => {
+    try {
+      await axios.post(`/pms/room-blocks/${blockId}/cancel`);
+      toast.success('Room block cancelled');
+      loadHousekeepingData();
+      loadData();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Failed to cancel block');
+    }
+  };
+
   if (loading) {
     return (
       <Layout user={user} tenant={tenant} onLogout={onLogout} currentModule="pms">
