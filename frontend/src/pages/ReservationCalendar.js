@@ -1031,6 +1031,25 @@ const ReservationCalendar = ({ user, tenant, onLogout }) => {
                                       )}
                                     </div>
                                   </div>
+                                  {/* OTA Info */}
+                                  {booking.ota_channel && (
+                                    <div className="text-[8px] text-indigo-300 mt-0.5 flex items-center justify-between">
+                                      <span>{getOTAInfo(booking.ota_channel).name}</span>
+                                      {booking.commission_pct && (
+                                        <span>({booking.commission_pct}% comm.)</span>
+                                      )}
+                                    </div>
+                                  )}
+                                  {booking.ota_confirmation && (
+                                    <div className="text-[8px] text-gray-400 mt-0.5">
+                                      Conf: {booking.ota_confirmation}
+                                    </div>
+                                  )}
+                                  {booking.virtual_card_provided && (
+                                    <div className="text-[8px] text-green-300 mt-0.5">
+                                      ✓ Virtual Card
+                                    </div>
+                                  )}
                                   {booking.contracted_rate && (
                                     <div className="text-[8px] text-green-300 mt-0.5">
                                       ✓ Contracted Rate
