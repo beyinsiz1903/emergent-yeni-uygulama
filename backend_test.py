@@ -319,7 +319,7 @@ class MessagingThrottlingTester:
         all_passed = True
         for test in validation_tests:
             try:
-                response = self.session.post(f"{BASE_URL}{test['endpoint']}", json=test['payload'])
+                response = self.session.post(f"{BASE_URL}{test['endpoint']}", params=test['payload'])
                 if response.status_code == test['expected_status']:
                     self.log_test(f"Input Validation - {test['name']}", "PASS", f"Correctly returned {response.status_code}")
                 else:
