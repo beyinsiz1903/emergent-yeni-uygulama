@@ -867,6 +867,159 @@ const ReservationCalendar = ({ user, tenant, onLogout }) => {
           </CardContent>
         </Card>
 
+        {/* AI Mode Panel */}
+        {showAIPanel && (
+          <Card className="border-2 border-purple-500 bg-gradient-to-br from-purple-50 to-blue-50">
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center gap-2">
+                🤖 AI Operations Intelligence
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {/* Overbooking Solutions */}
+              {aiOverbookingSolutions.length > 0 && (
+                <div className="bg-white p-3 rounded-lg border-2 border-red-300">
+                  <div className="text-sm font-semibold text-red-700 mb-2 flex items-center gap-2">
+                    <span>🚨 Overbooking Conflicts ({aiOverbookingSolutions.length})</span>
+                  </div>
+                  <div className="space-y-2 max-h-48 overflow-y-auto">
+                    {aiOverbookingSolutions.map((solution, idx) => (
+                      <div key={idx} className="bg-red-50 p-2 rounded border border-red-200 text-xs">
+                        <div className="flex justify-between items-start mb-1">
+                          <div>
+                            <span className="font-semibold">{solution.guest_name}</span>
+                            <span className="mx-1">•</span>
+                            <span>Room {solution.current_room}</span>
+                          </div>
+                          <Badge className="bg-purple-600 text-white text-[9px]">
+                            {Math.round(solution.confidence * 100)}% confident
+                          </Badge>
+                        </div>
+                        <div className="text-green-600 font-semibold">
+                          ✓ Move to Room {solution.recommended_room}
+                        </div>
+                        <div className="text-gray-600 mt-1">{solution.reason}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Room Move Recommendations */}
+              {aiRoomMoves.length > 0 && (
+                <div className="bg-white p-3 rounded-lg border-2 border-blue-300">
+                  <div className="text-sm font-semibold text-blue-700 mb-2">
+                    💎 Smart Room Moves ({aiRoomMoves.length})
+                  </div>
+                  <div className="space-y-2 max-h-48 overflow-y-auto">
+                    {aiRoomMoves.slice(0, 5).map((move, idx) => (
+                      <div key={idx} className="bg-blue-50 p-2 rounded border border-blue-200 text-xs">
+                        <div className="flex justify-between items-start mb-1">
+                          <div>
+                            <span className="font-semibold">{move.guest_name}</span>
+                            {move.loyalty_tier && (
+                              <Badge className="ml-2 bg-yellow-500 text-white text-[8px]">
+                                {move.loyalty_tier.toUpperCase()}
+                              </Badge>
+                            )}
+                          </div>
+                          <Badge className={`text-white text-[9px] ${
+                            move.priority === 'urgent' ? 'bg-red-600' :
+                            move.priority === 'high' ? 'bg-orange-600' : 'bg-blue-600'
+                          }`}>
+                            {move.priority.toUpperCase()}
+                          </Badge>
+                        </div>
+                        <div className="text-green-600 font-semibold">
+                          {move.type === 'upgrade' ? '⬆️' : '🔄'} {move.current_room} → {move.recommended_room}
+                        </div>
+                        <div className="text-gray-600 mt-1">{move.reason}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* No-Show Risk Predictions */}
+              {aiNoShowPredictions.filter(p => p.risk_level !== 'low').length > 0 && (
+                <div className="bg-white p-3 rounded-lg border-2 border-yellow-300">
+                  <div className="text-sm font-semibold text-yellow-700 mb-2">
+                    ⚠️ High No-Show Risk ({aiNoShowPredictions.filter(p => p.risk_level === 'high').length})
+                  </div>
+                  <div className="space-y-2 max-h-48 overflow-y-auto">
+                    {aiNoShowPredictions.filter(p => p.risk_level !== 'low').slice(0, 5).map((pred, idx) => (
+                      <div key={idx} className="bg-yellow-50 p-2 rounded border border-yellow-200 text-xs">
+                        <div className="flex justify-between items-start mb-1">
+                          <div>
+                            <span className="font-semibold">{pred.guest_name}</span>
+                            <span className="mx-1">•</span>
+                            <span>Room {pred.room_number}</span>
+                          </div>
+                          <Badge className={`text-white text-[9px] ${
+                            pred.risk_level === 'high' ? 'bg-red-600' : 'bg-yellow-600'
+                          }`}>
+                            {pred.risk_score}% RISK
+                          </Badge>
+                        </div>
+                        <div className="text-gray-600">
+                          Factors: {pred.risk_factors.slice(0, 2).join(', ')}
+                        </div>
+                        <div className="text-blue-600 mt-1 font-semibold">
+                          💡 {pred.recommendation}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Rate Recommendations Summary */}
+              {aiRateRecommendations.length > 0 && (
+                <div className="bg-white p-3 rounded-lg border-2 border-green-300">
+                  <div className="text-sm font-semibold text-green-700 mb-2">
+                    💰 Dynamic Rate Recommendations
+                  </div>
+                  <div className="grid grid-cols-3 gap-3">
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-green-600">
+                        {aiRateRecommendations.filter(r => r.strategy === 'demand_surge').length}
+                      </div>
+                      <div className="text-xs text-gray-600">Surge Pricing</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-blue-600">
+                        {aiRateRecommendations.filter(r => r.strategy === 'optimize').length}
+                      </div>
+                      <div className="text-xs text-gray-600">Optimize</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-orange-600">
+                        {aiRateRecommendations.filter(r => r.strategy === 'attract').length}
+                      </div>
+                      <div className="text-xs text-gray-600">Attract</div>
+                    </div>
+                  </div>
+                  <div className="mt-2 text-center">
+                    <div className="text-xl font-bold text-purple-600">
+                      ${Math.round(aiRateRecommendations.reduce((sum, r) => sum + (r.revenue_impact || 0), 0))}
+                    </div>
+                    <div className="text-xs text-gray-600">Potential Revenue Increase</div>
+                  </div>
+                </div>
+              )}
+
+              {/* No AI recommendations */}
+              {aiOverbookingSolutions.length === 0 && aiRoomMoves.length === 0 && 
+               aiNoShowPredictions.filter(p => p.risk_level !== 'low').length === 0 && (
+                <div className="text-center py-8 text-gray-500">
+                  <div className="text-4xl mb-2">🤖</div>
+                  <div className="text-sm">All systems optimal - No urgent AI recommendations</div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
         {/* Enterprise Mode Panel */}
         {showEnterprisePanel && (
           <Card className="border-2 border-purple-300 bg-purple-50">
