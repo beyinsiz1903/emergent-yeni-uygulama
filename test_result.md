@@ -964,14 +964,14 @@ metadata:
 
 test_plan:
   current_focus:
-    - "CRITICAL: Fix authentication system - users cannot register or login"
-    - "Fix backend date parsing error in daily flash report endpoint"
-    - "Verify API connectivity between frontend and backend"
+    - "Folio Calculations Regression Testing - COMPLETED"
+    - "Currency rounding precision issue identified"
+    - "Closed folio validation needs improvement"
   stuck_tasks:
-    - "Authentication system completely non-functional"
-    - "All frontend features blocked by auth failure"
+    - "Currency rounding not enforcing 2 decimal places"
+    - "Closed folio charge posting validation insufficient"
   test_all: false
-  test_priority: "authentication_fix_required"
+  test_priority: "folio_calculations_regression"
 
 agent_communication:
   - agent: "testing"
