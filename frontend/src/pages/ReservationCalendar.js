@@ -139,6 +139,28 @@ const ReservationCalendar = ({ user, tenant, onLogout }) => {
     }
   };
 
+  const loadAIRecommendations = async () => {
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      const startDate = currentDate.toISOString().split('T')[0];
+      const endDate = new Date(currentDate.getTime() + daysToShow * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+      
+      const [overbookingRes, roomMovesRes, ratesRes, noShowRes] = await Promise.all([
+        axios.post(`/ai/solve-overbooking`, { date: today }).catch(() => ({ data: { solutions: [] } })),
+        axios.post(`/ai/recommend-room-moves`, { date: today }).catch(() => ({ data: { recommendations: [] } })),
+        axios.post(`/ai/recommend-rates`, { start_date: startDate, end_date: endDate }).catch(() => ({ data: { recommendations: [] } })),
+        axios.post(`/ai/predict-no-shows`, { date: today }).catch(() => ({ data: { predictions: [] } }))
+      ]);
+      
+      setAiOverbookingSolutions(overbookingRes.data.solutions || []);
+      setAiRoomMoves(roomMovesRes.data.recommendations || []);
+      setAiRateRecommendations(ratesRes.data.recommendations || []);
+      setAiNoShowPredictions(noShowRes.data.predictions || []);
+    } catch (error) {
+      console.error('Failed to load AI recommendations:', error);
+    }
+  };
+
   // Handle cell click - Open new booking dialog
   const handleCellClick = (roomId, date) => {
     const room = rooms.find(r => r.id === roomId);
