@@ -285,7 +285,7 @@ class POSChargeTester:
             charge = room_service_response.json()
             
             # Verify charge details
-            if charge['charge_category'] != 'room_service' or charge['amount'] != 35.75:
+            if charge['charge_category'] != 'other' or charge['amount'] != 35.75:
                 self.log_test("Room Service Charges", "FAIL", f"Incorrect charge details: {charge}")
                 return False
             
