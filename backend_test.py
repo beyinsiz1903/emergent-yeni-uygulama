@@ -141,7 +141,7 @@ class MessagingThrottlingTester:
     def test_single_whatsapp_send(self):
         """Test 3: Single WhatsApp Send"""
         try:
-            response = self.session.post(f"{BASE_URL}/messages/send-whatsapp", json={
+            response = self.session.post(f"{BASE_URL}/messages/send-whatsapp", params={
                 "recipient": "+1234567890",
                 "body": "Test WhatsApp message for rate limiting verification."
             })
