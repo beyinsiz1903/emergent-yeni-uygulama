@@ -2469,6 +2469,114 @@ const PMSModule = ({ user, tenant, onLogout }) => {
               </div>
             </div>
           </TabsContent>
+
+          {/* STAFF TASK MANAGER TAB */}
+          <TabsContent value="tasks" className="space-y-6">
+            <StaffTaskManager />
+          </TabsContent>
+
+          {/* FEEDBACK SYSTEM TAB */}
+          <TabsContent value="feedback" className="space-y-6">
+            <FeedbackSystem />
+          </TabsContent>
+
+          {/* ALLOTMENT GRID TAB */}
+          <TabsContent value="allotment" className="space-y-6">
+            <AllotmentGrid />
+          </TabsContent>
+
+          {/* POS INTEGRATION TAB */}
+          <TabsContent value="pos" className="space-y-6">
+            <div>
+              <h3 className="text-2xl font-bold mb-4">POS Integration</h3>
+              <div className="grid grid-cols-2 gap-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Restaurant Charges</CardTitle>
+                    <CardDescription>Post restaurant bills to guest folios</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      <div className="flex justify-between items-center p-4 bg-gray-50 rounded">
+                        <div>
+                          <div className="font-semibold">Table 5 - Room 201</div>
+                          <div className="text-sm text-gray-600">2 guests, $85.50</div>
+                        </div>
+                        <Button size="sm" onClick={() => toast.success('Charged to room folio')}>
+                          Post to Folio
+                        </Button>
+                      </div>
+                      <div className="flex justify-between items-center p-4 bg-gray-50 rounded">
+                        <div>
+                          <div className="font-semibold">Bar Tab - Room 305</div>
+                          <div className="text-sm text-gray-600">$42.00</div>
+                        </div>
+                        <Button size="sm" onClick={() => toast.success('Charged to room folio')}>
+                          Post to Folio
+                        </Button>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle>POS Settings</CardTitle>
+                    <CardDescription>Configure POS integration</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3 text-sm">
+                      <div className="flex justify-between items-center">
+                        <span className="text-gray-600">POS System:</span>
+                        <span className="font-semibold">Micros</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-gray-600">Auto-post:</span>
+                        <span className="font-semibold text-green-600">Enabled</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-gray-600">Service Charge:</span>
+                        <span className="font-semibold">10%</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-gray-600">Tax:</span>
+                        <span className="font-semibold">8%</span>
+                      </div>
+                      <Button variant="outline" className="w-full mt-4">
+                        Configure Settings
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              <Card className="mt-6">
+                <CardHeader>
+                  <CardTitle>Today's F&B Revenue</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-4 gap-4">
+                    <div className="text-center">
+                      <div className="text-3xl font-bold text-green-600">$2,450</div>
+                      <div className="text-sm text-gray-600">Restaurant</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-3xl font-bold text-blue-600">$1,280</div>
+                      <div className="text-sm text-gray-600">Bar</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-3xl font-bold text-purple-600">$580</div>
+                      <div className="text-sm text-gray-600">Room Service</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-3xl font-bold text-orange-600">$4,310</div>
+                      <div className="text-sm text-gray-600">Total F&B</div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
         </Tabs>
 
         {/* Folio Dialog */}
