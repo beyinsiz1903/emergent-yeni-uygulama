@@ -335,23 +335,23 @@ const ReservationCalendar = ({ user, tenant, onLogout }) => {
         timestamp: new Date().toISOString()
       }).catch(err => console.log('History logging failed:', err));
       
-      toast.success(`Booking moved from ${moveData.oldRoom} to ${moveData.newRoom}!`);
-      
-      // Update currentDate to show the new booking date if it's outside current view
+      // Always navigate to the new booking date to ensure it's visible
       const newCheckIn = new Date(moveData.newCheckIn);
-      const rangeStart = new Date(currentDate);
-      const rangeEnd = new Date(currentDate);
-      rangeEnd.setDate(rangeEnd.getDate() + daysToShow);
-      
-      // If new date is outside current view, scroll to it
-      if (newCheckIn < rangeStart || newCheckIn >= rangeEnd) {
-        setCurrentDate(newCheckIn);
-      }
+      console.log('📅 Navigating timeline to:', newCheckIn.toISOString().split('T')[0]);
       
       setShowMoveReasonDialog(false);
       setMoveReason('');
       setMoveData(null);
-      loadCalendarData();
+      
+      // Set the new date FIRST, then reload data
+      setCurrentDate(newCheckIn);
+      
+      toast.success(`Booking moved to ${moveData.newRoom} on ${newCheckIn.toLocaleDateString()}!`);
+      
+      // Small delay to ensure state update completes before reload
+      setTimeout(() => {
+        loadCalendarData();
+      }, 100);
     } catch (error) {
       toast.error('Failed to move booking');
       console.error('Move booking error:', error);
