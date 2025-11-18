@@ -264,7 +264,7 @@ class POSChargeTester:
                 room_service_found = any(
                     c['charge_category'] == 'room_service' and 
                     c['amount'] == 35.75 and 
-                    'Room POS101' in c['description'] 
+                    'Room 301' in c['description'] 
                     for c in folio_data['charges']
                 )
                 
