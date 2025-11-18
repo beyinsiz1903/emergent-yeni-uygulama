@@ -750,6 +750,15 @@ const ReservationCalendar = ({ user, tenant, onLogout }) => {
                   <p className="text-xs text-gray-500">Hover over dates to see occupancy %</p>
                 </div>
                 <div className="flex items-center space-x-4">
+                  <Button
+                    size="sm"
+                    variant={showEnterprisePanel ? "default" : "outline"}
+                    onClick={() => setShowEnterprisePanel(!showEnterprisePanel)}
+                    className="flex items-center gap-2"
+                  >
+                    <TrendingUp className="w-4 h-4" />
+                    Enterprise Mode
+                  </Button>
                   <div className="text-center">
                     <div className="text-2xl font-bold text-blue-600">{getOccupancyForDate(new Date())}%</div>
                     <div className="text-xs text-gray-600">Today</div>
