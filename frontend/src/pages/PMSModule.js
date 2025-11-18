@@ -813,7 +813,7 @@ const PMSModule = ({ user, tenant, onLogout }) => {
           if (v === 'housekeeping') loadHousekeepingData();
           if (v === 'reports') loadReports();
         }}>
-          <TabsList className="grid w-full grid-cols-6">
+          <TabsList className="grid w-full grid-cols-7">
             <TabsTrigger value="frontdesk" data-testid="tab-frontdesk">
               <UserCheck className="w-4 h-4 mr-2" />
               {t('pms.frontDesk')}
@@ -834,8 +834,12 @@ const PMSModule = ({ user, tenant, onLogout }) => {
               <Calendar className="w-4 h-4 mr-2" />
               {t('pms.bookings')}
             </TabsTrigger>
+            <TabsTrigger value="upsell" data-testid="tab-upsell">
+              <TrendingUp className="w-4 h-4 mr-2" />
+              🤖 Upsell AI
+            </TabsTrigger>
             <TabsTrigger value="reports" data-testid="tab-reports">
-              <BarChart3 className="w-4 h-4 mr-2" />
+              <FileText className="w-4 h-4 mr-2" />
               {t('pms.reports')}
             </TabsTrigger>
           </TabsList>
