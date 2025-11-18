@@ -6705,11 +6705,12 @@ async def create_staff_task(
         'tenant_id': current_user.tenant_id,
         'task_type': task_data.get('task_type', 'maintenance'),
         'department': task_data.get('department', 'engineering'),
+        'title': task_data.get('title', 'Staff Task'),
         'room_id': task_data.get('room_id'),
         'priority': task_data.get('priority', 'normal'),
         'description': task_data.get('description'),
         'assigned_to': task_data.get('assigned_to'),
-        'status': 'pending',
+        'status': task_data.get('status', 'pending'),
         'created_by': current_user.id,
         'created_at': datetime.now(timezone.utc).isoformat()
     }
