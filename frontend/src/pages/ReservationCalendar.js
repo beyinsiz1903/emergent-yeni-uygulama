@@ -1433,6 +1433,13 @@ const ReservationCalendar = ({ user, tenant, onLogout }) => {
                                       </div>
                                     )}
                                     
+                                    {/* Group Badge - Deluxe+ */}
+                                    {showDeluxePanel && isGroupBooking(booking.id) && (
+                                      <div className="bg-gradient-to-r from-amber-500 to-orange-600 text-white text-[8px] font-bold px-1 py-0.5 rounded" title={`Group: ${getGroupInfo(booking.id)?.company_name} (${getGroupInfo(booking.id)?.room_count} rooms)`}>
+                                        👥 GRP
+                                      </div>
+                                    )}
+                                    
                                     {/* OTA Badge */}
                                     {booking.ota_channel && (
                                       <div className={`${getOTAInfo(booking.ota_channel).color} text-white text-[9px] font-bold px-1.5 py-0.5 rounded`} title={getOTAInfo(booking.ota_channel).name}>
