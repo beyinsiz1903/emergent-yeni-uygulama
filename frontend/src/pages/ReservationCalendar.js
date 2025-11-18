@@ -30,6 +30,7 @@ const ReservationCalendar = ({ user, tenant, onLogout }) => {
   const [bookings, setBookings] = useState([]);
   const [guests, setGuests] = useState([]);
   const [companies, setCompanies] = useState([]);
+  const [roomBlocks, setRoomBlocks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [daysToShow, setDaysToShow] = useState(14); // 2 weeks view
   
