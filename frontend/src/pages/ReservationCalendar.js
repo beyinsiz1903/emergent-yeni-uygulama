@@ -757,7 +757,7 @@ const ReservationCalendar = ({ user, tenant, onLogout }) => {
 
   if (loading) {
     return (
-      <Layout user={user} tenant={tenant} onLogout={onLogout} currentModule="pms">
+      <Layout user={user} tenant={tenant} onLogout={onLogout} currentModule="calendar">
         <div className="flex items-center justify-center h-screen">
           <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-600"></div>
         </div>
@@ -766,7 +766,7 @@ const ReservationCalendar = ({ user, tenant, onLogout }) => {
   }
 
   return (
-    <Layout user={user} tenant={tenant} onLogout={onLogout} currentModule="pms">
+    <Layout user={user} tenant={tenant} onLogout={onLogout} currentModule="calendar">
       <div className="p-6 space-y-4">
         {/* Header */}
         <div className="flex justify-between items-center">
