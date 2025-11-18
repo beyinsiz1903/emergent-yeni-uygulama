@@ -194,6 +194,14 @@ const ReservationCalendar = ({ user, tenant, onLogout }) => {
     
     if (!draggingBooking) return;
     
+    // Check if room is blocked
+    const roomBlock = getRoomBlockForDate(newRoomId, newDate);
+    if (roomBlock && !roomBlock.allow_sell) {
+      toast.error(`Cannot move booking: Room is ${roomBlock.type.replace('_', ' ')} (${roomBlock.reason})`);
+      setDraggingBooking(null);
+      return;
+    }
+    
     // Check if actually moving to different room or date
     const oldRoomId = draggingBooking.room_id;
     const oldDate = new Date(draggingBooking.check_in);
