@@ -72,7 +72,7 @@ class MessagingThrottlingTester:
     def test_single_email_send(self):
         """Test 1: Single Email Send"""
         try:
-            response = self.session.post(f"{BASE_URL}/messages/send-email", json={
+            response = self.session.post(f"{BASE_URL}/messages/send-email", params={
                 "recipient": "test@example.com",
                 "subject": "Test Email",
                 "body": "This is a test email message for rate limiting verification."
