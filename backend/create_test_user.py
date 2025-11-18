@@ -22,9 +22,9 @@ async def create_test_user():
     test_user = {
         'id': str(uuid.uuid4()),
         'tenant_id': tenant_id,
-        'username': 'testuser',
+        'username': 'test@hotel.com',
         'password': pwd_context.hash('test123'),  # Password: test123
-        'email': 'testuser@grandemerald.com',
+        'email': 'test@hotel.com',
         'name': 'Test Manager',
         'role': 'manager',
         'permissions': ['all'],
@@ -33,10 +33,10 @@ async def create_test_user():
     }
     
     # Check if user exists
-    existing = await db.users.find_one({'username': 'testuser', 'tenant_id': tenant_id})
+    existing = await db.users.find_one({'username': 'test@hotel.com', 'tenant_id': tenant_id})
     if existing:
         print("⚠️  Test user already exists, updating...")
-        await db.users.replace_one({'username': 'testuser', 'tenant_id': tenant_id}, test_user)
+        await db.users.replace_one({'username': 'test@hotel.com', 'tenant_id': tenant_id}, test_user)
     else:
         await db.users.insert_one(test_user)
     
