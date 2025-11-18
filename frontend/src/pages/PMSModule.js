@@ -962,11 +962,38 @@ const PMSModule = ({ user, tenant, onLogout }) => {
           <TabsContent value="housekeeping" className="space-y-6">
             <div className="flex justify-between items-center">
               <h2 className="text-2xl font-bold">Housekeeping Management</h2>
-              <Button onClick={() => setOpenDialog('hktask')}>
-                <Plus className="w-4 h-4 mr-2" />
-                Create Task
-              </Button>
+              <div className="space-x-2">
+                <Button onClick={() => setOpenDialog('hktask')}>
+                  <Plus className="w-4 h-4 mr-2" />
+                  Create Task
+                </Button>
+                <Button onClick={() => setOpenDialog('roomblock')} variant="outline">
+                  <Plus className="w-4 h-4 mr-2" />
+                  Block Room
+                </Button>
+              </div>
             </div>
+
+            {/* Block Counters */}
+            {roomBlocks.length > 0 && (
+              <div className="flex gap-4 p-4 bg-gray-50 rounded-lg border">
+                <div className="flex items-center gap-2">
+                  <span className="font-semibold">Room Blocks:</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 bg-red-600 rounded"></div>
+                  <span className="text-sm">Out of Order: {roomBlocks.filter(b => b.type === 'out_of_order' && b.status === 'active').length}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 bg-orange-500 rounded"></div>
+                  <span className="text-sm">Out of Service: {roomBlocks.filter(b => b.type === 'out_of_service' && b.status === 'active').length}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 bg-yellow-500 rounded"></div>
+                  <span className="text-sm">Maintenance: {roomBlocks.filter(b => b.type === 'maintenance' && b.status === 'active').length}</span>
+                </div>
+              </div>
+            )}
 
             {/* Status Overview */}
             {roomStatusBoard && (
