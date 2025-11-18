@@ -170,6 +170,18 @@ const PMSModule = ({ user, tenant, onLogout }) => {
     loadAuditLogs();
     loadChannelManagerData();
   }, []);
+  
+  // Load data when tab changes
+  useEffect(() => {
+    if (activeTab === 'reports') {
+      console.log('🔄 Reports tab activated, loading reports...');
+      loadReports();
+    } else if (activeTab === 'frontdesk') {
+      loadFrontDeskData();
+    } else if (activeTab === 'housekeeping') {
+      loadHousekeepingData();
+    }
+  }, [activeTab]);
 
   const loadData = async () => {
     try {
