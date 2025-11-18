@@ -272,8 +272,8 @@ class POSChargeTester:
         try:
             # Post room service charge
             room_service_response = self.session.post(f"{BASE_URL}/folio/{self.test_data['guest_folio_id']}/charge", json={
-                "charge_category": "room_service",
-                "description": f"Room Service - Room POS101",
+                "charge_category": "other",
+                "description": f"Room Service - Test Room",
                 "amount": 35.75,
                 "quantity": 1.0
             })
