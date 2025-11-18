@@ -1916,6 +1916,70 @@ async def create_rate_override(
     
     return {"message": "Rate override logged successfully", "log": override_log}
 
+@api_router.put("/pms/bookings/{booking_id}")
+async def update_booking(
+    booking_id: str,
+    booking_data: dict,
+    current_user: User = Depends(get_current_user)
+):
+    """Update an existing booking (for room moves, date changes, etc.)"""
+    booking = await db.bookings.find_one({
+        'id': booking_id,
+        'tenant_id': current_user.tenant_id
+    })
+    
+    if not booking:
+        raise HTTPException(status_code=404, detail="Booking not found")
+    
+    # Prepare update data
+    update_data = {}
+    
+    # Handle date fields
+    if 'check_in' in booking_data:
+        if isinstance(booking_data['check_in'], str):
+            update_data['check_in'] = datetime.fromisoformat(booking_data['check_in'].replace('Z', '+00:00')).isoformat()
+        else:
+            update_data['check_in'] = booking_data['check_in']
+    
+    if 'check_out' in booking_data:
+        if isinstance(booking_data['check_out'], str):
+            update_data['check_out'] = datetime.fromisoformat(booking_data['check_out'].replace('Z', '+00:00')).isoformat()
+        else:
+            update_data['check_out'] = booking_data['check_out']
+    
+    # Handle other fields
+    allowed_fields = ['room_id', 'guest_id', 'total_amount', 'status', 'adults', 'children', 
+                     'children_ages', 'guests_count', 'special_requests', 'company_id', 
+                     'contracted_rate', 'rate_type', 'market_segment']
+    
+    for field in allowed_fields:
+        if field in booking_data:
+            update_data[field] = booking_data[field]
+    
+    # Update old room status if room changed
+    if 'room_id' in booking_data and booking_data['room_id'] != booking['room_id']:
+        # Set old room to available
+        await db.rooms.update_one(
+            {'id': booking['room_id']},
+            {'$set': {'status': 'available', 'current_booking_id': None}}
+        )
+        # Set new room to occupied if booking is checked in
+        if booking.get('status') == 'checked_in':
+            await db.rooms.update_one(
+                {'id': booking_data['room_id']},
+                {'$set': {'status': 'occupied', 'current_booking_id': booking_id}}
+            )
+    
+    # Perform update
+    await db.bookings.update_one(
+        {'id': booking_id, 'tenant_id': current_user.tenant_id},
+        {'$set': update_data}
+    )
+    
+    # Get updated booking
+    updated_booking = await db.bookings.find_one({'id': booking_id}, {'_id': 0})
+    return updated_booking
+
 @api_router.get("/pms/dashboard")
 async def get_pms_dashboard(current_user: User = Depends(get_current_user)):
     total_rooms = await db.rooms.count_documents({'tenant_id': current_user.tenant_id})
