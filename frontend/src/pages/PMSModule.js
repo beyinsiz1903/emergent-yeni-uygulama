@@ -1206,9 +1206,24 @@ const PMSModule = ({ user, tenant, onLogout }) => {
               </Button>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {rooms.map((room) => (
-                <Card key={room.id}>
-                  <CardHeader>
+              {rooms.map((room) => {
+                const roomBlock = roomBlocks.find(b => b.room_id === room.id && b.status === 'active');
+                return (
+                <Card key={room.id} className={roomBlock ? 'border-2 border-red-400' : ''}>
+                  <CardHeader className="relative">
+                    {roomBlock && (
+                      <div className="absolute top-2 right-2 flex gap-1">
+                        {roomBlock.type === 'out_of_order' && (
+                          <span className="px-2 py-1 text-xs font-bold bg-red-600 text-white rounded">OUT OF ORDER</span>
+                        )}
+                        {roomBlock.type === 'out_of_service' && (
+                          <span className="px-2 py-1 text-xs font-bold bg-orange-500 text-white rounded">OUT OF SERVICE</span>
+                        )}
+                        {roomBlock.type === 'maintenance' && (
+                          <span className="px-2 py-1 text-xs font-bold bg-yellow-600 text-white rounded">MAINTENANCE</span>
+                        )}
+                      </div>
+                    )}
                     <CardTitle>Room {room.room_number}</CardTitle>
                     <CardDescription className="capitalize">{room.room_type}</CardDescription>
                   </CardHeader>
@@ -1241,9 +1256,31 @@ const PMSModule = ({ user, tenant, onLogout }) => {
                         </SelectContent>
                       </Select>
                     </div>
+                    {roomBlock && (
+                      <div className="pt-2 border-t">
+                        <div className="text-xs font-semibold text-red-600 mb-1">Blocked</div>
+                        <div className="text-xs text-gray-600 mb-1">
+                          Reason: {roomBlock.reason}
+                        </div>
+                        <div className="text-xs text-gray-500 mb-2">
+                          {new Date(roomBlock.start_date).toLocaleDateString()} - {roomBlock.end_date ? new Date(roomBlock.end_date).toLocaleDateString() : 'Open-ended'}
+                        </div>
+                        <div className="flex gap-2">
+                          <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => {
+                            setSelectedRoom(room);
+                            setOpenDialog('viewblocks');
+                          }}>
+                            View Blocks
+                          </Button>
+                          <Button size="sm" variant="destructive" className="h-7 text-xs" onClick={() => cancelRoomBlock(roomBlock.id)}>
+                            End Block
+                          </Button>
+                        </div>
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
-              ))}
+              )})}
             </div>
           </TabsContent>
 
