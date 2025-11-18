@@ -82,6 +82,32 @@ class OTAImportTester:
             return True
         return False
 
+    def setup_test_data(self):
+        """Set up test rooms and guests for OTA import testing"""
+        print("   🔧 Setting up test data...")
+        
+        # Create test room
+        room_data = {
+            "room_number": "101",
+            "room_type": "deluxe",
+            "floor": 1,
+            "capacity": 2,
+            "base_price": 150.00,
+            "amenities": ["wifi", "tv", "minibar"]
+        }
+        
+        success, response = self.run_test(
+            "Create Test Room",
+            "POST",
+            "pms/rooms",
+            200,
+            data=room_data
+        )
+        
+        if success and 'id' in response:
+            self.created_resources['rooms'].append(response['id'])
+            print(f"      ✅ Created test room: {response.get('room_number')}")
+
     def test_channel_connection_status(self):
         """Test 1: Channel Connection Status"""
         print("\n📡 Testing Channel Connection Status...")
