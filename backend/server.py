@@ -1505,8 +1505,8 @@ async def post_charge_to_folio(
     if not folio:
         raise HTTPException(status_code=404, detail="Folio not found or closed")
     
-    # Calculate amounts
-    amount = charge_data.amount * charge_data.quantity
+    # Calculate amounts with proper rounding
+    amount = round(charge_data.amount * charge_data.quantity, 2)
     tax_amount = 0.0
     
     # Auto-calculate city tax if requested
@@ -1518,11 +1518,11 @@ async def post_charge_to_folio(
         })
         if tax_rule:
             if tax_rule.get('flat_amount'):
-                tax_amount = tax_rule['flat_amount']
+                tax_amount = round(tax_rule['flat_amount'], 2)
             else:
-                tax_amount = amount * (tax_rule['tax_percentage'] / 100)
+                tax_amount = round(amount * (tax_rule['tax_percentage'] / 100), 2)
     
-    total = amount + tax_amount
+    total = round(amount + tax_amount, 2)
     
     charge = FolioCharge(
         tenant_id=current_user.tenant_id,
