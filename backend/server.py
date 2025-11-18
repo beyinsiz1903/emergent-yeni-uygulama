@@ -787,6 +787,20 @@ class RateOverrideLog(BaseModel):
     terminal: Optional[str] = None
     timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
+# Room Move History Model
+class RoomMoveHistory(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    tenant_id: str
+    booking_id: str
+    old_room: str  # Room number
+    new_room: str  # Room number
+    old_check_in: str
+    new_check_in: str
+    reason: str
+    moved_by: str  # User name
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
 # Channel Manager Models
 class ChannelConnection(BaseModel):
     model_config = ConfigDict(extra="ignore")
