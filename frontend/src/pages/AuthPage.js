@@ -30,10 +30,15 @@ const AuthPage = ({ onLogin }) => {
     e.preventDefault();
     setLoading(true);
     try {
+      console.log('🔐 Attempting login with:', hotelLoginData);
+      console.log('📡 Axios baseURL:', axios.defaults.baseURL);
       const response = await axios.post('/auth/login', hotelLoginData);
+      console.log('✅ Login successful:', response.data);
       toast.success('Login successful!');
       onLogin(response.data.access_token, response.data.user, response.data.tenant);
     } catch (error) {
+      console.error('❌ Login error:', error);
+      console.error('Error response:', error.response);
       toast.error(error.response?.data?.detail || 'Login failed');
     } finally {
       setLoading(false);
