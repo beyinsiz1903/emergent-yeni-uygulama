@@ -6735,7 +6735,17 @@ async def update_staff_task(
         {'id': task_id, 'tenant_id': current_user.tenant_id},
         {'$set': update_data}
     )
-    return {"message": "Task updated successfully"}
+    
+    # Return updated task
+    updated_task = await db.staff_tasks.find_one(
+        {'id': task_id, 'tenant_id': current_user.tenant_id},
+        {'_id': 0}
+    )
+    
+    if not updated_task:
+        raise HTTPException(status_code=404, detail="Task not found")
+    
+    return updated_task
 
 # ============= REVIEWS & FEEDBACK =============
 @api_router.get("/crm/reviews")
