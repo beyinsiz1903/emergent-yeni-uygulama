@@ -62,6 +62,11 @@ const ReservationCalendar = ({ user, tenant, onLogout }) => {
   });
   const [availableRooms, setAvailableRooms] = useState([]);
   
+  // Enterprise Mode states
+  const [rateLeakages, setRateLeakages] = useState([]);
+  const [availabilityHeatmap, setAvailabilityHeatmap] = useState([]);
+  const [showEnterprisePanel, setShowEnterprisePanel] = useState(false);
+  
   // New booking form
   const [newBooking, setNewBooking] = useState({
     guest_id: '',
