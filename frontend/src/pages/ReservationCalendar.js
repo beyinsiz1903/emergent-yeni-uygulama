@@ -131,10 +131,22 @@ const ReservationCalendar = ({ user, tenant, onLogout }) => {
     setShowNewBookingDialog(true);
   };
 
-  // Handle booking double-click - Show details
-  const handleBookingDoubleClick = (booking) => {
+  // Handle booking double-click - Show sidebar
+  const handleBookingDoubleClick = async (booking) => {
     setSelectedBooking(booking);
-    setShowDetailsDialog(true);
+    
+    // Load folio data
+    try {
+      const folioRes = await axios.get(`/folio/booking/${booking.id}`);
+      if (folioRes.data && folioRes.data.length > 0) {
+        setSelectedBookingFolio(folioRes.data[0]);
+      }
+    } catch (error) {
+      console.log('No folio found for this booking');
+      setSelectedBookingFolio(null);
+    }
+    
+    setShowSidebar(true);
   };
 
   // Handle new booking submit
