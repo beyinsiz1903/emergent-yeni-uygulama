@@ -792,6 +792,25 @@ const ReservationCalendar = ({ user, tenant, onLogout }) => {
                 </div>
               </div>
 
+              {/* Room Blocks */}
+              <div>
+                <div className="text-xs font-semibold text-gray-700 mb-2">Room Blocks:</div>
+                <div className="flex items-center space-x-4 text-sm">
+                  <div className="flex items-center space-x-2">
+                    <div className="w-4 h-4 bg-red-600 rounded opacity-60" style={{ backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 2px, rgba(255,255,255,.3) 2px, rgba(255,255,255,.3) 4px)' }}></div>
+                    <span>Out of Order</span>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <div className="w-4 h-4 bg-orange-500 rounded opacity-60" style={{ backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 2px, rgba(255,255,255,.3) 2px, rgba(255,255,255,.3) 4px)' }}></div>
+                    <span>Out of Service</span>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <div className="w-4 h-4 bg-yellow-600 rounded opacity-60" style={{ backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 2px, rgba(255,255,255,.3) 2px, rgba(255,255,255,.3) 4px)' }}></div>
+                    <span>Maintenance</span>
+                  </div>
+                </div>
+              </div>
+
               {/* Quick Tips */}
               <div className="flex items-center justify-between pt-2 border-t">
                 <div className="flex items-center space-x-4 text-xs text-gray-600">
