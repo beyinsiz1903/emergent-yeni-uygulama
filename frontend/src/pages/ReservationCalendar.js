@@ -1055,7 +1055,8 @@ const ReservationCalendar = ({ user, tenant, onLogout }) => {
                   >
                     <div>{formatDateWithDay(date)}</div>
                   </div>
-                )}))}
+                  );
+                })}
               </div>
 
               {/* Room Rows */}
