@@ -813,7 +813,7 @@ const PMSModule = ({ user, tenant, onLogout }) => {
           if (v === 'housekeeping') loadHousekeepingData();
           if (v === 'reports') loadReports();
         }}>
-          <TabsList className="grid w-full grid-cols-7">
+          <TabsList className="grid w-full grid-cols-8">
             <TabsTrigger value="frontdesk" data-testid="tab-frontdesk">
               <UserCheck className="w-4 h-4 mr-2" />
               {t('pms.frontDesk')}
