@@ -1398,7 +1398,7 @@ async def generate_folio_number(tenant_id: str) -> str:
     return f"F-{year}-{count:05d}"
 
 async def calculate_folio_balance(folio_id: str, tenant_id: str) -> float:
-    """Calculate folio balance (charges - payments)"""
+    """Calculate folio balance (charges - payments) with proper 2-decimal rounding"""
     charges = await db.folio_charges.find({
         'folio_id': folio_id,
         'tenant_id': tenant_id,
@@ -1414,7 +1414,9 @@ async def calculate_folio_balance(folio_id: str, tenant_id: str) -> float:
     total_charges = sum(c['total'] for c in charges)
     total_payments = sum(p['amount'] for p in payments)
     
-    return total_charges - total_payments
+    balance = total_charges - total_payments
+    # Round to 2 decimal places for currency precision
+    return round(balance, 2)
 
 @api_router.post("/folio/create", response_model=Folio)
 async def create_folio(folio_data: FolioCreate, current_user: User = Depends(get_current_user)):
