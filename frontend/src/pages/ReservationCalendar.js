@@ -1135,6 +1135,13 @@ const ReservationCalendar = ({ user, tenant, onLogout }) => {
                                 {/* Left border - segment indicator */}
                                 <div className="absolute left-0 top-0 bottom-0 w-1 bg-white opacity-30"></div>
                                 
+                                {/* Rate Leakage Warning - Enterprise Mode */}
+                                {hasRateLeakage(booking.id) && (
+                                  <div className="absolute top-0 left-0 bg-red-600 text-white text-[8px] px-1 py-0.5 rounded-br font-bold" title={`Rate Leakage: -$${hasRateLeakage(booking.id).difference_per_night}/night`}>
+                                    💸 LEAK
+                                  </div>
+                                )}
+                                
                                 {/* Conflict indicator */}
                                 {hasConflict(room.id, date) && (
                                   <div className="absolute top-0 right-0 bg-red-600 text-white text-[8px] px-1 py-0.5 rounded-bl font-bold animate-pulse">
