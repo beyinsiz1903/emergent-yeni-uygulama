@@ -430,7 +430,7 @@ const GMDashboard = ({ user, tenant, onLogout }) => {
                   <TrendingUp className="w-4 h-4 mr-2" />
                   RMS Suggestions
                 </Button>
-                <Button variant="outline" onClick={() => navigate('/reports')}>
+                <Button variant="outline" onClick={() => navigate('/pms#reports')}>
                   <BarChart3 className="w-4 h-4 mr-2" />
                   Reports
                 </Button>
