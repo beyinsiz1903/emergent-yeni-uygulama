@@ -46,6 +46,16 @@ const PMSModule = ({ user, tenant, onLogout }) => {
   const [selectedFolio, setSelectedFolio] = useState(null);
   const [folioCharges, setFolioCharges] = useState([]);
   const [folioPayments, setFolioPayments] = useState([]);
+  const [roomBlocks, setRoomBlocks] = useState([]);
+  const [selectedRoom, setSelectedRoom] = useState(null);
+  const [newRoomBlock, setNewRoomBlock] = useState({
+    type: 'out_of_order',
+    reason: '',
+    details: '',
+    start_date: '',
+    end_date: '',
+    allow_sell: false
+  });
   const [reports, setReports] = useState({
     occupancy: null,
     revenue: null,
