@@ -744,6 +744,54 @@ const PMSModule = ({ user, tenant, onLogout }) => {
     }
   };
 
+  // Phase H - Load Guest 360° Profile
+  const loadGuest360 = async (guestId) => {
+    setLoadingGuest360(true);
+    try {
+      const response = await axios.get(`/crm/guest/${guestId}`);
+      setGuest360Data(response.data);
+      setOpenDialog('guest360');
+    } catch (error) {
+      toast.error('Failed to load guest profile');
+    } finally {
+      setLoadingGuest360(false);
+    }
+  };
+
+  const addGuestTag = async () => {
+    if (!guestTag || !selectedGuest360) return;
+    try {
+      await axios.post(`/crm/guest/add-tag?guest_id=${selectedGuest360}&tag=${guestTag}`);
+      toast.success('Tag added');
+      setGuestTag('');
+      loadGuest360(selectedGuest360);
+    } catch (error) {
+      toast.error('Failed to add tag');
+    }
+  };
+
+  const addGuestNote = async () => {
+    if (!guestNote || !selectedGuest360) return;
+    try {
+      await axios.post(`/crm/guest/note?guest_id=${selectedGuest360}&note=${guestNote}`);
+      toast.success('Note added');
+      setGuestNote('');
+      loadGuest360(selectedGuest360);
+    } catch (error) {
+      toast.error('Failed to add note');
+    }
+  };
+
+  const generateUpsellOffers = async (bookingId) => {
+    try {
+      const response = await axios.post(`/ai/upsell/generate?booking_id=${bookingId}`);
+      toast.success(`Generated ${response.data.total_offers} upsell offers`);
+      setUpsellOffers(response.data.offers);
+    } catch (error) {
+      toast.error('Failed to generate upsell offers');
+    }
+  };
+
   if (loading) {
     return (
       <Layout user={user} tenant={tenant} onLogout={onLogout} currentModule="pms">
