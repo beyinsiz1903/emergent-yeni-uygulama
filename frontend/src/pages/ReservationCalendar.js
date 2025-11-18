@@ -849,6 +849,8 @@ const ReservationCalendar = ({ user, tenant, onLogout }) => {
                       {dateRange.map((date, idx) => {
                         const booking = getBookingForRoomOnDate(room.id, date);
                         const isStart = booking && isBookingStart(booking, date);
+                        const roomBlock = getRoomBlockForDate(room.id, date);
+                        const isBlockStart = roomBlock && isBlockStart(roomBlock, date);
                         const isDragOver = dragOverCell?.roomId === room.id && 
                                           new Date(dragOverCell.date).toDateString() === date.toDateString();
 
@@ -857,15 +859,39 @@ const ReservationCalendar = ({ user, tenant, onLogout }) => {
                             key={idx}
                             className={`w-24 flex-shrink-0 border-r relative cursor-pointer hover:bg-gray-100 transition-colors ${
                               isToday(date) ? 'bg-blue-50' : ''
-                            } ${isDragOver ? 'bg-green-100 border-2 border-green-500' : ''}`}
+                            } ${isDragOver ? 'bg-green-100 border-2 border-green-500' : ''}
+                            ${roomBlock ? 'bg-gray-200 bg-opacity-50' : ''}`}
                             style={{ height: '80px' }}
-                            onClick={() => !booking && handleCellClick(room.id, date)}
+                            onClick={() => !booking && !roomBlock && handleCellClick(room.id, date)}
                             onDragOver={(e) => handleDragOver(e, room.id, date)}
                             onDragLeave={handleDragLeave}
                             onDrop={(e) => handleDrop(e, room.id, date)}
+                            title={roomBlock ? `${roomBlock.type.toUpperCase()}: ${roomBlock.reason}` : ''}
                           >
+                            {/* Room Block Indicator */}
+                            {isBlockStart && roomBlock && (
+                              <div 
+                                className={`absolute top-0 left-0 h-full opacity-60 border-2 ${
+                                  roomBlock.type === 'out_of_order' ? 'bg-red-600 border-red-700' :
+                                  roomBlock.type === 'out_of_service' ? 'bg-orange-500 border-orange-600' :
+                                  'bg-yellow-600 border-yellow-700'
+                                }`}
+                                style={{
+                                  width: `${calculateBlockSpan(roomBlock, currentDate) * 96 - 4}px`,
+                                  backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(255,255,255,.1) 10px, rgba(255,255,255,.1) 20px)',
+                                  zIndex: 5
+                                }}
+                                title={`${roomBlock.type.replace('_', ' ').toUpperCase()}: ${roomBlock.reason}\n${roomBlock.start_date} - ${roomBlock.end_date || 'Open-ended'}`}
+                              >
+                                <div className="p-1 text-white text-[10px] font-bold">
+                                  {roomBlock.type === 'out_of_order' ? 'OOO' :
+                                   roomBlock.type === 'out_of_service' ? 'OOS' : 'MNT'}
+                                </div>
+                              </div>
+                            )}
+
                             {/* Empty cell indicator */}
-                            {!booking && (
+                            {!booking && !roomBlock && (
                               <div className="absolute inset-0 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
                                 <Plus className="w-6 h-6 text-gray-400" />
                               </div>
