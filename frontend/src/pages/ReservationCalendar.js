@@ -74,6 +74,14 @@ const ReservationCalendar = ({ user, tenant, onLogout }) => {
   const [aiRateRecommendations, setAiRateRecommendations] = useState([]);
   const [aiNoShowPredictions, setAiNoShowPredictions] = useState([]);
   
+  // Deluxe+ states
+  const [showDeluxePanel, setShowDeluxePanel] = useState(false);
+  const [groupBookings, setGroupBookings] = useState([]);
+  const [pickupPaceData, setPickupPaceData] = useState(null);
+  const [leadTimeData, setLeadTimeData] = useState(null);
+  const [oversellProtection, setOversellProtection] = useState([]);
+  const [channelMixData, setChannelMixData] = useState(null);
+  
   // New booking form
   const [newBooking, setNewBooking] = useState({
     guest_id: '',
