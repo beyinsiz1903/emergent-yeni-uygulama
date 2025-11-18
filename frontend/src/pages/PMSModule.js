@@ -1451,6 +1451,158 @@ const PMSModule = ({ user, tenant, onLogout }) => {
             </div>
           </TabsContent>
 
+          {/* UPSELL CENTER TAB */}
+          <TabsContent value="upsell" className="space-y-6">
+            <div className="flex justify-between items-center">
+              <h2 className="text-2xl font-bold">🤖 AI Upsell Center</h2>
+              <Button onClick={() => {
+                const activeBooking = bookings.find(b => b.status === 'confirmed');
+                if (activeBooking) {
+                  generateUpsellOffers(activeBooking.id);
+                } else {
+                  toast.error('No active bookings to generate offers');
+                }
+              }}>
+                Generate AI Offers
+              </Button>
+            </div>
+
+            {/* Performance Dashboard */}
+            <div className="grid grid-cols-4 gap-4">
+              <Card>
+                <CardContent className="pt-4 text-center">
+                  <div className="text-3xl font-bold text-purple-600">{upsellOffers.length}</div>
+                  <div className="text-sm text-gray-600">Active Offers</div>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="pt-4 text-center">
+                  <div className="text-3xl font-bold text-green-600">
+                    ${Math.round(upsellOffers.reduce((sum, o) => sum + o.price, 0))}
+                  </div>
+                  <div className="text-sm text-gray-600">Potential Revenue</div>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="pt-4 text-center">
+                  <div className="text-3xl font-bold text-blue-600">
+                    {upsellOffers.length > 0 ? Math.round((upsellOffers.reduce((sum, o) => sum + o.confidence, 0) / upsellOffers.length) * 100) : 0}%
+                  </div>
+                  <div className="text-sm text-gray-600">Avg Confidence</div>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="pt-4 text-center">
+                  <div className="text-3xl font-bold text-orange-600">
+                    ${Math.round(upsellOffers.reduce((sum, o) => sum + (o.price * o.confidence), 0))}
+                  </div>
+                  <div className="text-sm text-gray-600">Expected Revenue</div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* AI Offers */}
+            <div className="space-y-4">
+              {upsellOffers.length === 0 ? (
+                <Card>
+                  <CardContent className="text-center py-12">
+                    <div className="text-6xl mb-4">🤖</div>
+                    <h3 className="text-xl font-semibold mb-2">No Active Upsell Offers</h3>
+                    <p className="text-gray-600 mb-4">Generate AI-powered upsell recommendations for your guests</p>
+                    <Button onClick={() => {
+                      const activeBooking = bookings.find(b => b.status === 'confirmed');
+                      if (activeBooking) {
+                        generateUpsellOffers(activeBooking.id);
+                      } else {
+                        toast.error('No active bookings');
+                      }
+                    }}>
+                      Generate Offers
+                    </Button>
+                  </CardContent>
+                </Card>
+              ) : (
+                upsellOffers.map((offer) => (
+                  <Card key={offer.id} className="border-2 border-purple-200">
+                    <CardHeader>
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <CardTitle className="flex items-center gap-2">
+                            {offer.type === 'room_upgrade' && '⬆️'}
+                            {offer.type === 'early_checkin' && '⏰'}
+                            {offer.type === 'late_checkout' && '🌅'}
+                            {offer.type === 'airport_transfer' && '✈️'}
+                            {offer.type.replace('_', ' ').split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}
+                          </CardTitle>
+                          <CardDescription className="mt-1">
+                            {offer.current_item && (
+                              <span>From: <span className="font-semibold">{offer.current_item}</span> → </span>
+                            )}
+                            <span className="font-semibold text-green-600">{offer.target_item}</span>
+                          </CardDescription>
+                        </div>
+                        <div className="text-right">
+                          <div className="text-2xl font-bold text-purple-600">${offer.price}</div>
+                          <div className="text-xs text-gray-500">per booking</div>
+                        </div>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                      {/* Confidence Bar */}
+                      <div>
+                        <div className="flex justify-between text-sm mb-1">
+                          <span className="text-gray-600">AI Confidence</span>
+                          <span className={`font-bold ${
+                            offer.confidence >= 0.8 ? 'text-green-600' :
+                            offer.confidence >= 0.6 ? 'text-yellow-600' :
+                            'text-orange-600'
+                          }`}>
+                            {Math.round(offer.confidence * 100)}%
+                          </span>
+                        </div>
+                        <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
+                          <div 
+                            className={`h-full ${
+                              offer.confidence >= 0.8 ? 'bg-green-500' :
+                              offer.confidence >= 0.6 ? 'bg-yellow-500' :
+                              'bg-orange-500'
+                            }`}
+                            style={{ width: `${offer.confidence * 100}%` }}
+                          ></div>
+                        </div>
+                      </div>
+
+                      {/* Reason */}
+                      <div className="bg-blue-50 p-3 rounded text-sm">
+                        <span className="font-semibold text-blue-700">💡 AI Insight:</span> {offer.reason}
+                      </div>
+
+                      {/* Actions */}
+                      <div className="flex gap-2">
+                        <Button className="flex-1 bg-green-600 hover:bg-green-700" onClick={() => {
+                          toast.success('Upsell offer accepted! Sending to guest...');
+                        }}>
+                          ✅ Accept & Send
+                        </Button>
+                        <Button variant="outline" className="flex-1" onClick={() => {
+                          setUpsellOffers(upsellOffers.filter(o => o.id !== offer.id));
+                          toast.info('Offer declined');
+                        }}>
+                          ❌ Decline
+                        </Button>
+                      </div>
+
+                      {/* Valid Until */}
+                      <div className="text-xs text-gray-500 text-center">
+                        Valid until: {new Date(offer.valid_until).toLocaleString()}
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))
+              )}
+            </div>
+          </TabsContent>
+
           {/* REPORTS TAB */}
           <TabsContent value="reports" className="space-y-6">
             <h2 className="text-2xl font-bold">Hotel Analytics & Reports</h2>
