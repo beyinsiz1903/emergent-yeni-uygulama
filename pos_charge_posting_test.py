@@ -97,8 +97,9 @@ class POSChargeTester:
             self.test_data['guest_id'] = guest_response.json()['id']
             
             # Create a new room for testing
+            room_number = f"POS{int(time.time()) % 10000}"
             room_response = self.session.post(f"{BASE_URL}/pms/rooms", json={
-                "room_number": f"POS{int(time.time()) % 10000}",  # Unique room number
+                "room_number": room_number,
                 "room_type": "Standard",
                 "floor": 1,
                 "capacity": 2,
@@ -109,8 +110,14 @@ class POSChargeTester:
                 self.log_test("Setup - Create Room", "FAIL", f"Failed to create room: {room_response.text}")
                 return False
             
-            self.test_data['room_id'] = room_response.json()['id']
-            room_number = room_response.json()['room_number']
+            room_data = room_response.json()
+            self.test_data['room_id'] = room_data['id']
+            self.test_data['room_number'] = room_data['room_number']
+            
+            # Verify room is available
+            if room_data['status'] != 'available':
+                self.log_test("Setup - Room Status", "FAIL", f"Room not available: {room_data['status']}")
+                return False
             
             # Create a company for split billing test
             company_response = self.session.post(f"{BASE_URL}/companies", json={
