@@ -6721,8 +6721,24 @@ async def create_staff_task(
         if room:
             task['room_number'] = room['room_number']
     
-    await db.staff_tasks.insert_one(task)
-    return task
+    result = await db.staff_tasks.insert_one(task)
+    
+    # Return the task without MongoDB ObjectId
+    return {
+        'id': task['id'],
+        'tenant_id': task['tenant_id'],
+        'task_type': task['task_type'],
+        'department': task['department'],
+        'title': task['title'],
+        'room_id': task['room_id'],
+        'room_number': task.get('room_number'),
+        'priority': task['priority'],
+        'description': task['description'],
+        'assigned_to': task['assigned_to'],
+        'status': task['status'],
+        'created_by': task['created_by'],
+        'created_at': task['created_at']
+    }
 
 @api_router.put("/pms/staff-tasks/{task_id}")
 async def update_staff_task(
