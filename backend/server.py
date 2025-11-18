@@ -4410,6 +4410,386 @@ async def predict_no_shows(
         }
     }
 
+# ============= DELUXE+ ENTERPRISE FEATURES =============
+
+@api_router.get("/deluxe/group-bookings")
+async def get_group_bookings(
+    start_date: str,
+    end_date: str,
+    min_rooms: int = 5,
+    current_user: User = Depends(get_current_user)
+):
+    """Detect and analyze group bookings (5+ rooms)"""
+    start = datetime.fromisoformat(start_date).date()
+    end = datetime.fromisoformat(end_date).date()
+    
+    # Get all bookings in range
+    bookings = await db.bookings.find({
+        'tenant_id': current_user.tenant_id,
+        'check_in': {'$gte': start.isoformat(), '$lte': end.isoformat()},
+        'status': {'$in': ['confirmed', 'guaranteed', 'checked_in']}
+    }, {'_id': 0}).to_list(10000)
+    
+    # Group by company_id and check_in date
+    groups = {}
+    for booking in bookings:
+        company_id = booking.get('company_id')
+        if not company_id:
+            continue
+        
+        check_in = booking['check_in']
+        key = f"{company_id}_{check_in}"
+        
+        if key not in groups:
+            groups[key] = {
+                'company_id': company_id,
+                'check_in': check_in,
+                'check_out': booking['check_out'],
+                'bookings': [],
+                'room_count': 0,
+                'total_revenue': 0
+            }
+        
+        groups[key]['bookings'].append(booking)
+        groups[key]['room_count'] += 1
+        groups[key]['total_revenue'] += booking.get('total_amount', 0)
+    
+    # Filter groups with min_rooms or more
+    group_bookings = []
+    for key, group in groups.items():
+        if group['room_count'] >= min_rooms:
+            # Get company info
+            company = await db.companies.find_one({
+                'id': group['company_id'],
+                'tenant_id': current_user.tenant_id
+            }, {'_id': 0})
+            
+            group_bookings.append({
+                'group_id': key,
+                'company_id': group['company_id'],
+                'company_name': company.get('name', 'Unknown') if company else 'Unknown',
+                'check_in': group['check_in'],
+                'check_out': group['check_out'],
+                'room_count': group['room_count'],
+                'total_revenue': round(group['total_revenue'], 2),
+                'avg_rate': round(group['total_revenue'] / group['room_count'], 2),
+                'room_numbers': [b.get('room_number', 'TBD') for b in group['bookings']],
+                'booking_ids': [b['id'] for b in group['bookings']],
+                'is_large_group': group['room_count'] >= 10
+            })
+    
+    # Sort by room count descending
+    group_bookings.sort(key=lambda x: x['room_count'], reverse=True)
+    
+    return {
+        'period': {'start_date': start.isoformat(), 'end_date': end.isoformat()},
+        'groups': group_bookings,
+        'total_groups': len(group_bookings),
+        'total_rooms': sum(g['room_count'] for g in group_bookings),
+        'total_revenue': round(sum(g['total_revenue'] for g in group_bookings), 2)
+    }
+
+@api_router.get("/deluxe/pickup-pace-analytics")
+async def get_pickup_pace_analytics(
+    target_date: str,
+    lookback_days: int = 90,
+    current_user: User = Depends(get_current_user)
+):
+    """Advanced pickup pace analytics with trend analysis"""
+    target = datetime.fromisoformat(target_date).date()
+    today = datetime.now(timezone.utc).date()
+    
+    # Get bookings created in lookback period for target date
+    bookings = await db.bookings.find({
+        'tenant_id': current_user.tenant_id,
+        'check_in': target.isoformat(),
+        'status': {'$in': ['confirmed', 'guaranteed', 'checked_in']}
+    }, {'_id': 0}).to_list(10000)
+    
+    # Build daily pickup timeline
+    daily_pickup = {}
+    for booking in bookings:
+        created_date = datetime.fromisoformat(booking['created_at']).date()
+        days_before = (target - created_date).days
+        
+        if days_before >= 0 and days_before <= lookback_days:
+            if days_before not in daily_pickup:
+                daily_pickup[days_before] = {'count': 0, 'revenue': 0, 'channels': {}}
+            
+            daily_pickup[days_before]['count'] += 1
+            daily_pickup[days_before]['revenue'] += booking.get('total_amount', 0)
+            
+            channel = booking.get('ota_channel') or 'direct'
+            daily_pickup[days_before]['channels'][channel] = \
+                daily_pickup[days_before]['channels'].get(channel, 0) + 1
+    
+    # Create chart data
+    chart_data = []
+    cumulative_bookings = 0
+    cumulative_revenue = 0
+    
+    for days_before in range(lookback_days, -1, -1):
+        data = daily_pickup.get(days_before, {'count': 0, 'revenue': 0})
+        cumulative_bookings += data['count']
+        cumulative_revenue += data['revenue']
+        
+        chart_data.append({
+            'days_before': days_before,
+            'date': (target - timedelta(days=days_before)).isoformat(),
+            'daily_pickup': data['count'],
+            'daily_revenue': round(data['revenue'], 2),
+            'cumulative_bookings': cumulative_bookings,
+            'cumulative_revenue': round(cumulative_revenue, 2)
+        })
+    
+    # Calculate velocities
+    velocity_7 = sum(daily_pickup.get(i, {}).get('count', 0) for i in range(7)) / 7
+    velocity_14 = sum(daily_pickup.get(i, {}).get('count', 0) for i in range(14)) / 14
+    velocity_30 = sum(daily_pickup.get(i, {}).get('count', 0) for i in range(30)) / 30
+    
+    return {
+        'target_date': target.isoformat(),
+        'days_until_arrival': (target - today).days,
+        'chart_data': chart_data,
+        'summary': {
+            'total_bookings': cumulative_bookings,
+            'total_revenue': round(cumulative_revenue, 2),
+            'velocity_7day': round(velocity_7, 2),
+            'velocity_14day': round(velocity_14, 2),
+            'velocity_30day': round(velocity_30, 2)
+        }
+    }
+
+@api_router.get("/deluxe/lead-time-analysis")
+async def get_lead_time_analysis(
+    start_date: str,
+    end_date: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Analyze booking lead time patterns"""
+    start = datetime.fromisoformat(start_date).date()
+    end = datetime.fromisoformat(end_date).date()
+    
+    bookings = await db.bookings.find({
+        'tenant_id': current_user.tenant_id,
+        'check_in': {'$gte': start.isoformat(), '$lte': end.isoformat()},
+        'status': {'$in': ['confirmed', 'guaranteed', 'checked_in']}
+    }, {'_id': 0}).to_list(10000)
+    
+    lead_times = []
+    channel_lead_times = {}
+    
+    for booking in bookings:
+        created = datetime.fromisoformat(booking['created_at']).date()
+        check_in = datetime.fromisoformat(booking['check_in']).date()
+        lead_time = (check_in - created).days
+        
+        if lead_time >= 0:
+            lead_times.append(lead_time)
+            
+            channel = booking.get('ota_channel') or 'direct'
+            if channel not in channel_lead_times:
+                channel_lead_times[channel] = []
+            channel_lead_times[channel].append(lead_time)
+    
+    # Calculate statistics
+    if lead_times:
+        avg_lead_time = sum(lead_times) / len(lead_times)
+        median_lead_time = sorted(lead_times)[len(lead_times) // 2]
+    else:
+        avg_lead_time = 0
+        median_lead_time = 0
+    
+    # Lead time distribution
+    distribution = {
+        'same_day': sum(1 for lt in lead_times if lt == 0),
+        'next_day': sum(1 for lt in lead_times if lt == 1),
+        '2_7_days': sum(1 for lt in lead_times if 2 <= lt <= 7),
+        '8_14_days': sum(1 for lt in lead_times if 8 <= lt <= 14),
+        '15_30_days': sum(1 for lt in lead_times if 15 <= lt <= 30),
+        '31_60_days': sum(1 for lt in lead_times if 31 <= lt <= 60),
+        '61_90_days': sum(1 for lt in lead_times if 61 <= lt <= 90),
+        'over_90_days': sum(1 for lt in lead_times if lt > 90)
+    }
+    
+    # Channel breakdown
+    channel_stats = {}
+    for channel, times in channel_lead_times.items():
+        channel_stats[channel] = {
+            'avg_lead_time': round(sum(times) / len(times), 1) if times else 0,
+            'median_lead_time': sorted(times)[len(times) // 2] if times else 0,
+            'booking_count': len(times)
+        }
+    
+    return {
+        'period': {'start_date': start.isoformat(), 'end_date': end.isoformat()},
+        'overall': {
+            'avg_lead_time': round(avg_lead_time, 1),
+            'median_lead_time': median_lead_time,
+            'total_bookings': len(bookings)
+        },
+        'distribution': distribution,
+        'by_channel': channel_stats,
+        'optimal_booking_window': f"{int(median_lead_time)} days" if median_lead_time > 0 else "Same day"
+    }
+
+@api_router.get("/deluxe/oversell-protection")
+async def get_oversell_protection_map(
+    start_date: str,
+    end_date: str,
+    current_user: User = Depends(get_current_user)
+):
+    """AI oversell protection heatmap"""
+    start = datetime.fromisoformat(start_date).date()
+    end = datetime.fromisoformat(end_date).date()
+    
+    rooms = await db.rooms.find({'tenant_id': current_user.tenant_id}, {'_id': 0}).to_list(1000)
+    total_rooms = len(rooms)
+    
+    protection_map = []
+    current_date = start
+    
+    while current_date <= end:
+        start_of_day = datetime.combine(current_date, datetime.min.time())
+        end_of_day = datetime.combine(current_date, datetime.max.time())
+        
+        # Count bookings
+        bookings_count = await db.bookings.count_documents({
+            'tenant_id': current_user.tenant_id,
+            'status': {'$in': ['confirmed', 'guaranteed', 'checked_in']},
+            'check_in': {'$lte': end_of_day.isoformat()},
+            'check_out': {'$gte': start_of_day.isoformat()}
+        })
+        
+        occupancy_pct = (bookings_count / total_rooms * 100) if total_rooms > 0 else 0
+        
+        # Calculate oversell risk and protection
+        if occupancy_pct >= 95:
+            risk_level = 'danger'
+            max_oversell = 0
+            recommendation = "STOP SELLING - At capacity"
+        elif occupancy_pct >= 85:
+            risk_level = 'caution'
+            max_oversell = 1
+            recommendation = "Careful - Allow 1 oversell max"
+        elif occupancy_pct >= 70:
+            risk_level = 'moderate'
+            max_oversell = 2
+            recommendation = "Safe - Allow 2 oversells"
+        else:
+            risk_level = 'safe'
+            max_oversell = 3
+            recommendation = "Safe - Normal operations"
+        
+        # Calculate walk probability
+        walk_probability = max(0, min(100, (occupancy_pct - 90) * 10))
+        
+        protection_map.append({
+            'date': current_date.isoformat(),
+            'occupancy_pct': round(occupancy_pct, 1),
+            'bookings': bookings_count,
+            'available': total_rooms - bookings_count,
+            'risk_level': risk_level,
+            'max_oversell': max_oversell,
+            'walk_probability': round(walk_probability, 1),
+            'recommendation': recommendation
+        })
+        
+        current_date += timedelta(days=1)
+    
+    return {
+        'period': {'start_date': start.isoformat(), 'end_date': end.isoformat()},
+        'protection_map': protection_map,
+        'summary': {
+            'danger_days': sum(1 for d in protection_map if d['risk_level'] == 'danger'),
+            'caution_days': sum(1 for d in protection_map if d['risk_level'] == 'caution'),
+            'safe_days': sum(1 for d in protection_map if d['risk_level'] == 'safe')
+        }
+    }
+
+@api_router.post("/deluxe/optimize-channel-mix")
+async def optimize_channel_mix(
+    start_date: str,
+    end_date: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Simulate optimal OTA vs Direct channel mix"""
+    start = datetime.fromisoformat(start_date).date()
+    end = datetime.fromisoformat(end_date).date()
+    
+    # Get historical bookings
+    bookings = await db.bookings.find({
+        'tenant_id': current_user.tenant_id,
+        'check_in': {'$gte': start.isoformat(), '$lte': end.isoformat()}
+    }, {'_id': 0}).to_list(10000)
+    
+    # Calculate current mix
+    current_mix = {}
+    total_revenue = 0
+    total_commission = 0
+    
+    for booking in bookings:
+        channel = booking.get('ota_channel') or 'direct'
+        amount = booking.get('total_amount', 0)
+        commission_pct = booking.get('commission_pct', 0)
+        
+        if channel not in current_mix:
+            current_mix[channel] = {
+                'bookings': 0,
+                'revenue': 0,
+                'commission_cost': 0
+            }
+        
+        current_mix[channel]['bookings'] += 1
+        current_mix[channel]['revenue'] += amount
+        
+        if commission_pct > 0:
+            commission = amount * (commission_pct / 100)
+            current_mix[channel]['commission_cost'] += commission
+            total_commission += commission
+        
+        total_revenue += amount
+    
+    # Calculate percentages
+    for channel, data in current_mix.items():
+        data['revenue_pct'] = round((data['revenue'] / total_revenue * 100) if total_revenue > 0 else 0, 1)
+        data['booking_pct'] = round((data['bookings'] / len(bookings) * 100) if bookings else 0, 1)
+    
+    # AI Optimal Mix Recommendation
+    optimal_mix = {
+        'direct': {'target_pct': 40, 'reason': 'Zero commission, highest margin'},
+        'booking_com': {'target_pct': 25, 'reason': 'High volume, acceptable commission'},
+        'expedia': {'target_pct': 20, 'reason': 'Good conversion, premium segment'},
+        'airbnb': {'target_pct': 10, 'reason': 'Alternative segment, unique guests'},
+        'other': {'target_pct': 5, 'reason': 'Diversification'}
+    }
+    
+    # Calculate potential savings with optimal mix
+    current_commission_rate = (total_commission / total_revenue * 100) if total_revenue > 0 else 0
+    optimal_commission_rate = 12  # Industry benchmark
+    potential_savings = (current_commission_rate - optimal_commission_rate) * total_revenue / 100
+    
+    return {
+        'period': {'start_date': start.isoformat(), 'end_date': end.isoformat()},
+        'current_mix': current_mix,
+        'optimal_mix': optimal_mix,
+        'analysis': {
+            'total_bookings': len(bookings),
+            'total_revenue': round(total_revenue, 2),
+            'current_commission_cost': round(total_commission, 2),
+            'current_commission_rate': round(current_commission_rate, 1),
+            'optimal_commission_rate': optimal_commission_rate,
+            'potential_annual_savings': round(potential_savings * 12, 2),
+            'direct_booking_gap': round(40 - current_mix.get('direct', {}).get('revenue_pct', 0), 1)
+        },
+        'recommendations': [
+            "Increase direct bookings through better website conversion",
+            "Offer rate parity + perks for direct (free wifi, late checkout)",
+            "Reduce dependency on high-commission OTAs",
+            "Implement direct booking loyalty rewards program"
+        ]
+    }
+
 @api_router.post("/rms/generate-suggestions")
 async def generate_rms_suggestions(
     start_date: str,
