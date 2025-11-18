@@ -67,6 +67,13 @@ const ReservationCalendar = ({ user, tenant, onLogout }) => {
   const [availabilityHeatmap, setAvailabilityHeatmap] = useState([]);
   const [showEnterprisePanel, setShowEnterprisePanel] = useState(false);
   
+  // AI Mode states
+  const [showAIPanel, setShowAIPanel] = useState(false);
+  const [aiOverbookingSolutions, setAiOverbookingSolutions] = useState([]);
+  const [aiRoomMoves, setAiRoomMoves] = useState([]);
+  const [aiRateRecommendations, setAiRateRecommendations] = useState([]);
+  const [aiNoShowPredictions, setAiNoShowPredictions] = useState([]);
+  
   // New booking form
   const [newBooking, setNewBooking] = useState({
     guest_id: '',
