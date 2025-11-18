@@ -498,7 +498,6 @@ def main():
 
 if __name__ == "__main__":
     main()
-        url = f"{self.api_url}/{endpoint}"
         test_headers = {'Content-Type': 'application/json'}
         if self.token:
             test_headers['Authorization'] = f'Bearer {self.token}'
