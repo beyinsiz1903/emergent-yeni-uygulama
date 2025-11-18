@@ -464,7 +464,7 @@ class POSChargeTester:
             categories_to_test = [
                 ("food", "Gourmet Meal", 42.00),
                 ("beverage", "Premium Wine", 65.00),
-                ("room_service", "Late Night Snack", 18.50),
+                ("other", "Late Night Snack (Room Service)", 18.50),
                 ("minibar", "Minibar Consumption", 22.75)
             ]
             
