@@ -655,6 +655,85 @@ const GMDashboard = ({ user, tenant, onLogout }) => {
           </Card>
         </div>
 
+        {/* Top 10 Corporate Accounts */}
+        <Card className="border-2 border-indigo-200">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="text-lg flex items-center space-x-2">
+                  <Building2 className="w-5 h-5 text-indigo-600" />
+                  <span>Top 10 Corporate Accounts</span>
+                </CardTitle>
+                <CardDescription>MTD revenue by corporate client</CardDescription>
+              </div>
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => navigate('/sales?tab=contracts')}
+              >
+                View All
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              {[
+                { name: 'Global Enterprise Inc.', revenue: 18400, nights: 127, tier: 'platinum', trend: '+12%' },
+                { name: 'Tech Innovations Ltd.', revenue: 15200, nights: 98, tier: 'gold', trend: '+8%' },
+                { name: 'Consulting Partners', revenue: 12800, nights: 78, tier: 'silver', trend: '+15%' },
+                { name: 'Financial Services Co.', revenue: 9600, nights: 64, tier: 'silver', trend: '-3%' },
+                { name: 'Healthcare Solutions', revenue: 8200, nights: 52, tier: 'gold', trend: '+5%' },
+                { name: 'Manufacturing Inc.', revenue: 7100, nights: 43, tier: 'silver', trend: '+2%' },
+                { name: 'Retail Group', revenue: 6500, nights: 39, tier: 'bronze', trend: '+18%' },
+                { name: 'Legal Associates', revenue: 5900, nights: 35, tier: 'silver', trend: '+7%' },
+                { name: 'Marketing Agency', revenue: 4800, nights: 28, tier: 'bronze', trend: '-5%' },
+                { name: 'Software Corp', revenue: 4200, nights: 24, tier: 'bronze', trend: '+22%' }
+              ].map((account, idx) => (
+                <div 
+                  key={idx}
+                  className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer"
+                  onClick={() => navigate('/sales?company=' + account.name)}
+                >
+                  <div className="flex items-center space-x-3 flex-1">
+                    <div className="text-lg font-bold text-gray-400 w-6">{idx + 1}</div>
+                    <div className="flex-1">
+                      <div className="flex items-center space-x-2">
+                        <span className="font-semibold text-sm">{account.name}</span>
+                        <Badge className={`text-xs ${
+                          account.tier === 'platinum' ? 'bg-purple-600' :
+                          account.tier === 'gold' ? 'bg-yellow-600' :
+                          account.tier === 'silver' ? 'bg-gray-400' :
+                          'bg-orange-400'
+                        }`}>
+                          {account.tier}
+                        </Badge>
+                      </div>
+                      <div className="text-xs text-gray-600">{account.nights} nights</div>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="font-bold text-sm">${account.revenue.toLocaleString()}</div>
+                    <div className={`text-xs ${
+                      account.trend.startsWith('+') ? 'text-green-600' : 'text-red-600'
+                    }`}>
+                      {account.trend}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="mt-4 pt-4 border-t">
+              <div className="flex justify-between items-center">
+                <span className="text-sm font-semibold text-gray-700">Total Top 10:</span>
+                <div className="text-right">
+                  <div className="text-lg font-bold text-green-600">$92,700</div>
+                  <div className="text-xs text-gray-600">588 room nights</div>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Third Row - Housekeeping Status & OTA Mix */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Housekeeping Status */}
