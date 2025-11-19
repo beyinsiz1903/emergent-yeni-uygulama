@@ -1401,6 +1401,66 @@ agent_communication:
   
   - agent: "testing"
     message: |
+      🎯 RMS 90-DAY DEMAND FORECAST TIMEZONE FIX COMPLETED - CRITICAL ISSUE RESOLVED!
+      
+      ✅ ISSUE IDENTIFIED AND FIXED:
+      - Problem: TypeError: can't subtract offset-naive and offset-aware datetimes on line 8120 in generate_demand_forecast function
+      - Root Cause: date_obj was offset-naive while datetime.now(timezone.utc) was offset-aware
+      - Solution: Added .replace(tzinfo=timezone.utc) to make date_obj timezone-aware
+      - Fix Applied: Line 8115 changed from datetime.fromisoformat(current_date) to datetime.fromisoformat(current_date).replace(tzinfo=timezone.utc)
+      
+      ✅ COMPREHENSIVE TESTING RESULTS (100% Success Rate - 3/3 tests passed):
+      
+      📈 30-DAY DEMAND FORECAST:
+      - POST /api/rms/demand-forecast (Feb 1 - Mar 2): Status 200 ✓
+      - Returns 30 forecasts with proper structure ✓
+      - Model version: 2.0-advanced ✓
+      - Dynamic confidence scoring working ✓
+      - Summary breakdown: H:0, M:14, L:16 ✓
+      
+      📈 60-DAY DEMAND FORECAST:
+      - POST /api/rms/demand-forecast (Feb 1 - Apr 1): Status 200 ✓
+      - Returns 60 forecasts correctly ✓
+      - Day count validation passed ✓
+      - Model version: 2.0-advanced ✓
+      
+      📈 90-DAY DEMAND FORECAST (MAIN SUCCESS):
+      - POST /api/rms/demand-forecast (Feb 1 - Apr 30): Status 200 ✓
+      - Returns 89 forecasts (exact count for 89 days) ✓
+      - All required fields present: forecasted_occupancy, confidence, confidence_level, trend, model_version ✓
+      - Dynamic confidence scoring: 0.4 (not static 0.85) ✓
+      - Confidence level: Low (proper categorization) ✓
+      - Trend analysis: Moderate Demand ✓
+      - Model version: 2.0-advanced ✓
+      - Summary totals match forecast count (89 days) ✓
+      - Demand breakdown: H:0, M:73, L:16 (Total: 89) ✓
+      
+      🎯 SPECIFIC DATE RANGES VERIFIED:
+      - 89 days (Feb 1 - Apr 30): 89 forecasts generated ✓
+      - 30 days (Feb 1 - Mar 2): 30 forecasts generated ✓
+      - 60 days (Feb 1 - Apr 1): 60 forecasts generated ✓
+      
+      ✅ RESPONSE STRUCTURE VALIDATION:
+      - Each forecast contains: forecasted_occupancy, confidence, confidence_level, trend, model_version ✓
+      - Dynamic confidence scoring (not static values) ✓
+      - Confidence levels properly categorized (High/Medium/Low) ✓
+      - Model version consistently "2.0-advanced" ✓
+      - Summary with high/moderate/low demand day counts ✓
+      
+      🚀 SUCCESS CRITERIA MET (100%):
+      - All 3 tests return 200 status codes ✓
+      - No datetime timezone errors ✓
+      - Forecasts generated for all requested days ✓
+      - Dynamic confidence scoring working ✓
+      - Proper response structure with all required fields ✓
+      
+      🎉 CONCLUSION:
+      The 90-day demand forecast timezone issue has been completely resolved. All demand forecasting capabilities (30, 60, and 90 days) are now fully functional with proper timezone handling, dynamic confidence scoring, and accurate forecast generation. The Enhanced RMS system is ready for production use.
+      
+      ✅ FINAL STATUS: Enhanced RMS with Advanced Confidence & Insights - 100% WORKING
+  
+  - agent: "testing"
+    message: |
       🧮 FOLIO CALCULATIONS REGRESSION TESTING COMPLETED - COMPREHENSIVE ANALYSIS
       
       ✅ OVERALL RESULTS (88.2% Success Rate - 15/17 tests passed):
