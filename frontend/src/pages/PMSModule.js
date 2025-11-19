@@ -366,6 +366,7 @@ const PMSModule = ({ user, tenant, onLogout }) => {
         revenue: revenueRes.data,
         daily: dailyRes.data,
         forecast: forecastRes.data,
+        forecast30: forecast30Res.data,
         dailyFlash: dailyFlashRes.data,
         marketSegment: marketSegmentRes.data,
         companyAging: companyAgingRes.data,
