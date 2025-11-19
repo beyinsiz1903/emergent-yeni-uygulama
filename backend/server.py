@@ -1175,6 +1175,37 @@ class CreateDeliveryRequest(BaseModel):
     carrier: Optional[str] = None
     estimated_delivery: Optional[str] = None
 
+# Marketplace Extended Models
+class CreateSupplierRequest(BaseModel):
+    supplier_name: str
+    contact_person: str
+    contact_email: str
+    contact_phone: str
+    credit_limit: float = 0.0
+    payment_terms: str = "Net 30"  # Net 15, Net 30, Net 60, COD
+    status: str = "active"
+
+class UpdateSupplierCreditRequest(BaseModel):
+    credit_limit: float
+    payment_terms: str
+
+class ApprovePurchaseOrderRequest(BaseModel):
+    approval_notes: Optional[str] = None
+
+class RejectPurchaseOrderRequest(BaseModel):
+    rejection_reason: str
+
+class UpdateDeliveryStatusRequest(BaseModel):
+    status: str  # in_transit, delivered, failed
+    location: Optional[str] = None
+    notes: Optional[str] = None
+
+class CreateWarehouseRequest(BaseModel):
+    warehouse_name: str
+    location: str
+    capacity: int
+    warehouse_type: str = "central"  # central, regional, local
+
 # ============= HELPER FUNCTIONS =============
 
 def hash_password(password: str) -> str:
