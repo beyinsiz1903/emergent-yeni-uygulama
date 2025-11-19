@@ -103,10 +103,24 @@
 #====================================================================================================
 
 user_problem_statement: |
-  Enhanced Feedback & Reviews System with External APIs, Surveys & Department Tracking:
-  - External review API integration (Booking.com, Google, TripAdvisor)
-  - In-house survey system
-  - Department-based satisfaction tracking (HK, FD, F&B, Spa)
+  Comprehensive Hotel PMS Enhancement - 17 Categories:
+  1. Dashboard - Employee Performance, Guest Satisfaction Trends, OTA Cancellation Rate
+  2. Check-in - Passport scan, Walk-in booking, Guest alerts
+  3. Housekeeping - Task timing, Staff performance, Linen inventory
+  4. Room Details - Notes, Mini-bar updates, Maintenance due
+  5. Guest Profile - Stay history, Preferences, Tags
+  6. Reservation - Cancellation policy, OTA commission visibility
+  7. Financial - E-fatura, Bank integration, Currency exchange
+  8. AR/Collections - Send statement, Smart alerts
+  9. POS/F&B - Check splitting, Table transfer, Happy hour
+  10. Contracted Rates - Allotment utilization, Pickup alerts
+  11. Channel Manager - Rate parity checker, Sync history
+  12. Revenue Management - Dynamic restrictions, Market compression
+  13. Maintenance - Mobile technician app, Repeat issues, SLA
+  14. Review Management - AI sentiment analysis, Auto-reply
+  15. Loyalty Program - Perks, Points, LTV calculation
+  16. Procurement - Auto-purchase suggestions, Stock alerts
+  17. Reservation Improvements - Double-booking check, ADR visibility, Rate override panel
 
 backend:
   - task: "Add Folio enums (FolioType, FolioStatus, ChargeCategory, FolioOperationType, PaymentType)"
