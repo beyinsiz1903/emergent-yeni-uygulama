@@ -910,6 +910,18 @@ backend:
         agent: "testing"
         comment: "✅ COMPREHENSIVE POS INTEGRATION TESTING COMPLETED (100% Success Rate - 19/19 tests passed). MULTI-OUTLET SUPPORT: Successfully created 3 outlets - Main Restaurant (restaurant, Ground Floor, 80 capacity, 07:00-22:00), Rooftop Bar (bar, 10th Floor, 40 capacity, 17:00-02:00), Room Service (room_service, Kitchen, 24/7). All outlet types working with proper filtering and details retrieval. MENU-BASED TRANSACTION BREAKDOWN: Created menu items with cost tracking - Grilled Salmon ($45, cost $18, margin $27), Caesar Salad ($15, cost $5), Mojito ($12, cost $3). Menu item filtering by outlet and category working perfectly. Transaction with menu breakdown: 2 Salmon + 2 Caesar = $120 subtotal, $46 cost, $74 profit (61.7% margin) - all calculations verified accurate. Menu sales breakdown by category, outlet, and item working with proper profit margin calculations. Z REPORT / END OF DAY ANALYTICS: Generated comprehensive Z reports with all required sections - summary (transactions, sales, cost, profit, margin, average check), payment methods breakdown, categories breakdown, servers performance, hourly breakdown, top items analysis. Z report filtering by outlet and date range working correctly. All business logic validated: Gross Profit = Revenue - Cost ✓, Multi-outlet separation ✓, Menu item cost tracking ✓, Z Report aggregations ✓. Complete POS system ready for production use."
 
+  - task: "Enhanced Feedback & Reviews System with External APIs, Surveys & Department Tracking"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "testing"
+        comment: "✅ COMPREHENSIVE FEEDBACK & REVIEWS TESTING COMPLETED (100% Success Rate - 20/20 tests passed). EXTERNAL REVIEW API INTEGRATION: POST /feedback/external-review-webhook successfully receives reviews from Booking.com (4.5★), Google (5.0★), TripAdvisor (2.0★) with proper sentiment analysis (positive ≥4.0, neutral 3.0-3.9, negative <3.0). GET /feedback/external-reviews with platform filtering (booking, google, tripadvisor) and sentiment filtering (positive, neutral, negative) working perfectly. GET /feedback/external-reviews/summary provides accurate analytics with platform breakdown, avg rating (3.83), and sentiment distribution. POST /feedback/external-reviews/{id}/respond successfully posts responses to reviews. IN-HOUSE SURVEY SYSTEM: POST /feedback/surveys creates surveys (Post-Checkout, F&B Department-specific) with questions, triggers, and target departments. GET /feedback/surveys retrieves all surveys with response counts. POST /feedback/surveys/response submits responses with automatic overall rating calculation (avg of ratings: 4.5). GET /feedback/surveys/{id}/responses provides comprehensive statistics and question-level analytics. DEPARTMENT SATISFACTION TRACKING: POST /feedback/department successfully tracks feedback for all departments (housekeeping, front_desk, fnb, spa) with staff member attribution and sentiment classification. GET /feedback/department with department filtering working correctly. GET /feedback/department/summary provides complete department analytics with avg ratings, satisfaction rates, top performers (3 staff), and needs attention identification (1 department <3.5 rating). All validation criteria met: sentiment analysis accurate, platform breakdown correct, survey rating calculations verified, staff performance tracking functional, aggregations accurate."
+
 frontend:
   - task: "OTA Messaging Hub - Complete Frontend Implementation"
     implemented: true
