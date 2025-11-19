@@ -8621,7 +8621,7 @@ async def use_block_room(
         'created_at': datetime.now(timezone.utc).isoformat()
     }
     
-    await db.bookings.insert_one(booking)
+    await db.bookings.insert_one(booking.copy())
     
     # Update block availability
     await db.block_reservations.update_one(
