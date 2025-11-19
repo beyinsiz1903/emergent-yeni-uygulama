@@ -78,14 +78,14 @@ def main():
         "url": "https://hilton.com"
     })
     
-    # Marketplace products
+    # Marketplace products (using correct field names for old Product model)
     test_endpoint(token, "POST", "/marketplace/products", {
-        "product_name": "Bath Towels Premium",
+        "name": "Bath Towels Premium",
         "category": "linens",
-        "unit_price": 15.50,
-        "unit_of_measure": "piece",
-        "supplier": "Linen Supply Co",
-        "min_order_qty": 50
+        "description": "High quality cotton bath towels",
+        "price": 15.50,
+        "unit": "piece",
+        "supplier": "Linen Supply Co"
     })
     
     # POS transaction
