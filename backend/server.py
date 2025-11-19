@@ -7947,7 +7947,7 @@ async def generate_demand_forecast(
     
     # Save forecasts
     if forecasts:
-        await db.demand_forecasts.insert_many(forecasts)
+        await db.demand_forecasts.insert_many([f.copy() for f in forecasts])
     
     return {
         'message': f'Generated {len(forecasts)} demand forecasts',
