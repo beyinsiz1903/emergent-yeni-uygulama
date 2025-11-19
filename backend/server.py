@@ -1206,6 +1206,34 @@ class CreateWarehouseRequest(BaseModel):
     capacity: int
     warehouse_type: str = "central"  # central, regional, local
 
+# Accounting & Multi-Currency Models
+class CreateCurrencyRateRequest(BaseModel):
+    from_currency: str  # USD, EUR, GBP, TRY
+    to_currency: str
+    rate: float
+    effective_date: str
+
+class CreateMultiCurrencyInvoiceRequest(BaseModel):
+    customer_name: str
+    customer_email: str
+    customer_address: str
+    items: List[Dict[str, Any]]
+    currency: str = "TRY"  # Invoice currency
+    exchange_rate: Optional[float] = None  # If different from TRY
+    payment_terms: str = "Net 30"
+    notes: Optional[str] = None
+
+class GenerateInvoiceFromFolioRequest(BaseModel):
+    folio_id: str
+    invoice_currency: str = "TRY"
+    include_efatura: bool = True
+
+class ConvertCurrencyRequest(BaseModel):
+    amount: float
+    from_currency: str
+    to_currency: str
+    date: Optional[str] = None  # Use specific date rate, or latest if None
+
 # ============= HELPER FUNCTIONS =============
 
 def hash_password(password: str) -> str:
