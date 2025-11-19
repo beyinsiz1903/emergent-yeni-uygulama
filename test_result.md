@@ -922,6 +922,18 @@ backend:
         agent: "testing"
         comment: "✅ COMPREHENSIVE FEEDBACK & REVIEWS TESTING COMPLETED (100% Success Rate - 20/20 tests passed). EXTERNAL REVIEW API INTEGRATION: POST /feedback/external-review-webhook successfully receives reviews from Booking.com (4.5★), Google (5.0★), TripAdvisor (2.0★) with proper sentiment analysis (positive ≥4.0, neutral 3.0-3.9, negative <3.0). GET /feedback/external-reviews with platform filtering (booking, google, tripadvisor) and sentiment filtering (positive, neutral, negative) working perfectly. GET /feedback/external-reviews/summary provides accurate analytics with platform breakdown, avg rating (3.83), and sentiment distribution. POST /feedback/external-reviews/{id}/respond successfully posts responses to reviews. IN-HOUSE SURVEY SYSTEM: POST /feedback/surveys creates surveys (Post-Checkout, F&B Department-specific) with questions, triggers, and target departments. GET /feedback/surveys retrieves all surveys with response counts. POST /feedback/surveys/response submits responses with automatic overall rating calculation (avg of ratings: 4.5). GET /feedback/surveys/{id}/responses provides comprehensive statistics and question-level analytics. DEPARTMENT SATISFACTION TRACKING: POST /feedback/department successfully tracks feedback for all departments (housekeeping, front_desk, fnb, spa) with staff member attribution and sentiment classification. GET /feedback/department with department filtering working correctly. GET /feedback/department/summary provides complete department analytics with avg ratings, satisfaction rates, top performers (3 staff), and needs attention identification (1 department <3.5 rating). All validation criteria met: sentiment analysis accurate, platform breakdown correct, survey rating calculations verified, staff performance tracking functional, aggregations accurate."
 
+  - task: "Enhanced Task Management System - Multi-Department"
+    implemented: true
+    working: false
+    file: "/app/backend/server.py"
+    stuck_count: 1
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: false
+        agent: "testing"
+        comment: "✅ COMPREHENSIVE TASK MANAGEMENT TESTING COMPLETED (85% Success Rate - 17/20 tests passed). WORKING PERFECTLY: CORE TASK CREATION - All 3 department tasks created successfully (Engineering: urgent repair, Housekeeping: high priority deep clean, F&B: normal catering) with correct priority_order mapping (urgent:4, high:3, normal:2, low:1). TASK FILTERING - All 5 filters working: department (engineering ✓), status (new ✓), priority (urgent ✓), assigned_to (Maria ✓), all tasks (✓). TASK WORKFLOW - Assignment workflow functional (new → assigned ✓), status updates working (assigned → in_progress → completed ✓), history tracking operational (2 entries ✓), completion photos supported. DEPARTMENT TASKS - Department-specific endpoints working: GET /tasks/department/{dept} with statistics (by_status, by_priority, overdue counts ✓). DEPARTMENT REQUESTS - All 3 department-specific request endpoints working: Engineering maintenance (repair task ✓), Housekeeping cleaning (with room validation ✓), F&B service (room_service type ✓). ❌ CRITICAL ROUTING ISSUE: 3 endpoints failing due to FastAPI route order conflict - /tasks/{task_id} defined before /tasks/my-tasks and /tasks/dashboard, causing 'my-tasks' and 'dashboard' to be treated as task IDs (404 errors). This is a backend code structure issue requiring route reordering. All core task management functionality is working correctly, only routing order needs fixing."
+
 frontend:
   - task: "OTA Messaging Hub - Complete Frontend Implementation"
     implemented: true
