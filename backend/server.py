@@ -3867,6 +3867,164 @@ async def manual_pos_post(
         'posted_at': datetime.now(timezone.utc).isoformat()
     }
 
+@api_router.get("/rates/periods")
+async def get_rate_periods(
+    operator_id: str,
+    room_type_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Get multi-period rates for operator and room type
+    """
+    periods = await db.rate_periods.find({
+        'tenant_id': current_user.tenant_id,
+        'operator_id': operator_id,
+        'room_type_id': room_type_id
+    }).sort('start_date', 1).to_list(100)
+    
+    return {'periods': periods}
+
+@api_router.post("/rates/periods/bulk-update")
+async def bulk_update_rate_periods(
+    data: dict,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Bulk update/insert rate periods for operator
+    """
+    operator_id = data.get('operator_id')
+    room_type_id = data.get('room_type_id')
+    periods = data.get('periods', [])
+    
+    # Delete existing periods
+    await db.rate_periods.delete_many({
+        'tenant_id': current_user.tenant_id,
+        'operator_id': operator_id,
+        'room_type_id': room_type_id
+    })
+    
+    # Insert new periods
+    if periods:
+        for period in periods:
+            period_doc = {
+                'id': period.get('id') if not period.get('isNew') else str(uuid.uuid4()),
+                'tenant_id': current_user.tenant_id,
+                'operator_id': operator_id,
+                'room_type_id': room_type_id,
+                'start_date': period['start_date'],
+                'end_date': period['end_date'],
+                'rate': period['rate'],
+                'currency': period.get('currency', 'USD'),
+                'created_at': datetime.now(timezone.utc).isoformat(),
+                'created_by': current_user.id
+            }
+            await db.rate_periods.insert_one(period_doc)
+    
+    return {'message': f'{len(periods)} rate periods saved successfully'}
+
+@api_router.get("/rates/stop-sale/status")
+async def get_stop_sale_status(current_user: User = Depends(get_current_user)):
+    """
+    Get stop-sale status for all operators
+    """
+    stop_sales = await db.stop_sales.find({
+        'tenant_id': current_user.tenant_id,
+        'active': True
+    }).to_list(100)
+    
+    operators = {}
+    for ss in stop_sales:
+        operators[ss['operator_id']] = ss.get('stop_sale', False)
+        operators[f"{ss['operator_id']}_timestamp"] = ss.get('updated_at')
+    
+    return {'operators': operators}
+
+@api_router.post("/rates/stop-sale/toggle")
+async def toggle_stop_sale(
+    data: dict,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Toggle stop-sale for specific operator
+    """
+    operator_id = data.get('operator_id')
+    stop_sale = data.get('stop_sale', False)
+    
+    await db.stop_sales.update_one(
+        {
+            'tenant_id': current_user.tenant_id,
+            'operator_id': operator_id
+        },
+        {
+            '$set': {
+                'stop_sale': stop_sale,
+                'active': True,
+                'updated_at': datetime.now(timezone.utc).isoformat(),
+                'updated_by': current_user.id
+            }
+        },
+        upsert=True
+    )
+    
+    return {
+        'operator_id': operator_id,
+        'stop_sale': stop_sale,
+        'message': f'Stop-sale {"activated" if stop_sale else "deactivated"} for {operator_id}'
+    }
+
+@api_router.get("/allotment/consumption")
+async def get_allotment_consumption(
+    start_date: str = None,
+    end_date: str = None,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Get allotment consumption chart data: Allocated vs Sold vs Remaining
+    """
+    # Get all allotments for tenant
+    allotments = await db.allotments.find({
+        'tenant_id': current_user.tenant_id,
+        'status': 'active'
+    }).to_list(100)
+    
+    consumption_data = []
+    
+    for allotment in allotments:
+        operator_name = allotment.get('operator_name', 'Unknown')
+        allocated = allotment.get('allocated_rooms', 0)
+        
+        # Count sold bookings for this allotment
+        bookings = await db.bookings.find({
+            'tenant_id': current_user.tenant_id,
+            'allotment_id': allotment.get('id'),
+            'status': {'$in': ['confirmed', 'checked_in', 'checked_out']}
+        }).to_list(1000)
+        
+        sold = len(bookings)
+        remaining = max(allocated - sold, 0)
+        utilization = int((sold / allocated * 100)) if allocated > 0 else 0
+        
+        # Determine status
+        if remaining == 0:
+            status = 'critical'
+        elif utilization >= 80:
+            status = 'warning'
+        else:
+            status = 'good'
+        
+        consumption_data.append({
+            'operator': operator_name,
+            'allocated': allocated,
+            'sold': sold,
+            'remaining': remaining,
+            'utilization': utilization,
+            'status': status
+        })
+    
+    return {'allotments': consumption_data}
+
+
+
 
 
 @api_router.get("/reports/cost-summary")
