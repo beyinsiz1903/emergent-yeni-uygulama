@@ -8901,23 +8901,18 @@ async def get_marketplace_products(
 
 @api_router.post("/marketplace/products")
 async def create_marketplace_product(
-    product_name: str,
-    category: str,
-    unit_price: float,
-    unit_of_measure: str,
-    supplier: str,
-    min_order_qty: int = 1,
+    request: CreateMarketplaceProductRequest,
     current_user: User = Depends(get_current_user)
 ):
     """Add product to marketplace catalog"""
     product = {
         'id': str(uuid.uuid4()),
-        'product_name': product_name,
-        'category': category,
-        'unit_price': unit_price,
-        'unit_of_measure': unit_of_measure,
-        'supplier': supplier,
-        'min_order_qty': min_order_qty,
+        'product_name': request.product_name,
+        'category': request.category,
+        'unit_price': request.unit_price,
+        'unit_of_measure': request.unit_of_measure,
+        'supplier': request.supplier,
+        'min_order_qty': request.min_order_qty,
         'status': 'active',
         'created_at': datetime.now(timezone.utc).isoformat()
     }
