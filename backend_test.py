@@ -2788,8 +2788,7 @@ class HotelPMSBackendTester:
             response_text = "Thank you for your feedback. We appreciate your comments and are working to improve."
             
             response = self.session.post(
-                f"{BACKEND_URL}/feedback/external-reviews/{review_id}/respond",
-                json={"response_text": response_text},
+                f"{BACKEND_URL}/feedback/external-reviews/{review_id}/respond?response_text={response_text}",
                 headers={"Authorization": f"Bearer {self.auth_token}"}
             )
             
