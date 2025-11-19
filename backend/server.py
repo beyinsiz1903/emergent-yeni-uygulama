@@ -8158,7 +8158,7 @@ async def generate_demand_forecast(
             lead_factor = 0.92  # Far future less certain
         
         # 4. Current Booking Trend (15% weight)
-        recent_booking_count = len([b for b in historical_bookings if (datetime.now(timezone.utc) - datetime.fromisoformat(b['created_at'])).days < 30])
+        recent_booking_count = len([b for b in historical_bookings if b.get('created_at') and (datetime.now(timezone.utc) - datetime.fromisoformat(b['created_at']).replace(tzinfo=timezone.utc)).days < 30])
         if recent_booking_count > 50:
             trend_factor = 1.10  # Strong recent trend
         elif recent_booking_count > 20:
