@@ -12,8 +12,8 @@ from datetime import datetime, timedelta
 
 # Configuration
 BACKEND_URL = "https://finance-snapshot-1.preview.emergentagent.com/api"
-TEST_EMAIL = "test@hotel.com"
-TEST_PASSWORD = "test123"
+TEST_EMAIL = "financetest@hotel.com"
+TEST_PASSWORD = "test123456"
 
 class FinanceSnapshotTester:
     def __init__(self):
