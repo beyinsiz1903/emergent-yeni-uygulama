@@ -3631,7 +3631,7 @@ async def get_finance_snapshot(current_user: User = Depends(get_current_user)):
     
     mtd_payments = await db.payments.find({
         'tenant_id': current_user.tenant_id,
-        'payment_date': {
+        'processed_at': {
             '$gte': month_start_dt.isoformat(),
             '$lte': today_end.isoformat()
         }
