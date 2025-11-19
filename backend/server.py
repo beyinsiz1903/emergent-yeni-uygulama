@@ -1278,6 +1278,38 @@ class GenerateZReportRequest(BaseModel):
     outlet_id: Optional[str] = None
     date: Optional[str] = None  # Default to today
 
+# Feedback & Reviews Models
+class CreateSurveyRequest(BaseModel):
+    survey_name: str
+    description: str
+    target_department: Optional[str] = None  # housekeeping, front_desk, fnb, spa, all
+    questions: List[Dict[str, Any]]  # [{question, type, options}]
+    trigger: str = "checkout"  # checkout, checkin, stay, manual
+
+class SubmitSurveyResponseRequest(BaseModel):
+    survey_id: str
+    booking_id: Optional[str] = None
+    guest_name: Optional[str] = None
+    guest_email: Optional[str] = None
+    responses: List[Dict[str, Any]]  # [{question_id, answer, rating}]
+
+class ExternalReviewWebhookRequest(BaseModel):
+    platform: str  # booking, google, tripadvisor
+    review_id: str
+    rating: float
+    reviewer_name: str
+    review_text: str
+    review_date: str
+    booking_reference: Optional[str] = None
+
+class CreateDepartmentFeedbackRequest(BaseModel):
+    department: str  # housekeeping, front_desk, fnb, spa
+    booking_id: Optional[str] = None
+    guest_name: str
+    rating: int  # 1-5
+    comment: Optional[str] = None
+    staff_member: Optional[str] = None
+
 # ============= HELPER FUNCTIONS =============
 
 def hash_password(password: str) -> str:
