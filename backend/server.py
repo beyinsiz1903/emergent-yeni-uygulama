@@ -1310,6 +1310,29 @@ class CreateDepartmentFeedbackRequest(BaseModel):
     comment: Optional[str] = None
     staff_member: Optional[str] = None
 
+# Task Management Models
+class CreateTaskRequest(BaseModel):
+    department: str  # engineering, housekeeping, fnb, maintenance, front_desk
+    task_type: str  # repair, inspection, cleaning, setup, delivery, guest_request
+    title: str
+    description: str
+    priority: str = "normal"  # low, normal, high, urgent
+    location: Optional[str] = None  # room number or area
+    room_id: Optional[str] = None
+    assigned_to: Optional[str] = None
+    due_date: Optional[str] = None
+    recurring: Optional[bool] = False
+    recurrence_pattern: Optional[str] = None  # daily, weekly, monthly
+
+class UpdateTaskStatusRequest(BaseModel):
+    status: str  # assigned, in_progress, completed, verified, cancelled
+    notes: Optional[str] = None
+    completion_photos: Optional[List[str]] = []
+
+class AssignTaskRequest(BaseModel):
+    assigned_to: str
+    notes: Optional[str] = None
+
 # ============= HELPER FUNCTIONS =============
 
 def hash_password(password: str) -> str:
