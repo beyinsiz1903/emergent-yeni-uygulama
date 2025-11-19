@@ -212,15 +212,21 @@ class HotelPMSBackendTester:
                 data = response.json()
                 
                 # Verify enhanced response structure
-                required_fields = [
-                    'recommendations', 'summary', 'avg_confidence', 'high_confidence_count'
-                ]
+                required_fields = ['recommendations', 'summary']
                 missing_fields = [field for field in required_fields if field not in data]
                 
                 if missing_fields:
                     details += f" - Missing fields: {missing_fields}"
                     success = False
                 else:
+                    # Check summary fields
+                    summary = data.get('summary', {})
+                    summary_fields = ['avg_confidence', 'high_confidence_count']
+                    missing_summary_fields = [field for field in summary_fields if field not in summary]
+                    
+                    if missing_summary_fields:
+                        details += f" - Missing summary fields: {missing_summary_fields}"
+                        success = False
                     recommendations = data.get('recommendations', [])
                     details += f" - Recommendations: {len(recommendations)}"
                     
