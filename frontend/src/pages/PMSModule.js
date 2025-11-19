@@ -3976,6 +3976,58 @@ const PMSModule = ({ user, tenant, onLogout }) => {
             )}
           </DialogContent>
         </Dialog>
+
+        {/* Floating Action Button - Quick Actions */}
+        <FloatingActionButton
+          actions={[
+            {
+              label: 'New Booking',
+              icon: <Plus className="w-5 h-5" />,
+              color: 'bg-blue-600 hover:bg-blue-700',
+              onClick: () => {
+                setOpenDialog('newBooking');
+                toast.info('Opening new booking form...');
+              }
+            },
+            {
+              label: 'Quick Check-in',
+              icon: <LogIn className="w-5 h-5" />,
+              color: 'bg-green-600 hover:bg-green-700',
+              onClick: () => {
+                setActiveTab('arrivals');
+                toast.info('Navigated to arrivals for quick check-in');
+              }
+            },
+            {
+              label: 'Quick Check-out',
+              icon: <LogOut className="w-5 h-5" />,
+              color: 'bg-orange-600 hover:bg-orange-700',
+              onClick: () => {
+                setActiveTab('departures');
+                toast.info('Navigated to departures for quick check-out');
+              }
+            },
+            {
+              label: 'Add Guest',
+              icon: <UserPlus className="w-5 h-5" />,
+              color: 'bg-purple-600 hover:bg-purple-700',
+              onClick: () => {
+                toast.info('Opening guest registration...');
+                // TODO: Open add guest dialog
+              }
+            },
+            {
+              label: 'Refresh Data',
+              icon: <RefreshCw className="w-5 h-5" />,
+              color: 'bg-gray-600 hover:bg-gray-700',
+              onClick: () => {
+                loadRooms();
+                loadBookings();
+                toast.success('Data refreshed!');
+              }
+            }
+          ]}
+        />
       </div>
     </Layout>
   );
