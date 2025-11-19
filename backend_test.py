@@ -38,7 +38,9 @@ class HotelPMSBackendTester:
             "room_ids": [],
             "supplier_ids": [],
             "warehouse_ids": [],
-            "delivery_ids": []
+            "delivery_ids": [],
+            "survey_ids": [],
+            "review_ids": []
         }
 
     def authenticate(self):
