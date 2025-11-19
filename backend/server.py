@@ -12081,5 +12081,402 @@ async def get_department_satisfaction_summary(
     }
 
 
+# ========================================
+# TASK MANAGEMENT SYSTEM - Multi-Department
+# ========================================
+
+@api_router.get("/tasks")
+async def get_tasks(
+    department: str = None,
+    status: str = None,
+    priority: str = None,
+    assigned_to: str = None,
+    current_user: User = Depends(get_current_user)
+):
+    """Get tasks with filters"""
+    query = {'tenant_id': current_user.tenant_id}
+    
+    if department:
+        query['department'] = department
+    if status:
+        query['status'] = status
+    if priority:
+        query['priority'] = priority
+    if assigned_to:
+        query['assigned_to'] = assigned_to
+    
+    tasks = await db.tasks.find(
+        query,
+        {'_id': 0}
+    ).sort([('priority_order', -1), ('created_at', 1)]).to_list(1000)
+    
+    return {'tasks': tasks, 'count': len(tasks)}
+
+@api_router.post("/tasks")
+async def create_task(
+    request: CreateTaskRequest,
+    current_user: User = Depends(get_current_user)
+):
+    """Create new task"""
+    # Priority order for sorting
+    priority_order = {
+        'urgent': 4,
+        'high': 3,
+        'normal': 2,
+        'low': 1
+    }
+    
+    task = {
+        'id': str(uuid.uuid4()),
+        'tenant_id': current_user.tenant_id,
+        'department': request.department,
+        'task_type': request.task_type,
+        'title': request.title,
+        'description': request.description,
+        'priority': request.priority,
+        'priority_order': priority_order.get(request.priority, 2),
+        'location': request.location,
+        'room_id': request.room_id,
+        'assigned_to': request.assigned_to,
+        'due_date': request.due_date,
+        'recurring': request.recurring,
+        'recurrence_pattern': request.recurrence_pattern,
+        'status': 'new' if not request.assigned_to else 'assigned',
+        'created_at': datetime.now(timezone.utc).isoformat(),
+        'created_by': current_user.id,
+        'updated_at': datetime.now(timezone.utc).isoformat()
+    }
+    
+    task_copy = task.copy()
+    await db.tasks.insert_one(task_copy)
+    
+    # Create notification for assigned user
+    if request.assigned_to:
+        notification = {
+            'id': str(uuid.uuid4()),
+            'tenant_id': current_user.tenant_id,
+            'user': request.assigned_to,
+            'type': 'task_assigned',
+            'message': f"New {request.priority} priority task assigned: {request.title}",
+            'task_id': task['id'],
+            'read': False,
+            'created_at': datetime.now(timezone.utc).isoformat()
+        }
+        notif_copy = notification.copy()
+        await db.notifications.insert_one(notif_copy)
+    
+    return task
+
+@api_router.get("/tasks/{task_id}")
+async def get_task_details(
+    task_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Get task details with history"""
+    task = await db.tasks.find_one({
+        'id': task_id,
+        'tenant_id': current_user.tenant_id
+    }, {'_id': 0})
+    
+    if not task:
+        raise HTTPException(status_code=404, detail="Task not found")
+    
+    # Get task history
+    history = await db.task_history.find({
+        'tenant_id': current_user.tenant_id,
+        'task_id': task_id
+    }, {'_id': 0}).sort('timestamp', 1).to_list(100)
+    
+    task['history'] = history
+    
+    return task
+
+@api_router.post("/tasks/{task_id}/assign")
+async def assign_task(
+    task_id: str,
+    request: AssignTaskRequest,
+    current_user: User = Depends(get_current_user)
+):
+    """Assign task to user"""
+    task = await db.tasks.find_one({
+        'id': task_id,
+        'tenant_id': current_user.tenant_id
+    })
+    
+    if not task:
+        raise HTTPException(status_code=404, detail="Task not found")
+    
+    # Update task
+    await db.tasks.update_one(
+        {'id': task_id},
+        {
+            '$set': {
+                'assigned_to': request.assigned_to,
+                'status': 'assigned',
+                'assigned_at': datetime.now(timezone.utc).isoformat(),
+                'assigned_by': current_user.id,
+                'updated_at': datetime.now(timezone.utc).isoformat()
+            }
+        }
+    )
+    
+    # Add to history
+    history_entry = {
+        'id': str(uuid.uuid4()),
+        'tenant_id': current_user.tenant_id,
+        'task_id': task_id,
+        'action': 'assigned',
+        'performed_by': current_user.id,
+        'details': f"Assigned to {request.assigned_to}",
+        'notes': request.notes,
+        'timestamp': datetime.now(timezone.utc).isoformat()
+    }
+    history_copy = history_entry.copy()
+    await db.task_history.insert_one(history_copy)
+    
+    # Create notification
+    notification = {
+        'id': str(uuid.uuid4()),
+        'tenant_id': current_user.tenant_id,
+        'user': request.assigned_to,
+        'type': 'task_assigned',
+        'message': f"Task assigned: {task.get('title')}",
+        'task_id': task_id,
+        'read': False,
+        'created_at': datetime.now(timezone.utc).isoformat()
+    }
+    notif_copy = notification.copy()
+    await db.notifications.insert_one(notif_copy)
+    
+    return {'message': 'Task assigned successfully'}
+
+@api_router.post("/tasks/{task_id}/status")
+async def update_task_status(
+    task_id: str,
+    request: UpdateTaskStatusRequest,
+    current_user: User = Depends(get_current_user)
+):
+    """Update task status"""
+    task = await db.tasks.find_one({
+        'id': task_id,
+        'tenant_id': current_user.tenant_id
+    })
+    
+    if not task:
+        raise HTTPException(status_code=404, detail="Task not found")
+    
+    update_data = {
+        'status': request.status,
+        'updated_at': datetime.now(timezone.utc).isoformat()
+    }
+    
+    if request.status == 'completed':
+        update_data['completed_at'] = datetime.now(timezone.utc).isoformat()
+        update_data['completed_by'] = current_user.id
+        if request.completion_photos:
+            update_data['completion_photos'] = request.completion_photos
+    
+    await db.tasks.update_one(
+        {'id': task_id},
+        {'$set': update_data}
+    )
+    
+    # Add to history
+    history_entry = {
+        'id': str(uuid.uuid4()),
+        'tenant_id': current_user.tenant_id,
+        'task_id': task_id,
+        'action': f"status_changed_to_{request.status}",
+        'performed_by': current_user.id,
+        'details': f"Status changed to {request.status}",
+        'notes': request.notes,
+        'timestamp': datetime.now(timezone.utc).isoformat()
+    }
+    history_copy = history_entry.copy()
+    await db.task_history.insert_one(history_copy)
+    
+    return {'message': 'Task status updated successfully'}
+
+@api_router.get("/tasks/department/{department}")
+async def get_department_tasks(
+    department: str,
+    status: str = None,
+    current_user: User = Depends(get_current_user)
+):
+    """Get tasks by department with stats"""
+    query = {
+        'tenant_id': current_user.tenant_id,
+        'department': department
+    }
+    
+    if status:
+        query['status'] = status
+    
+    tasks = await db.tasks.find(query, {'_id': 0}).sort([('priority_order', -1), ('created_at', 1)]).to_list(1000)
+    
+    # Calculate stats
+    total = len(tasks)
+    by_status = {}
+    by_priority = {}
+    overdue = 0
+    
+    today = datetime.now(timezone.utc).date().isoformat()
+    
+    for task in tasks:
+        status = task.get('status', 'new')
+        priority = task.get('priority', 'normal')
+        
+        by_status[status] = by_status.get(status, 0) + 1
+        by_priority[priority] = by_priority.get(priority, 0) + 1
+        
+        if task.get('due_date') and task.get('due_date') < today and status not in ['completed', 'verified', 'cancelled']:
+            overdue += 1
+    
+    return {
+        'department': department,
+        'tasks': tasks,
+        'statistics': {
+            'total': total,
+            'by_status': by_status,
+            'by_priority': by_priority,
+            'overdue': overdue
+        }
+    }
+
+@api_router.get("/tasks/my-tasks")
+async def get_my_tasks(
+    status: str = None,
+    current_user: User = Depends(get_current_user)
+):
+    """Get tasks assigned to current user"""
+    query = {
+        'tenant_id': current_user.tenant_id,
+        'assigned_to': current_user.name
+    }
+    
+    if status:
+        query['status'] = status
+    
+    tasks = await db.tasks.find(query, {'_id': 0}).sort([('priority_order', -1), ('due_date', 1)]).to_list(1000)
+    
+    return {'tasks': tasks, 'count': len(tasks)}
+
+@api_router.get("/tasks/dashboard")
+async def get_tasks_dashboard(current_user: User = Depends(get_current_user)):
+    """Get tasks dashboard with all department stats"""
+    # Get all tasks
+    tasks = await db.tasks.find({
+        'tenant_id': current_user.tenant_id
+    }, {'_id': 0}).to_list(10000)
+    
+    # Department breakdown
+    departments = ['engineering', 'housekeeping', 'fnb', 'maintenance', 'front_desk']
+    dept_stats = {}
+    
+    for dept in departments:
+        dept_tasks = [t for t in tasks if t.get('department') == dept]
+        
+        dept_stats[dept] = {
+            'total': len(dept_tasks),
+            'new': sum(1 for t in dept_tasks if t.get('status') == 'new'),
+            'in_progress': sum(1 for t in dept_tasks if t.get('status') == 'in_progress'),
+            'completed': sum(1 for t in dept_tasks if t.get('status') == 'completed'),
+            'urgent': sum(1 for t in dept_tasks if t.get('priority') == 'urgent'),
+            'overdue': sum(1 for t in dept_tasks if t.get('due_date') and t.get('due_date') < datetime.now(timezone.utc).date().isoformat() and t.get('status') not in ['completed', 'verified'])
+        }
+    
+    # Overall stats
+    today = datetime.now(timezone.utc).date().isoformat()
+    
+    return {
+        'summary': {
+            'total_tasks': len(tasks),
+            'new': sum(1 for t in tasks if t.get('status') == 'new'),
+            'in_progress': sum(1 for t in tasks if t.get('status') == 'in_progress'),
+            'completed_today': sum(1 for t in tasks if t.get('status') == 'completed' and t.get('completed_at', '').startswith(today)),
+            'urgent_pending': sum(1 for t in tasks if t.get('priority') == 'urgent' and t.get('status') not in ['completed', 'verified', 'cancelled']),
+            'overdue': sum(1 for t in tasks if t.get('due_date') and t.get('due_date') < today and t.get('status') not in ['completed', 'verified', 'cancelled'])
+        },
+        'departments': dept_stats
+    }
+
+
+# DEPARTMENT-SPECIFIC TASK ENDPOINTS
+
+# Engineering Tasks
+@api_router.post("/tasks/engineering/maintenance-request")
+async def create_engineering_maintenance_request(
+    title: str,
+    description: str,
+    location: str,
+    priority: str = "normal",
+    room_id: str = None,
+    current_user: User = Depends(get_current_user)
+):
+    """Create engineering/maintenance request"""
+    task_request = CreateTaskRequest(
+        department='engineering',
+        task_type='repair',
+        title=title,
+        description=description,
+        priority=priority,
+        location=location,
+        room_id=room_id
+    )
+    
+    return await create_task(task_request, current_user)
+
+# Housekeeping Tasks (Enhanced)
+@api_router.post("/tasks/housekeeping/cleaning-request")
+async def create_housekeeping_cleaning_request(
+    room_id: str,
+    task_type: str,  # deep_clean, turndown, inspection
+    priority: str = "normal",
+    special_instructions: str = None,
+    current_user: User = Depends(get_current_user)
+):
+    """Create housekeeping cleaning request"""
+    room = await db.rooms.find_one({'id': room_id, 'tenant_id': current_user.tenant_id}, {'_id': 0})
+    
+    if not room:
+        raise HTTPException(status_code=404, detail="Room not found")
+    
+    task_request = CreateTaskRequest(
+        department='housekeeping',
+        task_type=task_type,
+        title=f"{task_type.replace('_', ' ').title()} - Room {room.get('room_number')}",
+        description=special_instructions or f"{task_type} requested for room {room.get('room_number')}",
+        priority=priority,
+        location=f"Room {room.get('room_number')}",
+        room_id=room_id
+    )
+    
+    return await create_task(task_request, current_user)
+
+# F&B Tasks
+@api_router.post("/tasks/fnb/service-request")
+async def create_fnb_service_request(
+    request_type: str,  # room_service, catering, setup, delivery
+    title: str,
+    description: str,
+    location: str,
+    priority: str = "normal",
+    due_date: str = None,
+    current_user: User = Depends(get_current_user)
+):
+    """Create F&B service request"""
+    task_request = CreateTaskRequest(
+        department='fnb',
+        task_type=request_type,
+        title=title,
+        description=description,
+        priority=priority,
+        location=location,
+        due_date=due_date
+    )
+    
+    return await create_task(task_request, current_user)
+
+
 # Include router at the very end after ALL endpoints are defined
 app.include_router(api_router)
