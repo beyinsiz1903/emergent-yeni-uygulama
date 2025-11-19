@@ -7789,15 +7789,14 @@ async def scrape_competitor_prices(
 
 @api_router.post("/rms/auto-pricing")
 async def generate_auto_pricing(
-    start_date: str,
-    end_date: str,
-    room_type: str = None,
+    request: AutoPricingRequest,
     current_user: User = Depends(get_current_user)
 ):
     """Generate automatic pricing recommendations"""
     # Parse dates
-    start = datetime.fromisoformat(start_date)
-    end = datetime.fromisoformat(end_date)
+    start = datetime.fromisoformat(request.start_date)
+    end = datetime.fromisoformat(request.end_date)
+    room_type = request.room_type
     days = (end - start).days + 1
     
     # Get room types
