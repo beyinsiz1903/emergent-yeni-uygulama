@@ -9151,7 +9151,8 @@ async def create_delivery(
         'created_at': datetime.now(timezone.utc).isoformat()
     }
     
-    await db.deliveries.insert_one(delivery)
+    delivery_copy = delivery.copy()
+    await db.deliveries.insert_one(delivery_copy)
     return delivery
 
 @api_router.get("/marketplace/stock-alerts")
