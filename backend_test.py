@@ -3412,12 +3412,12 @@ class HotelPMSBackendTester:
 def main():
     """Main function"""
     tester = HotelPMSBackendTester()
-    success = tester.run_all_tests()
+    success = tester.run_feedback_tests()
     
     if success:
-        print("\n✅ Backend testing completed successfully!")
+        print("\n✅ Enhanced Feedback & Reviews System testing completed successfully!")
     else:
-        print("\n❌ Backend testing failed!")
+        print("\n❌ Enhanced Feedback & Reviews System testing failed!")
         sys.exit(1)
 
 if __name__ == "__main__":
