@@ -789,12 +789,11 @@ class HotelPMSBackendTester:
         # 2. POST /api/marketplace/products (Shampoo Bottles)
         try:
             response = self.session.post(f"{BACKEND_URL}/marketplace/products", json={
-                "product_name": "Shampoo Bottles Luxury",
+                "name": "Shampoo Bottles Luxury",
                 "category": "amenities",
-                "unit_price": 2.50,
-                "unit_of_measure": "bottle",
+                "price": 2.50,
+                "unit": "bottle",
                 "supplier": "Hotel Supplies Inc",
-                "min_order_qty": 100,
                 "description": "Premium hotel shampoo bottles"
             })
             success = response.status_code in [200, 201]
