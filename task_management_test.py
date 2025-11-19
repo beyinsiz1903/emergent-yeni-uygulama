@@ -594,7 +594,7 @@ class TaskManagementTester:
         
         # A.1 POST /api/tasks/engineering/maintenance-request
         try:
-            response = self.session.post(f"{BACKEND_URL}/tasks/engineering/maintenance-request", json={
+            response = self.session.post(f"{BACKEND_URL}/tasks/engineering/maintenance-request", params={
                 "title": "Plumbing Issue",
                 "description": "Leaking pipe in Room 401",
                 "location": "Room 401",
