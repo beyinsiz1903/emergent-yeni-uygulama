@@ -140,15 +140,18 @@ backend:
 
   - task: "Dashboard - Guest Satisfaction Trends Endpoint"
     implemented: true
-    working: "NA"
+    working: true
     file: "/app/backend/server.py"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: "NA"
         agent: "main"
         comment: "Added GET /api/dashboard/guest-satisfaction-trends - Returns NPS score, avg rating, promoters/detractors breakdown, 7-day vs 30-day comparison, trend data"
+      - working: true
+        agent: "testing"
+        comment: "✅ ENDPOINT WORKING - GET /api/dashboard/guest-satisfaction-trends?days=7 and ?days=30 both working correctly. Returns nps_score, avg_rating, response_breakdown with promoters/detractors/passives counts and percentages, trend_data array, sentiment_breakdown. Tested both 7-day and 30-day periods. Minor: No test data so values are 0, but structure is correct."
 
   - task: "Dashboard - OTA Cancellation Rate Endpoint"
     implemented: true
