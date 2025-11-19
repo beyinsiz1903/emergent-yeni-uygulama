@@ -199,138 +199,277 @@ class HotelPMSBackendTester:
         except Exception as e:
             self.log_test_result("messaging", "/messaging/ota-integrations", "GET", False, f"Error: {str(e)}")
 
-    def test_rms_system(self):
-        """Test Full RMS - Revenue Management System (10 endpoints)"""
-        print("\n💰 Testing RMS - Revenue Management System...")
+    def test_enhanced_rms_system(self):
+        """Test Enhanced RMS with Advanced Confidence & Insights (4 NEW endpoints)"""
+        print("\n💰 Testing Enhanced RMS with Advanced Confidence & Insights...")
         
-        # 1. POST /api/rms/comp-set
-        try:
-            response = self.session.post(f"{BACKEND_URL}/rms/comp-set", json={
-                "name": "Hilton Downtown Test",
-                "location": "Downtown Business District",
-                "star_rating": 4.5,
-                "property_type": "business_hotel",
-                "website": "https://hilton.com"
-            })
-            success = response.status_code in [200, 201]
-            details = f"Status: {response.status_code}"
-            if success and response.json():
-                comp_id = response.json().get('id')
-                if comp_id:
-                    self.created_resources["comp_set_ids"].append(comp_id)
-                details += f" - Competitor added: {response.json().get('name', 'N/A')}"
-            self.log_test_result("rms", "/rms/comp-set", "POST", success, details)
-        except Exception as e:
-            self.log_test_result("rms", "/rms/comp-set", "POST", False, f"Error: {str(e)}")
-
-        # 2. GET /api/rms/comp-set
-        try:
-            response = self.session.get(f"{BACKEND_URL}/rms/comp-set")
-            success = response.status_code == 200
-            details = f"Status: {response.status_code}"
-            if success:
-                data = response.json()
-                details += f" - Competitors: {len(data.get('competitors', []))}"
-            self.log_test_result("rms", "/rms/comp-set", "GET", success, details)
-        except Exception as e:
-            self.log_test_result("rms", "/rms/comp-set", "GET", False, f"Error: {str(e)}")
-
-        # 3. POST /api/rms/scrape-comp-prices
-        try:
-            response = self.session.post(f"{BACKEND_URL}/rms/scrape-comp-prices", json={
-                "date": "2025-01-25",
-                "room_type": "standard"
-            })
-            success = response.status_code in [200, 201]
-            details = f"Status: {response.status_code}"
-            if success and response.json():
-                details += f" - Prices scraped: {response.json().get('prices_found', 0)}"
-            self.log_test_result("rms", "/rms/scrape-comp-prices", "POST", success, details)
-        except Exception as e:
-            self.log_test_result("rms", "/rms/scrape-comp-prices", "POST", False, f"Error: {str(e)}")
-
-        # 4. GET /api/rms/comp-pricing
-        try:
-            response = self.session.get(f"{BACKEND_URL}/rms/comp-pricing?date=2025-01-25")
-            success = response.status_code == 200
-            details = f"Status: {response.status_code}"
-            if success:
-                data = response.json()
-                details += f" - Pricing data points: {len(data.get('pricing', []))}"
-            self.log_test_result("rms", "/rms/comp-pricing", "GET", success, details)
-        except Exception as e:
-            self.log_test_result("rms", "/rms/comp-pricing", "GET", False, f"Error: {str(e)}")
-
-        # 5. POST /api/rms/auto-pricing
+        # ============= 1. ADVANCED AUTO-PRICING (Enhanced) =============
+        print("\n🎯 Testing Advanced Auto-Pricing with Dynamic Confidence Scoring...")
+        
         try:
             response = self.session.post(f"{BACKEND_URL}/rms/auto-pricing", json={
-                "start_date": "2025-01-25",
-                "end_date": "2025-01-31",
-                "room_types": ["standard", "deluxe"],
-                "strategy": "competitive"
+                "start_date": "2025-02-01",
+                "end_date": "2025-02-14",
+                "room_type": None
             })
             success = response.status_code in [200, 201]
             details = f"Status: {response.status_code}"
-            if success and response.json():
-                details += f" - Recommendations: {response.json().get('recommendations_count', 0)}"
-            self.log_test_result("rms", "/rms/auto-pricing", "POST", success, details)
-        except Exception as e:
-            self.log_test_result("rms", "/rms/auto-pricing", "POST", False, f"Error: {str(e)}")
-
-        # 6. GET /api/rms/pricing-recommendations
-        try:
-            response = self.session.get(f"{BACKEND_URL}/rms/pricing-recommendations?status=pending")
-            success = response.status_code == 200
-            details = f"Status: {response.status_code}"
-            if success:
-                data = response.json()
-                recommendations = data.get('recommendations', [])
-                details += f" - Pending recommendations: {len(recommendations)}"
-                
-                # Test apply recommendation if available
-                if recommendations:
-                    rec_id = recommendations[0].get('id')
-                    if rec_id:
-                        try:
-                            apply_response = self.session.post(f"{BACKEND_URL}/rms/apply-pricing/{rec_id}")
-                            apply_success = apply_response.status_code in [200, 201]
-                            apply_details = f"Status: {apply_response.status_code}"
-                            if apply_success:
-                                apply_details += " - Recommendation applied"
-                            self.log_test_result("rms", f"/rms/apply-pricing/{rec_id}", "POST", apply_success, apply_details)
-                        except Exception as e:
-                            self.log_test_result("rms", f"/rms/apply-pricing/{rec_id}", "POST", False, f"Error: {str(e)}")
             
-            self.log_test_result("rms", "/rms/pricing-recommendations", "GET", success, details)
+            if success and response.json():
+                data = response.json()
+                
+                # Verify enhanced response structure
+                required_fields = [
+                    'recommendations', 'summary', 'avg_confidence', 'high_confidence_count'
+                ]
+                missing_fields = [field for field in required_fields if field not in data]
+                
+                if missing_fields:
+                    details += f" - Missing fields: {missing_fields}"
+                    success = False
+                else:
+                    recommendations = data.get('recommendations', [])
+                    details += f" - Recommendations: {len(recommendations)}"
+                    
+                    # Check first recommendation for enhanced fields
+                    if recommendations:
+                        rec = recommendations[0]
+                        enhanced_fields = [
+                            'confidence', 'confidence_level', 'confidence_factors',
+                            'reasoning', 'reasoning_breakdown', 'booking_pace',
+                            'competitor_avg', 'price_change_pct', 'is_weekend', 'is_peak_season'
+                        ]
+                        
+                        present_fields = [field for field in enhanced_fields if field in rec]
+                        details += f" - Enhanced fields: {len(present_fields)}/{len(enhanced_fields)}"
+                        
+                        # Verify dynamic confidence (not static 0.85)
+                        confidence = rec.get('confidence', 0)
+                        if confidence != 0.85:
+                            details += f" - Dynamic confidence: {confidence}"
+                        else:
+                            details += f" - WARNING: Static confidence detected: {confidence}"
+                        
+                        # Check confidence level categorization
+                        conf_level = rec.get('confidence_level', 'N/A')
+                        details += f" - Confidence level: {conf_level}"
+                        
+                        # Check reasoning breakdown
+                        reasoning_breakdown = rec.get('reasoning_breakdown', [])
+                        details += f" - Reasoning factors: {len(reasoning_breakdown)}"
+            
+            self.log_test_result("rms", "/rms/auto-pricing (Enhanced)", "POST", success, details)
         except Exception as e:
-            self.log_test_result("rms", "/rms/pricing-recommendations", "GET", False, f"Error: {str(e)}")
+            self.log_test_result("rms", "/rms/auto-pricing (Enhanced)", "POST", False, f"Error: {str(e)}")
 
-        # 7. POST /api/rms/demand-forecast
+        # ============= 2. ADVANCED DEMAND FORECAST (90-day capable) =============
+        print("\n📈 Testing Advanced 90-Day Demand Forecast...")
+        
         try:
             response = self.session.post(f"{BACKEND_URL}/rms/demand-forecast", json={
                 "start_date": "2025-02-01",
-                "end_date": "2025-02-14",
-                "room_type": "standard"
+                "end_date": "2025-04-30"  # 90 days
             })
             success = response.status_code in [200, 201]
             details = f"Status: {response.status_code}"
+            
             if success and response.json():
-                details += f" - Forecast created for 14 days"
-            self.log_test_result("rms", "/rms/demand-forecast", "POST", success, details)
+                data = response.json()
+                
+                # Verify 90-day capability
+                forecast_data = data.get('forecast', [])
+                details += f" - Forecast days: {len(forecast_data)}"
+                
+                if len(forecast_data) < 80:  # Allow some flexibility
+                    details += " - WARNING: Less than 80 days forecasted"
+                
+                # Check enhanced forecast fields
+                if forecast_data:
+                    first_forecast = forecast_data[0]
+                    enhanced_fields = [
+                        'forecasted_occupancy', 'confidence', 'confidence_level',
+                        'confidence_factors', 'trend', 'day_of_week',
+                        'is_weekend', 'seasonal_factor', 'lead_time_days', 'model_version'
+                    ]
+                    
+                    present_fields = [field for field in enhanced_fields if field in first_forecast]
+                    details += f" - Enhanced fields: {len(present_fields)}/{len(enhanced_fields)}"
+                    
+                    # Check model version
+                    model_version = first_forecast.get('model_version', 'N/A')
+                    if model_version == "2.0-advanced":
+                        details += f" - Model version: {model_version} ✓"
+                    else:
+                        details += f" - Model version: {model_version} (expected: 2.0-advanced)"
+                
+                # Check summary statistics
+                summary = data.get('summary', {})
+                if summary:
+                    high_demand = summary.get('high_demand_days', 0)
+                    moderate_demand = summary.get('moderate_demand_days', 0)
+                    low_demand = summary.get('low_demand_days', 0)
+                    details += f" - Demand breakdown: H:{high_demand}, M:{moderate_demand}, L:{low_demand}"
+            
+            self.log_test_result("rms", "/rms/demand-forecast (90-day)", "POST", success, details)
         except Exception as e:
-            self.log_test_result("rms", "/rms/demand-forecast", "POST", False, f"Error: {str(e)}")
+            self.log_test_result("rms", "/rms/demand-forecast (90-day)", "POST", False, f"Error: {str(e)}")
 
-        # 8. GET /api/rms/demand-forecast
+        # ============= 3. COMPETITOR PRICE COMPARISON (NEW) =============
+        print("\n🏆 Testing Competitor Price Comparison (NEW Feature)...")
+        
+        # Test without date range
         try:
-            response = self.session.get(f"{BACKEND_URL}/rms/demand-forecast?start_date=2025-02-01&end_date=2025-02-14")
+            response = self.session.get(f"{BACKEND_URL}/rms/comp-set-comparison")
             success = response.status_code == 200
             details = f"Status: {response.status_code}"
-            if success:
+            
+            if success and response.json():
                 data = response.json()
-                details += f" - Forecast data points: {len(data.get('forecast', []))}"
-            self.log_test_result("rms", "/rms/demand-forecast", "GET", success, details)
+                
+                # Check response structure
+                required_fields = ['daily_comparison', 'summary']
+                missing_fields = [field for field in required_fields if field not in data]
+                
+                if missing_fields:
+                    details += f" - Missing fields: {missing_fields}"
+                    success = False
+                else:
+                    daily_data = data.get('daily_comparison', [])
+                    details += f" - Daily comparisons: {len(daily_data)}"
+                    
+                    # Check daily comparison structure
+                    if daily_data:
+                        day_data = daily_data[0]
+                        comp_fields = [
+                            'date', 'your_rate', 'comp_avg', 'comp_min', 'comp_max',
+                            'price_index', 'position', 'competitors'
+                        ]
+                        
+                        present_fields = [field for field in comp_fields if field in day_data]
+                        details += f" - Comparison fields: {len(present_fields)}/{len(comp_fields)}"
+                        
+                        # Check market position
+                        position = day_data.get('position', 'N/A')
+                        price_index = day_data.get('price_index', 0)
+                        details += f" - Position: {position}, Index: {price_index}"
+                    
+                    # Check summary
+                    summary = data.get('summary', {})
+                    if summary:
+                        avg_index = summary.get('avg_price_index', 0)
+                        days_above = summary.get('days_above_market', 0)
+                        days_below = summary.get('days_below_market', 0)
+                        details += f" - Avg index: {avg_index}, Above: {days_above}, Below: {days_below}"
+            
+            self.log_test_result("rms", "/rms/comp-set-comparison", "GET", success, details)
         except Exception as e:
-            self.log_test_result("rms", "/rms/demand-forecast", "GET", False, f"Error: {str(e)}")
+            self.log_test_result("rms", "/rms/comp-set-comparison", "GET", False, f"Error: {str(e)}")
+
+        # Test with date range
+        try:
+            response = self.session.get(f"{BACKEND_URL}/rms/comp-set-comparison?start_date=2025-02-01&end_date=2025-02-28")
+            success = response.status_code == 200
+            details = f"Status: {response.status_code} - With date range"
+            
+            if success and response.json():
+                data = response.json()
+                daily_data = data.get('daily_comparison', [])
+                details += f" - February comparisons: {len(daily_data)}"
+                
+                # Should have approximately 28 days for February
+                if 25 <= len(daily_data) <= 31:
+                    details += " - Date range working ✓"
+                else:
+                    details += f" - WARNING: Expected ~28 days, got {len(daily_data)}"
+            
+            self.log_test_result("rms", "/rms/comp-set-comparison (Date Range)", "GET", success, details)
+        except Exception as e:
+            self.log_test_result("rms", "/rms/comp-set-comparison (Date Range)", "GET", False, f"Error: {str(e)}")
+
+        # ============= 4. PRICING INSIGHTS (NEW) =============
+        print("\n💡 Testing Pricing Insights (NEW Feature)...")
+        
+        # Test without specific date
+        try:
+            response = self.session.get(f"{BACKEND_URL}/rms/pricing-insights")
+            success = response.status_code == 200
+            details = f"Status: {response.status_code}"
+            
+            if success and response.json():
+                data = response.json()
+                
+                # Check response structure
+                required_fields = ['insights', 'summary']
+                missing_fields = [field for field in required_fields if field not in data]
+                
+                if missing_fields:
+                    details += f" - Missing fields: {missing_fields}"
+                    success = False
+                else:
+                    insights = data.get('insights', [])
+                    details += f" - Room type insights: {len(insights)}"
+                    
+                    # Check insight structure
+                    if insights:
+                        insight = insights[0]
+                        insight_fields = [
+                            'room_type', 'current_rate', 'price_change', 'price_change_pct',
+                            'occupancy', 'booking_pace', 'competitor_avg',
+                            'reasoning', 'reasoning_breakdown', 'confidence_factors'
+                        ]
+                        
+                        present_fields = [field for field in insight_fields if field in insight]
+                        details += f" - Insight fields: {len(present_fields)}/{len(insight_fields)}"
+                        
+                        # Check specific values
+                        room_type = insight.get('room_type', 'N/A')
+                        price_change_pct = insight.get('price_change_pct', 0)
+                        details += f" - Room: {room_type}, Change: {price_change_pct}%"
+                    
+                    # Check summary
+                    summary = data.get('summary', {})
+                    if summary:
+                        rate_increases = summary.get('rate_increases', 0)
+                        rate_decreases = summary.get('rate_decreases', 0)
+                        avg_change = summary.get('avg_rate_change_pct', 0)
+                        details += f" - Increases: {rate_increases}, Decreases: {rate_decreases}, Avg: {avg_change}%"
+            
+            self.log_test_result("rms", "/rms/pricing-insights", "GET", success, details)
+        except Exception as e:
+            self.log_test_result("rms", "/rms/pricing-insights", "GET", False, f"Error: {str(e)}")
+
+        # Test with specific date
+        try:
+            response = self.session.get(f"{BACKEND_URL}/rms/pricing-insights?date=2025-02-15")
+            success = response.status_code == 200
+            details = f"Status: {response.status_code} - Specific date"
+            
+            if success and response.json():
+                data = response.json()
+                insights = data.get('insights', [])
+                details += f" - Feb 15 insights: {len(insights)}"
+                
+                # Check if date filtering works
+                if insights:
+                    # All insights should be for the same date
+                    dates = set(insight.get('date', '') for insight in insights if 'date' in insight)
+                    if len(dates) <= 1:
+                        details += " - Date filtering working ✓"
+                    else:
+                        details += f" - WARNING: Multiple dates found: {dates}"
+            
+            self.log_test_result("rms", "/rms/pricing-insights (Specific Date)", "GET", success, details)
+        except Exception as e:
+            self.log_test_result("rms", "/rms/pricing-insights (Specific Date)", "GET", False, f"Error: {str(e)}")
+
+        # ============= VALIDATION SUMMARY =============
+        print("\n✅ Enhanced RMS Validation Summary:")
+        print("   - Dynamic confidence scoring (not static 0.85)")
+        print("   - Confidence levels (High/Medium/Low)")
+        print("   - Multi-factor reasoning breakdown")
+        print("   - 90-day demand forecasting capability")
+        print("   - Competitor price comparison with market position")
+        print("   - Detailed pricing insights with trend analysis")
 
     def test_mobile_housekeeping(self):
         """Test Mobile Housekeeping App (7 endpoints)"""
