@@ -96,7 +96,7 @@ const Dashboard = ({ user, tenant, onLogout }) => {
           <h1 className="text-4xl font-bold mb-2" style={{ fontFamily: 'Space Grotesk' }}>
             {t('dashboard.welcome')}, {user.name}
           </h1>
-          <p className="text-lg text-gray-600">{tenant.property_name}</p>
+          <p className="text-lg text-gray-600">{tenant?.property_name || 'Hotel Management System'}</p>
         </div>
 
         {loading ? (
