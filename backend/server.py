@@ -414,17 +414,15 @@ async def create_audit_log(
 class Tenant(BaseModel):
     model_config = ConfigDict(extra="ignore")
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
-    name: str
     property_name: str
-    email: EmailStr
-    phone: str
-    address: str
+    property_type: Optional[str] = "hotel"
+    contact_email: Optional[str] = None
+    contact_phone: Optional[str] = None
+    address: Optional[str] = None
+    total_rooms: Optional[int] = 50
     subscription_status: str = "active"
     location: Optional[str] = None
     amenities: List[str] = []
-    images: List[str] = []
-    description: Optional[str] = None
-    total_rooms: int = 0
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 class User(BaseModel):
