@@ -3324,7 +3324,7 @@ const PMSModule = ({ user, tenant, onLogout }) => {
                     <div className="space-y-2 max-h-96 overflow-y-auto">
                       {folioCharges.length === 0 ? (
                         <div className="text-center text-gray-400 py-8">No charges posted</div>
-                      ) : (
+                      ) : 
                         folioCharges.map((charge) => {
                           // Check if this is a POS charge with line items
                           const isPOSCharge = charge.charge_category === 'restaurant' || charge.charge_category === 'bar' || charge.charge_category === 'room_service';
