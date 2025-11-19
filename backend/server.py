@@ -8145,7 +8145,7 @@ async def report_housekeeping_issue(
     await db.housekeeping_issues.insert_one(issue)
     
     # If maintenance issue, create maintenance task
-    if issue_type == 'maintenance':
+    if request.issue_type == 'maintenance':
         maintenance_task = {
             'id': str(uuid.uuid4()),
             'tenant_id': current_user.tenant_id,
