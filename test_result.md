@@ -1057,6 +1057,42 @@ frontend:
         agent: "main"
         comment: "Enhanced Room Status Board with priority/urgency visual indicators. Added priority calculation logic: URGENT (🔥 red badge) for due out today + needs cleaning, HIGH (⚡ orange badge) for arrival today + needs cleaning, MEDIUM (📤 orange) for due out today, NORMAL (📥 blue) for arrival today. Room cards get colored ring borders matching priority level. Clean button gets highlighted for urgent rooms. Added priority legend in board header (Urgent: red dot, High Priority: orange dot, Normal: blue dot). Priority tooltips show detailed status (e.g., 'URGENT: Due Out Today - Needs Cleaning'). Integrates dueOutRooms, arrivalRooms data for real-time priority updates."
 
+  - task: "Guest 360 Profile - Quick Action Buttons"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/pages/PMSModule.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Added 4 quick action buttons to Guest 360 Profile dialog: (1) Send Offer - opens offer creation flow for guest, (2) Add Note - auto-focuses note input field below, (3) Block Room Preference - saves room preferences as tags (High Floor, Sea View, etc), (4) Message Guest - navigates to OTA Messaging Hub with pre-filled guest info. Buttons positioned in prominent location at top of dialog with color-coded styling (green for Send Offer, blue for Add Note, purple for Preferences, orange for Message). Integrated with existing guest360Data, selectedGuest360, and CRM endpoints. Toast notifications for user feedback."
+
+  - task: "Upsell-Arrivals Integration: Badge on Front Desk"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/pages/GMDashboard.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Enhanced Today's Arrivals cards with 'Upsell Available' badges. Added upsellAvailable and upsellType fields to arrival guest cards. Floating badge (💰 Upsell Available) positioned top-right with gradient green background and white border. Upsell type displayed below guest info (Suite Upgrade, Late Checkout, etc) with upgrade icon. Visual differentiation for guests with upsell opportunities. Sample data shows 2/3 guests with upsell available. Prepares for AI Upsell Center integration. Addresses review feedback: 'Front Desk / Arrivals ekranında, misafir kartında Upsell available etiketi çıksın' → DONE!"
+
+  - task: "Upsell-Messaging Integration: AI-Powered Upgrade Offer Template"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/pages/OTAMessagingHub.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Integrated AI Upsell with Messaging Center via smart templates. Added message templates system with dropdown selector. Created 'Upgrade Offer' template with AI auto-fill: template dynamically populated with upsellData (upgrade type, price, benefits from AI Upsell Center). loadUpsellForGuest() fetches AI recommendations via GET /ai/upsell/recommendations?guest_id={id}. applyTemplate() function replaces placeholders: {UPGRADE_TYPE}, {PRICE}, {BENEFITS}, {GUEST_NAME}. Template shows 'AI-Powered' badge when upsell data available. Green-highlighted textarea and confidence indicator (e.g., '85% confidence'). Bottom banner shows: '💰 AI Upsell Available: Suite Upgrade - $150 (85% confidence)'. One-click template application with auto-filled content and pricing. Addresses review feedback: 'Messaging Center'da Upgrade Offer şablonu, AI Upsell'den beslenip içerik ve fiyat otomatik gelsin' → DONE!"
+
   - task: "Mobile Housekeeping Quick Status Update"
     implemented: true
     working: true
