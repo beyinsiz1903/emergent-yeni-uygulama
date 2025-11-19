@@ -8488,10 +8488,11 @@ async def get_group_reservation(
 @api_router.post("/group-reservations/{group_id}/assign-rooms")
 async def assign_group_rooms(
     group_id: str,
-    room_assignments: list,
+    request: AssignGroupRoomsRequest,
     current_user: User = Depends(get_current_user)
 ):
     """Assign rooms to group reservation"""
+    room_assignments = request.room_assignments
     group = await db.group_reservations.find_one(
         {'id': group_id, 'tenant_id': current_user.tenant_id}
     )
