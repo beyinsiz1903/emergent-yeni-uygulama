@@ -8690,7 +8690,8 @@ async def create_property(
         'created_at': datetime.now(timezone.utc).isoformat()
     }
     
-    await db.properties.insert_one(property_obj)
+    property_copy = property_obj.copy()
+    await db.properties.insert_one(property_copy)
     return property_obj
 
 @api_router.get("/multi-property/dashboard")
