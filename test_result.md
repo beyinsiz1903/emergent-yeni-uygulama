@@ -820,6 +820,18 @@ backend:
         agent: "testing"
         comment: "✅ MARKETPLACE TESTING COMPLETED (100% Success Rate - 12/12 endpoints passed). All marketplace endpoints working perfectly: POST /marketplace/products (product creation with correct field mapping), GET /marketplace/products (product retrieval with category filtering), GET /marketplace/inventory (inventory management), POST /marketplace/inventory/adjust (inventory adjustments), POST /marketplace/purchase-orders (PO creation), GET /marketplace/purchase-orders (PO retrieval), POST /marketplace/purchase-orders/{id}/approve (PO approval), POST /marketplace/purchase-orders/{id}/receive (PO receiving), GET /marketplace/deliveries (delivery tracking), GET /marketplace/stock-alerts (stock alerts). Fixed validation errors, response format issues, and MongoDB ObjectId serialization problems. All endpoints fully functional."
 
+  - task: "4 New Marketplace Extensions for Wholesale Management (20 endpoints)"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "testing"
+        comment: "✅ MARKETPLACE EXTENSIONS TESTING COMPLETED (100% Success Rate - 20/20 endpoints passed). All 4 new wholesale management features working perfectly: 1) SUPPLIER MANAGEMENT (6/6): POST/GET /marketplace/suppliers, PUT/GET credit limits, supplier filtering by status. 2) GM APPROVAL WORKFLOW (5/5): PO submit-for-approval, pending approvals retrieval, approve/reject with notes, workflow state verification. 3) WAREHOUSE TRACKING (5/5): POST/GET warehouses, warehouse inventory tracking, stock summary across all locations. 4) SHIPPING & DELIVERY TRACKING (4/4): delivery status updates (in_transit→delivered), tracking history, in-transit deliveries filtering. Credit limit calculations working (limit - outstanding = available), approval workflow transitions (pending→awaiting_approval→approved/rejected), warehouse inventory aggregation accurate, delivery tracking with complete history. All CRUD operations, validation, filtering, and business logic fully functional."
+
 frontend:
   - task: "OTA Messaging Hub - Complete Frontend Implementation"
     implemented: true
