@@ -8668,24 +8668,19 @@ async def get_properties(current_user: User = Depends(get_current_user)):
 
 @api_router.post("/multi-property/properties")
 async def create_property(
-    property_name: str,
-    property_code: str,
-    location: str,
-    total_rooms: int,
-    property_type: str = 'hotel',
-    status: str = 'active',
+    request: CreatePropertyRequest,
     current_user: User = Depends(get_current_user)
 ):
     """Add new property to portfolio"""
     property_obj = {
         'id': str(uuid.uuid4()),
         'portfolio_id': current_user.tenant_id,
-        'property_name': property_name,
-        'property_code': property_code,
-        'location': location,
-        'total_rooms': total_rooms,
-        'property_type': property_type,
-        'status': status,
+        'property_name': request.property_name,
+        'property_code': request.property_code,
+        'location': request.location,
+        'total_rooms': request.total_rooms,
+        'property_type': request.property_type,
+        'status': request.status,
         'created_at': datetime.now(timezone.utc).isoformat()
     }
     
