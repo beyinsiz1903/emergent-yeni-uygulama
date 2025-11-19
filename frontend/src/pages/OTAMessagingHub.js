@@ -252,23 +252,89 @@ const OTAMessagingHub = () => {
 
               {/* Message Input */}
               <div className="border-t p-4">
+                {/* Template Selector - NEW */}
+                <div className="mb-3">
+                  <Button 
+                    size="sm" 
+                    variant="outline"
+                    onClick={() => setShowTemplates(!showTemplates)}
+                    className="text-xs"
+                  >
+                    <FileText className="w-3 h-3 mr-2" />
+                    Message Templates {upsellData && '(💰 Upsell Available)'}
+                  </Button>
+                  
+                  {showTemplates && (
+                    <div className="mt-2 p-3 bg-gray-50 rounded-lg border space-y-2 max-h-48 overflow-y-auto">
+                      {/* Upgrade Offer Template (AI-Powered) */}
+                      <div 
+                        onClick={() => applyTemplate({
+                          name: 'Upgrade Offer',
+                          content: `Dear {GUEST_NAME},\n\nWe have an exclusive upgrade opportunity for you! 🌟\n\nUpgrade Type: {UPGRADE_TYPE}\nSpecial Price: ${upsellData?.offers?.[0]?.price || '99'}\n\n{BENEFITS}\n\nThis offer is valid for 24 hours. Reply YES to confirm!\n\nBest regards,\n{HOTEL_NAME}`
+                        })}
+                        className="p-3 bg-white rounded border hover:border-green-500 cursor-pointer hover:shadow-md transition"
+                      >
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="font-semibold text-sm">🎁 Upgrade Offer</span>
+                          {upsellData && (
+                            <Badge className="bg-green-500 text-xs">AI-Powered</Badge>
+                          )}
+                        </div>
+                        <p className="text-xs text-gray-600">
+                          {upsellData ? 
+                            `Auto-filled with AI upsell: ${upsellData.offers?.[0]?.type || 'Room Upgrade'} - $${upsellData.offers?.[0]?.price || '99'}` :
+                            'Exclusive upgrade offer template'
+                          }
+                        </p>
+                      </div>
+
+                      {/* Other Templates */}
+                      {templates.map((template, idx) => (
+                        <div 
+                          key={idx}
+                          onClick={() => applyTemplate(template)}
+                          className="p-3 bg-white rounded border hover:border-blue-500 cursor-pointer hover:shadow-md transition"
+                        >
+                          <span className="font-semibold text-sm">{template.name}</span>
+                          <p className="text-xs text-gray-600 truncate">{template.content.substring(0, 60)}...</p>
+                        </div>
+                      ))}
+                      
+                      {templates.length === 0 && (
+                        <div className="text-xs text-gray-500 text-center py-2">
+                          No templates found. Create templates in Settings.
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+
                 <div className="flex gap-2">
                   <Textarea
                     value={newMessage}
                     onChange={(e) => setNewMessage(e.target.value)}
                     placeholder="Type your message..."
-                    rows={2}
+                    rows={3}
                     onKeyPress={(e) => {
                       if (e.key === 'Enter' && !e.shiftKey) {
                         e.preventDefault();
                         handleSendMessage();
                       }
                     }}
+                    className={upsellData ? 'border-green-300' : ''}
                   />
                   <Button onClick={handleSendMessage} disabled={loading || !newMessage.trim()}>
                     <Send className="w-4 h-4" />
                   </Button>
                 </div>
+                
+                {/* Upsell Data Indicator */}
+                {upsellData && upsellData.offers?.length > 0 && (
+                  <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded text-xs">
+                    💰 AI Upsell Available: {upsellData.offers[0].type} - ${upsellData.offers[0].price} 
+                    <span className="text-green-700 ml-2">({Math.round(upsellData.offers[0].confidence * 100)}% confidence)</span>
+                  </div>
+                )}
               </div>
             </>
           ) : (
