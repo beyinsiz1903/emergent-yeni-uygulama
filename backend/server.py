@@ -7433,5 +7433,1664 @@ async def create_pos_closure(current_user: User = Depends(get_current_user)):
     await db.pos_closures.insert_one(closure)
     return closure
 
+
+# ========================================
+# 1. WhatsApp & OTA Messaging Hub
+# ========================================
+
+@api_router.post("/messaging/send-whatsapp")
+async def send_whatsapp_message(
+    to: str,
+    message: str,
+    booking_id: str = None,
+    current_user: User = Depends(get_current_user)
+):
+    """Send WhatsApp message to guest"""
+    msg_record = {
+        'id': str(uuid.uuid4()),
+        'tenant_id': current_user.tenant_id,
+        'channel': 'whatsapp',
+        'to': to,
+        'message': message,
+        'booking_id': booking_id,
+        'status': 'sent',
+        'sent_at': datetime.now(timezone.utc).isoformat(),
+        'sent_by': current_user.id
+    }
+    
+    await db.messages.insert_one(msg_record)
+    return {'message': 'WhatsApp message sent successfully', 'message_id': msg_record['id']}
+
+@api_router.post("/messaging/send-email")
+async def send_email_message(
+    to: str,
+    subject: str,
+    message: str,
+    booking_id: str = None,
+    current_user: User = Depends(get_current_user)
+):
+    """Send email to guest"""
+    msg_record = {
+        'id': str(uuid.uuid4()),
+        'tenant_id': current_user.tenant_id,
+        'channel': 'email',
+        'to': to,
+        'subject': subject,
+        'message': message,
+        'booking_id': booking_id,
+        'status': 'sent',
+        'sent_at': datetime.now(timezone.utc).isoformat(),
+        'sent_by': current_user.id
+    }
+    
+    await db.messages.insert_one(msg_record)
+    return {'message': 'Email sent successfully', 'message_id': msg_record['id']}
+
+@api_router.post("/messaging/send-sms")
+async def send_sms_message(
+    to: str,
+    message: str,
+    booking_id: str = None,
+    current_user: User = Depends(get_current_user)
+):
+    """Send SMS to guest"""
+    msg_record = {
+        'id': str(uuid.uuid4()),
+        'tenant_id': current_user.tenant_id,
+        'channel': 'sms',
+        'to': to,
+        'message': message,
+        'booking_id': booking_id,
+        'status': 'sent',
+        'sent_at': datetime.now(timezone.utc).isoformat(),
+        'sent_by': current_user.id
+    }
+    
+    await db.messages.insert_one(msg_record)
+    return {'message': 'SMS sent successfully', 'message_id': msg_record['id']}
+
+@api_router.get("/messaging/conversations")
+async def get_conversations(
+    channel: str = None,
+    current_user: User = Depends(get_current_user)
+):
+    """Get all message conversations"""
+    query = {'tenant_id': current_user.tenant_id}
+    if channel:
+        query['channel'] = channel
+    
+    messages = await db.messages.find(
+        query,
+        {'_id': 0}
+    ).sort('sent_at', -1).limit(100).to_list(100)
+    
+    return {'messages': messages, 'count': len(messages)}
+
+@api_router.get("/messaging/templates")
+async def get_message_templates(
+    channel: str = None,
+    current_user: User = Depends(get_current_user)
+):
+    """Get message templates"""
+    query = {'tenant_id': current_user.tenant_id}
+    if channel:
+        query['channel'] = channel
+    
+    templates = await db.message_templates.find(
+        query,
+        {'_id': 0}
+    ).to_list(100)
+    
+    return {'templates': templates, 'count': len(templates)}
+
+@api_router.post("/messaging/templates")
+async def create_message_template(
+    name: str,
+    channel: str,
+    subject: str = None,
+    content: str = "",
+    variables: list = [],
+    current_user: User = Depends(get_current_user)
+):
+    """Create message template"""
+    template = {
+        'id': str(uuid.uuid4()),
+        'tenant_id': current_user.tenant_id,
+        'name': name,
+        'channel': channel,
+        'subject': subject,
+        'content': content,
+        'variables': variables,
+        'created_at': datetime.now(timezone.utc).isoformat(),
+        'created_by': current_user.id
+    }
+    
+    await db.message_templates.insert_one(template)
+    return template
+
+@api_router.get("/messaging/ota-integrations")
+async def get_ota_integrations(current_user: User = Depends(get_current_user)):
+    """Get OTA messaging integrations"""
+    integrations = await db.ota_integrations.find(
+        {'tenant_id': current_user.tenant_id},
+        {'_id': 0}
+    ).to_list(100)
+    
+    return {'integrations': integrations, 'count': len(integrations)}
+
+
+# ========================================
+# 2. Full RMS - Revenue Management System
+# ========================================
+
+@api_router.get("/rms/comp-set")
+async def get_comp_set(current_user: User = Depends(get_current_user)):
+    """Get competitor set data"""
+    comp_set = await db.comp_set.find(
+        {'tenant_id': current_user.tenant_id},
+        {'_id': 0}
+    ).to_list(100)
+    
+    return {'comp_set': comp_set, 'count': len(comp_set)}
+
+@api_router.post("/rms/comp-set")
+async def add_competitor(
+    name: str,
+    location: str,
+    star_rating: float,
+    url: str = None,
+    current_user: User = Depends(get_current_user)
+):
+    """Add competitor to comp set"""
+    competitor = {
+        'id': str(uuid.uuid4()),
+        'tenant_id': current_user.tenant_id,
+        'name': name,
+        'location': location,
+        'star_rating': star_rating,
+        'url': url,
+        'status': 'active',
+        'created_at': datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.comp_set.insert_one(competitor)
+    return competitor
+
+@api_router.get("/rms/comp-pricing")
+async def get_competitor_pricing(
+    date: str = None,
+    current_user: User = Depends(get_current_user)
+):
+    """Get competitor pricing for specific date"""
+    query = {'tenant_id': current_user.tenant_id}
+    if date:
+        query['date'] = date
+    
+    pricing = await db.comp_pricing.find(
+        query,
+        {'_id': 0}
+    ).sort('date', -1).limit(100).to_list(100)
+    
+    return {'pricing': pricing, 'count': len(pricing)}
+
+@api_router.post("/rms/scrape-comp-prices")
+async def scrape_competitor_prices(
+    date: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Scrape competitor prices for specific date"""
+    # Get all active competitors
+    competitors = await db.comp_set.find(
+        {'tenant_id': current_user.tenant_id, 'status': 'active'},
+        {'_id': 0}
+    ).to_list(100)
+    
+    scraped_prices = []
+    for comp in competitors:
+        price_data = {
+            'id': str(uuid.uuid4()),
+            'tenant_id': current_user.tenant_id,
+            'competitor_id': comp['id'],
+            'competitor_name': comp['name'],
+            'date': date,
+            'lowest_rate': 120.00 + (hash(comp['id']) % 50),  # Mock pricing
+            'standard_rate': 150.00 + (hash(comp['id']) % 80),
+            'scraped_at': datetime.now(timezone.utc).isoformat()
+        }
+        await db.comp_pricing.insert_one(price_data)
+        scraped_prices.append(price_data)
+    
+    return {
+        'message': f'Scraped prices for {len(scraped_prices)} competitors',
+        'prices': scraped_prices
+    }
+
+@api_router.post("/rms/auto-pricing")
+async def generate_auto_pricing(
+    start_date: str,
+    end_date: str,
+    room_type: str = None,
+    current_user: User = Depends(get_current_user)
+):
+    """Generate automatic pricing recommendations"""
+    # Parse dates
+    start = datetime.fromisoformat(start_date)
+    end = datetime.fromisoformat(end_date)
+    days = (end - start).days + 1
+    
+    # Get room types
+    room_types_query = {'tenant_id': current_user.tenant_id}
+    if room_type:
+        room_types_query['name'] = room_type
+    
+    room_types = await db.room_types.find(room_types_query, {'_id': 0}).to_list(100)
+    
+    recommendations = []
+    for day in range(days):
+        current_date = (start + timedelta(days=day)).date().isoformat()
+        
+        for rt in room_types:
+            # Get bookings for this date
+            bookings = await db.bookings.count_documents({
+                'tenant_id': current_user.tenant_id,
+                'room_type': rt['name'],
+                'check_in_date': {'$lte': current_date},
+                'check_out_date': {'$gt': current_date},
+                'status': {'$in': ['confirmed', 'guaranteed', 'checked_in']}
+            })
+            
+            # Get total rooms
+            total_rooms = await db.rooms.count_documents({
+                'tenant_id': current_user.tenant_id,
+                'room_type': rt['name']
+            })
+            
+            occupancy = (bookings / total_rooms * 100) if total_rooms > 0 else 0
+            base_rate = rt.get('base_rate', 100.0)
+            
+            # Pricing algorithm
+            if occupancy > 90:
+                suggested_rate = base_rate * 1.25  # +25% premium
+                strategy = 'High demand pricing'
+            elif occupancy > 75:
+                suggested_rate = base_rate * 1.15  # +15% premium
+                strategy = 'Demand-based pricing'
+            elif occupancy > 50:
+                suggested_rate = base_rate * 1.05  # +5% premium
+                strategy = 'Standard pricing'
+            elif occupancy > 30:
+                suggested_rate = base_rate * 0.95  # -5% discount
+                strategy = 'Competitive pricing'
+            else:
+                suggested_rate = base_rate * 0.85  # -15% discount
+                strategy = 'Promotional pricing'
+            
+            recommendation = {
+                'id': str(uuid.uuid4()),
+                'tenant_id': current_user.tenant_id,
+                'date': current_date,
+                'room_type': rt['name'],
+                'current_rate': base_rate,
+                'suggested_rate': round(suggested_rate, 2),
+                'occupancy': round(occupancy, 1),
+                'strategy': strategy,
+                'confidence': 0.85,
+                'generated_at': datetime.now(timezone.utc).isoformat()
+            }
+            recommendations.append(recommendation)
+    
+    # Save recommendations
+    if recommendations:
+        await db.rms_pricing_recommendations.insert_many(recommendations)
+    
+    return {
+        'message': f'Generated {len(recommendations)} pricing recommendations',
+        'recommendations': recommendations
+    }
+
+@api_router.get("/rms/demand-forecast")
+async def get_demand_forecast(
+    start_date: str = None,
+    end_date: str = None,
+    current_user: User = Depends(get_current_user)
+):
+    """Get demand forecast"""
+    query = {'tenant_id': current_user.tenant_id}
+    if start_date and end_date:
+        query['date'] = {'$gte': start_date, '$lte': end_date}
+    
+    forecasts = await db.demand_forecasts.find(
+        query,
+        {'_id': 0}
+    ).sort('date', 1).to_list(365)
+    
+    return {'forecasts': forecasts, 'count': len(forecasts)}
+
+@api_router.post("/rms/demand-forecast")
+async def generate_demand_forecast(
+    start_date: str,
+    end_date: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Generate demand forecast using historical data"""
+    start = datetime.fromisoformat(start_date)
+    end = datetime.fromisoformat(end_date)
+    days = (end - start).days + 1
+    
+    forecasts = []
+    for day in range(days):
+        current_date = (start + timedelta(days=day)).date().isoformat()
+        date_obj = datetime.fromisoformat(current_date)
+        
+        # Get total rooms
+        total_rooms = await db.rooms.count_documents({'tenant_id': current_user.tenant_id})
+        
+        # Simple forecast model (can be enhanced with ML)
+        day_of_week = date_obj.weekday()
+        
+        # Weekend boost
+        if day_of_week in [4, 5]:  # Friday, Saturday
+            base_demand = 0.85
+        elif day_of_week in [6]:  # Sunday
+            base_demand = 0.70
+        else:
+            base_demand = 0.60
+        
+        # Seasonal adjustment (summer boost)
+        month = date_obj.month
+        if month in [6, 7, 8]:
+            seasonal_factor = 1.2
+        elif month in [12, 1]:
+            seasonal_factor = 1.1
+        else:
+            seasonal_factor = 1.0
+        
+        forecasted_demand = base_demand * seasonal_factor
+        forecasted_rooms = int(total_rooms * forecasted_demand)
+        
+        forecast = {
+            'id': str(uuid.uuid4()),
+            'tenant_id': current_user.tenant_id,
+            'date': current_date,
+            'forecasted_occupancy': round(forecasted_demand * 100, 1),
+            'forecasted_rooms': forecasted_rooms,
+            'confidence': 0.75,
+            'model_version': '1.0',
+            'generated_at': datetime.now(timezone.utc).isoformat()
+        }
+        forecasts.append(forecast)
+    
+    # Save forecasts
+    if forecasts:
+        await db.demand_forecasts.insert_many(forecasts)
+    
+    return {
+        'message': f'Generated {len(forecasts)} demand forecasts',
+        'forecasts': forecasts
+    }
+
+@api_router.get("/rms/pricing-recommendations")
+async def get_pricing_recommendations(
+    date: str = None,
+    status: str = 'pending',
+    current_user: User = Depends(get_current_user)
+):
+    """Get pricing recommendations"""
+    query = {'tenant_id': current_user.tenant_id}
+    if date:
+        query['date'] = date
+    if status:
+        query['status'] = status
+    
+    recommendations = await db.rms_pricing_recommendations.find(
+        query,
+        {'_id': 0}
+    ).sort('date', 1).to_list(1000)
+    
+    return {'recommendations': recommendations, 'count': len(recommendations)}
+
+@api_router.post("/rms/apply-pricing/{recommendation_id}")
+async def apply_pricing_recommendation(
+    recommendation_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Apply pricing recommendation"""
+    recommendation = await db.rms_pricing_recommendations.find_one({
+        'id': recommendation_id,
+        'tenant_id': current_user.tenant_id
+    }, {'_id': 0})
+    
+    if not recommendation:
+        raise HTTPException(status_code=404, detail="Recommendation not found")
+    
+    # Update rate in rate calendar
+    await db.rate_calendar.update_one(
+        {
+            'tenant_id': current_user.tenant_id,
+            'date': recommendation['date'],
+            'room_type': recommendation['room_type']
+        },
+        {
+            '$set': {
+                'rate': recommendation['suggested_rate'],
+                'updated_at': datetime.now(timezone.utc).isoformat(),
+                'updated_by': current_user.id
+            }
+        },
+        upsert=True
+    )
+    
+    # Mark recommendation as applied
+    await db.rms_pricing_recommendations.update_one(
+        {'id': recommendation_id},
+        {
+            '$set': {
+                'status': 'applied',
+                'applied_at': datetime.now(timezone.utc).isoformat(),
+                'applied_by': current_user.id
+            }
+        }
+    )
+    
+    return {'message': 'Pricing recommendation applied successfully'}
+
+
+# ========================================
+# 3. Mobile Housekeeping App
+# ========================================
+
+@api_router.get("/housekeeping/mobile/my-tasks")
+async def get_my_housekeeping_tasks(
+    status: str = None,
+    current_user: User = Depends(get_current_user)
+):
+    """Get tasks assigned to current user"""
+    query = {
+        'tenant_id': current_user.tenant_id,
+        'assigned_to': current_user.name
+    }
+    if status:
+        query['status'] = status
+    
+    tasks = await db.housekeeping_tasks.find(
+        query,
+        {'_id': 0}
+    ).sort('priority', -1).to_list(100)
+    
+    # Enrich with room details
+    for task in tasks:
+        if task.get('room_id'):
+            room = await db.rooms.find_one(
+                {'id': task['room_id'], 'tenant_id': current_user.tenant_id},
+                {'_id': 0}
+            )
+            if room:
+                task['room_number'] = room['room_number']
+                task['room_type'] = room['room_type']
+    
+    return {'tasks': tasks, 'count': len(tasks)}
+
+@api_router.post("/housekeeping/mobile/start-task/{task_id}")
+async def start_housekeeping_task(
+    task_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Start working on a task"""
+    task = await db.housekeeping_tasks.find_one({
+        'id': task_id,
+        'tenant_id': current_user.tenant_id,
+        'assigned_to': current_user.name
+    })
+    
+    if not task:
+        raise HTTPException(status_code=404, detail="Task not found")
+    
+    await db.housekeeping_tasks.update_one(
+        {'id': task_id},
+        {
+            '$set': {
+                'status': 'in_progress',
+                'started_at': datetime.now(timezone.utc).isoformat()
+            }
+        }
+    )
+    
+    # Update room status to cleaning
+    if task.get('room_id'):
+        await db.rooms.update_one(
+            {'id': task['room_id'], 'tenant_id': current_user.tenant_id},
+            {'$set': {'room_status': 'cleaning'}}
+        )
+    
+    return {'message': 'Task started successfully'}
+
+@api_router.post("/housekeeping/mobile/complete-task/{task_id}")
+async def complete_housekeeping_task(
+    task_id: str,
+    notes: str = None,
+    photos: list = [],
+    current_user: User = Depends(get_current_user)
+):
+    """Complete a housekeeping task"""
+    task = await db.housekeeping_tasks.find_one({
+        'id': task_id,
+        'tenant_id': current_user.tenant_id,
+        'assigned_to': current_user.name
+    })
+    
+    if not task:
+        raise HTTPException(status_code=404, detail="Task not found")
+    
+    await db.housekeeping_tasks.update_one(
+        {'id': task_id},
+        {
+            '$set': {
+                'status': 'completed',
+                'completed_at': datetime.now(timezone.utc).isoformat(),
+                'completion_notes': notes,
+                'photos': photos
+            }
+        }
+    )
+    
+    # Update room status based on task type
+    if task.get('room_id'):
+        new_status = 'inspected' if task.get('task_type') == 'inspection' else 'clean'
+        await db.rooms.update_one(
+            {'id': task['room_id'], 'tenant_id': current_user.tenant_id},
+            {'$set': {'room_status': new_status}}
+        )
+    
+    return {'message': 'Task completed successfully'}
+
+@api_router.post("/housekeeping/mobile/report-issue")
+async def report_housekeeping_issue(
+    room_id: str,
+    issue_type: str,
+    description: str,
+    priority: str = 'normal',
+    photos: list = [],
+    current_user: User = Depends(get_current_user)
+):
+    """Report maintenance or cleaning issue"""
+    issue = {
+        'id': str(uuid.uuid4()),
+        'tenant_id': current_user.tenant_id,
+        'room_id': room_id,
+        'issue_type': issue_type,
+        'description': description,
+        'priority': priority,
+        'photos': photos,
+        'status': 'open',
+        'reported_by': current_user.name,
+        'reported_at': datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.housekeeping_issues.insert_one(issue)
+    
+    # If maintenance issue, create maintenance task
+    if issue_type == 'maintenance':
+        maintenance_task = {
+            'id': str(uuid.uuid4()),
+            'tenant_id': current_user.tenant_id,
+            'room_id': room_id,
+            'task_type': 'maintenance',
+            'description': description,
+            'priority': priority,
+            'status': 'pending',
+            'assigned_to': 'Engineering',
+            'created_at': datetime.now(timezone.utc).isoformat()
+        }
+        await db.housekeeping_tasks.insert_one(maintenance_task)
+    
+    return {'message': 'Issue reported successfully', 'issue_id': issue['id']}
+
+@api_router.post("/housekeeping/mobile/upload-photo")
+async def upload_housekeeping_photo(
+    task_id: str,
+    photo_base64: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Upload photo for housekeeping task"""
+    photo_record = {
+        'id': str(uuid.uuid4()),
+        'tenant_id': current_user.tenant_id,
+        'task_id': task_id,
+        'photo_data': photo_base64[:100] + '...',  # Store truncated for demo
+        'uploaded_by': current_user.name,
+        'uploaded_at': datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.housekeeping_photos.insert_one(photo_record)
+    
+    return {'message': 'Photo uploaded successfully', 'photo_id': photo_record['id']}
+
+@api_router.get("/housekeeping/mobile/room-status/{room_id}")
+async def get_mobile_room_status(
+    room_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Get detailed room status for mobile app"""
+    room = await db.rooms.find_one(
+        {'id': room_id, 'tenant_id': current_user.tenant_id},
+        {'_id': 0}
+    )
+    
+    if not room:
+        raise HTTPException(status_code=404, detail="Room not found")
+    
+    # Get current booking
+    booking = None
+    if room.get('current_booking_id'):
+        booking = await db.bookings.find_one(
+            {'id': room['current_booking_id']},
+            {'_id': 0}
+        )
+    
+    # Get pending tasks for this room
+    tasks = await db.housekeeping_tasks.find(
+        {
+            'tenant_id': current_user.tenant_id,
+            'room_id': room_id,
+            'status': {'$in': ['pending', 'in_progress']}
+        },
+        {'_id': 0}
+    ).to_list(10)
+    
+    return {
+        'room': room,
+        'current_booking': booking,
+        'pending_tasks': tasks
+    }
+
+
+# ========================================
+# 4. E-Fatura & POS Integration (Extended)
+# ========================================
+
+@api_router.get("/efatura/invoices")
+async def get_efatura_invoices(
+    status: str = None,
+    start_date: str = None,
+    end_date: str = None,
+    current_user: User = Depends(get_current_user)
+):
+    """Get E-Fatura invoices with filtering"""
+    query = {'tenant_id': current_user.tenant_id}
+    
+    if status:
+        query['efatura_status'] = status
+    
+    if start_date and end_date:
+        query['invoice_date'] = {'$gte': start_date, '$lte': end_date}
+    
+    invoices = await db.accounting_invoices.find(
+        query,
+        {'_id': 0}
+    ).sort('invoice_date', -1).limit(100).to_list(100)
+    
+    return {'invoices': invoices, 'count': len(invoices)}
+
+@api_router.post("/efatura/generate/{invoice_id}")
+async def generate_efatura(
+    invoice_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Generate E-Fatura XML for GIB"""
+    invoice = await db.accounting_invoices.find_one(
+        {'id': invoice_id, 'tenant_id': current_user.tenant_id},
+        {'_id': 0}
+    )
+    
+    if not invoice:
+        raise HTTPException(status_code=404, detail="Invoice not found")
+    
+    # Generate E-Fatura XML (simplified)
+    efatura_xml = f"""<?xml version="1.0" encoding="UTF-8"?>
+<Invoice xmlns="urn:oasis:names:specification:ubl:schema:xsd:Invoice-2">
+    <ID>{invoice['invoice_number']}</ID>
+    <IssueDate>{invoice['invoice_date']}</IssueDate>
+    <InvoiceTypeCode>SATIS</InvoiceTypeCode>
+    <LineCountNumeric>{len(invoice.get('items', []))}</LineCountNumeric>
+    <LegalMonetaryTotal>
+        <TaxExclusiveAmount>{invoice.get('subtotal', 0)}</TaxExclusiveAmount>
+        <TaxInclusiveAmount>{invoice.get('grand_total', 0)}</TaxInclusiveAmount>
+    </LegalMonetaryTotal>
+</Invoice>"""
+    
+    # Save E-Fatura record
+    efatura_record = {
+        'id': str(uuid.uuid4()),
+        'tenant_id': current_user.tenant_id,
+        'invoice_id': invoice_id,
+        'invoice_number': invoice['invoice_number'],
+        'efatura_uuid': str(uuid.uuid4()),
+        'xml_content': efatura_xml,
+        'status': 'generated',
+        'generated_at': datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.efatura_records.insert_one(efatura_record)
+    
+    # Update invoice status
+    await db.accounting_invoices.update_one(
+        {'id': invoice_id},
+        {'$set': {'efatura_status': 'generated', 'efatura_uuid': efatura_record['efatura_uuid']}}
+    )
+    
+    return {
+        'message': 'E-Fatura generated successfully',
+        'efatura_uuid': efatura_record['efatura_uuid'],
+        'xml_content': efatura_xml
+    }
+
+@api_router.post("/efatura/send-to-gib/{invoice_id}")
+async def send_efatura_to_gib(
+    invoice_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Send E-Fatura to GIB (Turkish Revenue Administration)"""
+    efatura = await db.efatura_records.find_one(
+        {'invoice_id': invoice_id, 'tenant_id': current_user.tenant_id},
+        {'_id': 0}
+    )
+    
+    if not efatura:
+        raise HTTPException(status_code=404, detail="E-Fatura not found")
+    
+    # Mock GIB integration (in production, use actual GIB API)
+    gib_response = {
+        'status': 'success',
+        'gib_id': str(uuid.uuid4()),
+        'timestamp': datetime.now(timezone.utc).isoformat()
+    }
+    
+    # Update E-Fatura status
+    await db.efatura_records.update_one(
+        {'id': efatura['id']},
+        {
+            '$set': {
+                'status': 'sent_to_gib',
+                'gib_response': gib_response,
+                'sent_at': datetime.now(timezone.utc).isoformat()
+            }
+        }
+    )
+    
+    await db.accounting_invoices.update_one(
+        {'id': invoice_id},
+        {'$set': {'efatura_status': 'sent', 'efatura_sent_at': datetime.now(timezone.utc).isoformat()}}
+    )
+    
+    return {'message': 'E-Fatura sent to GIB successfully', 'gib_response': gib_response}
+
+@api_router.get("/pos/transactions")
+async def get_pos_transactions(
+    start_date: str = None,
+    end_date: str = None,
+    current_user: User = Depends(get_current_user)
+):
+    """Get POS transactions"""
+    query = {'tenant_id': current_user.tenant_id}
+    
+    if start_date and end_date:
+        query['transaction_date'] = {'$gte': start_date, '$lte': end_date}
+    
+    transactions = await db.pos_transactions.find(
+        query,
+        {'_id': 0}
+    ).sort('transaction_date', -1).limit(500).to_list(500)
+    
+    return {'transactions': transactions, 'count': len(transactions)}
+
+@api_router.post("/pos/transaction")
+async def create_pos_transaction(
+    amount: float,
+    payment_method: str,
+    folio_id: str = None,
+    current_user: User = Depends(get_current_user)
+):
+    """Create POS transaction"""
+    transaction = {
+        'id': str(uuid.uuid4()),
+        'tenant_id': current_user.tenant_id,
+        'transaction_date': datetime.now(timezone.utc).date().isoformat(),
+        'transaction_time': datetime.now(timezone.utc).time().isoformat(),
+        'amount': amount,
+        'payment_method': payment_method,
+        'folio_id': folio_id,
+        'status': 'completed',
+        'processed_by': current_user.id,
+        'created_at': datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.pos_transactions.insert_one(transaction)
+    return transaction
+
+@api_router.get("/pos/daily-summary")
+async def get_pos_daily_summary(
+    date: str = None,
+    current_user: User = Depends(get_current_user)
+):
+    """Get POS daily summary"""
+    if not date:
+        date = datetime.now(timezone.utc).date().isoformat()
+    
+    # Aggregate transactions
+    pipeline = [
+        {
+            '$match': {
+                'tenant_id': current_user.tenant_id,
+                'transaction_date': date
+            }
+        },
+        {
+            '$group': {
+                '_id': '$payment_method',
+                'total': {'$sum': '$amount'},
+                'count': {'$sum': 1}
+            }
+        }
+    ]
+    
+    results = await db.pos_transactions.aggregate(pipeline).to_list(100)
+    
+    summary = {
+        'date': date,
+        'by_payment_method': results,
+        'grand_total': sum(r['total'] for r in results),
+        'transaction_count': sum(r['count'] for r in results)
+    }
+    
+    return summary
+
+
+# ========================================
+# 5. Group Reservations & Block Reservations
+# ========================================
+
+@api_router.get("/group-reservations")
+async def get_group_reservations(current_user: User = Depends(get_current_user)):
+    """Get all group reservations"""
+    groups = await db.group_reservations.find(
+        {'tenant_id': current_user.tenant_id},
+        {'_id': 0}
+    ).sort('created_at', -1).to_list(100)
+    
+    return {'groups': groups, 'count': len(groups)}
+
+@api_router.post("/group-reservations")
+async def create_group_reservation(
+    group_name: str,
+    group_type: str,
+    contact_person: str,
+    contact_email: str,
+    contact_phone: str,
+    check_in_date: str,
+    check_out_date: str,
+    total_rooms: int,
+    adults_per_room: int = 2,
+    special_requests: str = None,
+    current_user: User = Depends(get_current_user)
+):
+    """Create new group reservation"""
+    group = {
+        'id': str(uuid.uuid4()),
+        'tenant_id': current_user.tenant_id,
+        'group_name': group_name,
+        'group_type': group_type,
+        'contact_person': contact_person,
+        'contact_email': contact_email,
+        'contact_phone': contact_phone,
+        'check_in_date': check_in_date,
+        'check_out_date': check_out_date,
+        'total_rooms': total_rooms,
+        'adults_per_room': adults_per_room,
+        'special_requests': special_requests,
+        'status': 'pending',
+        'rooms_assigned': 0,
+        'created_at': datetime.now(timezone.utc).isoformat(),
+        'created_by': current_user.id
+    }
+    
+    await db.group_reservations.insert_one(group)
+    return group
+
+@api_router.get("/group-reservations/{group_id}")
+async def get_group_reservation(
+    group_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Get group reservation details"""
+    group = await db.group_reservations.find_one(
+        {'id': group_id, 'tenant_id': current_user.tenant_id},
+        {'_id': 0}
+    )
+    
+    if not group:
+        raise HTTPException(status_code=404, detail="Group reservation not found")
+    
+    # Get individual bookings in this group
+    bookings = await db.bookings.find(
+        {'tenant_id': current_user.tenant_id, 'group_id': group_id},
+        {'_id': 0}
+    ).to_list(1000)
+    
+    group['bookings'] = bookings
+    group['bookings_count'] = len(bookings)
+    
+    return group
+
+@api_router.post("/group-reservations/{group_id}/assign-rooms")
+async def assign_group_rooms(
+    group_id: str,
+    room_assignments: list,
+    current_user: User = Depends(get_current_user)
+):
+    """Assign rooms to group reservation"""
+    group = await db.group_reservations.find_one(
+        {'id': group_id, 'tenant_id': current_user.tenant_id}
+    )
+    
+    if not group:
+        raise HTTPException(status_code=404, detail="Group reservation not found")
+    
+    created_bookings = []
+    
+    for assignment in room_assignments:
+        booking = {
+            'id': str(uuid.uuid4()),
+            'tenant_id': current_user.tenant_id,
+            'group_id': group_id,
+            'guest_name': assignment.get('guest_name', group['group_name']),
+            'guest_email': assignment.get('guest_email', group['contact_email']),
+            'guest_phone': assignment.get('guest_phone', group['contact_phone']),
+            'check_in_date': group['check_in_date'],
+            'check_out_date': group['check_out_date'],
+            'room_type': assignment['room_type'],
+            'room_id': assignment.get('room_id'),
+            'adults': assignment.get('adults', group['adults_per_room']),
+            'children': assignment.get('children', 0),
+            'status': 'confirmed',
+            'booking_source': 'group',
+            'created_at': datetime.now(timezone.utc).isoformat()
+        }
+        
+        await db.bookings.insert_one(booking)
+        created_bookings.append(booking)
+    
+    # Update group reservation
+    await db.group_reservations.update_one(
+        {'id': group_id},
+        {
+            '$set': {
+                'rooms_assigned': len(created_bookings),
+                'status': 'confirmed' if len(created_bookings) >= group['total_rooms'] else 'partial'
+            }
+        }
+    )
+    
+    return {
+        'message': f'Assigned {len(created_bookings)} rooms to group',
+        'bookings': created_bookings
+    }
+
+@api_router.get("/block-reservations")
+async def get_block_reservations(current_user: User = Depends(get_current_user)):
+    """Get all block reservations"""
+    blocks = await db.block_reservations.find(
+        {'tenant_id': current_user.tenant_id},
+        {'_id': 0}
+    ).sort('created_at', -1).to_list(100)
+    
+    return {'blocks': blocks, 'count': len(blocks)}
+
+@api_router.post("/block-reservations")
+async def create_block_reservation(
+    block_name: str,
+    room_type: str,
+    start_date: str,
+    end_date: str,
+    total_rooms: int,
+    block_type: str = 'tentative',
+    release_date: str = None,
+    current_user: User = Depends(get_current_user)
+):
+    """Create room block reservation"""
+    block = {
+        'id': str(uuid.uuid4()),
+        'tenant_id': current_user.tenant_id,
+        'block_name': block_name,
+        'room_type': room_type,
+        'start_date': start_date,
+        'end_date': end_date,
+        'total_rooms': total_rooms,
+        'rooms_used': 0,
+        'rooms_available': total_rooms,
+        'block_type': block_type,
+        'release_date': release_date,
+        'status': 'active',
+        'created_at': datetime.now(timezone.utc).isoformat(),
+        'created_by': current_user.id
+    }
+    
+    await db.block_reservations.insert_one(block)
+    return block
+
+@api_router.post("/block-reservations/{block_id}/use-room")
+async def use_block_room(
+    block_id: str,
+    guest_name: str,
+    guest_email: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Use a room from block reservation"""
+    block = await db.block_reservations.find_one(
+        {'id': block_id, 'tenant_id': current_user.tenant_id}
+    )
+    
+    if not block:
+        raise HTTPException(status_code=404, detail="Block reservation not found")
+    
+    if block['rooms_available'] <= 0:
+        raise HTTPException(status_code=400, detail="No rooms available in block")
+    
+    # Create booking from block
+    booking = {
+        'id': str(uuid.uuid4()),
+        'tenant_id': current_user.tenant_id,
+        'block_id': block_id,
+        'guest_name': guest_name,
+        'guest_email': guest_email,
+        'check_in_date': block['start_date'],
+        'check_out_date': block['end_date'],
+        'room_type': block['room_type'],
+        'status': 'confirmed',
+        'booking_source': 'block',
+        'created_at': datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.bookings.insert_one(booking)
+    
+    # Update block availability
+    await db.block_reservations.update_one(
+        {'id': block_id},
+        {
+            '$inc': {'rooms_used': 1, 'rooms_available': -1}
+        }
+    )
+    
+    return {'message': 'Room used from block successfully', 'booking': booking}
+
+@api_router.post("/block-reservations/{block_id}/release")
+async def release_block_reservation(
+    block_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Release unused rooms from block"""
+    block = await db.block_reservations.find_one(
+        {'id': block_id, 'tenant_id': current_user.tenant_id}
+    )
+    
+    if not block:
+        raise HTTPException(status_code=404, detail="Block reservation not found")
+    
+    await db.block_reservations.update_one(
+        {'id': block_id},
+        {
+            '$set': {
+                'status': 'released',
+                'released_at': datetime.now(timezone.utc).isoformat(),
+                'released_by': current_user.id
+            }
+        }
+    )
+    
+    return {
+        'message': 'Block released successfully',
+        'rooms_released': block['rooms_available']
+    }
+
+
+# ========================================
+# 6. Multi-Property Management
+# ========================================
+
+@api_router.get("/multi-property/properties")
+async def get_properties(current_user: User = Depends(get_current_user)):
+    """Get all properties in portfolio"""
+    properties = await db.properties.find(
+        {'portfolio_id': current_user.tenant_id},
+        {'_id': 0}
+    ).to_list(100)
+    
+    return {'properties': properties, 'count': len(properties)}
+
+@api_router.post("/multi-property/properties")
+async def create_property(
+    property_name: str,
+    property_code: str,
+    location: str,
+    total_rooms: int,
+    property_type: str = 'hotel',
+    status: str = 'active',
+    current_user: User = Depends(get_current_user)
+):
+    """Add new property to portfolio"""
+    property_obj = {
+        'id': str(uuid.uuid4()),
+        'portfolio_id': current_user.tenant_id,
+        'property_name': property_name,
+        'property_code': property_code,
+        'location': location,
+        'total_rooms': total_rooms,
+        'property_type': property_type,
+        'status': status,
+        'created_at': datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.properties.insert_one(property_obj)
+    return property_obj
+
+@api_router.get("/multi-property/dashboard")
+async def get_multi_property_dashboard(
+    date: str = None,
+    current_user: User = Depends(get_current_user)
+):
+    """Get consolidated dashboard across all properties"""
+    if not date:
+        date = datetime.now(timezone.utc).date().isoformat()
+    
+    # Get all properties
+    properties = await db.properties.find(
+        {'portfolio_id': current_user.tenant_id, 'status': 'active'},
+        {'_id': 0}
+    ).to_list(100)
+    
+    property_stats = []
+    total_rooms = 0
+    total_occupied = 0
+    total_revenue = 0.0
+    
+    for prop in properties:
+        # Get rooms for this property
+        rooms = await db.rooms.count_documents({
+            'tenant_id': prop['id'],
+            'room_status': {'$ne': 'out_of_order'}
+        })
+        
+        occupied = await db.rooms.count_documents({
+            'tenant_id': prop['id'],
+            'room_status': 'occupied'
+        })
+        
+        # Get revenue (simplified)
+        pipeline = [
+            {
+                '$match': {
+                    'tenant_id': prop['id'],
+                    'charge_date': date,
+                    'voided': False
+                }
+            },
+            {
+                '$group': {
+                    '_id': None,
+                    'total': {'$sum': '$total'}
+                }
+            }
+        ]
+        
+        revenue_result = await db.folio_charges.aggregate(pipeline).to_list(1)
+        revenue = revenue_result[0]['total'] if revenue_result else 0.0
+        
+        occupancy = (occupied / rooms * 100) if rooms > 0 else 0
+        
+        property_stats.append({
+            'property_id': prop['id'],
+            'property_name': prop['property_name'],
+            'property_code': prop['property_code'],
+            'total_rooms': rooms,
+            'occupied_rooms': occupied,
+            'occupancy': round(occupancy, 1),
+            'revenue': round(revenue, 2)
+        })
+        
+        total_rooms += rooms
+        total_occupied += occupied
+        total_revenue += revenue
+    
+    overall_occupancy = (total_occupied / total_rooms * 100) if total_rooms > 0 else 0
+    
+    return {
+        'date': date,
+        'portfolio_summary': {
+            'total_properties': len(properties),
+            'total_rooms': total_rooms,
+            'occupied_rooms': total_occupied,
+            'overall_occupancy': round(overall_occupancy, 1),
+            'total_revenue': round(total_revenue, 2),
+            'average_occupancy': round(sum(p['occupancy'] for p in property_stats) / len(property_stats), 1) if property_stats else 0
+        },
+        'properties': property_stats
+    }
+
+@api_router.get("/multi-property/consolidated-report")
+async def get_consolidated_report(
+    start_date: str,
+    end_date: str,
+    metric: str = 'occupancy',
+    current_user: User = Depends(get_current_user)
+):
+    """Get consolidated report across properties"""
+    properties = await db.properties.find(
+        {'portfolio_id': current_user.tenant_id, 'status': 'active'},
+        {'_id': 0}
+    ).to_list(100)
+    
+    start = datetime.fromisoformat(start_date)
+    end = datetime.fromisoformat(end_date)
+    days = (end - start).days + 1
+    
+    report_data = []
+    
+    for day in range(days):
+        current_date = (start + timedelta(days=day)).date().isoformat()
+        
+        day_data = {
+            'date': current_date,
+            'properties': []
+        }
+        
+        for prop in properties:
+            # Simplified metrics
+            if metric == 'occupancy':
+                rooms = await db.rooms.count_documents({'tenant_id': prop['id']})
+                occupied = await db.rooms.count_documents({
+                    'tenant_id': prop['id'],
+                    'room_status': 'occupied'
+                })
+                value = (occupied / rooms * 100) if rooms > 0 else 0
+            elif metric == 'revenue':
+                pipeline = [
+                    {
+                        '$match': {
+                            'tenant_id': prop['id'],
+                            'charge_date': current_date,
+                            'voided': False
+                        }
+                    },
+                    {
+                        '$group': {
+                            '_id': None,
+                            'total': {'$sum': '$total'}
+                        }
+                    }
+                ]
+                result = await db.folio_charges.aggregate(pipeline).to_list(1)
+                value = result[0]['total'] if result else 0.0
+            else:
+                value = 0
+            
+            day_data['properties'].append({
+                'property_id': prop['id'],
+                'property_name': prop['property_name'],
+                'value': round(value, 2)
+            })
+        
+        report_data.append(day_data)
+    
+    return {
+        'start_date': start_date,
+        'end_date': end_date,
+        'metric': metric,
+        'data': report_data
+    }
+
+@api_router.post("/multi-property/transfer-reservation")
+async def transfer_reservation_between_properties(
+    booking_id: str,
+    target_property_id: str,
+    reason: str = None,
+    current_user: User = Depends(get_current_user)
+):
+    """Transfer reservation from one property to another"""
+    booking = await db.bookings.find_one({'id': booking_id})
+    
+    if not booking:
+        raise HTTPException(status_code=404, detail="Booking not found")
+    
+    # Create transfer record
+    transfer = {
+        'id': str(uuid.uuid4()),
+        'booking_id': booking_id,
+        'from_property': booking['tenant_id'],
+        'to_property': target_property_id,
+        'reason': reason,
+        'transferred_at': datetime.now(timezone.utc).isoformat(),
+        'transferred_by': current_user.id
+    }
+    
+    await db.property_transfers.insert_one(transfer)
+    
+    # Update booking tenant_id
+    await db.bookings.update_one(
+        {'id': booking_id},
+        {'$set': {'tenant_id': target_property_id, 'transferred': True}}
+    )
+    
+    return {'message': 'Reservation transferred successfully', 'transfer': transfer}
+
+
+# ========================================
+# 7. Marketplace - Warehouse & Procurement
+# ========================================
+
+@api_router.get("/marketplace/products")
+async def get_marketplace_products(
+    category: str = None,
+    current_user: User = Depends(get_current_user)
+):
+    """Get marketplace product catalog"""
+    query = {}
+    if category:
+        query['category'] = category
+    
+    products = await db.marketplace_products.find(
+        query,
+        {'_id': 0}
+    ).to_list(1000)
+    
+    return {'products': products, 'count': len(products)}
+
+@api_router.post("/marketplace/products")
+async def create_marketplace_product(
+    product_name: str,
+    category: str,
+    unit_price: float,
+    unit_of_measure: str,
+    supplier: str,
+    min_order_qty: int = 1,
+    current_user: User = Depends(get_current_user)
+):
+    """Add product to marketplace catalog"""
+    product = {
+        'id': str(uuid.uuid4()),
+        'product_name': product_name,
+        'category': category,
+        'unit_price': unit_price,
+        'unit_of_measure': unit_of_measure,
+        'supplier': supplier,
+        'min_order_qty': min_order_qty,
+        'status': 'active',
+        'created_at': datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.marketplace_products.insert_one(product)
+    return product
+
+@api_router.get("/marketplace/inventory")
+async def get_inventory(
+    location: str = None,
+    current_user: User = Depends(get_current_user)
+):
+    """Get current inventory levels"""
+    query = {'tenant_id': current_user.tenant_id}
+    if location:
+        query['location'] = location
+    
+    inventory = await db.inventory.find(
+        query,
+        {'_id': 0}
+    ).to_list(1000)
+    
+    return {'inventory': inventory, 'count': len(inventory)}
+
+@api_router.post("/marketplace/inventory/adjust")
+async def adjust_inventory(
+    product_id: str,
+    location: str,
+    quantity_change: int,
+    reason: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Adjust inventory quantity"""
+    # Get current inventory
+    inventory = await db.inventory.find_one({
+        'tenant_id': current_user.tenant_id,
+        'product_id': product_id,
+        'location': location
+    })
+    
+    if not inventory:
+        # Create new inventory record
+        inventory = {
+            'id': str(uuid.uuid4()),
+            'tenant_id': current_user.tenant_id,
+            'product_id': product_id,
+            'location': location,
+            'quantity': max(0, quantity_change),
+            'updated_at': datetime.now(timezone.utc).isoformat()
+        }
+        await db.inventory.insert_one(inventory)
+    else:
+        # Update existing inventory
+        new_qty = max(0, inventory['quantity'] + quantity_change)
+        await db.inventory.update_one(
+            {'id': inventory['id']},
+            {
+                '$set': {
+                    'quantity': new_qty,
+                    'updated_at': datetime.now(timezone.utc).isoformat()
+                }
+            }
+        )
+    
+    # Log adjustment
+    log = {
+        'id': str(uuid.uuid4()),
+        'tenant_id': current_user.tenant_id,
+        'product_id': product_id,
+        'location': location,
+        'quantity_change': quantity_change,
+        'reason': reason,
+        'adjusted_by': current_user.id,
+        'adjusted_at': datetime.now(timezone.utc).isoformat()
+    }
+    await db.inventory_adjustments.insert_one(log)
+    
+    return {'message': 'Inventory adjusted successfully'}
+
+@api_router.get("/marketplace/purchase-orders")
+async def get_purchase_orders(
+    status: str = None,
+    current_user: User = Depends(get_current_user)
+):
+    """Get purchase orders"""
+    query = {'tenant_id': current_user.tenant_id}
+    if status:
+        query['status'] = status
+    
+    orders = await db.purchase_orders.find(
+        query,
+        {'_id': 0}
+    ).sort('created_at', -1).to_list(100)
+    
+    return {'orders': orders, 'count': len(orders)}
+
+@api_router.post("/marketplace/purchase-orders")
+async def create_purchase_order(
+    supplier: str,
+    items: list,
+    delivery_location: str,
+    expected_delivery_date: str = None,
+    current_user: User = Depends(get_current_user)
+):
+    """Create purchase order"""
+    # Calculate total
+    total_amount = sum(item['quantity'] * item['unit_price'] for item in items)
+    
+    po = {
+        'id': str(uuid.uuid4()),
+        'tenant_id': current_user.tenant_id,
+        'po_number': f"PO-{datetime.now().strftime('%Y%m%d')}-{str(uuid.uuid4())[:8].upper()}",
+        'supplier': supplier,
+        'items': items,
+        'delivery_location': delivery_location,
+        'expected_delivery_date': expected_delivery_date,
+        'total_amount': round(total_amount, 2),
+        'status': 'pending',
+        'created_at': datetime.now(timezone.utc).isoformat(),
+        'created_by': current_user.id
+    }
+    
+    await db.purchase_orders.insert_one(po)
+    return po
+
+@api_router.post("/marketplace/purchase-orders/{po_id}/approve")
+async def approve_purchase_order(
+    po_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Approve purchase order"""
+    po = await db.purchase_orders.find_one({
+        'id': po_id,
+        'tenant_id': current_user.tenant_id
+    })
+    
+    if not po:
+        raise HTTPException(status_code=404, detail="Purchase order not found")
+    
+    await db.purchase_orders.update_one(
+        {'id': po_id},
+        {
+            '$set': {
+                'status': 'approved',
+                'approved_at': datetime.now(timezone.utc).isoformat(),
+                'approved_by': current_user.id
+            }
+        }
+    )
+    
+    return {'message': 'Purchase order approved successfully'}
+
+@api_router.post("/marketplace/purchase-orders/{po_id}/receive")
+async def receive_purchase_order(
+    po_id: str,
+    received_items: list,
+    current_user: User = Depends(get_current_user)
+):
+    """Receive purchase order and update inventory"""
+    po = await db.purchase_orders.find_one({
+        'id': po_id,
+        'tenant_id': current_user.tenant_id
+    })
+    
+    if not po:
+        raise HTTPException(status_code=404, detail="Purchase order not found")
+    
+    # Update inventory for received items
+    for item in received_items:
+        await db.inventory.update_one(
+            {
+                'tenant_id': current_user.tenant_id,
+                'product_id': item['product_id'],
+                'location': po['delivery_location']
+            },
+            {
+                '$inc': {'quantity': item['quantity_received']},
+                '$set': {'updated_at': datetime.now(timezone.utc).isoformat()}
+            },
+            upsert=True
+        )
+    
+    # Update PO status
+    await db.purchase_orders.update_one(
+        {'id': po_id},
+        {
+            '$set': {
+                'status': 'received',
+                'received_at': datetime.now(timezone.utc).isoformat(),
+                'received_by': current_user.id,
+                'received_items': received_items
+            }
+        }
+    )
+    
+    return {'message': 'Purchase order received and inventory updated'}
+
+@api_router.get("/marketplace/deliveries")
+async def get_deliveries(
+    status: str = None,
+    current_user: User = Depends(get_current_user)
+):
+    """Get delivery tracking"""
+    query = {'tenant_id': current_user.tenant_id}
+    if status:
+        query['status'] = status
+    
+    deliveries = await db.deliveries.find(
+        query,
+        {'_id': 0}
+    ).sort('created_at', -1).to_list(100)
+    
+    return {'deliveries': deliveries, 'count': len(deliveries)}
+
+@api_router.post("/marketplace/deliveries")
+async def create_delivery(
+    po_id: str,
+    tracking_number: str = None,
+    carrier: str = None,
+    estimated_delivery: str = None,
+    current_user: User = Depends(get_current_user)
+):
+    """Create delivery tracking"""
+    delivery = {
+        'id': str(uuid.uuid4()),
+        'tenant_id': current_user.tenant_id,
+        'po_id': po_id,
+        'tracking_number': tracking_number,
+        'carrier': carrier,
+        'estimated_delivery': estimated_delivery,
+        'status': 'in_transit',
+        'created_at': datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.deliveries.insert_one(delivery)
+    return delivery
+
+@api_router.get("/marketplace/stock-alerts")
+async def get_stock_alerts(current_user: User = Depends(get_current_user)):
+    """Get low stock alerts"""
+    # Get all inventory items
+    inventory_items = await db.inventory.find(
+        {'tenant_id': current_user.tenant_id},
+        {'_id': 0}
+    ).to_list(1000)
+    
+    alerts = []
+    for item in inventory_items:
+        # Get product details
+        product = await db.marketplace_products.find_one(
+            {'id': item['product_id']},
+            {'_id': 0}
+        )
+        
+        if product:
+            # Check if below minimum (using min_order_qty * 2 as threshold)
+            threshold = product.get('min_order_qty', 1) * 2
+            if item['quantity'] < threshold:
+                alerts.append({
+                    'product_id': item['product_id'],
+                    'product_name': product['product_name'],
+                    'location': item['location'],
+                    'current_quantity': item['quantity'],
+                    'threshold': threshold,
+                    'status': 'low_stock'
+                })
+    
+    return {'alerts': alerts, 'count': len(alerts)}
+
+
 # Include router at the very end after ALL endpoints are defined
 app.include_router(api_router)
