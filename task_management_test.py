@@ -642,14 +642,21 @@ class TaskManagementTester:
         # ============= B) HOUSEKEEPING CLEANING REQUEST =============
         print("\n🧹 Testing Housekeeping Cleaning Request...")
         
-        # First, let's try to get an existing room ID
+        # First, let's create a room for testing
         existing_room_id = None
         try:
-            rooms_response = self.session.get(f"{BACKEND_URL}/pms/rooms")
-            if rooms_response.status_code == 200:
-                rooms_data = rooms_response.json()
-                if rooms_data and len(rooms_data) > 0:
-                    existing_room_id = rooms_data[0].get('id')
+            room_data = {
+                'room_number': '101',
+                'room_type': 'standard',
+                'floor': 1,
+                'capacity': 2,
+                'base_price': 100.0,
+                'amenities': ['wifi', 'tv']
+            }
+            room_response = self.session.post(f"{BACKEND_URL}/pms/rooms", json=room_data)
+            if room_response.status_code in [200, 201]:
+                existing_room_id = room_response.json().get('id')
+                self.created_resources["room_ids"].append(existing_room_id)
         except:
             pass
         
