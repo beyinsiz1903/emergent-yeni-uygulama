@@ -3687,6 +3687,166 @@ async def get_finance_snapshot(current_user: User = Depends(get_current_user)):
     }
 
 
+@api_router.get("/reports/cost-summary")
+async def get_cost_summary(current_user: User = Depends(get_current_user)):
+    """
+    Cost Summary Report for GM Dashboard
+    Returns: MTD costs by category, top cost categories, per-room cost, cost vs RevPAR
+    """
+    today = datetime.now(timezone.utc).date()
+    month_start = today.replace(day=1)
+    month_start_dt = datetime.combine(month_start, datetime.min.time()).replace(tzinfo=timezone.utc)
+    today_end = datetime.combine(today, datetime.max.time()).replace(tzinfo=timezone.utc)
+    
+    # 1. Get all Purchase Orders from Marketplace for this month (approved/received status)
+    purchase_orders = await db.purchase_orders.find({
+        'tenant_id': current_user.tenant_id,
+        'status': {'$in': ['approved', 'received', 'completed']},
+        'created_at': {
+            '$gte': month_start_dt.isoformat(),
+            '$lte': today_end.isoformat()
+        }
+    }).to_list(10000)
+    
+    # Map purchase order categories to cost categories
+    category_mapping = {
+        'cleaning': 'Housekeeping',
+        'linens': 'Housekeeping',
+        'amenities': 'Housekeeping',
+        'food': 'F&B',
+        'beverage': 'F&B',
+        'kitchen': 'F&B',
+        'maintenance': 'Technical',
+        'electrical': 'Technical',
+        'plumbing': 'Technical',
+        'hvac': 'Technical',
+        'furniture': 'General Expenses',
+        'office': 'General Expenses',
+        'it': 'General Expenses',
+        'other': 'General Expenses'
+    }
+    
+    # Aggregate costs by category
+    cost_categories = {
+        'Housekeeping': 0,
+        'F&B': 0,
+        'Technical': 0,
+        'General Expenses': 0
+    }
+    
+    total_mtd_costs = 0
+    
+    for po in purchase_orders:
+        category = po.get('category', 'other')
+        cost_category = category_mapping.get(category, 'General Expenses')
+        total_amount = po.get('total_amount', 0)
+        
+        cost_categories[cost_category] += total_amount
+        total_mtd_costs += total_amount
+    
+    # 2. Sort categories to get top 3
+    sorted_categories = sorted(
+        [{'name': k, 'amount': v} for k, v in cost_categories.items()],
+        key=lambda x: x['amount'],
+        reverse=True
+    )
+    
+    top_3_categories = sorted_categories[:3]
+    
+    # 3. Calculate per-room cost (total costs / occupied room nights MTD)
+    # Get all bookings for MTD that were checked-in
+    bookings = await db.bookings.find({
+        'tenant_id': current_user.tenant_id,
+        'status': {'$in': ['checked_in', 'checked_out']},
+        'check_in': {
+            '$gte': month_start.isoformat(),
+            '$lte': today.isoformat()
+        }
+    }).to_list(10000)
+    
+    # Calculate total occupied room nights
+    total_room_nights = 0
+    for booking in bookings:
+        checkin = datetime.fromisoformat(booking['check_in']).date()
+        checkout_str = booking.get('check_out', booking['check_in'])
+        checkout = datetime.fromisoformat(checkout_str).date()
+        
+        # Calculate nights (minimum 1)
+        nights = max((checkout - checkin).days, 1)
+        total_room_nights += nights
+    
+    per_room_cost = (total_mtd_costs / total_room_nights) if total_room_nights > 0 else 0
+    
+    # 4. Get RevPAR from daily flash report for comparison
+    # Calculate MTD RevPAR
+    total_revenue = 0
+    total_available_room_days = 0
+    
+    # Get all rooms
+    rooms = await db.rooms.find({'tenant_id': current_user.tenant_id}).to_list(1000)
+    total_rooms_count = len(rooms)
+    
+    # Get MTD charges
+    mtd_charges = await db.folio_charges.find({
+        'tenant_id': current_user.tenant_id,
+        'date': {
+            '$gte': month_start_dt.isoformat(),
+            '$lte': today_end.isoformat()
+        },
+        'voided': False,
+        'charge_category': 'room'
+    }).to_list(10000)
+    
+    total_revenue = sum(charge.get('total', 0) for charge in mtd_charges)
+    
+    # Calculate days in month so far
+    days_in_month_so_far = (today - month_start).days + 1
+    total_available_room_days = total_rooms_count * days_in_month_so_far
+    
+    mtd_revpar = (total_revenue / total_available_room_days) if total_available_room_days > 0 else 0
+    
+    # 5. Calculate Cost to Revenue Ratio
+    cost_to_revenue_ratio = (total_mtd_costs / total_revenue * 100) if total_revenue > 0 else 0
+    
+    # 6. Calculate profit margin
+    gross_profit = total_revenue - total_mtd_costs
+    profit_margin = (gross_profit / total_revenue * 100) if total_revenue > 0 else 0
+    
+    return {
+        'report_date': today.isoformat(),
+        'period': f'{month_start.isoformat()} to {today.isoformat()}',
+        'total_mtd_costs': round(total_mtd_costs, 2),
+        'cost_categories': {
+            'housekeeping': round(cost_categories['Housekeeping'], 2),
+            'fnb': round(cost_categories['F&B'], 2),
+            'technical': round(cost_categories['Technical'], 2),
+            'general_expenses': round(cost_categories['General Expenses'], 2)
+        },
+        'top_3_categories': [
+            {
+                'name': cat['name'],
+                'amount': round(cat['amount'], 2),
+                'percentage': round((cat['amount'] / total_mtd_costs * 100), 1) if total_mtd_costs > 0 else 0
+            }
+            for cat in top_3_categories
+        ],
+        'per_room_metrics': {
+            'total_room_nights': total_room_nights,
+            'cost_per_room_night': round(per_room_cost, 2),
+            'mtd_revpar': round(mtd_revpar, 2),
+            'cost_to_revpar_ratio': round((per_room_cost / mtd_revpar * 100), 1) if mtd_revpar > 0 else 0
+        },
+        'financial_metrics': {
+            'mtd_revenue': round(total_revenue, 2),
+            'mtd_costs': round(total_mtd_costs, 2),
+            'gross_profit': round(gross_profit, 2),
+            'profit_margin_percentage': round(profit_margin, 1),
+            'cost_to_revenue_ratio': round(cost_to_revenue_ratio, 1)
+        }
+    }
+
+
+
 @api_router.get("/reports/housekeeping-efficiency")
 async def get_housekeeping_efficiency_report(
     start_date: str,
