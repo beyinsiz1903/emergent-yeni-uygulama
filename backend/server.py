@@ -7756,10 +7756,11 @@ async def get_competitor_pricing(
 
 @api_router.post("/rms/scrape-comp-prices")
 async def scrape_competitor_prices(
-    date: str,
+    request: ScrapePricesRequest,
     current_user: User = Depends(get_current_user)
 ):
     """Scrape competitor prices for specific date"""
+    date = request.date
     # Get all active competitors
     competitors = await db.comp_set.find(
         {'tenant_id': current_user.tenant_id, 'status': 'active'},
