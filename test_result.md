@@ -125,15 +125,18 @@ user_problem_statement: |
 backend:
   - task: "Dashboard - Employee Performance Endpoint"
     implemented: true
-    working: "NA"
+    working: true
     file: "/app/backend/server.py"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: "NA"
         agent: "main"
         comment: "Added GET /api/dashboard/employee-performance - Returns HK staff avg cleaning time, FD staff avg check-in duration, performance ratings, efficiency scores"
+      - working: true
+        agent: "testing"
+        comment: "✅ ENDPOINT WORKING - GET /api/dashboard/employee-performance returns proper response with summary.housekeeping (staff_count, avg_cleaning_time, total_tasks_completed) and summary.front_desk (staff_count, avg_checkin_time, total_checkins). Response structure verified. Minor: No test data available so counts are 0, but endpoint structure is correct."
 
   - task: "Dashboard - Guest Satisfaction Trends Endpoint"
     implemented: true
