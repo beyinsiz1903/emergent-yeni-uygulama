@@ -155,15 +155,18 @@ backend:
 
   - task: "Dashboard - OTA Cancellation Rate Endpoint"
     implemented: true
-    working: "NA"
+    working: true
     file: "/app/backend/server.py"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: "NA"
         agent: "main"
         comment: "Added GET /api/dashboard/ota-cancellation-rate - Returns overall/OTA cancellation rates, by-channel breakdown, revenue impact, cancellation patterns"
+      - working: true
+        agent: "testing"
+        comment: "✅ ENDPOINT WORKING - GET /api/dashboard/ota-cancellation-rate returns comprehensive response with overall cancellation data, ota_performance breakdown by channel, cancellation_patterns analysis, revenue_impact calculations, and alerts. Response structure verified and functional."
 
   - task: "Check-in - Passport Scan Endpoint"
     implemented: true
