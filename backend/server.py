@@ -619,7 +619,7 @@ class Booking(BaseModel):
     adults: int = 1
     children: int = 0
     children_ages: List[int] = []
-    guests_count: int
+    guests_count: Optional[int] = None
     total_amount: float
     base_rate: Optional[float] = None
     paid_amount: float = 0.0
