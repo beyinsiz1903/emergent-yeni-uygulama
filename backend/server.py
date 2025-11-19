@@ -8939,19 +8939,20 @@ async def get_inventory(
 
 @api_router.post("/marketplace/inventory/adjust")
 async def adjust_inventory(
-    product_id: str,
-    location: str,
-    quantity_change: int,
-    reason: str,
+    request: AdjustInventoryRequest,
     current_user: User = Depends(get_current_user)
 ):
     """Adjust inventory quantity"""
     # Get current inventory
     inventory = await db.inventory.find_one({
         'tenant_id': current_user.tenant_id,
-        'product_id': product_id,
-        'location': location
+        'product_id': request.product_id,
+        'location': request.location
     })
+    product_id = request.product_id
+    location = request.location
+    quantity_change = request.quantity_change
+    reason = request.reason
     
     if not inventory:
         # Create new inventory record
