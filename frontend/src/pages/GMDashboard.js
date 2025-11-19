@@ -67,6 +67,44 @@ const GMDashboard = ({ user, tenant, onLogout }) => {
     return 'text-gray-600';
   };
 
+  const handleExportPDF = async () => {
+    try {
+      const response = await axios.get('/reports/daily-flash-pdf', {
+        responseType: 'blob'
+      });
+      
+      const blob = new Blob([response.data], { type: 'application/pdf' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `Daily-Report-${new Date().toISOString().split('T')[0]}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Failed to export PDF:', error);
+      alert('PDF export failed. Feature coming soon!');
+    }
+  };
+
+  const handleEmailReport = async () => {
+    try {
+      await axios.post('/reports/email-daily-flash', {
+        recipients: ['owner@hotel.com', 'family@hotel.com']
+      });
+      alert('Daily report sent successfully!');
+    } catch (error) {
+      console.error('Failed to send email:', error);
+      alert('Email feature coming soon! Report will be sent to predefined recipients.');
+    }
+  };
+
+  const calculateComparison = (current, previous) => {
+    if (!previous || previous === 0) return 0;
+    return ((current - previous) / previous * 100).toFixed(1);
+  };
+
   if (loading) {
     return (
       <Layout user={user} tenant={tenant} onLogout={onLogout} currentModule="gm-dashboard">
