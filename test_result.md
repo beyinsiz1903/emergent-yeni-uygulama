@@ -103,10 +103,10 @@
 #====================================================================================================
 
 user_problem_statement: |
-  Professional Hotel PMS - Complete Operational Suite:
-  PHASE 1: Folio & Billing Engine (COMPLETED)
-  PHASE 2: Check-in / Check-out Flow (COMPLETED)
-  PHASE 3: Housekeeping Board (COMPLETED)
+  Enhanced Feedback & Reviews System with External APIs, Surveys & Department Tracking:
+  - External review API integration (Booking.com, Google, TripAdvisor)
+  - In-house survey system
+  - Department-based satisfaction tracking (HK, FD, F&B, Spa)
 
 backend:
   - task: "Add Folio enums (FolioType, FolioStatus, ChargeCategory, FolioOperationType, PaymentType)"
