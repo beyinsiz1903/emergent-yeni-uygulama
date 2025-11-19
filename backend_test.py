@@ -29,7 +29,8 @@ class HotelPMSBackendTester:
             "efatura_pos": {"passed": 0, "failed": 0, "details": []},
             "group_block": {"passed": 0, "failed": 0, "details": []},
             "multi_property": {"passed": 0, "failed": 0, "details": []},
-            "marketplace": {"passed": 0, "failed": 0, "details": []}
+            "marketplace": {"passed": 0, "failed": 0, "details": []},
+            "marketplace_extensions": {"passed": 0, "failed": 0, "details": []}
         }
         self.created_resources = {
             "comp_set_ids": [],
