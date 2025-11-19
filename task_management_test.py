@@ -395,19 +395,24 @@ class TaskManagementTester:
                 
                 if success and response.json():
                     data = response.json()
-                    details += f" - Status: {data.get('status')}"
-                    details += f" - Updated by: {data.get('updated_by', 'N/A')}"
+                    details += f" - Response: {data.get('message', 'Status updated')}"
                     
-                    # Verify status workflow (assigned → in_progress)
-                    if data.get('status') == 'in_progress':
-                        details += " - Status workflow: ✓"
-                    else:
-                        details += f" - Status workflow issue: {data.get('status')}"
-                    
-                    # Check history tracking
-                    history = data.get('history', [])
-                    if history:
-                        details += f" - History updated: {len(history)} entries"
+                    # The endpoint returns a message, let's fetch task details
+                    task_response = self.session.get(f"{BACKEND_URL}/tasks/{task_id}")
+                    if task_response.status_code == 200:
+                        task_data = task_response.json()
+                        details += f" - Status: {task_data.get('status')}"
+                        
+                        # Verify status workflow (assigned → in_progress)
+                        if task_data.get('status') == 'in_progress':
+                            details += " - Status workflow: ✓"
+                        else:
+                            details += f" - Status workflow issue: {task_data.get('status')}"
+                        
+                        # Check history tracking
+                        history = task_data.get('history', [])
+                        if history:
+                            details += f" - History updated: {len(history)} entries"
                 
                 self.log_test_result("core_tasks", f"/tasks/{task_id}/status (in_progress)", "POST", success, details)
             except Exception as e:
