@@ -12167,6 +12167,63 @@ async def create_task(
     
     return task
 
+@api_router.get("/tasks/my-tasks")
+async def get_my_tasks(
+    status: str = None,
+    current_user: User = Depends(get_current_user)
+):
+    """Get tasks assigned to current user"""
+    query = {
+        'tenant_id': current_user.tenant_id,
+        'assigned_to': current_user.name
+    }
+    
+    if status:
+        query['status'] = status
+    
+    tasks = await db.tasks.find(query, {'_id': 0}).sort([('priority_order', -1), ('due_date', 1)]).to_list(1000)
+    
+    return {'tasks': tasks, 'count': len(tasks)}
+
+@api_router.get("/tasks/dashboard")
+async def get_tasks_dashboard(current_user: User = Depends(get_current_user)):
+    """Get tasks dashboard with all department stats"""
+    # Get all tasks
+    tasks = await db.tasks.find({
+        'tenant_id': current_user.tenant_id
+    }, {'_id': 0}).to_list(10000)
+    
+    # Department breakdown
+    departments = ['engineering', 'housekeeping', 'fnb', 'maintenance', 'front_desk']
+    dept_stats = {}
+    
+    for dept in departments:
+        dept_tasks = [t for t in tasks if t.get('department') == dept]
+        
+        dept_stats[dept] = {
+            'total': len(dept_tasks),
+            'new': sum(1 for t in dept_tasks if t.get('status') == 'new'),
+            'in_progress': sum(1 for t in dept_tasks if t.get('status') == 'in_progress'),
+            'completed': sum(1 for t in dept_tasks if t.get('status') == 'completed'),
+            'urgent': sum(1 for t in dept_tasks if t.get('priority') == 'urgent'),
+            'overdue': sum(1 for t in dept_tasks if t.get('due_date') and t.get('due_date') < datetime.now(timezone.utc).date().isoformat() and t.get('status') not in ['completed', 'verified'])
+        }
+    
+    # Overall stats
+    today = datetime.now(timezone.utc).date().isoformat()
+    
+    return {
+        'summary': {
+            'total_tasks': len(tasks),
+            'new': sum(1 for t in tasks if t.get('status') == 'new'),
+            'in_progress': sum(1 for t in tasks if t.get('status') == 'in_progress'),
+            'completed_today': sum(1 for t in tasks if t.get('status') == 'completed' and t.get('completed_at', '').startswith(today)),
+            'urgent_pending': sum(1 for t in tasks if t.get('priority') == 'urgent' and t.get('status') not in ['completed', 'verified', 'cancelled']),
+            'overdue': sum(1 for t in tasks if t.get('due_date') and t.get('due_date') < today and t.get('status') not in ['completed', 'verified', 'cancelled'])
+        },
+        'departments': dept_stats
+    }
+
 @api_router.get("/tasks/{task_id}")
 async def get_task_details(
     task_id: str,
