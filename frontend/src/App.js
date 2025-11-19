@@ -19,6 +19,11 @@ import SelfCheckin from "@/pages/SelfCheckin";
 import DigitalKey from "@/pages/DigitalKey";
 import UpsellStore from "@/pages/UpsellStore";
 import StaffMobileApp from "@/pages/StaffMobileApp";
+import OTAMessagingHub from "@/pages/OTAMessagingHub";
+import EFaturaModule from "@/pages/EFaturaModule";
+import GroupReservations from "@/pages/GroupReservations";
+import MultiPropertyDashboard from "@/pages/MultiPropertyDashboard";
+import HousekeepingMobileApp from "@/pages/HousekeepingMobileApp";
 import { Toaster } from "@/components/ui/sonner";
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
