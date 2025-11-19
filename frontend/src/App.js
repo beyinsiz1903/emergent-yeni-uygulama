@@ -21,6 +21,8 @@ import UpsellStore from "@/pages/UpsellStore";
 import StaffMobileApp from "@/pages/StaffMobileApp";
 import OTAMessagingHub from "@/pages/OTAMessagingHub";
 import EFaturaModule from "@/pages/EFaturaModule";
+import MessagingCenter from "@/pages/MessagingCenter";
+import SalesModule from "@/pages/SalesModule";
 import GroupReservations from "@/pages/GroupReservations";
 import MultiPropertyDashboard from "@/pages/MultiPropertyDashboard";
 import HousekeepingMobileApp from "@/pages/HousekeepingMobileApp";
