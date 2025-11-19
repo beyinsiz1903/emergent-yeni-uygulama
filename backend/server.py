@@ -1250,6 +1250,34 @@ class GetCalendarTooltipRequest(BaseModel):
     date: str
     room_type: Optional[str] = None
 
+# POS & F&B Models
+class CreateOutletRequest(BaseModel):
+    outlet_name: str
+    outlet_type: str  # restaurant, bar, room_service, cafe
+    location: str
+    capacity: Optional[int] = None
+    opening_hours: Optional[str] = None
+
+class CreateMenuItemRequest(BaseModel):
+    outlet_id: str
+    item_name: str
+    category: str  # appetizer, main, dessert, beverage
+    price: float
+    cost: Optional[float] = None
+    description: Optional[str] = None
+
+class CreatePOSTransactionWithMenuRequest(BaseModel):
+    outlet_id: str
+    items: List[Dict[str, Any]]  # [{menu_item_id, quantity, price}]
+    payment_method: str
+    folio_id: Optional[str] = None
+    table_number: Optional[str] = None
+    server_name: Optional[str] = None
+
+class GenerateZReportRequest(BaseModel):
+    outlet_id: Optional[str] = None
+    date: Optional[str] = None  # Default to today
+
 # ============= HELPER FUNCTIONS =============
 
 def hash_password(password: str) -> str:
