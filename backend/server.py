@@ -1234,6 +1234,22 @@ class ConvertCurrencyRequest(BaseModel):
     to_currency: str
     date: Optional[str] = None  # Use specific date rate, or latest if None
 
+# Rate Code & Calendar Models
+class CreateRateCodeRequest(BaseModel):
+    code: str  # BB, HB, FB, AI, RO
+    name: str  # Bed & Breakfast, Half Board, etc.
+    description: str
+    includes_breakfast: bool = False
+    includes_lunch: bool = False
+    includes_dinner: bool = False
+    is_refundable: bool = True
+    cancellation_policy: str = "Free cancellation"
+    price_modifier: float = 1.0  # Multiplier on base rate
+
+class GetCalendarTooltipRequest(BaseModel):
+    date: str
+    room_type: Optional[str] = None
+
 # ============= HELPER FUNCTIONS =============
 
 def hash_password(password: str) -> str:
