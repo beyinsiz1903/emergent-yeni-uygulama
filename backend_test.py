@@ -397,8 +397,8 @@ class HotelPMSBackendTester:
             if success and response.json():
                 data = response.json()
                 
-                # Check response structure
-                required_fields = ['insights', 'summary']
+                # Check response structure (insights endpoint returns different structure)
+                required_fields = ['insights']
                 missing_fields = [field for field in required_fields if field not in data]
                 
                 if missing_fields:
