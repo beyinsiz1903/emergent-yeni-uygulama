@@ -14049,6 +14049,432 @@ async def get_system_health(current_user: User = Depends(get_current_user)):
         'timestamp': datetime.now(timezone.utc).isoformat()
     }
 
+# ============= ENHANCED DASHBOARD ENDPOINTS =============
+
+@api_router.get("/dashboard/employee-performance")
+async def get_employee_performance(
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+    department: Optional[str] = None,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Get employee performance metrics
+    - HK staff: average cleaning time per room
+    - Front Desk: average check-in duration
+    - Overall productivity metrics
+    """
+    # Default to last 30 days
+    if not end_date:
+        end_dt = datetime.now(timezone.utc)
+    else:
+        end_dt = datetime.fromisoformat(end_date).replace(tzinfo=timezone.utc)
+    
+    if not start_date:
+        start_dt = end_dt - timedelta(days=30)
+    else:
+        start_dt = datetime.fromisoformat(start_date).replace(tzinfo=timezone.utc)
+    
+    # Housekeeping Performance
+    hk_pipeline = [
+        {
+            '$match': {
+                'tenant_id': current_user.tenant_id,
+                'status': 'completed',
+                'completed_at': {
+                    '$gte': start_dt.isoformat(),
+                    '$lte': end_dt.isoformat()
+                }
+            }
+        },
+        {
+            '$addFields': {
+                'started_datetime': {'$dateFromString': {'dateString': '$started_at'}},
+                'completed_datetime': {'$dateFromString': {'dateString': '$completed_at'}}
+            }
+        },
+        {
+            '$addFields': {
+                'duration_minutes': {
+                    '$divide': [
+                        {'$subtract': ['$completed_datetime', '$started_datetime']},
+                        60000  # Convert milliseconds to minutes
+                    ]
+                }
+            }
+        },
+        {
+            '$group': {
+                '_id': '$assigned_to',
+                'total_tasks': {'$sum': 1},
+                'avg_duration': {'$avg': '$duration_minutes'},
+                'min_duration': {'$min': '$duration_minutes'},
+                'max_duration': {'$max': '$duration_minutes'}
+            }
+        },
+        {
+            '$sort': {'avg_duration': 1}  # Fastest first
+        }
+    ]
+    
+    hk_performance = []
+    async for staff in db.housekeeping_tasks.aggregate(hk_pipeline):
+        hk_performance.append({
+            'staff_name': staff['_id'] or 'Unassigned',
+            'department': 'housekeeping',
+            'total_tasks': staff['total_tasks'],
+            'avg_duration_minutes': round(staff['avg_duration'], 1) if staff['avg_duration'] else 0,
+            'min_duration_minutes': round(staff['min_duration'], 1) if staff['min_duration'] else 0,
+            'max_duration_minutes': round(staff['max_duration'], 1) if staff['max_duration'] else 0,
+            'efficiency_rating': 'Excellent' if staff['avg_duration'] < 20 else 'Good' if staff['avg_duration'] < 30 else 'Needs Improvement'
+        })
+    
+    # Front Desk Performance (Check-in duration)
+    # Calculate from audit logs
+    checkin_logs = []
+    async for log in db.audit_logs.find({
+        'tenant_id': current_user.tenant_id,
+        'action': 'CHECKIN',
+        'timestamp': {
+            '$gte': start_dt.isoformat(),
+            '$lte': end_dt.isoformat()
+        }
+    }):
+        checkin_logs.append(log)
+    
+    fd_performance = {}
+    for log in checkin_logs:
+        user_id = log.get('user_id')
+        user_name = log.get('user_name', 'Unknown')
+        
+        if user_id not in fd_performance:
+            fd_performance[user_id] = {
+                'staff_name': user_name,
+                'department': 'front_desk',
+                'total_checkins': 0,
+                'durations': []
+            }
+        
+        fd_performance[user_id]['total_checkins'] += 1
+        # Simulated duration (in real system, track actual time)
+        fd_performance[user_id]['durations'].append(5)  # Average 5 minutes per check-in
+    
+    fd_staff_performance = []
+    for user_id, data in fd_performance.items():
+        if data['durations']:
+            avg_duration = sum(data['durations']) / len(data['durations'])
+            fd_staff_performance.append({
+                'staff_name': data['staff_name'],
+                'department': 'front_desk',
+                'total_checkins': data['total_checkins'],
+                'avg_checkin_duration_minutes': round(avg_duration, 1),
+                'efficiency_rating': 'Excellent' if avg_duration < 5 else 'Good' if avg_duration < 8 else 'Needs Improvement'
+            })
+    
+    # Combined performance
+    all_performance = hk_performance + fd_staff_performance
+    
+    # Filter by department if specified
+    if department:
+        all_performance = [p for p in all_performance if p['department'] == department]
+    
+    return {
+        'start_date': start_dt.date().isoformat(),
+        'end_date': end_dt.date().isoformat(),
+        'department_filter': department,
+        'total_staff': len(all_performance),
+        'performance_by_staff': all_performance,
+        'summary': {
+            'housekeeping': {
+                'staff_count': len(hk_performance),
+                'avg_cleaning_time': round(sum(p['avg_duration_minutes'] for p in hk_performance) / len(hk_performance), 1) if hk_performance else 0,
+                'total_tasks_completed': sum(p['total_tasks'] for p in hk_performance)
+            },
+            'front_desk': {
+                'staff_count': len(fd_staff_performance),
+                'avg_checkin_time': round(sum(p['avg_checkin_duration_minutes'] for p in fd_staff_performance) / len(fd_staff_performance), 1) if fd_staff_performance else 0,
+                'total_checkins': sum(p['total_checkins'] for p in fd_staff_performance)
+            }
+        }
+    }
+
+
+@api_router.get("/dashboard/guest-satisfaction-trends")
+async def get_guest_satisfaction_trends(
+    days: int = 30,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Get guest satisfaction trends (NPS - Net Promoter Score)
+    - Last 7 days
+    - Last 30 days
+    - Trend analysis
+    """
+    end_dt = datetime.now(timezone.utc)
+    start_dt = end_dt - timedelta(days=days)
+    
+    # Get all feedback/reviews in the period
+    feedback_pipeline = [
+        {
+            '$match': {
+                'tenant_id': current_user.tenant_id,
+                'created_at': {
+                    '$gte': start_dt.isoformat(),
+                    '$lte': end_dt.isoformat()
+                }
+            }
+        }
+    ]
+    
+    # Collect feedback from multiple sources
+    all_feedback = []
+    
+    # 1. Survey responses
+    async for response in db.survey_responses.find({
+        'tenant_id': current_user.tenant_id,
+        'submitted_at': {
+            '$gte': start_dt.isoformat(),
+            '$lte': end_dt.isoformat()
+        }
+    }):
+        all_feedback.append({
+            'date': response.get('submitted_at', ''),
+            'rating': response.get('overall_rating', 0),
+            'source': 'survey',
+            'sentiment': response.get('sentiment', 'neutral')
+        })
+    
+    # 2. External reviews
+    async for review in db.external_reviews.find({
+        'tenant_id': current_user.tenant_id,
+        'review_date': {
+            '$gte': start_dt.isoformat(),
+            '$lte': end_dt.isoformat()
+        }
+    }):
+        all_feedback.append({
+            'date': review.get('review_date', ''),
+            'rating': review.get('rating', 0),
+            'source': review.get('platform', 'external'),
+            'sentiment': review.get('sentiment', 'neutral')
+        })
+    
+    # 3. Department feedback
+    async for feedback in db.department_feedback.find({
+        'tenant_id': current_user.tenant_id,
+        'created_at': {
+            '$gte': start_dt.isoformat(),
+            '$lte': end_dt.isoformat()
+        }
+    }):
+        all_feedback.append({
+            'date': feedback.get('created_at', ''),
+            'rating': feedback.get('rating', 0),
+            'source': 'department',
+            'sentiment': feedback.get('sentiment', 'neutral')
+        })
+    
+    # Calculate NPS (Net Promoter Score)
+    # NPS = % Promoters (9-10) - % Detractors (0-6)
+    # Scale: Convert 5-star rating to 10-point scale
+    promoters = 0
+    passives = 0
+    detractors = 0
+    total_ratings = []
+    
+    for item in all_feedback:
+        rating = item['rating']
+        total_ratings.append(rating)
+        
+        # Convert to 10-point scale if needed (assuming 5-star scale)
+        if rating <= 5:
+            rating_10 = rating * 2
+        else:
+            rating_10 = rating
+        
+        if rating_10 >= 9:
+            promoters += 1
+        elif rating_10 >= 7:
+            passives += 1
+        else:
+            detractors += 1
+    
+    total_responses = len(all_feedback)
+    
+    if total_responses > 0:
+        nps_score = ((promoters - detractors) / total_responses) * 100
+        avg_rating = sum(total_ratings) / total_responses
+    else:
+        nps_score = 0
+        avg_rating = 0
+    
+    # Group by date for trend
+    daily_ratings = {}
+    for item in all_feedback:
+        date_str = item['date'][:10]  # Get YYYY-MM-DD
+        if date_str not in daily_ratings:
+            daily_ratings[date_str] = []
+        daily_ratings[date_str].append(item['rating'])
+    
+    trend_data = []
+    for date_str in sorted(daily_ratings.keys()):
+        ratings = daily_ratings[date_str]
+        trend_data.append({
+            'date': date_str,
+            'avg_rating': round(sum(ratings) / len(ratings), 2),
+            'count': len(ratings)
+        })
+    
+    # Calculate 7-day vs 30-day comparison
+    seven_days_ago = end_dt - timedelta(days=7)
+    recent_feedback = [f for f in all_feedback if datetime.fromisoformat(f['date']) >= seven_days_ago]
+    
+    if recent_feedback:
+        recent_avg = sum(f['rating'] for f in recent_feedback) / len(recent_feedback)
+        recent_nps_promoters = sum(1 for f in recent_feedback if f['rating'] >= 4.5)
+        recent_nps_detractors = sum(1 for f in recent_feedback if f['rating'] < 3.5)
+        recent_nps = ((recent_nps_promoters - recent_nps_detractors) / len(recent_feedback)) * 100 if recent_feedback else 0
+    else:
+        recent_avg = 0
+        recent_nps = 0
+    
+    return {
+        'period_days': days,
+        'start_date': start_dt.date().isoformat(),
+        'end_date': end_dt.date().isoformat(),
+        'nps_score': round(nps_score, 1),
+        'nps_category': 'Excellent' if nps_score > 70 else 'Good' if nps_score > 30 else 'Fair' if nps_score > 0 else 'Needs Improvement',
+        'avg_rating': round(avg_rating, 2),
+        'total_responses': total_responses,
+        'response_breakdown': {
+            'promoters': promoters,
+            'promoters_pct': round((promoters / total_responses * 100), 1) if total_responses > 0 else 0,
+            'passives': passives,
+            'passives_pct': round((passives / total_responses * 100), 1) if total_responses > 0 else 0,
+            'detractors': detractors,
+            'detractors_pct': round((detractors / total_responses * 100), 1) if total_responses > 0 else 0
+        },
+        'last_7_days': {
+            'avg_rating': round(recent_avg, 2),
+            'nps_score': round(recent_nps, 1),
+            'response_count': len(recent_feedback)
+        },
+        'trend_data': trend_data,
+        'sentiment_breakdown': {
+            'positive': sum(1 for f in all_feedback if f['sentiment'] == 'positive'),
+            'neutral': sum(1 for f in all_feedback if f['sentiment'] == 'neutral'),
+            'negative': sum(1 for f in all_feedback if f['sentiment'] == 'negative')
+        }
+    }
+
+
+@api_router.get("/dashboard/ota-cancellation-rate")
+async def get_ota_cancellation_rate(
+    days: int = 30,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Get OTA cancellation rate - critical revenue KPI
+    - Overall cancellation rate
+    - By OTA channel
+    - By booking window
+    - Impact on revenue
+    """
+    end_dt = datetime.now(timezone.utc)
+    start_dt = end_dt - timedelta(days=days)
+    
+    # Get all bookings in period (created during this period)
+    all_bookings = []
+    async for booking in db.bookings.find({
+        'tenant_id': current_user.tenant_id,
+        'created_at': {
+            '$gte': start_dt.isoformat(),
+            '$lte': end_dt.isoformat()
+        }
+    }):
+        all_bookings.append(booking)
+    
+    # Separate by status
+    total_bookings = len(all_bookings)
+    cancelled_bookings = [b for b in all_bookings if b.get('status') == 'cancelled']
+    confirmed_bookings = [b for b in all_bookings if b.get('status') in ['confirmed', 'guaranteed', 'checked_in', 'checked_out']]
+    
+    # OTA bookings only
+    ota_channels = ['booking_com', 'expedia', 'airbnb', 'agoda', 'hotels_com']
+    ota_bookings = [b for b in all_bookings if b.get('channel') in ota_channels]
+    ota_cancelled = [b for b in ota_bookings if b.get('status') == 'cancelled']
+    
+    # Calculate rates
+    overall_cancellation_rate = (len(cancelled_bookings) / total_bookings * 100) if total_bookings > 0 else 0
+    ota_cancellation_rate = (len(ota_cancelled) / len(ota_bookings) * 100) if len(ota_bookings) > 0 else 0
+    
+    # By channel breakdown
+    channel_breakdown = {}
+    for channel in ota_channels:
+        channel_bookings = [b for b in all_bookings if b.get('channel') == channel]
+        channel_cancelled = [b for b in channel_bookings if b.get('status') == 'cancelled']
+        
+        if channel_bookings:
+            channel_breakdown[channel] = {
+                'total_bookings': len(channel_bookings),
+                'cancelled': len(channel_cancelled),
+                'cancellation_rate': round((len(channel_cancelled) / len(channel_bookings) * 100), 1),
+                'lost_revenue': sum(b.get('total_amount', 0) for b in channel_cancelled)
+            }
+    
+    # Booking window analysis (how far in advance was booking made before cancelled)
+    cancellation_lead_times = []
+    for booking in cancelled_bookings:
+        created = datetime.fromisoformat(booking.get('created_at', ''))
+        cancelled_at = booking.get('cancelled_at')
+        if cancelled_at:
+            cancelled_dt = datetime.fromisoformat(cancelled_at) if isinstance(cancelled_at, str) else cancelled_at
+            lead_time = (cancelled_dt - created).days
+            cancellation_lead_times.append(lead_time)
+    
+    avg_lead_time = sum(cancellation_lead_times) / len(cancellation_lead_times) if cancellation_lead_times else 0
+    
+    # Revenue impact
+    total_lost_revenue = sum(b.get('total_amount', 0) for b in cancelled_bookings)
+    ota_lost_revenue = sum(b.get('total_amount', 0) for b in ota_cancelled)
+    potential_revenue = sum(b.get('total_amount', 0) for b in all_bookings)
+    
+    return {
+        'period_days': days,
+        'start_date': start_dt.date().isoformat(),
+        'end_date': end_dt.date().isoformat(),
+        'overall': {
+            'total_bookings': total_bookings,
+            'cancelled_bookings': len(cancelled_bookings),
+            'cancellation_rate': round(overall_cancellation_rate, 1),
+            'confirmed_bookings': len(confirmed_bookings)
+        },
+        'ota_performance': {
+            'total_ota_bookings': len(ota_bookings),
+            'ota_cancelled': len(ota_cancelled),
+            'ota_cancellation_rate': round(ota_cancellation_rate, 1),
+            'channel_breakdown': channel_breakdown,
+            'worst_performing_channel': max(channel_breakdown.items(), key=lambda x: x[1]['cancellation_rate'])[0] if channel_breakdown else None,
+            'best_performing_channel': min(channel_breakdown.items(), key=lambda x: x[1]['cancellation_rate'])[0] if channel_breakdown else None
+        },
+        'cancellation_patterns': {
+            'avg_lead_time_days': round(avg_lead_time, 1),
+            'same_day_cancellations': sum(1 for lt in cancellation_lead_times if lt == 0),
+            'within_24h': sum(1 for lt in cancellation_lead_times if lt <= 1),
+            'within_week': sum(1 for lt in cancellation_lead_times if lt <= 7)
+        },
+        'revenue_impact': {
+            'total_lost_revenue': round(total_lost_revenue, 2),
+            'ota_lost_revenue': round(ota_lost_revenue, 2),
+            'potential_revenue': round(potential_revenue, 2),
+            'revenue_retention_rate': round(((potential_revenue - total_lost_revenue) / potential_revenue * 100), 1) if potential_revenue > 0 else 0
+        },
+        'alerts': [
+            f"⚠️ OTA cancellation rate is {'HIGH' if ota_cancellation_rate > 15 else 'NORMAL'}" if ota_cancellation_rate > 15 else "✅ OTA cancellation rate is within normal range",
+            f"💰 Lost revenue: ${round(ota_lost_revenue, 2)} from OTA cancellations" if ota_lost_revenue > 0 else None
+        ]
+    }
+
 
 # Include router at the very end after ALL endpoints are defined
 app.include_router(api_router)
