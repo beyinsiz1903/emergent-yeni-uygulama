@@ -1045,6 +1045,30 @@ frontend:
         agent: "testing"
         comment: "✅ COMPREHENSIVE TESTING COMPLETED - Group Reservations working perfectly. Page loads with 'Group & Block Reservations' title. New Group and New Block buttons visible and functional. New Group dialog opens successfully with all form fields (Group Name, Contact Person, Contact Email, Check-in/out dates, Total Rooms, Room Type, Group Rate, Notes). Form submission working with sample data. Group Reservations and Room Blocks sections properly displayed. Minor: New Block dialog has modal overlay issue but core functionality works."
 
+  - task: "Housekeeping Board Priority Indicators & Visual Urgency System"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/pages/PMSModule.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Enhanced Room Status Board with priority/urgency visual indicators. Added priority calculation logic: URGENT (🔥 red badge) for due out today + needs cleaning, HIGH (⚡ orange badge) for arrival today + needs cleaning, MEDIUM (📤 orange) for due out today, NORMAL (📥 blue) for arrival today. Room cards get colored ring borders matching priority level. Clean button gets highlighted for urgent rooms. Added priority legend in board header (Urgent: red dot, High Priority: orange dot, Normal: blue dot). Priority tooltips show detailed status (e.g., 'URGENT: Due Out Today - Needs Cleaning'). Integrates dueOutRooms, arrivalRooms data for real-time priority updates."
+
+  - task: "Mobile Housekeeping Quick Status Update"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/pages/HousekeepingMobileApp.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Enhanced mobile app with instant room status updates from the field. Added handleQuickStatusUpdate() function for one-tap status changes. Room cards now show context-aware action buttons: dirty → 'Start Cleaning' + quick '⚡' button for instant status update, cleaning → '✓ Mark as Clean' (updates to inspected), inspected → '✓ Mark as Ready' (updates to available). handleFinishCleaning() now automatically updates room status to 'inspected' via PUT /housekeeping/room/{id}/status endpoint. Toast notifications confirm successful updates. Housekeeper can now update room status immediately upon exiting room without full checklist flow. Answers key question: 'Housekeeper odadan çıktığında durumu mobile app üzerinden anında değiştirebiliyor mu?' → YES!"
+
   - task: "Cost Management Widget for GM Dashboard"
     implemented: true
     working: true
