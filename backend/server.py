@@ -13,6 +13,10 @@ from datetime import datetime, timezone, timedelta, date
 import bcrypt
 import jwt
 from enum import Enum
+from passlib.context import CryptContext
+
+# Password hashing context
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 import qrcode
 import io
 import base64
