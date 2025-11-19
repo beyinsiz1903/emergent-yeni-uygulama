@@ -4258,6 +4258,50 @@ async def ai_sentiment_analysis(
         raise HTTPException(status_code=400, detail='Review text is required')
     
     # Simple keyword-based sentiment analysis (can be replaced with actual AI API)
+
+@api_router.post("/bookings/walk-in-quick")
+async def create_walk_in_booking(data: dict, current_user: User = Depends(get_current_user)):
+    """Quick walk-in booking creation"""
+    booking_id = str(uuid.uuid4())
+    guest_id = str(uuid.uuid4())
+    
+    # Create guest
+    await db.guests.insert_one({
+        'id': guest_id,
+        'tenant_id': current_user.tenant_id,
+        'name': data['guest_name'],
+        'phone': data['guest_phone'],
+        'email': data.get('guest_email'),
+        'created_at': datetime.now(timezone.utc).isoformat()
+    })
+    
+    # Find available room
+    available_room = await db.rooms.find_one({
+        'tenant_id': current_user.tenant_id,
+        'room_type': data['room_type'],
+        'current_status': 'available'
+    })
+    
+    if not available_room:
+        raise HTTPException(status_code=400, detail='No rooms available')
+    
+    # Create booking
+    await db.bookings.insert_one({
+        'id': booking_id,
+        'tenant_id': current_user.tenant_id,
+        'guest_id': guest_id,
+        'room_id': available_room['id'],
+        'check_in': data['check_in'],
+        'check_out': data['check_out'],
+        'adults': data['adults'],
+        'status': 'confirmed',
+        'source': 'walk-in',
+        'created_at': datetime.now(timezone.utc).isoformat()
+    })
+    
+    return {'booking_id': booking_id, 'room_number': available_room['room_number']}
+
+
     review_lower = review_text.lower()
     
     # Negative keywords
