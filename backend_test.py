@@ -12,7 +12,7 @@ from datetime import datetime, timedelta
 import base64
 
 # Configuration
-BACKEND_URL = "https://image-harvest-5.preview.emergentagent.com/api"
+BACKEND_URL = "https://finance-snapshot-1.preview.emergentagent.com/api"
 TEST_EMAIL = "test@hotel.com"
 TEST_PASSWORD = "test123"
 
