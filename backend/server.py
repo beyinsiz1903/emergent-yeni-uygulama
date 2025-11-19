@@ -8959,9 +8959,9 @@ async def adjust_inventory(
         inventory = {
             'id': str(uuid.uuid4()),
             'tenant_id': current_user.tenant_id,
-            'product_id': product_id,
-            'location': location,
-            'quantity': max(0, quantity_change),
+            'product_id': request.product_id,
+            'location': request.location,
+            'quantity': max(0, request.quantity_change),
             'updated_at': datetime.now(timezone.utc).isoformat()
         }
         await db.inventory.insert_one(inventory)
