@@ -1,53 +1,51 @@
 #!/usr/bin/env python3
 """
-Messaging Throttling Test - RETRY
-Testing messaging system rate limiting functionality
-
-Test Scenarios:
-1. Single Message Send (email, SMS, WhatsApp)
-2. Rate Limit Thresholds (Email: 100/hr, SMS: 50/hr, WhatsApp: 80/hr)
-3. Rapid Fire Test (10 emails rapidly)
-4. Input Validation (invalid email, phone, empty message)
-5. SMS Character Warnings (>160 characters)
-6. Rate Limit Info in responses
-
-Base URL: https://pms-innovations.preview.emergentagent.com/api
-Login: test@hotel.com / test123
+Comprehensive Backend Testing for 7 New Hotel PMS Features
+Testing 57 endpoints across all major hotel management features
 """
 
 import requests
 import json
-import time
-from datetime import datetime
 import sys
+import os
+from datetime import datetime, timedelta
+import base64
 
 # Configuration
-BASE_URL = "https://pms-innovations.preview.emergentagent.com/api"
-LOGIN_EMAIL = "test@hotel.com"
-LOGIN_PASSWORD = "test123"
+BACKEND_URL = "https://pms-innovations.preview.emergentagent.com/api"
+TEST_EMAIL = "test@hotel.com"
+TEST_PASSWORD = "test123"
 
-class MessagingThrottlingTester:
+class HotelPMSBackendTester:
     def __init__(self):
         self.session = requests.Session()
-        self.token = None
-        self.test_results = []
-
-    def log_test(self, test_name, status, details=""):
-        """Log test result"""
-        result = {
-            'test': test_name,
-            'status': status,
-            'details': details,
-            'timestamp': datetime.now().isoformat()
+        self.auth_token = None
+        self.tenant_id = None
+        self.user_id = None
+        self.test_results = {
+            "messaging": {"passed": 0, "failed": 0, "details": []},
+            "rms": {"passed": 0, "failed": 0, "details": []},
+            "housekeeping_mobile": {"passed": 0, "failed": 0, "details": []},
+            "efatura_pos": {"passed": 0, "failed": 0, "details": []},
+            "group_block": {"passed": 0, "failed": 0, "details": []},
+            "multi_property": {"passed": 0, "failed": 0, "details": []},
+            "marketplace": {"passed": 0, "failed": 0, "details": []}
         }
-        self.test_results.append(result)
-        status_symbol = "✅" if status == "PASS" else "❌" if status == "FAIL" else "⚠️"
-        print(f"{status_symbol} {test_name}: {details}")
-        
-    def login(self):
-        """Login and get authentication token"""
+        self.created_resources = {
+            "comp_set_ids": [],
+            "group_ids": [],
+            "block_ids": [],
+            "property_ids": [],
+            "product_ids": [],
+            "po_ids": [],
+            "room_ids": []
+        }
+
+    def authenticate(self):
+        """Authenticate with the backend"""
+        print("🔐 Authenticating...")
         try:
-            response = self.session.post(f"{BASE_URL}/auth/login", json={
+            response = self.session.post(f"{BACKEND_URL}/auth/login", json={
                 "email": LOGIN_EMAIL,
                 "password": LOGIN_PASSWORD
             })
