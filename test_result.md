@@ -1025,6 +1025,18 @@ frontend:
         agent: "testing"
         comment: "✅ COMPREHENSIVE TESTING COMPLETED - Group Reservations working perfectly. Page loads with 'Group & Block Reservations' title. New Group and New Block buttons visible and functional. New Group dialog opens successfully with all form fields (Group Name, Contact Person, Contact Email, Check-in/out dates, Total Rooms, Room Type, Group Rate, Notes). Form submission working with sample data. Group Reservations and Room Blocks sections properly displayed. Minor: New Block dialog has modal overlay issue but core functionality works."
 
+  - task: "Finance Snapshot Widget for GM Dashboard"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/pages/GMDashboard.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Added Finance Snapshot card to GM Dashboard with 3-column layout showing: (1) Pending AR Total with company folio count, (2) Overdue Breakdown categorized by aging (0-30, 30-60, 60+ days), (3) Today's Collections with payment count and MTD stats. Integrated /api/reports/finance-snapshot endpoint. Added accounting integration info section with E-Fatura, E-Arşiv, and export capabilities (Excel, CSV, XML for Logo/Mikro/SAP). Positioned between top KPI cards and Owner Summary section."
+
   - task: "Multi-Property Dashboard - Portfolio Management"
     implemented: true
     working: true
