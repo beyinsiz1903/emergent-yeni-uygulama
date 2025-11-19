@@ -103,7 +103,7 @@ async def seed_data():
             "tenant_id": tenant_id,
             "name": "Hotel Administrator",
             "email": "admin@test.com",
-            "password_hash": password_hash,
+            "password": password_hash,
             "role": "admin",
             "created_at": datetime.now().isoformat()
         }
