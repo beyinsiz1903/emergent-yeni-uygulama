@@ -21,13 +21,60 @@ const OTAMessagingHub = () => {
 
   useEffect(() => {
     loadConversations();
+    loadTemplates();
   }, [filter]);
 
   useEffect(() => {
     if (selectedConversation) {
       loadMessages(selectedConversation.id);
+      loadUpsellForGuest(selectedConversation.guest_id);
     }
   }, [selectedConversation]);
+
+  const loadTemplates = async () => {
+    try {
+      const response = await axios.get('/messaging/templates');
+      setTemplates(response.data);
+    } catch (error) {
+      console.error('Failed to load templates:', error);
+    }
+  };
+
+  const loadUpsellForGuest = async (guestId) => {
+    if (!guestId) return;
+    try {
+      // Get AI upsell recommendations for this guest
+      const response = await axios.get(`/ai/upsell/recommendations?guest_id=${guestId}`);
+      setUpsellData(response.data);
+    } catch (error) {
+      console.error('Failed to load upsell data:', error);
+      setUpsellData(null);
+    }
+  };
+
+  const applyTemplate = (template) => {
+    let message = template.content;
+    
+    // If it's an upgrade offer template and we have upsell data, auto-fill
+    if (template.name.toLowerCase().includes('upgrade') && upsellData) {
+      const bestOffer = upsellData.offers?.[0]; // Get highest priority offer
+      if (bestOffer) {
+        message = message
+          .replace('{UPGRADE_TYPE}', bestOffer.type || 'Room Upgrade')
+          .replace('{PRICE}', bestOffer.price || '99')
+          .replace('{BENEFITS}', bestOffer.description || 'Enhanced comfort and amenities');
+      }
+    }
+    
+    // Replace other placeholders
+    message = message
+      .replace('{GUEST_NAME}', selectedConversation?.guest_name || 'Guest')
+      .replace('{HOTEL_NAME}', 'Finance Test Hotel');
+    
+    setNewMessage(message);
+    setShowTemplates(false);
+    toast.success('Template applied with AI upsell data!');
+  };
 
   const loadConversations = async () => {
     try {
