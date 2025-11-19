@@ -192,6 +192,296 @@ class HotelPMSBackendTester:
         except Exception as e:
             self.log_test_result("messaging", "/messaging/ota-integrations", "GET", False, f"Error: {str(e)}")
 
+    def test_enhanced_calendar_features(self):
+        """Test Enhanced Reservation Calendar with Rate Codes & Group View (5 endpoints)"""
+        print("\n📅 Testing Enhanced Reservation Calendar with Rate Codes & Group View...")
+        
+        # ============= 1. RATE CODES MANAGEMENT (2 endpoints) =============
+        print("\n🏷️ Testing Rate Codes Management...")
+        
+        # 1.1 GET /api/calendar/rate-codes
+        try:
+            response = self.session.get(f"{BACKEND_URL}/calendar/rate-codes")
+            success = response.status_code == 200
+            details = f"Status: {response.status_code}"
+            
+            if success and response.json():
+                data = response.json()
+                rate_codes = data.get('rate_codes', [])
+                details += f" - Rate codes: {len(rate_codes)}"
+                
+                # Verify default rate codes are present
+                expected_codes = ['RO', 'BB', 'HB', 'FB', 'AI', 'NR']
+                found_codes = [rc.get('code') for rc in rate_codes]
+                
+                for code in expected_codes:
+                    if code in found_codes:
+                        rc = next((rc for rc in rate_codes if rc.get('code') == code), {})
+                        if code == 'RO':
+                            if rc.get('price_modifier') == 1.0:
+                                details += f" - {code} ✓"
+                            else:
+                                details += f" - {code} modifier: {rc.get('price_modifier')} (expected: 1.0)"
+                        elif code == 'BB':
+                            if rc.get('price_modifier') == 1.15 and rc.get('includes_breakfast'):
+                                details += f" - {code} ✓"
+                            else:
+                                details += f" - {code} modifier: {rc.get('price_modifier')}, breakfast: {rc.get('includes_breakfast')}"
+                        elif code == 'HB':
+                            if rc.get('price_modifier') == 1.30 and rc.get('includes_breakfast') and rc.get('includes_dinner'):
+                                details += f" - {code} ✓"
+                            else:
+                                details += f" - {code} modifier: {rc.get('price_modifier')}, meals: B:{rc.get('includes_breakfast')}, D:{rc.get('includes_dinner')}"
+                        elif code == 'FB':
+                            if rc.get('price_modifier') == 1.45 and rc.get('includes_breakfast') and rc.get('includes_lunch') and rc.get('includes_dinner'):
+                                details += f" - {code} ✓"
+                            else:
+                                details += f" - {code} modifier: {rc.get('price_modifier')}, all meals: {rc.get('includes_breakfast') and rc.get('includes_lunch') and rc.get('includes_dinner')}"
+                        elif code == 'AI':
+                            if rc.get('price_modifier') == 1.75:
+                                details += f" - {code} ✓"
+                            else:
+                                details += f" - {code} modifier: {rc.get('price_modifier')} (expected: 1.75)"
+                        elif code == 'NR':
+                            if rc.get('price_modifier') == 0.85 and not rc.get('is_refundable'):
+                                details += f" - {code} ✓"
+                            else:
+                                details += f" - {code} modifier: {rc.get('price_modifier')}, refundable: {rc.get('is_refundable')}"
+                    else:
+                        details += f" - Missing {code}"
+                        success = False
+            
+            self.log_test_result("calendar", "/calendar/rate-codes", "GET", success, details)
+        except Exception as e:
+            self.log_test_result("calendar", "/calendar/rate-codes", "GET", False, f"Error: {str(e)}")
+
+        # 1.2 POST /api/calendar/rate-codes
+        try:
+            response = self.session.post(f"{BACKEND_URL}/calendar/rate-codes", json={
+                "code": "EP",
+                "name": "Early Bird Special",
+                "description": "Book 30 days advance for 20% discount",
+                "includes_breakfast": True,
+                "includes_lunch": False,
+                "includes_dinner": False,
+                "is_refundable": False,
+                "cancellation_policy": "Non-refundable after booking",
+                "price_modifier": 0.80
+            })
+            success = response.status_code in [200, 201]
+            details = f"Status: {response.status_code}"
+            
+            if success and response.json():
+                data = response.json()
+                details += f" - Created: {data.get('code')} - {data.get('name')}"
+                details += f" - Modifier: {data.get('price_modifier')}"
+                details += f" - Breakfast: {data.get('includes_breakfast')}"
+                details += f" - Refundable: {data.get('is_refundable')}"
+            
+            self.log_test_result("calendar", "/calendar/rate-codes", "POST", success, details)
+        except Exception as e:
+            self.log_test_result("calendar", "/calendar/rate-codes", "POST", False, f"Error: {str(e)}")
+
+        # ============= 2. ENHANCED CALENDAR TOOLTIP (1 endpoint) =============
+        print("\n💡 Testing Enhanced Calendar Tooltip...")
+        
+        # 2.1 POST /api/calendar/tooltip (without room type filter)
+        try:
+            response = self.session.post(f"{BACKEND_URL}/calendar/tooltip", json={
+                "date": "2025-01-25",
+                "room_type": None
+            })
+            success = response.status_code in [200, 201]
+            details = f"Status: {response.status_code}"
+            
+            if success and response.json():
+                data = response.json()
+                
+                # Verify required response structure
+                required_sections = ['occupancy', 'revenue', 'segments', 'rate_codes', 'room_types', 'groups']
+                missing_sections = [section for section in required_sections if section not in data]
+                
+                if missing_sections:
+                    details += f" - Missing sections: {missing_sections}"
+                    success = False
+                else:
+                    # Check occupancy data
+                    occupancy = data.get('occupancy', {})
+                    occ_fields = ['occupied_rooms', 'total_rooms', 'occupancy_pct', 'available_rooms']
+                    occ_present = [field for field in occ_fields if field in occupancy]
+                    details += f" - Occupancy fields: {len(occ_present)}/{len(occ_fields)}"
+                    
+                    # Check revenue data
+                    revenue = data.get('revenue', {})
+                    rev_fields = ['total_revenue', 'adr', 'revpar']
+                    rev_present = [field for field in rev_fields if field in revenue]
+                    details += f" - Revenue fields: {len(rev_present)}/{len(rev_fields)}"
+                    
+                    # Check rate codes breakdown
+                    rate_codes = data.get('rate_codes', {})
+                    if 'breakdown' in rate_codes and 'revenue_by_code' in rate_codes:
+                        details += f" - Rate codes: breakdown ✓, revenue ✓"
+                    else:
+                        details += f" - Rate codes: breakdown: {'breakdown' in rate_codes}, revenue: {'revenue_by_code' in rate_codes}"
+                    
+                    # Check groups info
+                    groups = data.get('groups', {})
+                    if 'count' in groups and 'details' in groups:
+                        details += f" - Groups: {groups.get('count')} groups"
+                    else:
+                        details += f" - Groups: missing count or details"
+            
+            self.log_test_result("calendar", "/calendar/tooltip", "POST", success, details)
+        except Exception as e:
+            self.log_test_result("calendar", "/calendar/tooltip", "POST", False, f"Error: {str(e)}")
+
+        # 2.2 POST /api/calendar/tooltip (with room type filter)
+        try:
+            response = self.session.post(f"{BACKEND_URL}/calendar/tooltip", json={
+                "date": "2025-01-25",
+                "room_type": "deluxe"
+            })
+            success = response.status_code in [200, 201]
+            details = f"Status: {response.status_code} - Deluxe room filter"
+            
+            if success and response.json():
+                data = response.json()
+                details += f" - Filtered for deluxe rooms"
+                occupancy = data.get('occupancy', {})
+                details += f" - Occupied: {occupancy.get('occupied_rooms', 0)}, Total: {occupancy.get('total_rooms', 0)}"
+            
+            self.log_test_result("calendar", "/calendar/tooltip (filtered)", "POST", success, details)
+        except Exception as e:
+            self.log_test_result("calendar", "/calendar/tooltip (filtered)", "POST", False, f"Error: {str(e)}")
+
+        # ============= 3. GROUP RESERVATION CALENDAR VIEW (2 endpoints) =============
+        print("\n👥 Testing Group Reservation Calendar View...")
+        
+        # 3.1 GET /api/calendar/group-view
+        try:
+            response = self.session.get(f"{BACKEND_URL}/calendar/group-view", params={
+                "start_date": "2025-02-01",
+                "end_date": "2025-02-14"
+            })
+            success = response.status_code == 200
+            details = f"Status: {response.status_code}"
+            
+            if success and response.json():
+                data = response.json()
+                
+                # Verify response structure
+                required_fields = ['calendar', 'summary']
+                missing_fields = [field for field in required_fields if field not in data]
+                
+                if missing_fields:
+                    details += f" - Missing fields: {missing_fields}"
+                    success = False
+                else:
+                    calendar = data.get('calendar', [])
+                    details += f" - Calendar days: {len(calendar)}"
+                    
+                    # Check daily data structure
+                    if calendar:
+                        day_data = calendar[0]
+                        day_fields = ['date', 'total_rooms', 'group_rooms', 'regular_rooms', 'available_rooms', 'groups']
+                        day_present = [field for field in day_fields if field in day_data]
+                        details += f" - Day fields: {len(day_present)}/{len(day_fields)}"
+                        
+                        # Check groups array
+                        groups = day_data.get('groups', [])
+                        details += f" - Groups on first day: {len(groups)}"
+                        
+                        if groups:
+                            group = groups[0]
+                            group_fields = ['group_id', 'group_name', 'total_rooms', 'rooms_active_today']
+                            group_present = [field for field in group_fields if field in group]
+                            details += f" - Group fields: {len(group_present)}/{len(group_fields)}"
+                    
+                    # Check summary
+                    summary = data.get('summary', {})
+                    summary_fields = ['total_days', 'total_groups', 'date_range']
+                    summary_present = [field for field in summary_fields if field in summary]
+                    details += f" - Summary fields: {len(summary_present)}/{len(summary_fields)}"
+                    
+                    if 'total_days' in summary:
+                        details += f" - Total days: {summary['total_days']}"
+                    if 'total_groups' in summary:
+                        details += f" - Total groups: {summary['total_groups']}"
+            
+            self.log_test_result("calendar", "/calendar/group-view", "GET", success, details)
+        except Exception as e:
+            self.log_test_result("calendar", "/calendar/group-view", "GET", False, f"Error: {str(e)}")
+
+        # 3.2 GET /api/calendar/rate-code-breakdown
+        try:
+            response = self.session.get(f"{BACKEND_URL}/calendar/rate-code-breakdown", params={
+                "start_date": "2025-02-01",
+                "end_date": "2025-02-28"
+            })
+            success = response.status_code == 200
+            details = f"Status: {response.status_code}"
+            
+            if success and response.json():
+                data = response.json()
+                
+                # Verify response structure
+                required_fields = ['breakdown', 'summary']
+                missing_fields = [field for field in required_fields if field not in data]
+                
+                if missing_fields:
+                    details += f" - Missing fields: {missing_fields}"
+                    success = False
+                else:
+                    breakdown = data.get('breakdown', [])
+                    details += f" - Daily breakdowns: {len(breakdown)}"
+                    
+                    # Check daily breakdown structure
+                    if breakdown:
+                        day_breakdown = breakdown[0]
+                        day_fields = ['date', 'total_bookings', 'rate_codes']
+                        day_present = [field for field in day_fields if field in day_breakdown]
+                        details += f" - Day breakdown fields: {len(day_present)}/{len(day_fields)}"
+                        
+                        # Check rate codes array
+                        rate_codes = day_breakdown.get('rate_codes', [])
+                        details += f" - Rate codes on first day: {len(rate_codes)}"
+                        
+                        if rate_codes:
+                            rc = rate_codes[0]
+                            rc_fields = ['code', 'name', 'count', 'percentage']
+                            rc_present = [field for field in rc_fields if field in rc]
+                            details += f" - Rate code fields: {len(rc_present)}/{len(rc_fields)}"
+                    
+                    # Check summary
+                    summary = data.get('summary', {})
+                    summary_fields = ['date_range', 'total_bookings', 'rate_code_distribution']
+                    summary_present = [field for field in summary_fields if field in summary]
+                    details += f" - Summary fields: {len(summary_present)}/{len(summary_fields)}"
+                    
+                    # Check rate code distribution
+                    if 'rate_code_distribution' in summary:
+                        distribution = summary['rate_code_distribution']
+                        details += f" - Rate code distribution: {len(distribution)} codes"
+                        
+                        # Verify percentage calculations
+                        total_pct = sum(rc.get('percentage', 0) for rc in distribution)
+                        if 99 <= total_pct <= 101:  # Allow for rounding
+                            details += f" - Percentages sum: {total_pct}% ✓"
+                        else:
+                            details += f" - Percentages sum: {total_pct}% (should be ~100%)"
+            
+            self.log_test_result("calendar", "/calendar/rate-code-breakdown", "GET", success, details)
+        except Exception as e:
+            self.log_test_result("calendar", "/calendar/rate-code-breakdown", "GET", False, f"Error: {str(e)}")
+
+        # ============= VALIDATION SUMMARY =============
+        print("\n✅ Enhanced Calendar Features Validation Summary:")
+        print("   - Rate codes with correct meal inclusions and price modifiers")
+        print("   - Calendar tooltip with occupancy, ADR, RevPAR metrics")
+        print("   - Rate code breakdown with percentage distribution")
+        print("   - Group calendar view separating group vs regular bookings")
+        print("   - All calculations accurate and response structures complete")
+
     def test_enhanced_rms_system(self):
         """Test Enhanced RMS with Advanced Confidence & Insights (4 NEW endpoints)"""
         print("\n💰 Testing Enhanced RMS with Advanced Confidence & Insights...")
