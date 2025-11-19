@@ -814,7 +814,9 @@ class HotelPMSBackendTester:
             details = f"Status: {response.status_code}"
             if success:
                 data = response.json()
-                details += f" - Products: {len(data.get('products', []))}"
+                # Response is a list directly, not a dict with 'products' key
+                products_count = len(data) if isinstance(data, list) else len(data.get('products', []))
+                details += f" - Products: {products_count}"
             self.log_test_result("marketplace", "/marketplace/products", "GET", success, details)
         except Exception as e:
             self.log_test_result("marketplace", "/marketplace/products", "GET", False, f"Error: {str(e)}")
