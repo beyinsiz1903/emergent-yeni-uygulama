@@ -23,14 +23,7 @@ class HotelPMSBackendTester:
         self.tenant_id = None
         self.user_id = None
         self.test_results = {
-            "messaging": {"passed": 0, "failed": 0, "details": []},
-            "rms": {"passed": 0, "failed": 0, "details": []},
-            "housekeeping_mobile": {"passed": 0, "failed": 0, "details": []},
-            "efatura_pos": {"passed": 0, "failed": 0, "details": []},
-            "group_block": {"passed": 0, "failed": 0, "details": []},
-            "multi_property": {"passed": 0, "failed": 0, "details": []},
-            "marketplace": {"passed": 0, "failed": 0, "details": []},
-            "marketplace_extensions": {"passed": 0, "failed": 0, "details": []}
+            "rms": {"passed": 0, "failed": 0, "details": []}
         }
         self.created_resources = {
             "comp_set_ids": [],
