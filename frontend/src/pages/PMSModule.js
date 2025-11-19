@@ -1739,6 +1739,27 @@ const PMSModule = ({ user, tenant, onLogout }) => {
                 </CardContent>
               </Card>
             </div>
+
+            {/* 30-Day Forecast */}
+            {reports.forecast30 && (
+              <Card>
+                <CardContent className="pt-6">
+                  <ForecastGraph data={reports.forecast30} />
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Revenue Dashboard */}
+            <div>
+              <h3 className="text-xl font-bold mb-4">Revenue Analytics</h3>
+              <RevenueDashboard />
+            </div>
+
+            {/* AI Activity Log */}
+            <div>
+              <h3 className="text-xl font-bold mb-4">AI Intelligence Activity</h3>
+              <AIActivityLog />
+            </div>
             
             {/* Show message if no reports loaded yet */}
             {!reports.daily && !reports.revenue && !reports.occupancy && (
