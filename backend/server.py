@@ -8287,7 +8287,8 @@ async def generate_efatura(
         'generated_at': datetime.now(timezone.utc).isoformat()
     }
     
-    await db.efatura_records.insert_one(efatura_record)
+    efatura_copy = efatura_record.copy()
+    await db.efatura_records.insert_one(efatura_copy)
     
     # Update invoice status
     await db.accounting_invoices.update_one(
