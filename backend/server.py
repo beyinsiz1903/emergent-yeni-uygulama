@@ -9046,7 +9046,8 @@ async def create_purchase_order(
         'created_by': current_user.id
     }
     
-    await db.purchase_orders.insert_one(po)
+    po_copy = po.copy()
+    await db.purchase_orders.insert_one(po_copy)
     return po
 
 @api_router.post("/marketplace/purchase-orders/{po_id}/approve")
