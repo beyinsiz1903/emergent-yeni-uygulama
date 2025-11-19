@@ -1333,6 +1333,21 @@ class AssignTaskRequest(BaseModel):
     assigned_to: str
     notes: Optional[str] = None
 
+# Enterprise Features Models
+class CreateRoleRequest(BaseModel):
+    role_name: str
+    description: str
+    permissions: List[str]  # ['view_bookings', 'edit_rates', 'delete_bookings', etc.]
+    department: Optional[str] = None
+
+class AssignRoleRequest(BaseModel):
+    user_id: str
+    role_id: str
+
+class CreateBackupRequest(BaseModel):
+    backup_type: str = "full"  # full, incremental
+    include_collections: Optional[List[str]] = None
+
 # ============= HELPER FUNCTIONS =============
 
 def hash_password(password: str) -> str:
