@@ -886,8 +886,8 @@ class HotelPMSBackendTester:
             response = self.session.post(f"{BACKEND_URL}/marketplace/purchase-orders", json={
                 "supplier": "Linen Supply Co",
                 "items": items,
-                "delivery_date": "2025-02-01",
-                "notes": "Urgent order for hotel renovation"
+                "delivery_location": "main_warehouse",
+                "expected_delivery_date": "2025-02-01"
             })
             success = response.status_code in [200, 201]
             details = f"Status: {response.status_code}"
