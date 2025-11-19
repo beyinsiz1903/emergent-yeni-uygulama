@@ -432,6 +432,171 @@ const GMDashboard = ({ user, tenant, onLogout }) => {
           </Card>
         </div>
 
+        {/* Revenue Analytics & Budget Comparison */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {/* Actual vs Budget */}
+          <Card className="border-2 border-blue-200">
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center space-x-2">
+                <Target className="w-5 h-5 text-blue-600" />
+                <span>Actual vs Budget</span>
+              </CardTitle>
+              <CardDescription>Month-to-date comparison</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div>
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="text-sm text-gray-600">Revenue</span>
+                    <Badge variant={-2.3 < 0 ? "destructive" : "default"}>
+                      -2.3%
+                    </Badge>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <div className="text-2xl font-bold">$152,400</div>
+                    <div className="text-sm text-gray-500">/ $156,000</div>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-2 mt-2">
+                    <div className="bg-blue-600 h-2 rounded-full" style={{ width: '97.7%' }}></div>
+                  </div>
+                </div>
+
+                <div>
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="text-sm text-gray-600">Occupancy</span>
+                    <Badge variant="default">+3.5%</Badge>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <div className="text-2xl font-bold">86.2%</div>
+                    <div className="text-sm text-gray-500">/ 83.5%</div>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-2 mt-2">
+                    <div className="bg-green-600 h-2 rounded-full" style={{ width: '103.5%' }}></div>
+                  </div>
+                </div>
+
+                <div>
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="text-sm text-gray-600">ADR</span>
+                    <Badge variant="default">+1.8%</Badge>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <div className="text-2xl font-bold">$169.74</div>
+                    <div className="text-sm text-gray-500">/ $166.80</div>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-2 mt-2">
+                    <div className="bg-green-600 h-2 rounded-full" style={{ width: '101.8%' }}></div>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* vs Last Year */}
+          <Card className="border-2 border-green-200">
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center space-x-2">
+                <TrendingUp className="w-5 h-5 text-green-600" />
+                <span>vs Last Year</span>
+              </CardTitle>
+              <CardDescription>Year-over-year growth</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="p-3 bg-green-50 rounded-lg">
+                  <div className="text-sm text-gray-600 mb-1">Revenue Growth</div>
+                  <div className="flex items-center justify-between">
+                    <div className="text-3xl font-bold text-green-700">+8.7%</div>
+                    <TrendingUp className="w-8 h-8 text-green-600" />
+                  </div>
+                  <div className="text-xs text-gray-600 mt-2">
+                    $152,400 vs $140,200 LY
+                  </div>
+                </div>
+
+                <div className="p-3 bg-blue-50 rounded-lg">
+                  <div className="text-sm text-gray-600 mb-1">Occupancy</div>
+                  <div className="flex items-center justify-between">
+                    <div className="text-3xl font-bold text-blue-700">+4.2%</div>
+                    <TrendingUp className="w-8 h-8 text-blue-600" />
+                  </div>
+                  <div className="text-xs text-gray-600 mt-2">
+                    86.2% vs 82.7% LY
+                  </div>
+                </div>
+
+                <div className="p-3 bg-purple-50 rounded-lg">
+                  <div className="text-sm text-gray-600 mb-1">RevPAR</div>
+                  <div className="flex items-center justify-between">
+                    <div className="text-3xl font-bold text-purple-700">+8.7%</div>
+                    <TrendingUp className="w-8 h-8 text-purple-600" />
+                  </div>
+                  <div className="text-xs text-gray-600 mt-2">
+                    $148.50 vs $136.60 LY
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* 30-Day Forecast with Budget */}
+          <Card className="border-2 border-purple-200">
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center space-x-2">
+                <Calendar className="w-5 h-5 text-purple-600" />
+                <span>30-Day Forecast</span>
+              </CardTitle>
+              <CardDescription>Occupancy: Actual vs Budget</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                <div className="flex items-center justify-between text-xs">
+                  <div className="flex items-center space-x-2">
+                    <div className="w-3 h-3 bg-blue-600 rounded"></div>
+                    <span>Actual</span>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <div className="w-3 h-3 border-2 border-green-600 rounded"></div>
+                    <span>Budget</span>
+                  </div>
+                </div>
+
+                {/* Mini chart representation */}
+                <div className="space-y-2">
+                  {[
+                    { day: 'Week 1', actual: 88, budget: 85 },
+                    { day: 'Week 2', actual: 92, budget: 88 },
+                    { day: 'Week 3', actual: 84, budget: 87 },
+                    { day: 'Week 4', actual: 90, budget: 90 }
+                  ].map((week, idx) => (
+                    <div key={idx}>
+                      <div className="flex justify-between text-xs mb-1">
+                        <span className="text-gray-600">{week.day}</span>
+                        <span className="font-semibold">{week.actual}% / {week.budget}%</span>
+                      </div>
+                      <div className="flex space-x-1">
+                        <div className="flex-1 bg-gray-200 rounded-full h-2">
+                          <div className="bg-blue-600 h-2 rounded-full" style={{ width: `${week.actual}%` }}></div>
+                        </div>
+                        <div className="flex-1 bg-gray-200 rounded-full h-2">
+                          <div className="border-2 border-green-600 h-2 rounded-full" style={{ width: `${week.budget}%` }}></div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="pt-3 border-t">
+                  <div className="text-sm font-semibold text-center">
+                    Avg: 88.5% vs Budget 87.5%
+                    <Badge className="ml-2 bg-green-500">+1.0%</Badge>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
         {/* Third Row - Housekeeping Status & OTA Mix */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Housekeeping Status */}
