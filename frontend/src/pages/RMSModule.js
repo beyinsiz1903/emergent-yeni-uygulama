@@ -186,7 +186,7 @@ const RMSModule = ({ user, tenant, onLogout }) => {
   };
 
   return (
-    <Layout user={user || { name: 'Revenue Manager', role: 'admin' }} tenant={tenant} onLogout={onLogout}>
+    <Layout user={user || { name: 'Revenue Manager', role: 'admin' }} tenant={tenant} onLogout={onLogout} currentModule="rms">
       <div className="space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
