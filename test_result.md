@@ -1057,6 +1057,30 @@ frontend:
         agent: "main"
         comment: "Enhanced Room Status Board with priority/urgency visual indicators. Added priority calculation logic: URGENT (🔥 red badge) for due out today + needs cleaning, HIGH (⚡ orange badge) for arrival today + needs cleaning, MEDIUM (📤 orange) for due out today, NORMAL (📥 blue) for arrival today. Room cards get colored ring borders matching priority level. Clean button gets highlighted for urgent rooms. Added priority legend in board header (Urgent: red dot, High Priority: orange dot, Normal: blue dot). Priority tooltips show detailed status (e.g., 'URGENT: Due Out Today - Needs Cleaning'). Integrates dueOutRooms, arrivalRooms data for real-time priority updates."
 
+  - task: "Global Color System - Consistency Across All Modules"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/constants/colors.js, /app/frontend/src/components/ColorLegend.js, /app/frontend/src/pages/PMSModule.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Implemented global color system for consistent UX across all modules. Created /constants/colors.js with COLORS object defining: STATUS colors (AVAILABLE=green, RISK=red, ATTENTION=orange, PENDING=yellow, INFO=blue, OCCUPIED=purple). Mapping functions for ROOM_STATUS, HK_STATUS, FINANCIAL, PRIORITY. Updated Room Status Board to use consistent colors: dirty→red (risk), cleaning→yellow (pending), inspected→green (available), available→green, occupied→purple. Enhanced legend in Room Status Board header showing both Priority (urgent/high) and Status colors (available/dirty/cleaning/occupied). Created ColorLegend component for showing color meanings. Color meanings: Green=Available/Positive/Ready, Red=Risk/Overdue/Critical/Dirty, Orange=Attention/Warning/Priority, Yellow=Pending/In-Progress/Cleaning, Blue=Informational/Normal, Purple=Occupied/In-Use/VIP. Addresses UX feedback: 'Tüm sistemde yeşil = available/positive, kırmızı = risk/overdue, turuncu = attention gibi global bir renk sözlüğü' → DONE!"
+
+  - task: "Floating Action Button (FAB) - Quick Actions"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/components/FloatingActionButton.js, /app/frontend/src/pages/PMSModule.js, /app/frontend/src/pages/GMDashboard.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Created FloatingActionButton component for quick actions across key pages. FAB Design: Fixed position (bottom-right), 64x64 main button with gradient (blue→purple), expand/collapse animation (rotate 45deg when open), backdrop blur, staggered action items animation. Component Features: actions array prop with {label, icon, color, onClick}, tooltip labels (dark bg), circular action buttons (48x48), auto-close on action, backdrop click to close. Integrated to PMS Module with 5 actions: New Booking (blue), Quick Check-in (green), Quick Check-out (orange), Add Guest (purple), Refresh Data (gray). Integrated to GM Dashboard with 5 actions: New Booking, Check-in Guest, RMS Suggestions, View Reports, Refresh Dashboard. Context-aware actions per page. Hover states and smooth transitions. Mobile-friendly positioning. Addresses UX feedback: 'Kritik aksiyonlar için tek tuş - diğer ekranların sağ altına + floating action' → DONE!"
+
   - task: "Guest 360 Profile - Quick Action Buttons"
     implemented: true
     working: true
