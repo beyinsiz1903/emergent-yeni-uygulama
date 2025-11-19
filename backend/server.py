@@ -1040,6 +1040,141 @@ class PriceAnalysis(BaseModel):
     competitor_avg: Optional[float] = None
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
+# ============= NEW FEATURES PYDANTIC MODELS =============
+
+# Messaging Models
+class SendWhatsAppRequest(BaseModel):
+    to: str
+    message: str
+    booking_id: Optional[str] = None
+
+class SendEmailRequest(BaseModel):
+    to: str
+    subject: str
+    message: str
+    booking_id: Optional[str] = None
+
+class SendSMSRequest(BaseModel):
+    to: str
+    message: str
+    booking_id: Optional[str] = None
+
+class CreateMessageTemplateRequest(BaseModel):
+    name: str
+    channel: str
+    subject: Optional[str] = None
+    content: str = ""
+    variables: List[str] = []
+
+# RMS Models
+class AddCompetitorRequest(BaseModel):
+    name: str
+    location: str
+    star_rating: float
+    url: Optional[str] = None
+
+class ScrapePricesRequest(BaseModel):
+    date: str
+
+class AutoPricingRequest(BaseModel):
+    start_date: str
+    end_date: str
+    room_type: Optional[str] = None
+
+class DemandForecastRequest(BaseModel):
+    start_date: str
+    end_date: str
+
+# Housekeeping Models
+class ReportIssueRequest(BaseModel):
+    room_id: str
+    issue_type: str
+    description: str
+    priority: str = 'normal'
+    photos: List[str] = []
+
+class UploadPhotoRequest(BaseModel):
+    task_id: str
+    photo_base64: str
+
+# POS Models
+class CreatePOSTransactionRequest(BaseModel):
+    amount: float
+    payment_method: str
+    folio_id: Optional[str] = None
+
+# Group Reservations Models
+class CreateGroupReservationRequest(BaseModel):
+    group_name: str
+    group_type: str
+    contact_person: str
+    contact_email: str
+    contact_phone: str
+    check_in_date: str
+    check_out_date: str
+    total_rooms: int
+    adults_per_room: int = 2
+    special_requests: Optional[str] = None
+
+class AssignGroupRoomsRequest(BaseModel):
+    room_assignments: List[Dict[str, Any]]
+
+class CreateBlockReservationRequest(BaseModel):
+    block_name: str
+    room_type: str
+    start_date: str
+    end_date: str
+    total_rooms: int
+    block_type: str = 'tentative'
+    release_date: Optional[str] = None
+
+class UseBlockRoomRequest(BaseModel):
+    guest_name: str
+    guest_email: str
+
+# Multi-Property Models
+class CreatePropertyRequest(BaseModel):
+    property_name: str
+    property_code: str
+    location: str
+    total_rooms: int
+    property_type: str = 'hotel'
+    status: str = 'active'
+
+class TransferReservationRequest(BaseModel):
+    target_property_id: str
+    reason: Optional[str] = None
+
+# Marketplace Models
+class CreateMarketplaceProductRequest(BaseModel):
+    product_name: str
+    category: str
+    unit_price: float
+    unit_of_measure: str
+    supplier: str
+    min_order_qty: int = 1
+
+class AdjustInventoryRequest(BaseModel):
+    product_id: str
+    location: str
+    quantity_change: int
+    reason: str
+
+class CreatePurchaseOrderRequest(BaseModel):
+    supplier: str
+    items: List[Dict[str, Any]]
+    delivery_location: str
+    expected_delivery_date: Optional[str] = None
+
+class ReceivePurchaseOrderRequest(BaseModel):
+    received_items: List[Dict[str, Any]]
+
+class CreateDeliveryRequest(BaseModel):
+    po_id: str
+    tracking_number: Optional[str] = None
+    carrier: Optional[str] = None
+    estimated_delivery: Optional[str] = None
+
 # ============= HELPER FUNCTIONS =============
 
 def hash_password(password: str) -> str:
