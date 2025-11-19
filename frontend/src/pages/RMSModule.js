@@ -1,14 +1,25 @@
-import React, { useState, useEffect } from 'react';
-import axios from 'axios';
-import { toast } from 'sonner';
-import Layout from '@/components/Layout';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
-import { Line, Bar } from 'react-chartjs-2';
-import { TrendingUp, DollarSign, Target, Users, Settings as SettingsIcon } from 'lucide-react';
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import Layout from '../components/Layout';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
+import { Button } from '../components/ui/button';
+import { Badge } from '../components/ui/badge';
+import { 
+  TrendingUp,
+  TrendingDown,
+  DollarSign,
+  Zap,
+  CheckCircle,
+  Send,
+  RefreshCw,
+  AlertCircle,
+  BarChart3,
+  ArrowRight,
+  Calendar,
+  Target,
+  Activity,
+  Clock
+} from 'lucide-react';
 
 const RMSModule = ({ user, tenant, onLogout }) => {
   const [compSet, setCompSet] = useState([]);
