@@ -72,7 +72,7 @@ class RMSDemandForecastTester:
             
             if success:
                 data = response.json()
-                forecast_data = data.get('forecast', [])
+                forecast_data = data.get('forecasts', [])
                 details += f" - Forecast days: {len(forecast_data)}"
                 
                 # Verify response structure
@@ -123,7 +123,7 @@ class RMSDemandForecastTester:
             
             if success:
                 data = response.json()
-                forecast_data = data.get('forecast', [])
+                forecast_data = data.get('forecasts', [])
                 details += f" - Forecast days: {len(forecast_data)}"
                 
                 # Verify we get approximately 60 days
@@ -163,7 +163,7 @@ class RMSDemandForecastTester:
             
             if success:
                 data = response.json()
-                forecast_data = data.get('forecast', [])
+                forecast_data = data.get('forecasts', [])
                 details += f" - Forecast days: {len(forecast_data)}"
                 
                 # Verify we get 89 days (Feb 1 to Apr 30)
