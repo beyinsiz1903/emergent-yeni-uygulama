@@ -886,6 +886,18 @@ backend:
         agent: "testing"
         comment: "✅ TIMEZONE FIX SUCCESSFUL - 90-DAY DEMAND FORECAST NOW WORKING PERFECTLY! Fixed the datetime timezone issue on line 8120 by adding .replace(tzinfo=timezone.utc) to make date_obj timezone-aware. COMPREHENSIVE TESTING COMPLETED (100% Success Rate - 6/6 tests passed): 1) POST /rms/demand-forecast (30-day) - Returns 30 forecasts with proper structure, model version 2.0-advanced, dynamic confidence scoring. 2) POST /rms/demand-forecast (60-day) - Returns 60 forecasts correctly. 3) POST /rms/demand-forecast (90-day) - Returns 89 forecasts (Feb 1 - Apr 30) with all required fields: forecasted_occupancy, confidence with dynamic scoring (0.4), confidence_level (High/Medium/Low), trend field, model_version: '2.0-advanced'. Summary contains high/moderate/low demand day counts (H:0, M:73, L:16). All date ranges from review request working perfectly. No more timezone errors. Enhanced RMS system fully operational."
 
+  - task: "Enhanced Reservation Calendar with Rate Codes & Group View (5 endpoints)"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "testing"
+        comment: "✅ COMPREHENSIVE CALENDAR TESTING COMPLETED (100% Success Rate - 6/6 tests passed). RATE CODES MANAGEMENT: GET /calendar/rate-codes - Returns all 6 default rate codes with correct configurations: RO (Room Only, modifier: 1.0), BB (Bed & Breakfast, modifier: 1.15, includes breakfast), HB (Half Board, modifier: 1.30, includes breakfast+dinner), FB (Full Board, modifier: 1.45, all meals), AI (All Inclusive, modifier: 1.75), NR (Non-Refundable, modifier: 0.85, non-refundable). POST /calendar/rate-codes - Successfully creates custom rate codes (tested EP - Early Bird Special with 0.8 modifier). ENHANCED CALENDAR TOOLTIP: POST /calendar/tooltip - Returns complete tooltip data with occupancy (occupied_rooms, total_rooms, occupancy_pct, available_rooms), revenue (total_revenue, adr, revpar), segments breakdown, rate_codes breakdown with revenue_by_code, room_types occupancy, groups count and details. Room type filtering working correctly. GROUP RESERVATION CALENDAR VIEW: GET /calendar/group-view - Returns 14-day calendar with daily data (total_rooms, group_rooms, regular_rooms, available_rooms), groups array with active groups per date, summary with total_days and total_groups. GET /calendar/rate-code-breakdown - Returns 28-day breakdown with daily rate code distribution, percentage calculations, and overall summary. All endpoints functional with proper response structures and accurate calculations."
+
 frontend:
   - task: "OTA Messaging Hub - Complete Frontend Implementation"
     implemented: true
