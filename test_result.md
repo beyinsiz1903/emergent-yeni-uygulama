@@ -1057,6 +1057,42 @@ frontend:
         agent: "main"
         comment: "Enhanced Room Status Board with priority/urgency visual indicators. Added priority calculation logic: URGENT (🔥 red badge) for due out today + needs cleaning, HIGH (⚡ orange badge) for arrival today + needs cleaning, MEDIUM (📤 orange) for due out today, NORMAL (📥 blue) for arrival today. Room cards get colored ring borders matching priority level. Clean button gets highlighted for urgent rooms. Added priority legend in board header (Urgent: red dot, High Priority: orange dot, Normal: blue dot). Priority tooltips show detailed status (e.g., 'URGENT: Due Out Today - Needs Cleaning'). Integrates dueOutRooms, arrivalRooms data for real-time priority updates."
 
+  - task: "POS Charge Line Items Detail View"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/pages/PMSModule.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Implemented expandable POS charge line items in folio charges view. Folio Charge Cards: Detect POS charges (restaurant, bar, room_service categories), show '▶ Show Items' button for charges with line_items. Expandable Section: Blue-50 background, 'POS Fiş Detayı' header, item-by-item breakdown (Qty x Item Name — Price), modifiers display (parentheses, smaller text), subtotal calculation. Line Item Format Example: '2 x Burger — $30', '3 x Cola — $9', '(Extra Cheese, No Onions)'. State Management: expandedChargeItems object tracks expanded/collapsed state per charge.id. Click Handler: Toggle expand/collapse, stopPropagation on other actions. Addresses feedback: 'Misafir oda foliosuna post ettiğimiz fişin detayını göremiyorum. O POS fişinin item bazlı satırlarını görmek isterim' → DONE!"
+
+  - task: "POS Auto-Post Scheduling System"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/components/POSAutoPostSettings.js, /app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Implemented POS auto-post scheduling with 3 modes. POSAutoPostSettings Component: Card UI with mode selection (realtime, batch, checkout), color-coded per mode (green=realtime, blue=batch, purple=checkout). Mode 1 - Real-time (Gerçek Zamanlı): Immediate posting when POS ticket closed, fastest method, Zap icon, green badge. Mode 2 - Batch (Toplu Aktarım): Scheduled posting at intervals (5, 10, 15, 30, 60 min configurable), reduces system load, Clock icon, blue badge. Mode 3 - On Check-out (Check-out'ta Toplu): All POS charges posted during check-out, guest can review before payment, LogOut icon, purple badge. Action Buttons: Save Settings, Manual Sync (with spinner). Backend Endpoints: GET/POST /pos/auto-post-settings (stores mode, interval), POST /pos/manual-sync (triggers immediate sync, returns posted_count). Last sync timestamp displayed. Addresses feedback: 'Auto-post zamanlaması eklenebilir' → DONE!"
+
+  - task: "POS Manual QR/Barcode Post (Integration Fallback)"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/components/POSManualQRPost.js, /app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Implemented manual QR/barcode posting as fallback mechanism. POSManualQRPost Component: Orange border card (warning theme), 2 modes (QR Scanner / Manuel Giriş toggle). QR Scanner Mode: Camera interface placeholder, 'Kamerayı QR koda yönlendirin' instruction, barcode reader support. Manual Entry Mode: Text input for QR code, format: POS_CHARGE:[charge_id]:[folio_id], Enter key support for quick post. Warning Banner: Orange alert with 'Fallback Modu' explanation, only use when POS integration fails. Success Indicator: Green banner showing last posted charge (total, description, folio_id, timestamp). Instructions Section: How to use (print QR from POS, scan/enter, auto-post to folio). Backend Endpoint: POST /pos/manual-post (validates QR format, checks duplicate posts, inserts folio_charge with line_items, marks POS charge as posted). Conflict Handling: Returns 409 if already posted. Addresses feedback: 'Barkodlu/QR'lı manuel post imkanı → bazen entegrasyon düşer' → DONE!"
+
   - task: "Overbooking Quick Action Buttons - Immediate Resolution"
     implemented: true
     working: true
