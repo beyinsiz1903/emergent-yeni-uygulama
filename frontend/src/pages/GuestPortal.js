@@ -282,15 +282,27 @@ const GuestPortal = ({ user, onLogout }) => {
                                 </div>
                               </div>
                               <div className="flex flex-col items-end space-y-2">
+                                {booking.status === 'confirmed' && (
+                                  <Button
+                                    onClick={() => navigate(`/guest/checkin/${booking.id}`)}
+                                    className="bg-green-600 hover:bg-green-700"
+                                  >
+                                    \ud83c\udfcb Check-in Now
+                                  </Button>
+                                )}
+                                {booking.status === 'checked_in' && (
+                                  <Button
+                                    onClick={() => navigate(`/guest/digital-key/${booking.id}`)}
+                                  >
+                                    <QrCode className="w-4 h-4 mr-2" />
+                                    Digital Key
+                                  </Button>
+                                )}
                                 <Button
-                                  onClick={() => {
-                                    setSelectedBooking(booking);
-                                    setOpenDialog('qr');
-                                  }}
-                                  data-testid={`view-qr-${booking.id}`}
+                                  variant="outline"
+                                  onClick={() => navigate(`/guest/upsell/${booking.id}`)}
                                 >
-                                  <QrCode className="w-4 h-4 mr-2" />
-                                  View QR Code
+                                  \u2728 Enhance Stay
                                 </Button>
                                 <Button
                                   variant="outline"
