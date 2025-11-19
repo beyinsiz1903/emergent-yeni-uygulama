@@ -232,14 +232,44 @@ const HousekeepingMobileApp = ({ user }) => {
               )}
 
               <div className="flex gap-2">
-                <Button
-                  size="sm"
-                  onClick={() => handleStartCleaning(room)}
-                  disabled={room.hk_status !== 'dirty'}
-                  className="flex-1"
-                >
-                  {room.hk_status === 'dirty' ? 'Start Cleaning' : 'View Details'}
-                </Button>
+                {room.hk_status === 'dirty' && (
+                  <>
+                    <Button
+                      size="sm"
+                      onClick={() => handleStartCleaning(room)}
+                      className="flex-1 bg-blue-600 hover:bg-blue-700"
+                    >
+                      Start Cleaning
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleQuickStatusUpdate(room.id, room.room_number, 'cleaning')}
+                      className="px-3"
+                      title="Mark as cleaning without checklist"
+                    >
+                      ⚡
+                    </Button>
+                  </>
+                )}
+                {room.hk_status === 'cleaning' && (
+                  <Button
+                    size="sm"
+                    onClick={() => handleQuickStatusUpdate(room.id, room.room_number, 'inspected')}
+                    className="flex-1 bg-green-600 hover:bg-green-700"
+                  >
+                    ✓ Mark as Clean
+                  </Button>
+                )}
+                {room.hk_status === 'inspected' && (
+                  <Button
+                    size="sm"
+                    onClick={() => handleQuickStatusUpdate(room.id, room.room_number, 'available')}
+                    className="flex-1 bg-green-600 hover:bg-green-700"
+                  >
+                    ✓ Mark as Ready
+                  </Button>
+                )}
               </div>
 
               {room.last_cleaned_at && (
