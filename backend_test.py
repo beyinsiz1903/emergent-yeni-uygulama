@@ -1067,11 +1067,6 @@ def main():
 
 if __name__ == "__main__":
     main()
-                missing_fields = [field for field in required_fields if field not in data]
-                
-                if missing_fields:
-                    self.log_test("Single WhatsApp Send", "FAIL", f"Missing fields: {missing_fields}")
-                    return False
                 
                 # Verify rate limit info
                 rate_limit = data['rate_limit']
