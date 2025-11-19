@@ -7618,9 +7618,7 @@ async def send_email_message(
 
 @api_router.post("/messaging/send-sms")
 async def send_sms_message(
-    to: str,
-    message: str,
-    booking_id: str = None,
+    request: SendSMSRequest,
     current_user: User = Depends(get_current_user)
 ):
     """Send SMS to guest"""
@@ -7628,9 +7626,9 @@ async def send_sms_message(
         'id': str(uuid.uuid4()),
         'tenant_id': current_user.tenant_id,
         'channel': 'sms',
-        'to': to,
-        'message': message,
-        'booking_id': booking_id,
+        'to': request.to,
+        'message': request.message,
+        'booking_id': request.booking_id,
         'status': 'sent',
         'sent_at': datetime.now(timezone.utc).isoformat(),
         'sent_by': current_user.id
