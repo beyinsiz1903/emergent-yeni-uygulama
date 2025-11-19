@@ -3616,7 +3616,7 @@ async def get_finance_snapshot(current_user: User = Depends(get_current_user)):
     # 2. Calculate Today's Collections (payments received today)
     todays_payments = await db.payments.find({
         'tenant_id': current_user.tenant_id,
-        'payment_date': {
+        'processed_at': {
             '$gte': today_start.isoformat(),
             '$lte': today_end.isoformat()
         }
