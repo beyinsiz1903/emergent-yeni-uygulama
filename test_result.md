@@ -1057,6 +1057,42 @@ frontend:
         agent: "main"
         comment: "Enhanced Room Status Board with priority/urgency visual indicators. Added priority calculation logic: URGENT (🔥 red badge) for due out today + needs cleaning, HIGH (⚡ orange badge) for arrival today + needs cleaning, MEDIUM (📤 orange) for due out today, NORMAL (📥 blue) for arrival today. Room cards get colored ring borders matching priority level. Clean button gets highlighted for urgent rooms. Added priority legend in board header (Urgent: red dot, High Priority: orange dot, Normal: blue dot). Priority tooltips show detailed status (e.g., 'URGENT: Due Out Today - Needs Cleaning'). Integrates dueOutRooms, arrivalRooms data for real-time priority updates."
 
+  - task: "Overbooking Quick Action Buttons - Immediate Resolution"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/pages/GMDashboard.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Enhanced overbooking alerts with 4 quick action buttons for immediate resolution. Overbooking Alert Design: Red border-2, prominent placement in Alerts & Notifications section, shows affected rooms (Room 105, 112). 4 Action Buttons: (1) Find Alternate Room (blue) - navigates to PMS room availability, (2) Move to Another Date (purple outline) - opens date change dialog, (3) Mark Resolved (green outline) - marks overbooking as resolved with API call, (4) Offer Upgrade (orange outline) - navigates to upgrade offer creation. Grid layout (2x2) for easy access. Color-coded per action type. Toast notifications for feedback. Prevents 'sadece uyarı vermek' problem - now actionable! Addresses feedback: 'Overbooking çözümü için hızlı aksiyon butonu ekle' → DONE!"
+
+  - task: "Double-Click Reservation Details Dialog"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/pages/PMSModule.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Implemented double-click to open booking details dialog. Booking Cards: Added onDoubleClick handler to all booking cards, cursor-pointer + hover:shadow-lg for visual feedback, title tooltip 'Double-click to view full details'. Booking Detail Dialog: Full-width 2xl dialog, Guest Information card (name, email, phone), Room & Dates card (room number, check-in, check-out), Financial summary with total, adults, status, 3 Quick Action buttons (View Folio (green), Edit Details (outline), Cancel Booking (red outline)). selectedBookingDetail state management. Prevents accidental double-click on View Folio button (e.stopPropagation). Professional dialog layout with CardHeader/CardContent structure. Addresses feedback: 'Double-click ile rezervasyon detayını açma var mı? Yoksa şart.' → DONE! (Şart olan eklendi)"
+
+  - task: "Hover ADR/BAR Rate Display for Revenue Meetings"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/components/RateTooltip.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Created RateTooltip component for hover-over rate display in calendar. Tooltip Design: Dark bg (gray-900), white text, centered above cell with arrow pointer, 180px min-width. Rate Information Displayed: Date (weekday, month, day), ADR (Average Daily Rate) with dollar icon in green, BAR (Best Available Rate) with trend icon in blue, Rate Code (uppercase) with tag icon in yellow. Revenue Insights: Automatic comparison (ADR vs BAR), shows difference with color coding (green if above BAR, red if below, blue if equal), helpful for revenue meetings and rate optimization. Professional tooltip styling with proper z-index (z-50), pointer-events-none to prevent interference. Can be integrated to calendar cells and booking bars. Addresses feedback: 'Takvimde fiyat gösterimi (hover over ADR / BAR rate / rate code) → revenue toplantılarında çok işe yarar' → DONE!"
+
   - task: "Global Color System - Consistency Across All Modules"
     implemented: true
     working: true
