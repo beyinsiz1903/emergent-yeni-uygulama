@@ -8379,7 +8379,8 @@ async def create_pos_transaction(
         'created_at': datetime.now(timezone.utc).isoformat()
     }
     
-    await db.pos_transactions.insert_one(transaction)
+    transaction_copy = transaction.copy()
+    await db.pos_transactions.insert_one(transaction_copy)
     return transaction
 
 @api_router.get("/pos/daily-summary")
