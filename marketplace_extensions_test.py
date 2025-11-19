@@ -357,18 +357,36 @@ class MarketplaceExtensionsTester:
         """Test Shipping & Delivery Tracking (4 endpoints)"""
         print("\n🚚 Testing Shipping & Delivery Tracking...")
         
-        # First, get existing deliveries to work with
+        # First, create a delivery for testing if we have a PO
         delivery_id = None
-        try:
-            deliveries_response = self.session.get(f"{BACKEND_URL}/marketplace/deliveries")
-            if deliveries_response.status_code == 200:
-                deliveries_data = deliveries_response.json()
-                deliveries = deliveries_data.get('deliveries', []) if isinstance(deliveries_data, dict) else deliveries_data
-                if deliveries:
-                    delivery_id = deliveries[0].get('id')
-                    self.created_resources["delivery_ids"].append(delivery_id)
-        except:
-            pass
+        if self.created_resources["po_ids"]:
+            po_id = self.created_resources["po_ids"][0]
+            try:
+                response = self.session.post(f"{BACKEND_URL}/marketplace/deliveries", json={
+                    "po_id": po_id,
+                    "tracking_number": "TRK123456789",
+                    "carrier": "Express Logistics",
+                    "estimated_delivery": "2025-02-01"
+                })
+                if response.status_code in [200, 201] and response.json():
+                    delivery_id = response.json().get('id')
+                    if delivery_id:
+                        self.created_resources["delivery_ids"].append(delivery_id)
+            except:
+                pass
+        
+        # If no delivery created, try to get existing deliveries
+        if not delivery_id:
+            try:
+                deliveries_response = self.session.get(f"{BACKEND_URL}/marketplace/deliveries")
+                if deliveries_response.status_code == 200:
+                    deliveries_data = deliveries_response.json()
+                    deliveries = deliveries_data.get('deliveries', []) if isinstance(deliveries_data, dict) else deliveries_data
+                    if deliveries:
+                        delivery_id = deliveries[0].get('id')
+                        self.created_resources["delivery_ids"].append(delivery_id)
+            except:
+                pass
 
         # 1. PUT /api/marketplace/deliveries/{delivery_id}/update-status (first update)
         if delivery_id:
