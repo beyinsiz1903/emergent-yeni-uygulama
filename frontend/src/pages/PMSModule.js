@@ -73,6 +73,7 @@ const PMSModule = ({ user, tenant, onLogout }) => {
   const [guest360Data, setGuest360Data] = useState(null);
   const [loadingGuest360, setLoadingGuest360] = useState(false);
   const [selectedBookingDetail, setSelectedBookingDetail] = useState(null);
+  const [expandedChargeItems, setExpandedChargeItems] = useState({});
   const [guestTag, setGuestTag] = useState('');
   const [guestNote, setGuestNote] = useState('');
   const [upsellOffers, setUpsellOffers] = useState([]);
