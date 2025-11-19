@@ -384,6 +384,162 @@ const GMDashboard = ({ user, tenant, onLogout }) => {
           </CardContent>
         </Card>
 
+        {/* Cost Management & Marketplace Integration - NEW */}
+        <Card className="border-2 border-purple-400 bg-gradient-to-r from-purple-50 to-pink-50">
+          <CardHeader>
+            <CardTitle className="text-xl flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <PieChart className="w-6 h-6 text-purple-600" />
+                <span>Cost Management & Profitability</span>
+              </div>
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => navigate('/marketplace')}
+                className="bg-white hover:bg-purple-50"
+              >
+                <Building2 className="w-4 h-4 mr-2" />
+                View Marketplace
+              </Button>
+            </CardTitle>
+            <CardDescription>MTD Costs by Category & Per-Room Cost Analysis</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Left: Top 3 Cost Categories */}
+              <div className="space-y-3">
+                <h3 className="font-semibold text-gray-700 flex items-center space-x-2">
+                  <BarChart3 className="w-4 h-4 text-purple-600" />
+                  <span>Top 3 Cost Categories (MTD)</span>
+                </h3>
+                <div className="bg-white p-4 rounded-lg shadow-sm space-y-3">
+                  {(dashboardData?.costs?.top_3_categories || []).map((category, idx) => (
+                    <div key={idx} className="space-y-1">
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm font-medium text-gray-700">{category.name}</span>
+                        <span className="text-sm font-bold text-purple-600">
+                          ${(category.amount || 0).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+                        </span>
+                      </div>
+                      <div className="w-full bg-gray-200 rounded-full h-2">
+                        <div 
+                          className={`h-2 rounded-full ${
+                            idx === 0 ? 'bg-purple-600' : 
+                            idx === 1 ? 'bg-purple-400' : 
+                            'bg-purple-300'
+                          }`}
+                          style={{ width: `${category.percentage || 0}%` }}
+                        ></div>
+                      </div>
+                      <span className="text-xs text-gray-500">{(category.percentage || 0).toFixed(1)}% of total costs</span>
+                    </div>
+                  ))}
+                  
+                  <div className="mt-4 pt-3 border-t">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm font-semibold text-gray-700">Total MTD Costs</span>
+                      <span className="text-lg font-bold text-purple-700">
+                        ${(dashboardData?.costs?.total_mtd_costs || 0).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Right: Cost vs RevPAR & Profitability */}
+              <div className="space-y-3">
+                <h3 className="font-semibold text-gray-700 flex items-center space-x-2">
+                  <Target className="w-4 h-4 text-green-600" />
+                  <span>Cost per Room vs RevPAR</span>
+                </h3>
+                <div className="bg-white p-4 rounded-lg shadow-sm space-y-4">
+                  {/* Cost per Room Night */}
+                  <div className="flex justify-between items-start pb-3 border-b">
+                    <div>
+                      <div className="text-xs text-gray-600">Cost per Room Night</div>
+                      <div className="text-2xl font-bold text-red-600">
+                        ${(dashboardData?.costs?.per_room_metrics?.cost_per_room_night || 0).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+                      </div>
+                      <div className="text-xs text-gray-500 mt-1">
+                        {dashboardData?.costs?.per_room_metrics?.total_room_nights || 0} room nights
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-xs text-gray-600">MTD RevPAR</div>
+                      <div className="text-2xl font-bold text-green-600">
+                        ${(dashboardData?.costs?.per_room_metrics?.mtd_revpar || 0).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+                      </div>
+                      <div className="text-xs text-gray-500 mt-1">
+                        Revenue per Available Room
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Cost to RevPAR Ratio */}
+                  <div className="bg-gradient-to-r from-purple-100 to-pink-100 p-3 rounded-lg">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm font-medium text-gray-700">Cost to RevPAR Ratio</span>
+                      <span className={`text-xl font-bold ${
+                        (dashboardData?.costs?.per_room_metrics?.cost_to_revpar_ratio || 0) < 30 ? 'text-green-600' :
+                        (dashboardData?.costs?.per_room_metrics?.cost_to_revpar_ratio || 0) < 50 ? 'text-yellow-600' :
+                        'text-red-600'
+                      }`}>
+                        {(dashboardData?.costs?.per_room_metrics?.cost_to_revpar_ratio || 0).toFixed(1)}%
+                      </span>
+                    </div>
+                    <div className="text-xs text-gray-600 mt-1">
+                      {(dashboardData?.costs?.per_room_metrics?.cost_to_revpar_ratio || 0) < 30 ? '✓ Excellent cost efficiency' :
+                       (dashboardData?.costs?.per_room_metrics?.cost_to_revpar_ratio || 0) < 50 ? '⚠ Acceptable range' :
+                       '⚠ High cost ratio - needs attention'}
+                    </div>
+                  </div>
+
+                  {/* Profit Margin */}
+                  <div className="pt-3 border-t">
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <div className="text-xs text-gray-600">MTD Revenue</div>
+                        <div className="text-lg font-bold text-gray-900">
+                          ${(dashboardData?.costs?.financial_metrics?.mtd_revenue || 0).toLocaleString('en-US', {minimumFractionDigits: 0, maximumFractionDigits: 0})}
+                        </div>
+                      </div>
+                      <div>
+                        <div className="text-xs text-gray-600">Gross Profit</div>
+                        <div className="text-lg font-bold text-green-600">
+                          ${(dashboardData?.costs?.financial_metrics?.gross_profit || 0).toLocaleString('en-US', {minimumFractionDigits: 0, maximumFractionDigits: 0})}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="mt-2 flex justify-between items-center">
+                      <span className="text-sm font-medium text-gray-700">Profit Margin</span>
+                      <span className={`text-xl font-bold ${
+                        (dashboardData?.costs?.financial_metrics?.profit_margin_percentage || 0) > 40 ? 'text-green-600' :
+                        (dashboardData?.costs?.financial_metrics?.profit_margin_percentage || 0) > 25 ? 'text-yellow-600' :
+                        'text-red-600'
+                      }`}>
+                        {(dashboardData?.costs?.financial_metrics?.profit_margin_percentage || 0).toFixed(1)}%
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Marketplace Integration Info */}
+            <div className="mt-4 p-3 bg-purple-50 border-l-4 border-purple-500 rounded">
+              <div className="flex items-start space-x-2">
+                <Building2 className="w-5 h-5 text-purple-600 mt-0.5" />
+                <div className="flex-1">
+                  <h4 className="font-semibold text-sm text-purple-900">Marketplace-PMS Integration Active</h4>
+                  <p className="text-xs text-purple-700 mt-1">
+                    ✓ Purchase Orders tracked by category • ✓ Real-time cost analysis • ✓ Per-room profitability • ✓ Cost optimization insights
+                  </p>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Owner Summary / Snapshot */}
         <Card className="border-2 border-yellow-400 bg-gradient-to-r from-yellow-50 to-orange-50">
           <CardHeader>
