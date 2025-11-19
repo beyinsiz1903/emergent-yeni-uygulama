@@ -949,6 +949,21 @@ backend:
         agent: "testing"
         comment: "✅ FINANCE SNAPSHOT ENDPOINT TESTING COMPLETED (100% Success Rate - 8/8 tests passed). COMPREHENSIVE TESTING: All test cases from review request passed successfully. RESPONSE STRUCTURE: All required fields present with correct types (report_date, pending_ar with overdue_breakdown, todays_collections, mtd_collections, accounting_invoices). DATA ACCURACY: All numerical values properly rounded to 2 decimal places, overdue breakdown calculations correct, collection rate percentage valid (56.24%). EDGE CASES: Non-negative values validation passed, report date format correct (YYYY-MM-DD). EXPECTED BEHAVIOR: Endpoint returns comprehensive financial snapshot, all calculations accurate, response properly formatted for dashboard display. BUG FIXED: Corrected payment_date vs processed_at field mismatch in collections calculation. Endpoint fully functional and ready for GM Dashboard integration."
 
+  - task: "Cost Summary Endpoint for GM Dashboard"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Implemented GET /api/reports/cost-summary endpoint returning comprehensive cost analysis with MTD costs by category, top cost categories, per-room cost metrics, and financial performance indicators"
+      - working: true
+        agent: "testing"
+        comment: "✅ COST SUMMARY ENDPOINT TESTING COMPLETED (100% Success Rate - 4/4 tests passed). COMPREHENSIVE TESTING: All test cases from review request passed successfully. BASIC COST SUMMARY RETRIEVAL: All required fields present (report_date, period, total_mtd_costs, cost_categories, top_3_categories, per_room_metrics, financial_metrics). DATA ACCURACY: All numerical values properly rounded to 2 decimal places (amounts) and 1 decimal place (percentages), top_3_categories correctly sorted by amount descending. COST CATEGORY MAPPING: Purchase orders correctly mapped to cost categories - cleaning/linens/amenities→Housekeeping ($950), food/beverage/kitchen→F&B ($880), maintenance/electrical/plumbing/hvac→Technical ($615), furniture/office/it/other→General Expenses ($865). PER-ROOM CALCULATIONS: All calculations verified accurate including cost_per_room_night, cost_to_revpar_ratio, profit_margin calculations. EXPECTED BEHAVIOR: Endpoint returns comprehensive cost analysis with $3,310 total MTD costs across all categories, proper percentage calculations (28.7%, 26.6%, 26.1% for top 3), accurate financial metrics. Endpoint fully functional and ready for GM Dashboard integration."
+
 frontend:
   - task: "OTA Messaging Hub - Complete Frontend Implementation"
     implemented: true
