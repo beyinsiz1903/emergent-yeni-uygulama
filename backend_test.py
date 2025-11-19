@@ -372,7 +372,7 @@ class HotelPMSBackendTester:
             
             if success and response.json():
                 data = response.json()
-                daily_data = data.get('daily_comparison', [])
+                daily_data = data.get('comparison', [])
                 details += f" - February comparisons: {len(daily_data)}"
                 
                 # Should have approximately 28 days for February
