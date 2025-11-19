@@ -11,7 +11,7 @@ Test Scenarios:
 5. SMS Character Warnings (>160 characters)
 6. Rate Limit Info in responses
 
-Base URL: https://error-kontrol.preview.emergentagent.com/api
+Base URL: https://pms-innovations.preview.emergentagent.com/api
 Login: test@hotel.com / test123
 """
 
@@ -22,7 +22,7 @@ from datetime import datetime
 import sys
 
 # Configuration
-BASE_URL = "https://error-kontrol.preview.emergentagent.com/api"
+BASE_URL = "https://pms-innovations.preview.emergentagent.com/api"
 LOGIN_EMAIL = "test@hotel.com"
 LOGIN_PASSWORD = "test123"
 
