@@ -8845,12 +8845,13 @@ async def get_consolidated_report(
 @api_router.post("/multi-property/transfer-reservation")
 async def transfer_reservation_between_properties(
     booking_id: str,
-    target_property_id: str,
-    reason: str = None,
+    request: TransferReservationRequest,
     current_user: User = Depends(get_current_user)
 ):
     """Transfer reservation from one property to another"""
     booking = await db.bookings.find_one({'id': booking_id})
+    target_property_id = request.target_property_id
+    reason = request.reason
     
     if not booking:
         raise HTTPException(status_code=404, detail="Booking not found")
