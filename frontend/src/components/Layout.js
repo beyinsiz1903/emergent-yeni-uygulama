@@ -46,7 +46,7 @@ const Layout = ({ children, user, tenant, onLogout, currentModule }) => {
                 RoomOps
               </h1>
               <div className="hidden md:block text-sm text-gray-500">
-                {tenant.property_name}
+                {tenant?.property_name || 'Hotel Management'}
               </div>
             </div>
 
