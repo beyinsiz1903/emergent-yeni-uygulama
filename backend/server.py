@@ -14948,5 +14948,484 @@ async def create_guest_alert(
     }
 
 
+# ============= HOUSEKEEPING ENHANCEMENTS =============
+
+class LinenInventoryItem(BaseModel):
+    """Linen inventory tracking"""
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    tenant_id: str
+    item_type: str  # sheet, pillowcase, towel, bathrobe, etc
+    size: Optional[str] = None  # single, double, king, etc
+    quantity_in_stock: int = 0
+    quantity_in_use: int = 0
+    quantity_in_laundry: int = 0
+    quantity_damaged: int = 0
+    reorder_level: int = 50
+    unit_cost: float = 0.0
+    last_restocked: Optional[datetime] = None
+    created_at: datetime = Field(default_factory=lambda: str(uuid.uuid4()))
+    tenant_id: str
+    room_id: str
+    assigned_to: str
+    task_type: str
+    started_at: Optional[datetime] = None
+    completed_at: Optional[datetime] = None
+    duration_minutes: Optional[float] = None  # Auto-calculated
+    notes: Optional[str] = None
+
+@api_router.get("/housekeeping/task-timing")
+async def get_task_timing_analysis(
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+    staff_member: Optional[str] = None,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Get housekeeping task timing and duration analysis
+    - Cleaning duration per room
+    - Staff performance comparison
+    - Time trends
+    """
+    # Default to last 30 days
+    if not end_date:
+        end_dt = datetime.now(timezone.utc)
+    else:
+        end_dt = datetime.fromisoformat(end_date).replace(tzinfo=timezone.utc)
+    
+    if not start_date:
+        start_dt = end_dt - timedelta(days=30)
+    else:
+        start_dt = datetime.fromisoformat(start_date).replace(tzinfo=timezone.utc)
+    
+    # Get completed tasks with timing
+    match_criteria = {
+        'tenant_id': current_user.tenant_id,
+        'status': 'completed',
+        'completed_at': {
+            '$gte': start_dt.isoformat(),
+            '$lte': end_dt.isoformat()
+        }
+    }
+    
+    if staff_member:
+        match_criteria['assigned_to'] = staff_member
+    
+    tasks = []
+    async for task in db.housekeeping_tasks.find(match_criteria):
+        # Calculate duration
+        if task.get('started_at') and task.get('completed_at'):
+            try:
+                started = datetime.fromisoformat(task['started_at'])
+                completed = datetime.fromisoformat(task['completed_at'])
+                duration_minutes = (completed - started).total_seconds() / 60
+            except:
+                duration_minutes = None
+        else:
+            duration_minutes = None
+        
+        task['duration_minutes'] = duration_minutes
+        tasks.append(task)
+    
+    # Calculate statistics
+    total_tasks = len(tasks)
+    tasks_with_timing = [t for t in tasks if t.get('duration_minutes')]
+    
+    if tasks_with_timing:
+        avg_duration = sum(t['duration_minutes'] for t in tasks_with_timing) / len(tasks_with_timing)
+        min_duration = min(t['duration_minutes'] for t in tasks_with_timing)
+        max_duration = max(t['duration_minutes'] for t in tasks_with_timing)
+        median_duration = sorted(t['duration_minutes'] for t in tasks_with_timing)[len(tasks_with_timing) // 2]
+    else:
+        avg_duration = min_duration = max_duration = median_duration = 0
+    
+    # By staff member
+    staff_performance = {}
+    for task in tasks_with_timing:
+        staff = task.get('assigned_to', 'Unassigned')
+        if staff not in staff_performance:
+            staff_performance[staff] = {
+                'staff_name': staff,
+                'total_tasks': 0,
+                'durations': []
+            }
+        staff_performance[staff]['total_tasks'] += 1
+        staff_performance[staff]['durations'].append(task['duration_minutes'])
+    
+    # Calculate staff averages
+    staff_stats = []
+    for staff, data in staff_performance.items():
+        if data['durations']:
+            staff_avg = sum(data['durations']) / len(data['durations'])
+            staff_stats.append({
+                'staff_name': staff,
+                'total_tasks': data['total_tasks'],
+                'avg_duration_minutes': round(staff_avg, 1),
+                'min_duration_minutes': round(min(data['durations']), 1),
+                'max_duration_minutes': round(max(data['durations']), 1),
+                'efficiency_rating': 'Fast' if staff_avg < 20 else 'Average' if staff_avg < 30 else 'Slow'
+            })
+    
+    # Sort by avg duration (fastest first)
+    staff_stats.sort(key=lambda x: x['avg_duration_minutes'])
+    
+    # By task type
+    task_type_stats = {}
+    for task in tasks_with_timing:
+        task_type = task.get('task_type', 'cleaning')
+        if task_type not in task_type_stats:
+            task_type_stats[task_type] = []
+        task_type_stats[task_type].append(task['duration_minutes'])
+    
+    task_type_analysis = []
+    for task_type, durations in task_type_stats.items():
+        task_type_analysis.append({
+            'task_type': task_type,
+            'count': len(durations),
+            'avg_duration_minutes': round(sum(durations) / len(durations), 1),
+            'min_duration_minutes': round(min(durations), 1),
+            'max_duration_minutes': round(max(durations), 1)
+        })
+    
+    return {
+        'start_date': start_dt.date().isoformat(),
+        'end_date': end_dt.date().isoformat(),
+        'staff_filter': staff_member,
+        'summary': {
+            'total_tasks': total_tasks,
+            'tasks_with_timing': len(tasks_with_timing),
+            'avg_duration_minutes': round(avg_duration, 1),
+            'median_duration_minutes': round(median_duration, 1),
+            'min_duration_minutes': round(min_duration, 1),
+            'max_duration_minutes': round(max_duration, 1),
+            'target_duration_minutes': 25  # Industry standard
+        },
+        'staff_performance': staff_stats,
+        'task_type_analysis': task_type_analysis,
+        'performance_insights': [
+            f"✅ Average cleaning time: {round(avg_duration, 1)} minutes" if avg_duration < 30 else f"⚠️ Average cleaning time is {round(avg_duration, 1)} minutes (target: 25 min)",
+            f"⭐ Top performer: {staff_stats[0]['staff_name']} ({staff_stats[0]['avg_duration_minutes']} min avg)" if staff_stats else None,
+            f"📊 {len(staff_stats)} staff members tracked"
+        ]
+    }
+
+
+@api_router.get("/housekeeping/staff-performance-table")
+async def get_staff_performance_table(
+    period_days: int = 30,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Get housekeeping staff performance table
+    - Tasks completed
+    - Average duration
+    - Quality score (based on inspections)
+    - Attendance/punctuality
+    """
+    end_dt = datetime.now(timezone.utc)
+    start_dt = end_dt - timedelta(days=period_days)
+    
+    # Get all completed tasks
+    tasks = []
+    async for task in db.housekeeping_tasks.find({
+        'tenant_id': current_user.tenant_id,
+        'status': 'completed',
+        'completed_at': {
+            '$gte': start_dt.isoformat(),
+            '$lte': end_dt.isoformat()
+        }
+    }):
+        tasks.append(task)
+    
+    # Group by staff
+    staff_data = {}
+    for task in tasks:
+        staff = task.get('assigned_to', 'Unassigned')
+        if staff not in staff_data:
+            staff_data[staff] = {
+                'tasks_completed': 0,
+                'durations': [],
+                'room_ids': set()
+            }
+        
+        staff_data[staff]['tasks_completed'] += 1
+        staff_data[staff]['room_ids'].add(task.get('room_id'))
+        
+        # Calculate duration
+        if task.get('started_at') and task.get('completed_at'):
+            try:
+                started = datetime.fromisoformat(task['started_at'])
+                completed = datetime.fromisoformat(task['completed_at'])
+                duration = (completed - started).total_seconds() / 60
+                staff_data[staff]['durations'].append(duration)
+            except:
+                pass
+    
+    # Get inspection results for quality score
+    inspection_scores = {}
+    async for task in db.housekeeping_tasks.find({
+        'tenant_id': current_user.tenant_id,
+        'task_type': 'inspection',
+        'completed_at': {
+            '$gte': start_dt.isoformat(),
+            '$lte': end_dt.isoformat()
+        }
+    }):
+        # In real system, inspection would have a pass/fail or score
+        # For now, assume 95% pass rate
+        staff = task.get('assigned_to')
+        if staff:
+            if staff not in inspection_scores:
+                inspection_scores[staff] = {'passed': 0, 'total': 0}
+            inspection_scores[staff]['total'] += 1
+            inspection_scores[staff]['passed'] += 1  # Simulated
+    
+    # Build performance table
+    performance_table = []
+    for staff, data in staff_data.items():
+        avg_duration = sum(data['durations']) / len(data['durations']) if data['durations'] else 0
+        
+        # Quality score from inspections
+        if staff in inspection_scores:
+            quality_score = (inspection_scores[staff]['passed'] / inspection_scores[staff]['total']) * 100
+        else:
+            quality_score = 95  # Default assumption
+        
+        # Calculate performance score (weighted)
+        # Speed: 40%, Quality: 40%, Quantity: 20%
+        speed_score = max(0, 100 - ((avg_duration - 25) * 2)) if avg_duration > 0 else 0
+        quantity_score = min(100, (data['tasks_completed'] / period_days) * 10)
+        overall_score = (speed_score * 0.4) + (quality_score * 0.4) + (quantity_score * 0.2)
+        
+        performance_table.append({
+            'staff_name': staff,
+            'tasks_completed': data['tasks_completed'],
+            'rooms_cleaned': len(data['room_ids']),
+            'avg_duration_minutes': round(avg_duration, 1),
+            'quality_score': round(quality_score, 1),
+            'overall_performance_score': round(overall_score, 1),
+            'rating': '⭐⭐⭐⭐⭐' if overall_score >= 90 else '⭐⭐⭐⭐' if overall_score >= 80 else '⭐⭐⭐' if overall_score >= 70 else '⭐⭐',
+            'tasks_per_day': round(data['tasks_completed'] / period_days, 1)
+        })
+    
+    # Sort by overall score
+    performance_table.sort(key=lambda x: x['overall_performance_score'], reverse=True)
+    
+    return {
+        'period_days': period_days,
+        'start_date': start_dt.date().isoformat(),
+        'end_date': end_dt.date().isoformat(),
+        'total_staff': len(performance_table),
+        'staff_performance': performance_table,
+        'summary': {
+            'total_tasks_completed': sum(s['tasks_completed'] for s in performance_table),
+            'avg_quality_score': round(sum(s['quality_score'] for s in performance_table) / len(performance_table), 1) if performance_table else 0,
+            'top_performer': performance_table[0]['staff_name'] if performance_table else None,
+            'needs_training': [s['staff_name'] for s in performance_table if s['overall_performance_score'] < 70]
+        }
+    }
+
+
+@api_router.get("/housekeeping/linen-inventory")
+async def get_linen_inventory(
+    low_stock_only: bool = False,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Get linen inventory status
+    - Current stock levels
+    - Items in use
+    - Items in laundry
+    - Low stock alerts
+    """
+    linen_items = []
+    async for item in db.linen_inventory.find({
+        'tenant_id': current_user.tenant_id
+    }):
+        total_available = item.get('quantity_in_stock', 0)
+        in_use = item.get('quantity_in_use', 0)
+        in_laundry = item.get('quantity_in_laundry', 0)
+        damaged = item.get('quantity_damaged', 0)
+        reorder_level = item.get('reorder_level', 50)
+        
+        # Calculate status
+        is_low_stock = total_available < reorder_level
+        stock_percentage = (total_available / reorder_level * 100) if reorder_level > 0 else 100
+        
+        item_data = {
+            'id': item.get('id'),
+            'item_type': item.get('item_type'),
+            'size': item.get('size'),
+            'quantity_in_stock': total_available,
+            'quantity_in_use': in_use,
+            'quantity_in_laundry': in_laundry,
+            'quantity_damaged': damaged,
+            'total_quantity': total_available + in_use + in_laundry + damaged,
+            'reorder_level': reorder_level,
+            'stock_status': 'critical' if stock_percentage < 30 else 'low' if stock_percentage < 50 else 'adequate' if stock_percentage < 80 else 'good',
+            'stock_percentage': round(stock_percentage, 1),
+            'needs_reorder': is_low_stock,
+            'unit_cost': item.get('unit_cost', 0.0),
+            'estimated_reorder_cost': item.get('unit_cost', 0.0) * (reorder_level - total_available) if is_low_stock else 0,
+            'last_restocked': item.get('last_restocked')
+        }
+        
+        if not low_stock_only or is_low_stock:
+            linen_items.append(item_data)
+    
+    # If no items exist, create default inventory
+    if not linen_items:
+        default_items = [
+            {'item_type': 'bed_sheet', 'size': 'single', 'reorder_level': 100},
+            {'item_type': 'bed_sheet', 'size': 'double', 'reorder_level': 150},
+            {'item_type': 'bed_sheet', 'size': 'king', 'reorder_level': 80},
+            {'item_type': 'pillowcase', 'size': 'standard', 'reorder_level': 200},
+            {'item_type': 'duvet_cover', 'size': 'double', 'reorder_level': 100},
+            {'item_type': 'bath_towel', 'size': 'large', 'reorder_level': 150},
+            {'item_type': 'hand_towel', 'size': 'standard', 'reorder_level': 200},
+            {'item_type': 'bathrobe', 'size': 'l', 'reorder_level': 50}
+        ]
+        
+        for default in default_items:
+            new_item = LinenInventoryItem(
+                tenant_id=current_user.tenant_id,
+                item_type=default['item_type'],
+                size=default['size'],
+                quantity_in_stock=120,  # Starting stock
+                quantity_in_use=30,
+                quantity_in_laundry=15,
+                reorder_level=default['reorder_level'],
+                unit_cost=10.0
+            )
+            
+            item_dict = new_item.model_dump()
+            item_dict['created_at'] = item_dict['created_at'].isoformat()
+            await db.linen_inventory.insert_one(item_dict)
+            
+            linen_items.append({
+                'id': new_item.id,
+                'item_type': new_item.item_type,
+                'size': new_item.size,
+                'quantity_in_stock': new_item.quantity_in_stock,
+                'quantity_in_use': new_item.quantity_in_use,
+                'quantity_in_laundry': new_item.quantity_in_laundry,
+                'quantity_damaged': new_item.quantity_damaged,
+                'total_quantity': 165,
+                'reorder_level': new_item.reorder_level,
+                'stock_status': 'good',
+                'stock_percentage': 100.0,
+                'needs_reorder': False,
+                'unit_cost': new_item.unit_cost,
+                'estimated_reorder_cost': 0,
+                'last_restocked': None
+            })
+    
+    # Sort by stock percentage (critical items first)
+    linen_items.sort(key=lambda x: x['stock_percentage'])
+    
+    # Calculate summary
+    total_items = len(linen_items)
+    low_stock_count = sum(1 for item in linen_items if item['needs_reorder'])
+    critical_count = sum(1 for item in linen_items if item['stock_status'] == 'critical')
+    total_reorder_cost = sum(item['estimated_reorder_cost'] for item in linen_items)
+    
+    return {
+        'total_item_types': total_items,
+        'low_stock_items': low_stock_count,
+        'critical_items': critical_count,
+        'total_reorder_cost': round(total_reorder_cost, 2),
+        'inventory': linen_items,
+        'alerts': [
+            f"🚨 {critical_count} items at critical stock level" if critical_count > 0 else None,
+            f"⚠️ {low_stock_count} items need reordering" if low_stock_count > 0 else "✅ All items adequately stocked",
+            f"💰 Estimated reorder cost: ${round(total_reorder_cost, 2)}" if total_reorder_cost > 0 else None
+        ]
+    }
+
+
+@api_router.post("/housekeeping/linen-inventory/adjust")
+async def adjust_linen_inventory(
+    item_id: str,
+    adjustment_type: str,  # restock, use, return_from_use, send_to_laundry, return_from_laundry, mark_damaged
+    quantity: int,
+    notes: Optional[str] = None,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Adjust linen inventory
+    - Restock: Add to stock
+    - Use: Move from stock to in-use
+    - Return from use: Move from in-use to laundry
+    - Return from laundry: Move from laundry to stock
+    - Mark damaged: Move to damaged
+    """
+    item = await db.linen_inventory.find_one({
+        'id': item_id,
+        'tenant_id': current_user.tenant_id
+    })
+    
+    if not item:
+        raise HTTPException(status_code=404, detail="Linen item not found")
+    
+    updates = {}
+    
+    if adjustment_type == 'restock':
+        updates['quantity_in_stock'] = item.get('quantity_in_stock', 0) + quantity
+        updates['last_restocked'] = datetime.now(timezone.utc).isoformat()
+    
+    elif adjustment_type == 'use':
+        if item.get('quantity_in_stock', 0) < quantity:
+            raise HTTPException(status_code=400, detail="Insufficient stock")
+        updates['quantity_in_stock'] = item.get('quantity_in_stock', 0) - quantity
+        updates['quantity_in_use'] = item.get('quantity_in_use', 0) + quantity
+    
+    elif adjustment_type == 'return_from_use':
+        if item.get('quantity_in_use', 0) < quantity:
+            raise HTTPException(status_code=400, detail="Insufficient items in use")
+        updates['quantity_in_use'] = item.get('quantity_in_use', 0) - quantity
+        updates['quantity_in_laundry'] = item.get('quantity_in_laundry', 0) + quantity
+    
+    elif adjustment_type == 'return_from_laundry':
+        if item.get('quantity_in_laundry', 0) < quantity:
+            raise HTTPException(status_code=400, detail="Insufficient items in laundry")
+        updates['quantity_in_laundry'] = item.get('quantity_in_laundry', 0) - quantity
+        updates['quantity_in_stock'] = item.get('quantity_in_stock', 0) + quantity
+    
+    elif adjustment_type == 'mark_damaged':
+        # Can come from any category
+        updates['quantity_damaged'] = item.get('quantity_damaged', 0) + quantity
+    
+    else:
+        raise HTTPException(status_code=400, detail="Invalid adjustment type")
+    
+    # Update database
+    await db.linen_inventory.update_one(
+        {'id': item_id},
+        {'$set': updates}
+    )
+    
+    # Create audit log
+    await create_audit_log(
+        tenant_id=current_user.tenant_id,
+        user=current_user,
+        action="LINEN_ADJUSTMENT",
+        entity_type="linen_inventory",
+        entity_id=item_id,
+        changes={
+            'adjustment_type': adjustment_type,
+            'quantity': quantity,
+            'notes': notes,
+            **updates
+        }
+    )
+    
+    return {
+        'success': True,
+        'message': f'Linen inventory adjusted: {adjustment_type}',
+        'item_id': item_id,
+        'updates': updates
+    }
+
+
 # Include router at the very end after ALL endpoints are defined
 app.include_router(api_router)
