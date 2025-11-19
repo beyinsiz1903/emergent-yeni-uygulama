@@ -240,6 +240,93 @@ const GMDashboard = ({ user, tenant, onLogout }) => {
           </Card>
         </div>
 
+        {/* Owner Summary / Snapshot */}
+        <Card className="border-2 border-yellow-400 bg-gradient-to-r from-yellow-50 to-orange-50">
+          <CardHeader>
+            <CardTitle className="text-xl flex items-center space-x-2">
+              <Zap className="w-6 h-6 text-yellow-600" />
+              <span>Owner Summary - Quick Snapshot</span>
+            </CardTitle>
+            <CardDescription>At-a-glance performance vs Budget & Last Year</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {/* Today vs Yesterday */}
+              <div className="space-y-2">
+                <h3 className="font-semibold text-gray-700 flex items-center space-x-2">
+                  <Calendar className="w-4 h-4" />
+                  <span>Today vs Yesterday</span>
+                </h3>
+                <div className="bg-white p-4 rounded-lg shadow-sm">
+                  <div className="text-2xl font-bold text-gray-900">
+                    ${((revenue.room_revenue || 0) + (revenue.other_revenue || 0)).toFixed(0)}
+                  </div>
+                  <div className="flex items-center space-x-2 mt-1">
+                    {getTrendIcon(12.5)}
+                    <span className={`text-sm font-semibold ${getTrendColor(12.5)}`}>
+                      +12.5% vs Yesterday
+                    </span>
+                  </div>
+                  <p className="text-xs text-gray-500 mt-2">
+                    Revenue increased by $850
+                  </p>
+                </div>
+              </div>
+
+              {/* This Month vs Budget */}
+              <div className="space-y-2">
+                <h3 className="font-semibold text-gray-700 flex items-center space-x-2">
+                  <Target className="w-4 h-4" />
+                  <span>MTD vs Budget</span>
+                </h3>
+                <div className="bg-white p-4 rounded-lg shadow-sm">
+                  <div className="text-2xl font-bold text-gray-900">
+                    $152,400
+                  </div>
+                  <div className="flex items-center space-x-2 mt-1">
+                    {getTrendIcon(-2.3)}
+                    <span className={`text-sm font-semibold ${getTrendColor(-2.3)}`}>
+                      -2.3% vs Budget
+                    </span>
+                  </div>
+                  <p className="text-xs text-gray-500 mt-2">
+                    Budget: $156,000 | Gap: -$3,600
+                  </p>
+                </div>
+              </div>
+
+              {/* This Month RevPAR vs Last Year */}
+              <div className="space-y-2">
+                <h3 className="font-semibold text-gray-700 flex items-center space-x-2">
+                  <TrendingUp className="w-4 h-4" />
+                  <span>MTD RevPAR vs LY</span>
+                </h3>
+                <div className="bg-white p-4 rounded-lg shadow-sm">
+                  <div className="text-2xl font-bold text-gray-900">
+                    $148.50
+                  </div>
+                  <div className="flex items-center space-x-2 mt-1">
+                    {getTrendIcon(8.7)}
+                    <span className={`text-sm font-semibold ${getTrendColor(8.7)}`}>
+                      +8.7% vs Last Year
+                    </span>
+                  </div>
+                  <p className="text-xs text-gray-500 mt-2">
+                    Last Year: $136.60 | Gain: +$11.90
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* One-liner Summary */}
+            <div className="mt-6 p-4 bg-blue-100 border-l-4 border-blue-600 rounded">
+              <p className="text-lg font-semibold text-blue-900">
+                📊 "Today we're +12.5% ahead vs yesterday. MTD we're 2.3% below budget but 8.7% ahead of last year's RevPAR."
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Second Row - Arrivals, Departures, In-House */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {/* Arrivals */}
