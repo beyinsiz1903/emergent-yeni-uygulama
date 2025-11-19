@@ -8565,9 +8565,9 @@ async def create_block_reservation(
         'end_date': request.end_date,
         'total_rooms': request.total_rooms,
         'rooms_used': 0,
-        'rooms_available': total_rooms,
-        'block_type': block_type,
-        'release_date': release_date,
+        'rooms_available': request.total_rooms,
+        'block_type': request.block_type,
+        'release_date': request.release_date,
         'status': 'active',
         'created_at': datetime.now(timezone.utc).isoformat(),
         'created_by': current_user.id
