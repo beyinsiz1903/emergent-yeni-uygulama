@@ -1045,6 +1045,18 @@ frontend:
         agent: "testing"
         comment: "✅ COMPREHENSIVE TESTING COMPLETED - Group Reservations working perfectly. Page loads with 'Group & Block Reservations' title. New Group and New Block buttons visible and functional. New Group dialog opens successfully with all form fields (Group Name, Contact Person, Contact Email, Check-in/out dates, Total Rooms, Room Type, Group Rate, Notes). Form submission working with sample data. Group Reservations and Room Blocks sections properly displayed. Minor: New Block dialog has modal overlay issue but core functionality works."
 
+  - task: "Cost Management Widget for GM Dashboard"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/pages/GMDashboard.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Added Cost Management & Profitability card to GM Dashboard with 2-column layout showing: (Left) Top 3 Cost Categories (MTD) with visual progress bars and percentages, total MTD costs. (Right) Cost per Room vs RevPAR comparison with cost-to-RevPAR ratio indicator (color-coded: green <30%, yellow 30-50%, red >50%), profit margin display (revenue, costs, gross profit). Integrated /api/reports/cost-summary endpoint. Added Marketplace-PMS integration info banner. Visual indicators for cost efficiency. Positioned between Finance Snapshot and Owner Summary sections."
+
   - task: "Finance Snapshot Widget for GM Dashboard"
     implemented: true
     working: true
