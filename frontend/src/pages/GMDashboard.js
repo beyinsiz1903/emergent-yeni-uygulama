@@ -45,18 +45,20 @@ const GMDashboard = ({ user, tenant, onLogout }) => {
   const loadDashboardData = async () => {
     try {
       // Load daily flash report and other key metrics
-      const [flashResponse, occupancyRes, folioRes, financeRes] = await Promise.all([
+      const [flashResponse, occupancyRes, folioRes, financeRes, costRes] = await Promise.all([
         axios.get('/reports/daily-flash').catch(() => ({ data: {} })),
         axios.get('/pms/dashboard').catch(() => ({ data: {} })),
         axios.get('/folio/dashboard-stats').catch(() => ({ data: {} })),
-        axios.get('/reports/finance-snapshot').catch(() => ({ data: {} }))
+        axios.get('/reports/finance-snapshot').catch(() => ({ data: {} })),
+        axios.get('/reports/cost-summary').catch(() => ({ data: {} }))
       ]);
 
       setDashboardData({
         flash: flashResponse.data,
         occupancy: occupancyRes.data,
         folio: folioRes.data,
-        finance: financeRes.data
+        finance: financeRes.data,
+        costs: costRes.data
       });
     } catch (error) {
       console.error('Failed to load dashboard data:', error);
