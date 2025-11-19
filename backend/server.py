@@ -9128,20 +9128,17 @@ async def get_deliveries(
 
 @api_router.post("/marketplace/deliveries")
 async def create_delivery(
-    po_id: str,
-    tracking_number: str = None,
-    carrier: str = None,
-    estimated_delivery: str = None,
+    request: CreateDeliveryRequest,
     current_user: User = Depends(get_current_user)
 ):
     """Create delivery tracking"""
     delivery = {
         'id': str(uuid.uuid4()),
         'tenant_id': current_user.tenant_id,
-        'po_id': po_id,
-        'tracking_number': tracking_number,
-        'carrier': carrier,
-        'estimated_delivery': estimated_delivery,
+        'po_id': request.po_id,
+        'tracking_number': request.tracking_number,
+        'carrier': request.carrier,
+        'estimated_delivery': request.estimated_delivery,
         'status': 'in_transit',
         'created_at': datetime.now(timezone.utc).isoformat()
     }
