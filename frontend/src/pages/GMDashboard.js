@@ -22,7 +22,14 @@ import {
   FileText,
   Mail,
   Download,
-  Zap
+  Zap,
+  LogIn,
+  ArrowUpCircle,
+  MessageSquare,
+  Key,
+  Printer,
+  Phone,
+  Send
 } from 'lucide-react';
 
 const GMDashboard = ({ user, tenant, onLogout }) => {
