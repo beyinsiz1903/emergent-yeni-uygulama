@@ -7784,7 +7784,7 @@ async def scrape_competitor_prices(
             'standard_rate': 150.00 + (hash(comp['id']) % 80),
             'scraped_at': datetime.now(timezone.utc).isoformat()
         }
-        await db.comp_pricing.insert_one(price_data)
+        await db.comp_pricing.insert_one(price_data.copy())
         scraped_prices.append(price_data)
     
     return {
