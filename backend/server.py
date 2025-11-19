@@ -8982,10 +8982,10 @@ async def adjust_inventory(
     log = {
         'id': str(uuid.uuid4()),
         'tenant_id': current_user.tenant_id,
-        'product_id': product_id,
-        'location': location,
-        'quantity_change': quantity_change,
-        'reason': reason,
+        'product_id': request.product_id,
+        'location': request.location,
+        'quantity_change': request.quantity_change,
+        'reason': request.reason,
         'adjusted_by': current_user.id,
         'adjusted_at': datetime.now(timezone.utc).isoformat()
     }
