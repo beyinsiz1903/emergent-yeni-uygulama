@@ -26,6 +26,8 @@ const Layout = ({ children, user, tenant, onLogout, currentModule }) => {
     { name: 'Pending AR', path: '/pending-ar', icon: DollarSign, id: 'pending-ar' },
     { name: 'Cost Management', path: '/cost-management', icon: TrendingUp, id: 'cost-management' },
     { name: t('nav.rms'), path: '/rms', icon: TrendingUp, id: 'rms' },
+    { name: 'Housekeeping', path: '/housekeeping', icon: Home, id: 'housekeeping' },
+    { name: 'POS Restaurant', path: '/pos', icon: ShoppingCart, id: 'pos' },
     { name: 'Channel Manager', path: '/channel-manager', icon: Network, id: 'channel-manager' },
     { name: t('nav.loyalty'), path: '/loyalty', icon: Award, id: 'loyalty' },
     { name: t('nav.marketplace'), path: '/marketplace', icon: ShoppingCart, id: 'marketplace' },
