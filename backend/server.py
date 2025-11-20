@@ -24804,8 +24804,15 @@ async def get_price_recommendation_with_range(
     
     base_price = room.get('base_price', 100) if room else 100
     
-    # Get historical occupancy
-    check_in = datetime.fromisoformat(check_in_date)
+    # Get historical occupancy - handle date parsing
+    try:
+        check_in = datetime.fromisoformat(check_in_date.replace('Z', '+00:00'))
+    except:
+        # Try alternative formats
+        try:
+            check_in = datetime.strptime(check_in_date, '%Y-%m-%d')
+        except:
+            check_in = datetime.now(timezone.utc)
     
     # Calculate occupancy for same date last year
     last_year_date = check_in - timedelta(days=365)
