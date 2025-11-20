@@ -29,6 +29,13 @@ import MultiPropertyDashboard from "@/pages/MultiPropertyDashboard";
 import HousekeepingMobileApp from "@/pages/HousekeepingMobileApp";
 import AIEnhancedPMS from "@/pages/AIEnhancedPMS";
 import Reports from "@/pages/Reports";
+import MobileDashboard from "@/pages/MobileDashboard";
+import MobileHousekeeping from "@/pages/MobileHousekeeping";
+import MobileFrontDesk from "@/pages/MobileFrontDesk";
+import MobileFnB from "@/pages/MobileFnB";
+import MobileMaintenance from "@/pages/MobileMaintenance";
+import MobileFinance from "@/pages/MobileFinance";
+import MobileGM from "@/pages/MobileGM";
 import { Toaster } from "@/components/ui/sonner";
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
