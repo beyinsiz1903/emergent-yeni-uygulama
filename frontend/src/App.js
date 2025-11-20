@@ -5,6 +5,7 @@ import axios from "axios";
 import AuthPage from "@/pages/AuthPage";
 import Dashboard from "@/pages/Dashboard";
 import GMDashboard from "@/pages/GMDashboard";
+import EnhancedGMDashboard from "@/pages/EnhancedGMDashboard";
 import PMSModule from "@/pages/PMSModule";
 import InvoiceModule from "@/pages/InvoiceModule";
 import RMSModule from "@/pages/RMSModule";
