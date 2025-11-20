@@ -137,6 +137,16 @@ function App() {
             }
           />
           <Route
+            path="/ai-pms"
+            element={
+              isAuthenticated ? (
+                <AIEnhancedPMS user={user} tenant={tenant} onLogout={handleLogout} />
+              ) : (
+                <Navigate to="/auth" replace />
+              )
+            }
+          />
+          <Route
             path="/pms"
             element={
               isAuthenticated ? (
