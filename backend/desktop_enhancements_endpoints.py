@@ -106,8 +106,7 @@ class FolioSplitRequest(BaseModel):
 @desktop_router.get("/revenue/breakdown")
 async def get_revenue_breakdown(
     month: Optional[str] = None,
-    db = None,
-    current_user = None
+    current_user = Depends(get_current_user_mock)
 ):
     """Get revenue breakdown by category"""
     query = {'tenant_id': current_user.tenant_id}
