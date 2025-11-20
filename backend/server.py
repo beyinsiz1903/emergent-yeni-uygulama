@@ -20988,6 +20988,184 @@ async def get_maintenance_prediction_logs(
         query['prediction_result'] = prediction_result
     if room_number:
         query['room_number'] = room_number
+
+
+# ============= SUBSCRIPTION & PRICING ENDPOINTS =============
+
+from subscription_models import (
+    SubscriptionTier, SubscriptionPlan, SUBSCRIPTION_PLANS,
+    has_feature_access, get_feature_comparison, FeatureFlag
+)
+
+@api_router.get("/subscription/plans")
+async def get_subscription_plans():
+    """Get all available subscription plans"""
+    return {
+        'plans': [plan.model_dump() for plan in SUBSCRIPTION_PLANS.values()],
+        'currency': 'USD'
+    }
+
+@api_router.get("/subscription/features")
+async def get_feature_comparison_endpoint():
+    """Get feature comparison across all tiers"""
+    return {
+        'features': get_feature_comparison(),
+        'tiers': [tier.value for tier in SubscriptionTier]
+    }
+
+@api_router.get("/subscription/current")
+async def get_current_subscription(
+    current_user: User = Depends(get_current_user)
+):
+    """Get current user's subscription"""
+    tenant = await db.tenants.find_one({'id': current_user.tenant_id})
+    
+    if not tenant:
+        raise HTTPException(status_code=404, detail="Tenant not found")
+    
+    subscription_tier = tenant.get('subscription_tier', 'basic')
+    plan = SUBSCRIPTION_PLANS.get(SubscriptionTier(subscription_tier))
+    
+    return {
+        'tenant_id': current_user.tenant_id,
+        'tier': subscription_tier,
+        'plan': plan.model_dump() if plan else None,
+        'status': tenant.get('subscription_status', 'active'),
+        'valid_until': tenant.get('subscription_valid_until'),
+        'rooms_count': await db.rooms.count_documents({'tenant_id': current_user.tenant_id}),
+        'users_count': await db.users.count_documents({'tenant_id': current_user.tenant_id})
+    }
+
+@api_router.post("/subscription/upgrade")
+async def upgrade_subscription(
+    new_tier: SubscriptionTier,
+    billing_cycle: str = 'monthly',  # monthly or yearly
+    current_user: User = Depends(get_current_user)
+):
+    """Upgrade subscription tier"""
+    tenant = await db.tenants.find_one({'id': current_user.tenant_id})
+    
+    if not tenant:
+        raise HTTPException(status_code=404, detail="Tenant not found")
+    
+    current_tier = tenant.get('subscription_tier', 'basic')
+    
+    if SubscriptionTier(current_tier) == new_tier:
+        raise HTTPException(status_code=400, detail="Already on this tier")
+    
+    plan = SUBSCRIPTION_PLANS.get(new_tier)
+    if not plan:
+        raise HTTPException(status_code=400, detail="Invalid subscription tier")
+    
+    # Calculate price
+    amount = plan.price_yearly if billing_cycle == 'yearly' else plan.price_monthly
+    
+    # Update subscription
+    await db.tenants.update_one(
+        {'id': current_user.tenant_id},
+        {'$set': {
+            'subscription_tier': new_tier.value,
+            'subscription_status': 'active',
+            'billing_cycle': billing_cycle,
+            'subscription_valid_until': (datetime.now(timezone.utc) + timedelta(days=365 if billing_cycle == 'yearly' else 30)).isoformat(),
+            'last_billing_date': datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    
+    return {
+        'success': True,
+        'message': f'Successfully upgraded to {plan.name}',
+        'tier': new_tier.value,
+        'amount': amount,
+        'billing_cycle': billing_cycle
+    }
+
+
+# ============= DEMO ENVIRONMENT ENDPOINTS =============
+
+from demo_data_generator import DemoDataGenerator
+
+@api_router.post("/demo/populate")
+async def populate_demo_data(
+    hotel_type: str = 'boutique',  # boutique, resort, city
+    current_user: User = Depends(get_current_user)
+):
+    \"\"\"Populate account with realistic demo data\"\"\"
+    
+    # Check if already has data
+    existing_rooms = await db.rooms.count_documents({'tenant_id': current_user.tenant_id})
+    if existing_rooms > 10:
+        raise HTTPException(status_code=400, detail="Account already has data. Cannot populate demo data.")
+    
+    # Generate demo data
+    demo_data = DemoDataGenerator.generate_demo_hotel(current_user.tenant_id, hotel_type)
+    
+    # Insert demo data
+    stats = {
+        'rooms': 0,
+        'guests': 0,
+        'bookings': 0,
+        'staff': 0,
+        'inventory': 0
+    }
+    
+    # Insert rooms
+    if demo_data['rooms']:
+        await db.rooms.insert_many(demo_data['rooms'])
+        stats['rooms'] = len(demo_data['rooms'])
+    
+    # Insert guests
+    if demo_data['guests']:
+        await db.guests.insert_many(demo_data['guests'])
+        stats['guests'] = len(demo_data['guests'])
+    
+    # Insert bookings
+    if demo_data['bookings']:
+        await db.bookings.insert_many(demo_data['bookings'])
+        stats['bookings'] = len(demo_data['bookings'])
+    
+    # Insert staff
+    if demo_data['staff']:
+        # Note: Staff might need to be in users collection with passwords
+        # For demo, we'll just store as reference data
+        for staff in demo_data['staff']:
+            await db.staff_profiles.insert_one(staff)
+        stats['staff'] = len(demo_data['staff'])
+    
+    # Insert inventory
+    if demo_data['inventory']:
+        await db.inventory.insert_many(demo_data['inventory'])
+        stats['inventory'] = len(demo_data['inventory'])
+    
+    return {
+        'success': True,
+        'message': 'Demo data populated successfully',
+        'hotel_name': demo_data['hotel_name'],
+        'stats': stats
+    }
+
+@api_router.get("/demo/status")
+async def get_demo_status(
+    current_user: User = Depends(get_current_user)
+):
+    \"\"\"Check if account is using demo data\"\"\"
+    
+    rooms_count = await db.rooms.count_documents({'tenant_id': current_user.tenant_id})
+    guests_count = await db.guests.count_documents({'tenant_id': current_user.tenant_id})
+    bookings_count = await db.bookings.count_documents({'tenant_id': current_user.tenant_id})
+    
+    is_demo = rooms_count > 0 and guests_count > 0
+    
+    return {
+        'is_demo': is_demo,
+        'has_data': rooms_count > 0,
+        'stats': {
+            'rooms': rooms_count,
+            'guests': guests_count,
+            'bookings': bookings_count
+        }
+    }
+
     
     logs = []
     async for log in db.maintenance_prediction_logs.find(query).sort('timestamp', -1).skip(skip).limit(limit):
