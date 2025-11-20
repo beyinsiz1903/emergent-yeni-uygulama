@@ -6603,6 +6603,41 @@ async def get_housekeeping_efficiency_report(
         'daily_average_all_staff': round(len(tasks) / date_range_days, 2) if date_range_days > 0 else 0
     }
 
+
+@api_router.get("/reports/housekeeping-efficiency/excel")
+async def export_housekeeping_efficiency_excel(
+    start_date: str,
+    end_date: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Export Housekeeping Efficiency Report to Excel"""
+    report_data = await get_housekeeping_efficiency_report(start_date, end_date, current_user)
+    
+    headers = ["Staff Member", "Tasks Completed", "Daily Average", "Cleaning", "Maintenance", "Inspection"]
+    data = []
+    
+    for staff, performance in report_data['staff_performance'].items():
+        by_type = performance['by_type']
+        data.append([
+            staff,
+            performance['tasks_completed'],
+            f"{performance['daily_average']:.2f}",
+            by_type.get('cleaning', 0),
+            by_type.get('maintenance', 0),
+            by_type.get('inspection', 0)
+        ])
+    
+    wb = create_excel_workbook(
+        title=f"Housekeeping Efficiency Report ({start_date} to {end_date})",
+        headers=headers,
+        data=data,
+        sheet_name="HK Efficiency"
+    )
+    
+    filename = f"housekeeping_efficiency_{start_date}_to_{end_date}.xlsx"
+    return excel_response(wb, filename)
+
+
 # ============= AUDIT & SECURITY =============
 
 @api_router.get("/audit-logs")
