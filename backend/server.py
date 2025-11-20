@@ -24420,9 +24420,9 @@ async def add_extra_charge(
     extra_charge = ExtraCharge(
         booking_id=booking_id,
         tenant_id=current_user.tenant_id,
-        charge_name=charge_name,
-        charge_amount=charge_amount,
-        notes=notes
+        charge_name=data.charge_name,
+        charge_amount=data.charge_amount,
+        notes=data.notes
     )
     
     await db.extra_charges.insert_one(extra_charge.model_dump())
