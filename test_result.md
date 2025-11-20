@@ -122,6 +122,8 @@ user_problem_statement: |
   16. Procurement - Auto-purchase suggestions, Stock alerts
   17. Reservation Improvements - Double-booking check, ADR visibility, Rate override panel
 
+  18. ML Training Infrastructure - RMS, Persona, Predictive Maintenance, HK Scheduler
+
 backend:
   - task: "Dashboard - Employee Performance Endpoint"
     implemented: true
