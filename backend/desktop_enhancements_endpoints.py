@@ -129,8 +129,8 @@ async def get_revenue_breakdown(
 async def get_upsell_products(
     category: Optional[str] = None,
     popular_only: bool = False,
-    db = None,
-    current_user = None
+    
+    current_user = Depends(get_current_user_mock)
 ):
     """Get AI-recommended upsell products"""
     query = {'tenant_id': current_user.tenant_id}
@@ -150,8 +150,8 @@ async def get_upsell_products(
 async def get_cost_summary(
     start_date: Optional[str] = None,
     end_date: Optional[str] = None,
-    db = None,
-    current_user = None
+    
+    current_user = Depends(get_current_user_mock)
 ):
     """Get cost management summary"""
     query = {'tenant_id': current_user.tenant_id}
@@ -195,8 +195,8 @@ async def get_pos_menu(
     outlet_id: Optional[str] = None,
     category: Optional[str] = None,
     available_only: bool = True,
-    db = None,
-    current_user = None
+    
+    current_user = Depends(get_current_user_mock)
 ):
     """Get POS menu items"""
     query = {'tenant_id': current_user.tenant_id}
@@ -227,8 +227,8 @@ async def get_pos_menu(
 async def get_restaurant_tables(
     outlet_id: str = 'main_restaurant',
     status: Optional[str] = None,
-    db = None,
-    current_user = None
+    
+    current_user = Depends(get_current_user_mock)
 ):
     """Get restaurant tables"""
     query = {
@@ -256,8 +256,8 @@ async def get_restaurant_tables(
 async def update_table_status(
     table_id: str,
     new_status: str,
-    db = None,
-    current_user = None
+    
+    current_user = Depends(get_current_user_mock)
 ):
     """Update table status"""
     result = await db.restaurant_tables.update_one(
@@ -274,8 +274,8 @@ async def update_table_status(
 async def get_housekeeping_staff(
     shift: Optional[str] = None,
     active_only: bool = True,
-    db = None,
-    current_user = None
+    
+    current_user = Depends(get_current_user_mock)
 ):
     """Get housekeeping staff list"""
     query = {'tenant_id': current_user.tenant_id}
@@ -301,8 +301,8 @@ async def get_housekeeping_staff(
 async def assign_rooms_to_staff(
     staff_id: str,
     room_ids: List[str],
-    db = None,
-    current_user = None
+    
+    current_user = Depends(get_current_user_mock)
 ):
     """Assign rooms to housekeeping staff"""
     # Update staff assigned rooms count
@@ -338,8 +338,8 @@ async def assign_rooms_to_staff(
 @desktop_router.get("/messaging/templates")
 async def get_messaging_templates(
     template_type: Optional[str] = None,
-    db = None,
-    current_user = None
+    
+    current_user = Depends(get_current_user_mock)
 ):
     """Get messaging templates"""
     query = {'tenant_id': current_user.tenant_id}
@@ -359,8 +359,8 @@ async def send_message(
     template_id: str,
     variables: dict,
     channel: str,  # whatsapp, sms, email
-    db = None,
-    current_user = None
+    
+    current_user = Depends(get_current_user_mock)
 ):
     """Send message via WhatsApp/SMS/Email (mock)"""
     # Get template
@@ -398,8 +398,8 @@ async def send_message(
 async def split_folio(
     folio_id: str,
     split_request: FolioSplitRequest,
-    db = None,
-    current_user = None
+    
+    current_user = Depends(get_current_user_mock)
 ):
     """Split folio into multiple folios"""
     # Get original folio
