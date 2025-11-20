@@ -552,6 +552,9 @@ const RMSModule = ({ user, tenant, onLogout }) => {
             </div>
           </CardContent>
         </Card>
+
+        {/* Revenue Breakdown Chart */}
+        <RevenueBreakdownChart />
       </div>
     </Layout>
   );
