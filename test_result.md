@@ -353,15 +353,18 @@ user_problem_statement: |
 
   - task: "POS Module - Create Detailed Order"
     implemented: true
-    working: "NA"
+    working: false
     file: "/app/backend/server.py"
-    stuck_count: 0
+    stuck_count: 1
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: "NA"
         agent: "main"
         comment: "Added POST /api/pos/create-order - Create detailed POS orders with multiple items, quantities, automatic tax calculation, optional folio posting"
+      - working: false
+        agent: "testing"
+        comment: "❌ ENDPOINT FAILING - POST /api/pos/create-order returns HTTP 422 error. Request body validation failing. Tested with booking_id, items array, table_number, server_name, post_to_folio, notes fields but endpoint expects different request structure."
 
   - task: "POS Module - Order History"
     implemented: true
