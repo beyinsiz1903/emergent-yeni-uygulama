@@ -344,7 +344,7 @@ const LoyaltyModule = ({ user, tenant, onLogout }) => {
                         {/* Points Display */}
                         <div className="pt-4 border-t">
                           <div className="text-center">
-                            <div className="text-4xl font-bold text-blue-600">{program.points.toLocaleString()}</div>
+                            <div className="text-4xl font-bold text-blue-600">{(program.points || 0).toLocaleString()}</div>
                             <div className="text-sm text-gray-600 mt-1">Available Points</div>
                           </div>
                         </div>
@@ -352,7 +352,7 @@ const LoyaltyModule = ({ user, tenant, onLogout }) => {
                         {/* Lifetime Points */}
                         <div className="pt-2 border-t text-sm flex justify-between">
                           <span className="text-gray-600">Lifetime Points</span>
-                          <span className="font-medium">{program.lifetime_points.toLocaleString()}</span>
+                          <span className="font-medium">{(program.lifetime_points || 0).toLocaleString()}</span>
                         </div>
 
                         {/* Benefits Preview */}
