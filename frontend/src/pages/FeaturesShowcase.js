@@ -1,0 +1,179 @@
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import Layout from '../components/Layout';
+import POSTableManagement from '../components/POSTableManagement';
+import StaffAssignment from '../components/StaffAssignment';
+import MessagingTemplates from '../components/MessagingTemplates';
+import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
+import { Button } from '../components/ui/button';
+import { 
+  Users, 
+  UtensilsCrossed, 
+  MessageSquare,
+  Sparkles,
+  ArrowLeft
+} from 'lucide-react';
+
+const FeaturesShowcase = ({ user, tenant, onLogout }) => {
+  const navigate = useNavigate();
+
+  return (
+    <Layout user={user} tenant={tenant} onLogout={onLogout}>
+      <div className="p-6 space-y-6">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold flex items-center gap-3">
+              <Sparkles className="w-8 h-8 text-purple-600" />
+              Features Showcase
+            </h1>
+            <p className="text-gray-600 mt-1">
+              New desktop features - POS Tables, Staff Assignment, Messaging
+            </p>
+          </div>
+          <Button onClick={() => navigate('/')}>
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Back to Dashboard
+          </Button>
+        </div>
+
+        {/* Tabs for Features */}
+        <Tabs defaultValue="pos" className="w-full">
+          <TabsList className="grid w-full grid-cols-3 max-w-2xl">
+            <TabsTrigger value="pos">
+              <UtensilsCrossed className="w-4 h-4 mr-2" />
+              POS Tables
+            </TabsTrigger>
+            <TabsTrigger value="staff">
+              <Users className="w-4 h-4 mr-2" />
+              Staff Assignment
+            </TabsTrigger>
+            <TabsTrigger value="messaging">
+              <MessageSquare className="w-4 h-4 mr-2" />
+              Messaging
+            </TabsTrigger>
+          </TabsList>
+
+          {/* POS Tables Tab */}
+          <TabsContent value="pos" className="mt-6">
+            <div className="space-y-4">
+              <Card className="bg-blue-50 border-blue-200">
+                <CardContent className="p-4">
+                  <div className="flex items-start space-x-3">
+                    <div className="bg-blue-100 p-2 rounded-full">
+                      <UtensilsCrossed className="w-5 h-5 text-blue-600" />
+                    </div>
+                    <div>
+                      <h4 className="font-semibold text-gray-900 mb-1">🍽️ Restaurant Table Management</h4>
+                      <p className="text-sm text-gray-600">
+                        Manage restaurant tables, track availability, and update status in real-time.
+                        20 tables with capacity tracking and quick status updates.
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+              <POSTableManagement outletId="main_restaurant" />
+            </div>
+          </TabsContent>
+
+          {/* Staff Assignment Tab */}
+          <TabsContent value="staff" className="mt-6">
+            <div className="space-y-4">
+              <Card className="bg-green-50 border-green-200">
+                <CardContent className="p-4">
+                  <div className="flex items-start space-x-3">
+                    <div className="bg-green-100 p-2 rounded-full">
+                      <Users className="w-5 h-5 text-green-600" />
+                    </div>
+                    <div>
+                      <h4 className="font-semibold text-gray-900 mb-1">👥 Housekeeping Staff Management</h4>
+                      <p className="text-sm text-gray-600">
+                        View staff members, track efficiency, manage shifts, and assign rooms.
+                        6 staff members with real-time performance metrics.
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+              <StaffAssignment />
+            </div>
+          </TabsContent>
+
+          {/* Messaging Tab */}
+          <TabsContent value="messaging" className="mt-6">
+            <div className="space-y-4">
+              <Card className="bg-purple-50 border-purple-200">
+                <CardContent className="p-4">
+                  <div className="flex items-start space-x-3">
+                    <div className="bg-purple-100 p-2 rounded-full">
+                      <MessageSquare className="w-5 h-5 text-purple-600" />
+                    </div>
+                    <div>
+                      <h4 className="font-semibold text-gray-900 mb-1">💬 Multi-Channel Messaging</h4>
+                      <p className="text-sm text-gray-600">
+                        Send WhatsApp, SMS, and Email messages using templates with variable support.
+                        Mock integration ready for production API setup.
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+              <MessagingTemplates />
+            </div>
+          </TabsContent>
+        </Tabs>
+
+        {/* Quick Links */}
+        <Card className="bg-gradient-to-r from-purple-50 to-pink-50 border-purple-200">
+          <CardHeader>
+            <CardTitle>Other New Features</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <Button
+                variant="outline"
+                className="h-24 flex flex-col items-center justify-center"
+                onClick={() => navigate('/cost-management')}
+              >
+                <span className="text-2xl mb-2">💰</span>
+                <span className="text-sm">Cost Management</span>
+              </Button>
+              <Button
+                variant="outline"
+                className="h-24 flex flex-col items-center justify-center"
+                onClick={() => navigate('/rms')}
+              >
+                <span className="text-2xl mb-2">📊</span>
+                <span className="text-sm">Revenue Breakdown</span>
+              </Button>
+              <Button
+                variant="outline"
+                className="h-24 flex flex-col items-center justify-center"
+                onClick={() => {
+                  alert('Navigate to any booking and open Upsell Store to see AI products');
+                }}
+              >
+                <span className="text-2xl mb-2">🛍️</span>
+                <span className="text-sm">AI Upsell Center</span>
+              </Button>
+              <Button
+                variant="outline"
+                className="h-24 flex flex-col items-center justify-center"
+                onClick={() => {
+                  alert('Split Folio: Open any folio and use Split button (to be added to Folio Manager)');
+                }}
+              >
+                <span className="text-2xl mb-2">📑</span>
+                <span className="text-sm">Split Folio</span>
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    </Layout>
+  );
+};
+
+export default FeaturesShowcase;
