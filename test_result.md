@@ -2084,16 +2084,16 @@ metadata:
 
 test_plan:
   current_focus:
-    - "Monitoring & Logging System - COMPREHENSIVE TESTING COMPLETED ✅"
-    - "12 endpoints + core functionality tested: Log Viewing (6/6 ✓), Dashboard (1/1 ✓), Actions (3/3 ✓), Integration (1/1 ✓), Core Service (7/7 ✓)"
-    - "100% success rate - All monitoring and logging functionality working perfectly"
-    - "All 6 log types fully functional: Error Logs, Night Audit Logs, OTA Sync Logs, RMS Publish Logs, Maintenance Prediction Logs, Alert History"
-    - "LoggingService core infrastructure working with automatic alert creation and comprehensive statistics"
-    - "Production-ready monitoring system with real-time dashboard, health indicators, and complete audit trails"
-    - "Night audit integration verified - automatic log creation during business operations"
+    - "Critical Bug Fixes - COMPREHENSIVE TESTING COMPLETED ✅"
+    - "5 priority issues tested: Room Status Bug (3/3 ✓), Procurement Stock Alert (1/1 ✓), Loyalty Points Redemption (1/1 ✓), RMS Dynamic Restrictions (1/1 ✓), Marketplace Product Creation (1/1 ✓)"
+    - "100% success rate - All critical validation errors fixed and check-in workflow restored"
+    - "Room status bug FIXED: Booking creation no longer sets room to 'occupied', only check-in does"
+    - "All 422 validation errors RESOLVED: All endpoints now accept proper JSON request body format"
+    - "Check-in workflow WORKING: Beta test issue resolved - guests can now check in successfully"
+    - "Production-ready: All critical issues from beta testing have been addressed"
   stuck_tasks: []
   test_all: false
-  test_priority: "monitoring_logging_verified"
+  test_priority: "critical_bugs_fixed"
 
 agent_communication:
   - agent: "testing"
