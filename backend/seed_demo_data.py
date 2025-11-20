@@ -117,6 +117,31 @@ async def seed_data():
     print(f"✅ Using tenant: {tenant['property_name']} (ID: {tenant_id})")
     print(f"✅ Using user: {user_name}")
     
+    # Create demo guest user (for Guest Portal login)
+    demo_guest = await db.users.find_one({"email": "guest@demo.com", "role": "guest"})
+    if not demo_guest:
+        print("\n📝 Creating demo guest user account...")
+        from passlib.context import CryptContext
+        pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+        password_hash = pwd_context.hash("guest123")
+        
+        demo_guest_id = str(uuid.uuid4())
+        demo_guest = {
+            "id": demo_guest_id,
+            "tenant_id": None,  # Guest users are not tenant-specific
+            "name": "Demo Guest",
+            "email": "guest@demo.com",
+            "password": password_hash,
+            "role": "guest",
+            "phone": "+1-555-GUEST",
+            "created_at": datetime.now().isoformat()
+        }
+        await db.users.insert_one(demo_guest)
+        print(f"✅ Created demo guest user: guest@demo.com (password: guest123)")
+    else:
+        demo_guest_id = demo_guest['id']
+        print(f"✅ Demo guest user already exists: guest@demo.com")
+    
     # Clear existing demo data
     print("\n🗑️  Clearing existing demo data...")
     await db.rooms.delete_many({"tenant_id": tenant_id})
