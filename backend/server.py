@@ -2465,7 +2465,25 @@ async def create_guest(guest_data: GuestCreate, current_user: User = Depends(get
 
 @api_router.get("/pms/guests", response_model=List[Guest])
 async def get_guests(current_user: User = Depends(get_current_user)):
-    guests = await db.guests.find({'tenant_id': current_user.tenant_id}, {'_id': 0}).to_list(1000)
+    guests_raw = await db.guests.find({'tenant_id': current_user.tenant_id}, {'_id': 0}).to_list(1000)
+    
+    # Map database fields to model fields
+    guests = []
+    for guest in guests_raw:
+        # Combine first_name and last_name into name if they exist
+        if 'first_name' in guest and 'last_name' in guest:
+            guest['name'] = f"{guest.get('first_name', '')} {guest.get('last_name', '')}".strip()
+        elif 'name' not in guest:
+            guest['name'] = guest.get('email', 'Unknown')
+        
+        # Use passport_number as id_number if id_number doesn't exist
+        if 'id_number' not in guest and 'passport_number' in guest:
+            guest['id_number'] = guest.get('passport_number', '')
+        elif 'id_number' not in guest:
+            guest['id_number'] = ''
+        
+        guests.append(guest)
+    
     return guests
 
 # ============= PMS - BOOKINGS MANAGEMENT =============
