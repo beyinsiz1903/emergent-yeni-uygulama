@@ -24,7 +24,7 @@ BACKEND_URL = "https://hotelops-central-1.preview.emergentagent.com/api"
 TEST_EMAIL = "admin@hotel.com"
 TEST_PASSWORD = "admin123"
 
-class LoggingSystemTester:
+class HotelPMSEnhancementsTester:
     def __init__(self):
         self.session = None
         self.auth_token = None
