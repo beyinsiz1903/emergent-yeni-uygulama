@@ -4586,8 +4586,71 @@ beta_test_results:
     
   conclusion: "Hotel PMS system core functionality is solid and ready for production use. Critical check-in/checkout and folio/billing operations work perfectly. Some medium-priority modules need validation fixes before full deployment."
 
+backend:
+  - task: "Guest Portal Authentication - Registration & Login"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: "NA"
+        agent: "testing"
+        comment: "Testing guest registration and login endpoints for multi-tenant support"
+      - working: true
+        agent: "testing"
+        comment: "✅ GUEST AUTHENTICATION WORKING PERFECTLY - POST /api/auth/register-guest: Successfully creates guest users with role='guest' and tenant_id=None. POST /api/auth/login: Guest login working correctly, returns valid JWT token. Token validation: GET /api/auth/me returns correct guest user data. All authentication flows functional for guest users with multi-tenant compatibility."
+
+  - task: "Guest Portal - Multi-Tenant Bookings Endpoint"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: "NA"
+        agent: "testing"
+        comment: "Testing GET /api/guest/bookings endpoint for multi-tenant support"
+      - working: true
+        agent: "testing"
+        comment: "✅ GUEST BOOKINGS MULTI-TENANT WORKING PERFECTLY - GET /api/guest/bookings: Returns active_bookings and past_bookings arrays. Multi-tenant structure verified: each booking contains tenant_id, hotel information, can_communicate and can_order_services flags. Cross-tenant data queries working correctly - guest can access bookings from multiple hotels with single account. Response structure includes nested hotel and room data for frontend display."
+
+  - task: "Guest Portal - Multi-Tenant Loyalty Endpoint"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: "NA"
+        agent: "testing"
+        comment: "Testing GET /api/guest/loyalty endpoint for multi-tenant support"
+      - working: true
+        agent: "testing"
+        comment: "✅ GUEST LOYALTY MULTI-TENANT WORKING PERFECTLY - GET /api/guest/loyalty: Returns loyalty_programs array with hotel-specific data, total_points aggregated across all hotels, and global_tier calculated from total points. Multi-tenant data aggregation working correctly: loyalty programs from different hotels properly aggregated, tier calculation logic functional (bronze/silver/gold/platinum based on total points). Each loyalty program contains hotel_id, hotel_name, tier, points, and tier progression information."
+
+  - task: "Guest Portal - User-Level Notification Preferences"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: "NA"
+        agent: "testing"
+        comment: "Testing GET/PUT /api/guest/notification-preferences endpoints"
+      - working: true
+        agent: "testing"
+        comment: "✅ GUEST NOTIFICATION PREFERENCES WORKING - GET /api/guest/notification-preferences: Returns default preferences for new users with user_id, email_notifications, whatsapp_notifications, in_app_notifications, booking_updates, promotional, room_service_updates fields. PUT /api/guest/notification-preferences: Successfully updates preferences and persists changes. Minor: Endpoint uses older field structure but core functionality works correctly. Preference updates verified by subsequent GET requests."
+
 agent_communication:
     -agent: "main"
     -message: "Communication message between agents"
     -agent: "testing"
     -message: "COMPREHENSIVE BETA TEST COMPLETED - 8 Major Modules Tested. CRITICAL MODULES (Check-in/Checkout, Folio/Billing) are FULLY FUNCTIONAL and ready for production. SUCCESS RATE: Check-in/Checkout 100%, Folio/Billing 100%, Housekeeping 71.4%, Maintenance 100%, RMS Pricing 80%, Channel Manager 100%, Marketplace/Procurement 50%, Loyalty Program 75%. OVERALL SYSTEM HEALTH: 73.7%. Key Issues: Room status bug in booking creation (sets room to occupied), some 422 validation errors in marketplace and loyalty endpoints, ML models not available. Core PMS operations working perfectly with accurate folio calculations, payment processing, and complete check-in/checkout workflow. RECOMMENDATION: Fix room status bug and validation errors, then system is ready for production deployment."
+    -agent: "testing"
+    -message: "GUEST PORTAL AUTHENTICATION & MULTI-TENANT SUPPORT TESTING COMPLETED - 100% SUCCESS RATE (4/4 requirements met). ✅ CRITICAL REQUIREMENTS VERIFIED: (1) No 401 Unauthorized errors for valid guest tokens - ALL ENDPOINTS WORKING, (2) Guest user tenant_id=None compatibility - CONFIRMED, (3) Cross-tenant data query functionality - WORKING PERFECTLY, (4) Multi-tenant data aggregation - FUNCTIONAL. TESTED ENDPOINTS: POST /api/auth/register-guest (guest registration), POST /api/auth/login (guest login), GET /api/guest/bookings (multi-tenant bookings), GET /api/guest/loyalty (multi-tenant loyalty with aggregation), GET/PUT /api/guest/notification-preferences (user-level preferences). ALL GUEST PORTAL FEATURES WORKING CORRECTLY - Ready for production use."
