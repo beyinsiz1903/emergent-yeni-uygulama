@@ -4739,6 +4739,196 @@ async def get_available_rooms_for_booking(
         }
     }
 
+@api_router.post("/housekeeping/start-cleaning/{room_id}")
+async def start_cleaning_timer(
+    room_id: str,
+    staff_info: dict = {},
+    current_user: User = Depends(get_current_user)
+):
+    """Start cleaning timer for a room"""
+    room = await db.rooms.find_one({
+        'id': room_id,
+        'tenant_id': current_user.tenant_id
+    })
+    
+    if not room:
+        raise HTTPException(status_code=404, detail="Room not found")
+    
+    # Create cleaning task
+    task_id = str(uuid.uuid4())
+    task = {
+        'id': task_id,
+        'tenant_id': current_user.tenant_id,
+        'room_id': room_id,
+        'room_number': room.get('room_number'),
+        'assigned_to': staff_info.get('staff_name', current_user.name),
+        'assigned_id': staff_info.get('staff_id', current_user.id),
+        'started_at': datetime.now(timezone.utc).isoformat(),
+        'completed_at': None,
+        'status': 'in_progress',
+        'duration_minutes': None,
+        'notes': staff_info.get('notes', '')
+    }
+    
+    await db.housekeeping_tasks.insert_one(task)
+    
+    # Update room status
+    await db.rooms.update_one(
+        {'id': room_id},
+        {
+            '$set': {
+                'status': 'cleaning',
+                'assigned_cleaner': task['assigned_to'],
+                'cleaning_started_at': task['started_at'],
+                'current_task_id': task_id
+            }
+        }
+    )
+    
+    return {
+        'success': True,
+        'task_id': task_id,
+        'room_number': room.get('room_number'),
+        'started_at': task['started_at'],
+        'assigned_to': task['assigned_to']
+    }
+
+@api_router.post("/housekeeping/complete-cleaning/{task_id}")
+async def complete_cleaning_timer(
+    task_id: str,
+    completion_data: dict = {},
+    current_user: User = Depends(get_current_user)
+):
+    """Complete cleaning timer and update room status"""
+    task = await db.housekeeping_tasks.find_one({
+        'id': task_id,
+        'tenant_id': current_user.tenant_id
+    })
+    
+    if not task:
+        raise HTTPException(status_code=404, detail="Task not found")
+    
+    # Calculate duration
+    started_at = datetime.fromisoformat(task['started_at'])
+    completed_at = datetime.now(timezone.utc)
+    duration = (completed_at - started_at).total_seconds() / 60  # minutes
+    
+    # Update task
+    await db.housekeeping_tasks.update_one(
+        {'id': task_id},
+        {
+            '$set': {
+                'completed_at': completed_at.isoformat(),
+                'status': 'completed',
+                'duration_minutes': round(duration, 1),
+                'completion_notes': completion_data.get('notes', ''),
+                'quality_score': completion_data.get('quality_score', 5)
+            }
+        }
+    )
+    
+    # Update room status
+    await db.rooms.update_one(
+        {'id': task['room_id']},
+        {
+            '$set': {
+                'status': 'inspected',
+                'cleaning_completed_at': completed_at.isoformat(),
+                'last_cleaned': completed_at.isoformat(),
+                'current_task_id': None
+            }
+        }
+    )
+    
+    return {
+        'success': True,
+        'task_id': task_id,
+        'room_number': task['room_number'],
+        'duration_minutes': round(duration, 1),
+        'completed_at': completed_at.isoformat()
+    }
+
+@api_router.get("/housekeeping/active-timers")
+async def get_active_cleaning_timers(current_user: User = Depends(get_current_user)):
+    """Get all active cleaning timers"""
+    tasks = await db.housekeeping_tasks.find({
+        'tenant_id': current_user.tenant_id,
+        'status': 'in_progress'
+    }).to_list(100)
+    
+    now = datetime.now(timezone.utc)
+    active_timers = []
+    
+    for task in tasks:
+        started_at = datetime.fromisoformat(task['started_at'])
+        elapsed = (now - started_at).total_seconds() / 60  # minutes
+        
+        active_timers.append({
+            'task_id': task['id'],
+            'room_number': task['room_number'],
+            'assigned_to': task['assigned_to'],
+            'started_at': task['started_at'],
+            'elapsed_minutes': round(elapsed, 1),
+            'status': 'in_progress'
+        })
+    
+    return {
+        'active_timers': active_timers,
+        'total_active': len(active_timers)
+    }
+
+@api_router.get("/housekeeping/performance-stats")
+async def get_housekeeping_performance_stats(
+    days: int = 7,
+    current_user: User = Depends(get_current_user)
+):
+    """Get housekeeping performance statistics"""
+    since = datetime.now(timezone.utc) - timedelta(days=days)
+    
+    completed_tasks = await db.housekeeping_tasks.find({
+        'tenant_id': current_user.tenant_id,
+        'status': 'completed',
+        'completed_at': {'$gte': since.isoformat()}
+    }).to_list(10000)
+    
+    if not completed_tasks:
+        return {
+            'average_duration': 0,
+            'total_rooms_cleaned': 0,
+            'fastest_cleaning': 0,
+            'slowest_cleaning': 0,
+            'staff_performance': []
+        }
+    
+    durations = [t['duration_minutes'] for t in completed_tasks if t.get('duration_minutes')]
+    avg_duration = sum(durations) / len(durations) if durations else 0
+    
+    # Staff performance
+    staff_stats = {}
+    for task in completed_tasks:
+        staff = task.get('assigned_to', 'Unknown')
+        if staff not in staff_stats:
+            staff_stats[staff] = {
+                'name': staff,
+                'rooms_cleaned': 0,
+                'total_duration': 0,
+                'avg_duration': 0
+            }
+        staff_stats[staff]['rooms_cleaned'] += 1
+        staff_stats[staff]['total_duration'] += task.get('duration_minutes', 0)
+    
+    for staff in staff_stats.values():
+        staff['avg_duration'] = round(staff['total_duration'] / staff['rooms_cleaned'], 1) if staff['rooms_cleaned'] > 0 else 0
+    
+    return {
+        'period_days': days,
+        'average_duration': round(avg_duration, 1),
+        'total_rooms_cleaned': len(completed_tasks),
+        'fastest_cleaning': round(min(durations), 1) if durations else 0,
+        'slowest_cleaning': round(max(durations), 1) if durations else 0,
+        'staff_performance': sorted(staff_stats.values(), key=lambda x: x['rooms_cleaned'], reverse=True)
+    }
+
 @api_router.get("/reports/market-segment")
 async def get_market_segment_report(
     start_date: str,
