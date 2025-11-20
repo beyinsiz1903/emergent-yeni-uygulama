@@ -155,9 +155,14 @@ const UpsellStore = ({ bookingId }) => {
                     {getOfferIcon(offer.type)}
                     <div>
                       <h3 className="font-bold text-lg">{offer.title}</h3>
-                      {offer.ai_recommended && (
+                      {(offer.ai_recommended || offer.ai_score) && (
                         <Badge className="mt-1 bg-purple-100 text-purple-700 hover:bg-purple-100">
-                          🤖 AI Recommended
+                          🤖 AI Score: {offer.ai_score ? `${(offer.ai_score * 100).toFixed(0)}%` : 'Recommended'}
+                        </Badge>
+                      )}
+                      {offer.popular && (
+                        <Badge className="mt-1 ml-1 bg-orange-100 text-orange-700 hover:bg-orange-100">
+                          🔥 Popular
                         </Badge>
                       )}
                     </div>
