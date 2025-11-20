@@ -8918,14 +8918,29 @@ async def purchase_upsell(
     purchase_data: dict,
     current_user: User = Depends(get_current_user)
 ):
-    """Purchase an upsell offer"""
+    """Purchase an upsell offer for guest"""
+    # Find booking by guest email (multi-tenant support)
+    guest_records = []
+    async for guest in db.guests.find({'email': current_user.email}):
+        guest_records.append(guest)
+    
+    guest_ids = [g['id'] for g in guest_records]
+    
+    booking = await db.bookings.find_one({
+        'id': booking_id,
+        'guest_id': {'$in': guest_ids}
+    })
+    
+    if not booking:
+        raise HTTPException(status_code=404, detail="Booking not found")
+    
     purchase = {
         'id': str(uuid.uuid4()),
-        'tenant_id': current_user.tenant_id,
+        'tenant_id': booking.get('tenant_id'),
         'booking_id': booking_id,
         'offer_id': purchase_data.get('offer_id'),
-        'offer_type': purchase_data.get('offer_type'),
-        'amount': purchase_data.get('amount'),
+        'offer_name': purchase_data.get('offer_name', 'Upsell'),
+        'amount': purchase_data.get('price', 0),
         'purchased_at': datetime.now(timezone.utc).isoformat(),
         'status': 'confirmed'
     }
