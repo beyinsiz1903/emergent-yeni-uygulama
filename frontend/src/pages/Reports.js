@@ -99,8 +99,8 @@ const Reports = ({ user, tenant, onLogout }) => {
       let url = report.endpoint;
       
       // Add date parameters if needed
-      if (report.needsParams) {
-        url += `?start_date=${startDate}&end_date=${endDate}`;
+      if (report.needsDateRange) {
+        url += `?start_date=${report.startDate}&end_date=${report.endDate}`;
       }
       
       const response = await axios.get(url, {
@@ -137,6 +137,14 @@ const Reports = ({ user, tenant, onLogout }) => {
       toast.error('Failed to download report. Please try again.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDownloadAll = async () => {
+    for (const report of selectedReports) {
+      await handleDownloadReport(report);
+      // Small delay between downloads
+      await new Promise(resolve => setTimeout(resolve, 500));
     }
   };
 
