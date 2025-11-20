@@ -91,13 +91,16 @@ async def create_demo_tenant():
     
     tenant = {
         "id": DEMO_TENANT_ID,
-        "name": DEMO_TENANT_NAME,
-        "email": "info@grandhoteldemo.com",
-        "phone": "+1-555-0100",
+        "property_name": DEMO_TENANT_NAME,
+        "property_type": "hotel",
+        "contact_email": "info@grandhoteldemo.com",
+        "contact_phone": "+1-555-0100",
         "address": "123 Hotel Street, New York, NY 10001",
-        "created_at": datetime.now(timezone.utc).isoformat(),
-        "subscription_plan": "premium",
-        "status": "active"
+        "total_rooms": 50,
+        "subscription_status": "active",
+        "location": "New York, NY",
+        "amenities": ["WiFi", "Pool", "Gym", "Restaurant", "Spa"],
+        "created_at": datetime.now(timezone.utc).isoformat()
     }
     
     await db.tenants.insert_one(tenant)
