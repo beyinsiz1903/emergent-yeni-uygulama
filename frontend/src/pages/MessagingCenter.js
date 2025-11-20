@@ -311,6 +311,12 @@ const MessagingCenter = () => {
             </Card>
           </div>
         </div>
+          </TabsContent>
+
+          <TabsContent value="templates" className="mt-6">
+            <MessagingTemplates />
+          </TabsContent>
+        </Tabs>
       </div>
     </Layout>
   );
