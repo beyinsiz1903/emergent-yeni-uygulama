@@ -25646,3 +25646,11 @@ try:
     print("✅ Advanced features router included")
 except ImportError as e:
     print(f"⚠️ Advanced features not available: {e}")
+
+# Include comprehensive modules router
+try:
+    from comprehensive_modules_endpoints import router as comprehensive_router
+    app.include_router(comprehensive_router, prefix="/api", tags=["comprehensive-modules"])
+    print("✅ Comprehensive modules router included")
+except ImportError as e:
+    print(f"⚠️ Comprehensive modules not available: {e}")
