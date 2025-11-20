@@ -71,3 +71,4 @@ uvicorn==0.25.0
 watchfiles==1.1.1
 litellm
 emergentintegrations
+qrcode==7.4.2
