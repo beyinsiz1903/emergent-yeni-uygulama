@@ -263,15 +263,18 @@ user_problem_statement: |
 
   - task: "Revenue Management - Demand Heatmap"
     implemented: true
-    working: "NA"
+    working: true
     file: "/app/backend/server.py"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: "NA"
         agent: "main"
         comment: "Added GET /api/rms/demand-heatmap - Returns historical demand heatmap for next 90 days with occupancy_pct, demand_level (low/medium/high/very_high), bookings_count per day"
+      - working: true
+        agent: "testing"
+        comment: "✅ ENDPOINT WORKING - GET /api/rms/demand-heatmap returns proper response with heatmap_data array. Date range filtering with start_date and end_date parameters functional. Response structure verified. Minor: Expected date_range and summary fields not present but core functionality works with heatmap_data."
 
   - task: "Revenue Management - CompSet Analysis"
     implemented: true
