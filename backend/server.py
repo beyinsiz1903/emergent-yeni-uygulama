@@ -21163,6 +21163,581 @@ async def get_demo_status(
             'rooms': rooms_count,
             'guests': guests_count,
             'bookings': bookings_count
+
+
+# ============= GUEST MOBILE APP ENDPOINTS =============
+
+@api_router.get("/guest/bookings")
+async def get_guest_bookings(
+    current_user: User = Depends(get_current_user)
+):
+    """Get guest's bookings (active and past)"""
+    # Get all bookings for this guest
+    all_bookings = []
+    async for booking in db.bookings.find({
+        'tenant_id': current_user.tenant_id,
+        'guest_id': current_user.id  # Assuming guest is logged in
+    }).sort('check_in', -1):
+        # Get room details
+        room = await db.rooms.find_one({'id': booking.get('room_id')})
+        
+        # Get guest details
+        guest = await db.guests.find_one({'id': booking.get('guest_id')})
+        
+        booking_data = {
+            'id': booking.get('id'),
+            'confirmation_number': booking.get('confirmation_number', booking.get('id')[:8]),
+            'check_in': booking.get('check_in'),
+            'check_out': booking.get('check_out'),
+            'status': booking.get('status'),
+            'room_number': room.get('room_number') if room else 'TBA',
+            'room_type': room.get('room_type') if room else 'Standard',
+            'guests_count': booking.get('adults', 1) + booking.get('children', 0),
+            'total_amount': booking.get('total_amount', 0),
+            'guest_name': guest.get('name') if guest else current_user.name,
+            'qr_code_data': booking.get('qr_code_data'),
+            'can_checkin': booking.get('status') == 'confirmed' and datetime.fromisoformat(booking.get('check_in')) <= datetime.now(timezone.utc)
+        }
+        
+        all_bookings.append(booking_data)
+    
+    # Separate active and past
+    now = datetime.now(timezone.utc)
+    active_bookings = [
+        b for b in all_bookings 
+        if b['status'] in ['confirmed', 'checked_in'] and 
+        datetime.fromisoformat(b['check_out']) >= now
+    ]
+    
+    past_bookings = [
+        b for b in all_bookings
+        if b['status'] == 'checked_out' or
+        (datetime.fromisoformat(b['check_out']) < now and b['status'] != 'checked_in')
+    ]
+    
+    return {
+        'active_bookings': active_bookings,
+        'past_bookings': past_bookings[:10]  # Last 10
+    }
+
+
+@api_router.get("/guest/loyalty")
+async def get_guest_loyalty(
+    current_user: User = Depends(get_current_user)
+):
+    """Get guest loyalty information"""
+    guest = await db.guests.find_one({
+        'email': current_user.email,
+        'tenant_id': current_user.tenant_id
+    })
+    
+    if not guest:
+        return {
+            'total_points': 0,
+            'tier': 'bronze',
+            'loyalty_programs': [],
+            'upcoming_rewards': []
+        }
+    
+    loyalty_points = guest.get('loyalty_points', 0)
+    loyalty_tier = guest.get('loyalty_tier', 'bronze')
+    
+    # Get loyalty program benefits
+    benefits = await db.loyalty_benefits.find_one({
+        'tenant_id': current_user.tenant_id,
+        'tier': loyalty_tier
+    })
+    
+    # Calculate points to next tier
+    tier_thresholds = {
+        'bronze': 0,
+        'silver': 1000,
+        'gold': 5000,
+        'platinum': 10000
+    }
+    
+    current_threshold = tier_thresholds.get(loyalty_tier, 0)
+    next_tier = None
+    points_to_next = 0
+    
+    if loyalty_tier == 'bronze':
+        next_tier = 'silver'
+        points_to_next = 1000 - loyalty_points
+    elif loyalty_tier == 'silver':
+        next_tier = 'gold'
+        points_to_next = 5000 - loyalty_points
+    elif loyalty_tier == 'gold':
+        next_tier = 'platinum'
+        points_to_next = 10000 - loyalty_points
+    
+    # Get recent point transactions
+    transactions = []
+    async for txn in db.loyalty_transactions.find({
+        'tenant_id': current_user.tenant_id,
+        'guest_id': guest.get('id')
+    }).sort('created_at', -1).limit(10):
+        transactions.append(txn)
+    
+    return {
+        'total_points': loyalty_points,
+        'tier': loyalty_tier,
+        'next_tier': next_tier,
+        'points_to_next_tier': max(0, points_to_next) if next_tier else 0,
+        'tier_benefits': benefits.get('benefits', []) if benefits else [],
+        'loyalty_programs': [{
+            'id': '1',
+            'name': 'Hotel Rewards',
+            'tier': loyalty_tier,
+            'points': loyalty_points
+        }],
+        'recent_transactions': transactions,
+        'upcoming_rewards': [
+            {
+                'name': 'Free Night Stay',
+                'points_required': 5000,
+                'points_remaining': max(0, 5000 - loyalty_points)
+            },
+            {
+                'name': 'Room Upgrade',
+                'points_required': 2000,
+                'points_remaining': max(0, 2000 - loyalty_points)
+            }
+        ]
+    }
+
+
+@api_router.get("/guest/notification-preferences")
+async def get_notification_preferences(
+    current_user: User = Depends(get_current_user)
+):
+    """Get guest notification preferences"""
+    prefs = await db.guest_notification_preferences.find_one({
+        'tenant_id': current_user.tenant_id,
+        'user_id': current_user.id
+    })
+    
+    if not prefs:
+        # Default preferences
+        return {
+            'email_notifications': True,
+            'sms_notifications': False,
+            'push_notifications': True,
+            'whatsapp_notifications': False,
+            'booking_confirmations': True,
+            'check_in_reminders': True,
+            'promotional_offers': True,
+            'loyalty_updates': True
+        }
+    
+    return prefs
+
+
+@api_router.put("/guest/notification-preferences")
+async def update_notification_preferences(
+    preferences: dict,
+    current_user: User = Depends(get_current_user)
+):
+    """Update guest notification preferences"""
+    preferences['tenant_id'] = current_user.tenant_id
+    preferences['user_id'] = current_user.id
+    preferences['updated_at'] = datetime.now(timezone.utc).isoformat()
+    
+    await db.guest_notification_preferences.update_one(
+        {
+            'tenant_id': current_user.tenant_id,
+            'user_id': current_user.id
+        },
+        {'$set': preferences},
+        upsert=True
+    )
+    
+    return {
+        'success': True,
+        'message': 'Notification preferences updated'
+    }
+
+
+@api_router.post("/guest/device-token")
+async def register_device_token(
+    device_token: str,
+    platform: str,  # ios, android, web
+    current_user: User = Depends(get_current_user)
+):
+    """Register device token for push notifications"""
+    await db.guest_device_tokens.update_one(
+        {
+            'tenant_id': current_user.tenant_id,
+            'user_id': current_user.id,
+            'device_token': device_token
+        },
+        {
+            '$set': {
+                'tenant_id': current_user.tenant_id,
+                'user_id': current_user.id,
+                'device_token': device_token,
+                'platform': platform,
+                'updated_at': datetime.now(timezone.utc).isoformat()
+            }
+        },
+        upsert=True
+    )
+    
+    return {
+        'success': True,
+        'message': 'Device token registered'
+    }
+
+
+@api_router.get("/guest/room-service-menu")
+async def get_room_service_menu(
+    current_user: User = Depends(get_current_user)
+):
+    """Get room service menu"""
+    menu_items = []
+    async for item in db.room_service_menu.find({
+        'tenant_id': current_user.tenant_id,
+        'available': True
+    }).sort('category', 1):
+        menu_items.append(item)
+    
+    # If no menu exists, return sample menu
+    if not menu_items:
+        return {
+            'categories': [
+                {
+                    'name': 'Breakfast',
+                    'items': [
+                        {'id': '1', 'name': 'Continental Breakfast', 'price': 15.00, 'description': 'Croissant, juice, coffee'},
+                        {'id': '2', 'name': 'American Breakfast', 'price': 18.00, 'description': 'Eggs, bacon, toast, coffee'}
+                    ]
+                },
+                {
+                    'name': 'Lunch & Dinner',
+                    'items': [
+                        {'id': '3', 'name': 'Club Sandwich', 'price': 14.00, 'description': 'Triple decker with fries'},
+                        {'id': '4', 'name': 'Caesar Salad', 'price': 12.00, 'description': 'With grilled chicken'}
+                    ]
+                },
+                {
+                    'name': 'Beverages',
+                    'items': [
+                        {'id': '5', 'name': 'Fresh Juice', 'price': 6.00, 'description': 'Orange or apple'},
+                        {'id': '6', 'name': 'Soft Drinks', 'price': 4.00, 'description': 'Coca Cola, Sprite, Fanta'}
+                    ]
+                }
+            ]
+        }
+    
+    # Group by category
+    categories = {}
+    for item in menu_items:
+        cat = item.get('category', 'Other')
+        if cat not in categories:
+            categories[cat] = []
+        categories[cat].append(item)
+    
+    return {
+        'categories': [
+            {'name': cat, 'items': items}
+            for cat, items in categories.items()
+        ]
+    }
+
+
+@api_router.post("/guest/room-service-order")
+async def create_room_service_order(
+    booking_id: str,
+    items: List[dict],
+    special_instructions: Optional[str] = None,
+    current_user: User = Depends(get_current_user)
+):
+    """Create room service order"""
+    # Verify booking
+    booking = await db.bookings.find_one({
+        'id': booking_id,
+        'tenant_id': current_user.tenant_id,
+        'status': 'checked_in'
+    })
+    
+    if not booking:
+        raise HTTPException(status_code=404, detail="Active booking not found")
+    
+    # Calculate total
+    total_amount = sum(item.get('price', 0) * item.get('quantity', 1) for item in items)
+    
+    order = {
+        'id': str(uuid.uuid4()),
+        'tenant_id': current_user.tenant_id,
+        'booking_id': booking_id,
+        'room_id': booking.get('room_id'),
+        'guest_id': current_user.id,
+        'items': items,
+        'total_amount': total_amount,
+        'special_instructions': special_instructions,
+        'status': 'pending',  # pending, confirmed, preparing, delivered, cancelled
+        'ordered_at': datetime.now(timezone.utc).isoformat(),
+        'estimated_delivery': (datetime.now(timezone.utc) + timedelta(minutes=30)).isoformat()
+    }
+    
+    await db.room_service_orders.insert_one(order)
+    
+    # Post charge to folio
+    folio = await db.folios.find_one({
+        'booking_id': booking_id,
+        'folio_type': 'guest',
+        'status': 'open'
+    })
+    
+    if folio:
+        charge = {
+            'id': str(uuid.uuid4()),
+            'tenant_id': current_user.tenant_id,
+            'folio_id': folio['id'],
+            'booking_id': booking_id,
+            'date': datetime.now(timezone.utc).date().isoformat(),
+            'charge_category': 'food',
+            'description': 'Room Service',
+            'unit_price': total_amount,
+            'quantity': 1,
+            'amount': total_amount,
+            'tax_rate': 0.18,
+            'tax_amount': round(total_amount * 0.18, 2),
+            'total': round(total_amount * 1.18, 2),
+            'posted_by': 'Guest App'
+        }
+        
+        await db.folio_charges.insert_one(charge)
+    
+    return {
+        'success': True,
+        'order_id': order['id'],
+        'estimated_delivery': order['estimated_delivery'],
+        'total_amount': total_amount
+    }
+
+
+@api_router.get("/guest/room-service-orders/{booking_id}")
+async def get_room_service_orders(
+    booking_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Get room service orders for a booking"""
+    orders = []
+    async for order in db.room_service_orders.find({
+        'tenant_id': current_user.tenant_id,
+        'booking_id': booking_id
+    }).sort('ordered_at', -1):
+        orders.append(order)
+    
+    return {'orders': orders}
+
+
+@api_router.post("/guest/request")
+async def create_guest_request(
+    booking_id: str,
+    request_type: str,  # housekeeping, maintenance, concierge, other
+    description: str,
+    priority: str = 'normal',  # low, normal, high, urgent
+    current_user: User = Depends(get_current_user)
+):
+    """Create guest request"""
+    # Verify booking
+    booking = await db.bookings.find_one({
+        'id': booking_id,
+        'tenant_id': current_user.tenant_id,
+        'status': 'checked_in'
+    })
+    
+    if not booking:
+        raise HTTPException(status_code=404, detail="Active booking not found")
+    
+    request = {
+        'id': str(uuid.uuid4()),
+        'tenant_id': current_user.tenant_id,
+        'booking_id': booking_id,
+        'room_id': booking.get('room_id'),
+        'guest_id': current_user.id,
+        'request_type': request_type,
+        'description': description,
+        'priority': priority,
+        'status': 'pending',  # pending, in_progress, completed, cancelled
+        'created_at': datetime.now(timezone.utc).isoformat(),
+        'resolved_at': None
+    }
+    
+    await db.guest_requests.insert_one(request)
+    
+    # Create task for appropriate department
+    department_map = {
+        'housekeeping': 'housekeeping',
+        'maintenance': 'engineering',
+        'concierge': 'concierge',
+        'other': 'front_desk'
+    }
+    
+    task = {
+        'id': str(uuid.uuid4()),
+        'tenant_id': current_user.tenant_id,
+        'title': f'Guest Request: {request_type}',
+        'description': description,
+        'department': department_map.get(request_type, 'front_desk'),
+        'priority': priority,
+        'status': 'pending',
+        'room_id': booking.get('room_id'),
+        'related_request_id': request['id'],
+        'created_at': datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.staff_tasks.insert_one(task)
+    
+    return {
+        'success': True,
+        'request_id': request['id'],
+        'message': 'Request submitted successfully'
+    }
+
+
+@api_router.get("/guest/requests/{booking_id}")
+async def get_guest_requests(
+    booking_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Get guest requests for a booking"""
+    requests = []
+    async for req in db.guest_requests.find({
+        'tenant_id': current_user.tenant_id,
+        'booking_id': booking_id
+    }).sort('created_at', -1):
+        requests.append(req)
+    
+    return {'requests': requests}
+
+
+@api_router.get("/guest/profile")
+async def get_guest_profile(
+    current_user: User = Depends(get_current_user)
+):
+    """Get guest profile"""
+    guest = await db.guests.find_one({
+        'email': current_user.email,
+        'tenant_id': current_user.tenant_id
+    })
+    
+    if not guest:
+        return {
+            'name': current_user.name,
+            'email': current_user.email,
+            'phone': '',
+            'nationality': '',
+            'preferences': {}
+        }
+    
+    return {
+        'id': guest.get('id'),
+        'name': guest.get('name'),
+        'email': guest.get('email'),
+        'phone': guest.get('phone', ''),
+        'nationality': guest.get('nationality', ''),
+        'date_of_birth': guest.get('date_of_birth', ''),
+        'preferences': guest.get('preferences', {}),
+        'loyalty_tier': guest.get('loyalty_tier', 'bronze'),
+        'loyalty_points': guest.get('loyalty_points', 0)
+    }
+
+
+@api_router.put("/guest/profile")
+async def update_guest_profile(
+    profile_data: dict,
+    current_user: User = Depends(get_current_user)
+):
+    """Update guest profile"""
+    guest = await db.guests.find_one({
+        'email': current_user.email,
+        'tenant_id': current_user.tenant_id
+    })
+    
+    if not guest:
+        # Create guest profile
+        guest_id = str(uuid.uuid4())
+        guest_data = {
+            'id': guest_id,
+            'tenant_id': current_user.tenant_id,
+            'name': profile_data.get('name', current_user.name),
+            'email': current_user.email,
+            'phone': profile_data.get('phone', ''),
+            'nationality': profile_data.get('nationality', ''),
+            'date_of_birth': profile_data.get('date_of_birth', ''),
+            'preferences': profile_data.get('preferences', {}),
+            'created_at': datetime.now(timezone.utc).isoformat()
+        }
+        await db.guests.insert_one(guest_data)
+        return {'success': True, 'message': 'Profile created'}
+    
+    # Update existing profile
+    update_data = {
+        'name': profile_data.get('name', guest.get('name')),
+        'phone': profile_data.get('phone', guest.get('phone')),
+        'nationality': profile_data.get('nationality', guest.get('nationality')),
+        'date_of_birth': profile_data.get('date_of_birth', guest.get('date_of_birth')),
+        'preferences': profile_data.get('preferences', guest.get('preferences', {})),
+        'updated_at': datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.guests.update_one(
+        {'id': guest['id']},
+        {'$set': update_data}
+    )
+    
+    return {'success': True, 'message': 'Profile updated'}
+
+
+@api_router.post("/guest/web-checkin/{booking_id}")
+async def web_checkin(
+    booking_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Perform web check-in"""
+    booking = await db.bookings.find_one({
+        'id': booking_id,
+        'tenant_id': current_user.tenant_id,
+        'status': 'confirmed'
+    })
+    
+    if not booking:
+        raise HTTPException(status_code=404, detail="Booking not found or already checked in")
+    
+    # Check if check-in date is today or past
+    check_in_date = datetime.fromisoformat(booking['check_in'])
+    if check_in_date.date() > datetime.now(timezone.utc).date():
+        raise HTTPException(status_code=400, detail="Cannot check in before check-in date")
+    
+    # Update booking status to web_checked_in
+    await db.bookings.update_one(
+        {'id': booking_id},
+        {'$set': {
+            'status': 'web_checked_in',
+            'web_checkin_at': datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    
+    # Generate digital key QR code
+    digital_key = {
+        'booking_id': booking_id,
+        'room_id': booking.get('room_id'),
+        'valid_from': datetime.now(timezone.utc).isoformat(),
+        'valid_until': booking['check_out'],
+        'key_code': str(uuid.uuid4())[:8].upper()
+    }
+    
+    return {
+        'success': True,
+        'message': 'Web check-in completed',
+        'digital_key': digital_key,
+        'qr_code_data': booking.get('qr_code_data'),
+        'room_ready': True,  # TODO: Check actual room status
+        'instructions': 'Show this QR code at the front desk or use it with smart lock'
+    }
+
         }
     }
 
