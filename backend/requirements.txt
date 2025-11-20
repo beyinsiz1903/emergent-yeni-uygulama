@@ -72,3 +72,6 @@ watchfiles==1.1.1
 litellm
 emergentintegrations
 qrcode==7.4.2
+scikit-learn==1.5.0
+xgboost==2.1.0
+joblib==1.4.2
