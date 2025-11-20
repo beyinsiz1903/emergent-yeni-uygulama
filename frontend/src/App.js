@@ -457,6 +457,16 @@ function App() {
               )
             }
           />
+          <Route
+            path="/cost-management"
+            element={
+              isAuthenticated ? (
+                <CostManagement user={user} tenant={tenant} onLogout={handleLogout} />
+              ) : (
+                <Navigate to="/auth" replace />
+              )
+            }
+          />
         </Routes>
       </BrowserRouter>
     </div>
