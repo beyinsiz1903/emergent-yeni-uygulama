@@ -5,7 +5,7 @@ import AIHousekeepingBoard from '../components/AIHousekeepingBoard';
 import PredictiveMaintenanceDashboard from '../components/PredictiveMaintenanceDashboard';
 import AIRMSDashboard from '../components/AIRMSDashboard';
 import LoyaltyAutoTierManager from '../components/LoyaltyAutoTierManager';
-import EnhancedFolioManager from '../components/EnhancedFolioManager';
+import FolioManagementPage from '../components/FolioManagementPage';
 
 const AIEnhancedPMS = () => {
   const [activeModule, setActiveModule] = useState('reservation');
@@ -13,7 +13,7 @@ const AIEnhancedPMS = () => {
   const modules = [
     { id: 'reservation', name: '📅 Reservation Calendar', component: EnhancedReservationCalendar },
     { id: 'frontdesk', name: '🛎️ Front Desk', component: EnhancedFrontDesk },
-    { id: 'folio', name: '💳 Folio & Invoices', component: EnhancedFolioManager },
+    { id: 'folio', name: '💳 Folio & Registration Card', component: FolioManagementPage },
     { id: 'housekeeping', name: '🧹 AI Housekeeping', component: AIHousekeepingBoard },
     { id: 'maintenance', name: '🔮 Predictive Maintenance', component: PredictiveMaintenanceDashboard },
     { id: 'rms', name: '🤖 AI Revenue Management', component: AIRMSDashboard },
