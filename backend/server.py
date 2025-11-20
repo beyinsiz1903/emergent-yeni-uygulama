@@ -20625,6 +20625,7 @@ async def get_ml_models_status(
             'untrained_models': total_count - trained_count,
             'all_ready': trained_count == total_count
         }
+    }
 
 
 # ============= MONITORING & LOGGING ENDPOINTS =============
