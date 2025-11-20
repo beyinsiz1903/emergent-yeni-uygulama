@@ -151,106 +151,193 @@ const Reports = ({ user, tenant, onLogout }) => {
   return (
     <Layout user={user} tenant={tenant} onLogout={onLogout} currentModule="reports">
       <div className="p-6 max-w-7xl mx-auto">
+        {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            <FileSpreadsheet className="inline-block w-8 h-8 mr-2 text-green-600" />
-            Reports - Excel Export
+          <h1 className="text-3xl font-bold text-gray-900 mb-2 flex items-center gap-3">
+            <FileSpreadsheet className="w-8 h-8 text-green-600" />
+            Excel Reports
           </h1>
-          <p className="text-gray-600">Download comprehensive reports in Excel format</p>
+          <p className="text-gray-600">Select and download comprehensive reports in Excel format</p>
         </div>
 
-        {/* Date Range Selector */}
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Calendar className="w-5 h-5 text-blue-600" />
-              Date Range (for reports that need dates)
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Label>Start Date</Label>
-                <Input
-                  type="date"
-                  value={startDate}
-                  onChange={(e) => setStartDate(e.target.value)}
-                  className="mt-1"
-                />
-              </div>
-              <div>
-                <Label>End Date</Label>
-                <Input
-                  type="date"
-                  value={endDate}
-                  onChange={(e) => setEndDate(e.target.value)}
-                  className="mt-1"
-                />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-          {reportCategories.map((category, idx) => (
-            <Card key={idx} className="hover:shadow-lg transition-shadow">
+        {/* Add Report Button */}
+        <div className="mb-6">
+          {!showSelector ? (
+            <Button 
+              onClick={() => setShowSelector(true)}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Add Report to Download
+            </Button>
+          ) : (
+            <Card className="border-2 border-blue-500">
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <category.icon className="w-5 h-5 text-blue-600" />
-                  {category.title}
-                </CardTitle>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-lg">Select Report</CardTitle>
+                  <Button 
+                    variant="ghost" 
+                    size="sm"
+                    onClick={() => setShowSelector(false)}
+                  >
+                    <X className="w-4 h-4" />
+                  </Button>
+                </div>
               </CardHeader>
               <CardContent>
-                <div className="space-y-2">
-                  {category.reports.map((report, reportIdx) => (
-                    <div 
-                      key={reportIdx}
-                      className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors group"
-                    >
-                      <div className="flex items-center gap-2 flex-1">
-                        <FileSpreadsheet className="w-4 h-4 text-green-600" />
+                <Select onValueChange={addReport}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Choose a report..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {availableReports
+                      .filter(r => !selectedReports.find(sr => sr.id === r.id))
+                      .map(report => (
+                        <SelectItem key={report.id} value={report.id}>
+                          <div className="flex items-center gap-2">
+                            <report.icon className="w-4 h-4 text-gray-500" />
+                            <div>
+                              <div className="font-medium">{report.name}</div>
+                              <div className="text-xs text-gray-500">{report.description}</div>
+                            </div>
+                          </div>
+                        </SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+
+        {/* Selected Reports */}
+        {selectedReports.length > 0 && (
+          <>
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="text-lg font-semibold text-gray-900">
+                Selected Reports ({selectedReports.length})
+              </h2>
+              <Button 
+                onClick={handleDownloadAll}
+                disabled={loading}
+                className="bg-green-600 hover:bg-green-700"
+              >
+                <Download className="w-4 h-4 mr-2" />
+                Download All
+              </Button>
+            </div>
+
+            <div className="space-y-4">
+              {selectedReports.map(report => (
+                <Card key={report.id} className="border-l-4 border-l-green-500">
+                  <CardContent className="pt-6">
+                    <div className="flex items-start justify-between gap-4">
+                      {/* Report Info */}
+                      <div className="flex items-start gap-3 flex-1">
+                        <div className="mt-1">
+                          <report.icon className="w-5 h-5 text-gray-600" />
+                        </div>
                         <div className="flex-1">
-                          <span className="text-sm font-medium text-gray-700 block">
+                          <h3 className="font-semibold text-gray-900 mb-1">
                             {report.name}
-                          </span>
-                          {report.hasDateRange && (
-                            <span className="text-xs text-gray-500">
-                              Requires date range
-                            </span>
+                          </h3>
+                          <p className="text-sm text-gray-500 mb-3">
+                            {report.description}
+                          </p>
+
+                          {/* Date Range Inputs */}
+                          {report.needsDateRange && (
+                            <div className="grid grid-cols-2 gap-3 max-w-md">
+                              <div>
+                                <Label className="text-xs text-gray-600">Start Date</Label>
+                                <Input
+                                  type="date"
+                                  value={report.startDate}
+                                  onChange={(e) => updateReportDate(report.id, 'startDate', e.target.value)}
+                                  className="mt-1 h-9"
+                                />
+                              </div>
+                              <div>
+                                <Label className="text-xs text-gray-600">End Date</Label>
+                                <Input
+                                  type="date"
+                                  value={report.endDate}
+                                  onChange={(e) => updateReportDate(report.id, 'endDate', e.target.value)}
+                                  className="mt-1 h-9"
+                                />
+                              </div>
+                            </div>
                           )}
                         </div>
                       </div>
-                      <Button
-                        size="sm"
-                        className="h-8 bg-green-600 hover:bg-green-700 text-white"
-                        onClick={() => handleDownloadReport(report)}
-                        disabled={loading}
-                      >
-                        <Download className="w-4 h-4 mr-1" />
-                        Excel
-                      </Button>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
 
-        <Card className="mt-6">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Calendar className="w-5 h-5 text-blue-600" />
-              Scheduled Reports
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-gray-600 text-sm">
-              Configure automatic report generation and email delivery
-            </p>
-            <Button className="mt-4" variant="outline">
-              Configure Schedule
-            </Button>
+                      {/* Action Buttons */}
+                      <div className="flex gap-2">
+                        <Button
+                          size="sm"
+                          onClick={() => handleDownloadReport(report)}
+                          disabled={loading}
+                          className="bg-green-600 hover:bg-green-700 text-white"
+                        >
+                          <Download className="w-4 h-4 mr-1" />
+                          Download
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => removeReport(report.id)}
+                          className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </>
+        )}
+
+        {/* Empty State */}
+        {selectedReports.length === 0 && !showSelector && (
+          <Card className="border-dashed border-2">
+            <CardContent className="py-12">
+              <div className="text-center">
+                <FileSpreadsheet className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                  No Reports Selected
+                </h3>
+                <p className="text-gray-500 mb-4">
+                  Click the "Add Report to Download" button to start selecting reports
+                </p>
+                <Button 
+                  onClick={() => setShowSelector(true)}
+                  variant="outline"
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add Your First Report
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Info Card */}
+        <Card className="mt-6 bg-blue-50 border-blue-200">
+          <CardContent className="pt-6">
+            <div className="flex gap-3">
+              <FileText className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+              <div>
+                <h4 className="font-semibold text-gray-900 mb-1">Export Tips</h4>
+                <ul className="text-sm text-gray-600 space-y-1">
+                  <li>• Select multiple reports and download them all at once</li>
+                  <li>• Date ranges are automatically set to last 30 days (adjustable)</li>
+                  <li>• Excel files include formatted tables with headers and totals</li>
+                  <li>• All financial amounts are properly formatted with currency symbols</li>
+                </ul>
+              </div>
+            </div>
           </CardContent>
         </Card>
       </div>
