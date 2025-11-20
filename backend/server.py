@@ -2097,6 +2097,74 @@ async def get_folio_dashboard_stats(current_user: User = Depends(get_current_use
         'recent_payments_24h': recent_payments
     }
 
+@api_router.get("/folio/pending-ar")
+async def get_pending_ar(current_user: User = Depends(get_current_user)):
+    """Get pending accounts receivable (company folios with outstanding balances)"""
+    try:
+        # Get all companies
+        companies = await db.companies.find({
+            'tenant_id': current_user.tenant_id
+        }, {'_id': 0}).to_list(1000)
+        
+        ar_data = []
+        
+        for company in companies:
+            # Get company's open folios
+            company_folios = await db.folios.find({
+                'tenant_id': current_user.tenant_id,
+                'company_id': company['id'],
+                'status': 'open'
+            }, {'_id': 0}).to_list(1000)
+            
+            # Calculate total outstanding and filter folios with positive balance
+            folios_with_balance = []
+            total_outstanding = 0.0
+            
+            for folio in company_folios:
+                balance = await calculate_folio_balance(folio['id'], current_user.tenant_id)
+                if balance > 0:
+                    folios_with_balance.append({
+                        **folio,
+                        'balance': balance
+                    })
+                    total_outstanding += balance
+            
+            if total_outstanding > 0 and folios_with_balance:
+                # Find oldest folio
+                oldest_folio = min(folios_with_balance, key=lambda f: f.get('created_at', datetime.now(timezone.utc).isoformat()))
+                oldest_date = datetime.fromisoformat(oldest_folio['created_at'].replace('Z', '+00:00'))
+                days_outstanding = (datetime.now(timezone.utc) - oldest_date).days
+                
+                ar_data.append({
+                    'company_id': company['id'],
+                    'company_name': company.get('name', 'Unknown'),
+                    'corporate_code': company.get('corporate_code', ''),
+                    'contact_person': company.get('contact_person', ''),
+                    'contact_email': company.get('contact_email', ''),
+                    'contact_phone': company.get('contact_phone', ''),
+                    'payment_terms': company.get('payment_terms', 'Net 30'),
+                    'total_outstanding': round(total_outstanding, 2),
+                    'open_folios_count': len(folios_with_balance),
+                    'oldest_invoice_date': oldest_folio['created_at'],
+                    'days_outstanding': days_outstanding,
+                    'aging': {
+                        '0-7': sum(f['balance'] for f in folios_with_balance if (datetime.now(timezone.utc) - datetime.fromisoformat(f['created_at'].replace('Z', '+00:00'))).days <= 7),
+                        '8-14': sum(f['balance'] for f in folios_with_balance if 7 < (datetime.now(timezone.utc) - datetime.fromisoformat(f['created_at'].replace('Z', '+00:00'))).days <= 14),
+                        '15-30': sum(f['balance'] for f in folios_with_balance if 14 < (datetime.now(timezone.utc) - datetime.fromisoformat(f['created_at'].replace('Z', '+00:00'))).days <= 30),
+                        '30+': sum(f['balance'] for f in folios_with_balance if (datetime.now(timezone.utc) - datetime.fromisoformat(f['created_at'].replace('Z', '+00:00'))).days > 30)
+                    }
+                })
+        
+        # Sort by days outstanding (oldest first)
+        ar_data.sort(key=lambda x: x['days_outstanding'], reverse=True)
+        
+        return ar_data
+        
+    except Exception as e:
+        print(f"Error in get_pending_ar: {str(e)}")
+        return []
+
+
 @api_router.post("/night-audit/post-room-charges")
 async def post_room_charges(current_user: User = Depends(get_current_user)):
     """Night audit: Post room charges to all active bookings"""
