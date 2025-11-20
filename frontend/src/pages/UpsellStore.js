@@ -18,6 +18,29 @@ const UpsellStore = ({ bookingId }) => {
 
   const loadOffers = async () => {
     try {
+      // First try new AI upsell products endpoint
+      try {
+        const response = await axios.get('/upsell/products');
+        const products = response.data.products || [];
+        // Convert to offer format
+        const converted = products.map(p => ({
+          id: p.id,
+          title: p.name,
+          description: p.description,
+          price: p.price,
+          type: p.category,
+          image_url: p.image_url,
+          popular: p.popular,
+          ai_score: p.ai_score
+        }));
+        setOffers(converted);
+        setLoading(false);
+        return;
+      } catch (err) {
+        console.log('AI products not available, trying guest endpoint');
+      }
+      
+      // Fallback to original endpoint
       const response = await axios.get(`/guest/upsell-offers/${bookingId}`);
       setOffers(response.data.offers || []);
     } catch (error) {
