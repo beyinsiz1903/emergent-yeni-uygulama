@@ -15,8 +15,8 @@ import uuid
 
 # Configuration
 BACKEND_URL = "https://rms-forecast.preview.emergentagent.com/api"
-TEST_EMAIL = "admin@hoteltest.com"
-TEST_PASSWORD = "admin123"
+TEST_EMAIL = "test@hotel.com"
+TEST_PASSWORD = "test123"
 
 class LoggingSystemTester:
     def __init__(self):
