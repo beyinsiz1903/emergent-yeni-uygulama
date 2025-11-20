@@ -21267,17 +21267,27 @@ async def get_guest_bookings(
     
     # Separate active and past
     now = datetime.now(timezone.utc)
-    active_bookings = [
-        b for b in all_bookings 
-        if b['status'] in ['confirmed', 'checked_in', 'guaranteed'] and 
-        datetime.fromisoformat(b['check_out']) >= now
-    ]
+    active_bookings = []
+    past_bookings = []
     
-    past_bookings = [
-        b for b in all_bookings
-        if b['status'] == 'checked_out' or
-        (datetime.fromisoformat(b['check_out']) < now and b['status'] not in ['checked_in', 'confirmed', 'guaranteed'])
-    ]
+    for b in all_bookings:
+        try:
+            # Parse checkout date and make it timezone aware if needed
+            checkout_dt = datetime.fromisoformat(b['check_out'])
+            if checkout_dt.tzinfo is None:
+                checkout_dt = checkout_dt.replace(tzinfo=timezone.utc)
+            
+            # Categorize booking
+            if b['status'] in ['confirmed', 'checked_in', 'guaranteed'] and checkout_dt >= now:
+                active_bookings.append(b)
+            elif b['status'] == 'checked_out' or (checkout_dt < now and b['status'] not in ['checked_in', 'confirmed', 'guaranteed']):
+                past_bookings.append(b)
+        except Exception as e:
+            # If date parsing fails, default to past booking
+            if b['status'] == 'checked_out':
+                past_bookings.append(b)
+            else:
+                active_bookings.append(b)
     
     return {
         'active_bookings': active_bookings,
