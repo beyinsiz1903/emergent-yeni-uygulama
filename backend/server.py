@@ -21285,8 +21285,6 @@ async def get_logs_dashboard(
         'health': health
     }
 
-    }
-
 
 # Include router at the very end after ALL endpoints are defined
 app.include_router(api_router)
