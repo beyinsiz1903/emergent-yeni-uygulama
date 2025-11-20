@@ -32,14 +32,12 @@ class HotelPMSEnhancementsTester:
         self.user_id = None
         self.test_results = []
         self.created_test_data = {
-            'error_logs': [],
-            'night_audit_logs': [],
-            'ota_sync_logs': [],
-            'rms_publish_logs': [],
-            'maintenance_prediction_logs': [],
-            'alerts': [],
+            'guests': [],
             'bookings': [],
-            'folios': []
+            'rooms': [],
+            'folios': [],
+            'menu_items': [],
+            'orders': []
         }
 
     async def setup_session(self):
