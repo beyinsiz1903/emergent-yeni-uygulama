@@ -18931,9 +18931,9 @@ class InternalMessage(BaseModel):
 
 @api_router.post("/messaging/internal/send")
 async def send_internal_message(
+    message: str,
     to_department: Optional[str] = None,
     to_user_id: Optional[str] = None,
-    message: str,
     priority: str = "normal",
     message_type: str = "text",
     current_user: User = Depends(get_current_user)
