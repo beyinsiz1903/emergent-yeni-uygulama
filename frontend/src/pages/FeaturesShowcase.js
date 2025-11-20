@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Layout from '../components/Layout';
 import POSTableManagement from '../components/POSTableManagement';
+import POSMenuItems from '../components/POSMenuItems';
 import StaffAssignment from '../components/StaffAssignment';
 import MessagingTemplates from '../components/MessagingTemplates';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
@@ -12,7 +13,8 @@ import {
   UtensilsCrossed, 
   MessageSquare,
   Sparkles,
-  ArrowLeft
+  ArrowLeft,
+  Menu
 } from 'lucide-react';
 
 const FeaturesShowcase = ({ user, tenant, onLogout }) => {
