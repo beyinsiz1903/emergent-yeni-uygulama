@@ -26,6 +26,7 @@ import SalesModule from "@/pages/SalesModule";
 import GroupReservations from "@/pages/GroupReservations";
 import MultiPropertyDashboard from "@/pages/MultiPropertyDashboard";
 import HousekeepingMobileApp from "@/pages/HousekeepingMobileApp";
+import AIEnhancedPMS from "@/pages/AIEnhancedPMS";
 import { Toaster } from "@/components/ui/sonner";
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
