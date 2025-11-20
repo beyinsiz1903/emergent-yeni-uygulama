@@ -5667,6 +5667,50 @@ async def get_company_aging_report(current_user: User = Depends(get_current_user
     }
 
 
+@api_router.get("/reports/company-aging/excel")
+async def export_company_aging_excel(current_user: User = Depends(get_current_user)):
+    """Export Company Aging Report to Excel"""
+    report_data = await get_company_aging_report(current_user)
+    
+    headers = ["Company", "Corporate Code", "Total Balance", "0-7 Days", "8-14 Days", "15-30 Days", "30+ Days", "Folios"]
+    data = []
+    
+    for company in report_data['companies']:
+        data.append([
+            company['company_name'],
+            company['corporate_code'],
+            f"${company['total_balance']:,.2f}",
+            f"${company['aging']['0-7 days']:,.2f}",
+            f"${company['aging']['8-14 days']:,.2f}",
+            f"${company['aging']['15-30 days']:,.2f}",
+            f"${company['aging']['30+ days']:,.2f}",
+            company['folio_count']
+        ])
+    
+    # Add total row
+    data.append([
+        "TOTAL",
+        "",
+        f"${report_data['total_ar']:,.2f}",
+        "",
+        "",
+        "",
+        "",
+        ""
+    ])
+    
+    wb = create_excel_workbook(
+        title=f"Company Aging Report - {report_data['report_date']}",
+        headers=headers,
+        data=data,
+        sheet_name="Company Aging"
+    )
+    
+    filename = f"company_aging_report_{report_data['report_date']}.xlsx"
+    return excel_response(wb, filename)
+
+
+
 @api_router.get("/reports/finance-snapshot")
 async def get_finance_snapshot(current_user: User = Depends(get_current_user)):
     """
