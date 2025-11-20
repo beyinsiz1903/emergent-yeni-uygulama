@@ -2,70 +2,96 @@ import { useState } from 'react';
 import axios from 'axios';
 import { toast } from 'sonner';
 import Layout from '@/components/Layout';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { 
   FileText, 
   Download, 
   Calendar,
   TrendingUp,
   DollarSign,
-  Users,
   Building,
-  FileSpreadsheet
+  FileSpreadsheet,
+  Plus,
+  X,
+  Trash2
 } from 'lucide-react';
 
 const Reports = ({ user, tenant, onLogout }) => {
   const [loading, setLoading] = useState(false);
-  const [startDate, setStartDate] = useState(new Date(new Date().setMonth(new Date().getMonth() - 1)).toISOString().split('T')[0]);
-  const [endDate, setEndDate] = useState(new Date().toISOString().split('T')[0]);
+  const [selectedReports, setSelectedReports] = useState([]);
+  const [showSelector, setShowSelector] = useState(false);
 
-  const reportCategories = [
+  // All available reports
+  const availableReports = [
     {
-      title: 'Financial Reports',
+      id: 'daily-flash',
+      name: 'Daily Flash Report',
+      category: 'Financial',
       icon: DollarSign,
-      reports: [
-        { 
-          name: 'Daily Flash Report', 
-          endpoint: '/reports/daily-flash/excel',
-          hasDateRange: false,
-          needsParams: false
-        },
-        { 
-          name: 'Company Aging Report', 
-          endpoint: '/reports/company-aging/excel',
-          hasDateRange: false,
-          needsParams: false
-        }
-      ]
+      endpoint: '/reports/daily-flash/excel',
+      needsDateRange: false,
+      description: 'Daily occupancy, revenue, and key metrics'
     },
     {
-      title: 'Operational Reports',
+      id: 'company-aging',
+      name: 'Company Aging Report',
+      category: 'Financial',
+      icon: DollarSign,
+      endpoint: '/reports/company-aging/excel',
+      needsDateRange: false,
+      description: 'Accounts receivable aging by company'
+    },
+    {
+      id: 'housekeeping-efficiency',
+      name: 'Housekeeping Efficiency',
+      category: 'Operational',
       icon: Building,
-      reports: [
-        { 
-          name: 'Housekeeping Efficiency', 
-          endpoint: '/reports/housekeeping-efficiency/excel',
-          hasDateRange: true,
-          needsParams: true
-        }
-      ]
+      endpoint: '/reports/housekeeping-efficiency/excel',
+      needsDateRange: true,
+      description: 'Staff performance and task completion'
     },
     {
-      title: 'Market Reports',
+      id: 'market-segment',
+      name: 'Market Segment Analysis',
+      category: 'Market',
       icon: TrendingUp,
-      reports: [
-        { 
-          name: 'Market Segment Analysis', 
-          endpoint: '/reports/market-segment/excel',
-          hasDateRange: true,
-          needsParams: true
-        }
-      ]
+      endpoint: '/reports/market-segment/excel',
+      needsDateRange: true,
+      description: 'Revenue by market segment and rate type'
     }
   ];
+
+  const addReport = (reportId) => {
+    const report = availableReports.find(r => r.id === reportId);
+    if (report && !selectedReports.find(r => r.id === reportId)) {
+      setSelectedReports([...selectedReports, {
+        ...report,
+        startDate: new Date(new Date().setMonth(new Date().getMonth() - 1)).toISOString().split('T')[0],
+        endDate: new Date().toISOString().split('T')[0]
+      }]);
+    }
+    setShowSelector(false);
+  };
+
+  const removeReport = (reportId) => {
+    setSelectedReports(selectedReports.filter(r => r.id !== reportId));
+  };
+
+  const updateReportDate = (reportId, field, value) => {
+    setSelectedReports(selectedReports.map(r => 
+      r.id === reportId ? { ...r, [field]: value } : r
+    ));
+  };
 
   const handleDownloadReport = async (report) => {
     setLoading(true);
