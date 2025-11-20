@@ -14,9 +14,30 @@ from typing import List, Optional
 from pydantic import BaseModel
 from datetime import datetime, timedelta
 import uuid
+import os
+from motor.motor_asyncio import AsyncIOMotorClient
+
+# MongoDB connection
+mongo_url = os.environ.get('MONGO_URL', 'mongodb://localhost:27017')
+client = AsyncIOMotorClient(mongo_url)
+db_name = os.environ.get('DB_NAME', 'hotel_pms')
+db = client[db_name]
 
 # Router
 desktop_router = APIRouter()
+
+# Dependency to get db (will be overridden by main app)
+async def get_db():
+    return db
+
+# Mock current user for now - will use actual auth from server.py
+class MockUser:
+    def __init__(self):
+        self.tenant_id = 'demo_hotel'
+        self.id = 'demo_user'
+
+async def get_current_user_mock():
+    return MockUser()
 
 # ============= MODELS =============
 
