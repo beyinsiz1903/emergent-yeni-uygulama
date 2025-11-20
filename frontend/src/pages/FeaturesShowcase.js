@@ -42,14 +42,18 @@ const FeaturesShowcase = ({ user, tenant, onLogout }) => {
 
         {/* Tabs for Features */}
         <Tabs defaultValue="pos" className="w-full">
-          <TabsList className="grid w-full grid-cols-3 max-w-2xl">
+          <TabsList className="grid w-full grid-cols-4 max-w-3xl">
             <TabsTrigger value="pos">
               <UtensilsCrossed className="w-4 h-4 mr-2" />
               POS Tables
             </TabsTrigger>
+            <TabsTrigger value="menu">
+              <Menu className="w-4 h-4 mr-2" />
+              Menu Items
+            </TabsTrigger>
             <TabsTrigger value="staff">
               <Users className="w-4 h-4 mr-2" />
-              Staff Assignment
+              Staff
             </TabsTrigger>
             <TabsTrigger value="messaging">
               <MessageSquare className="w-4 h-4 mr-2" />
