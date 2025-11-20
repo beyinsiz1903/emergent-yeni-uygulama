@@ -1,20 +1,22 @@
 #!/usr/bin/env python3
 """
-Comprehensive Backend Testing for 7 New Hotel PMS Features
-Testing 57 endpoints across all major hotel management features
+Comprehensive Backend Testing for Monitoring & Logging System
+Testing 6 log types and 12 endpoints with integration testing
 """
 
-import requests
+import asyncio
+import aiohttp
 import json
 import sys
 import os
-from datetime import datetime, timedelta
-import base64
+from datetime import datetime, timezone, timedelta
+from typing import Dict, List, Any, Optional
+import uuid
 
 # Configuration
 BACKEND_URL = "https://rms-forecast.preview.emergentagent.com/api"
-TEST_EMAIL = "test@hotel.com"
-TEST_PASSWORD = "test123"
+TEST_EMAIL = "admin@hoteltest.com"
+TEST_PASSWORD = "admin123"
 
 class HotelPMSBackendTester:
     def __init__(self):
