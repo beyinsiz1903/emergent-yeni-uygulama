@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import SplitFolioDialog from './SplitFolioDialog';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL || '';
 
@@ -9,6 +10,7 @@ const EnhancedFolioManager = ({ bookingId }) => {
   const [payments, setPayments] = useState([]);
   const [showChargeModal, setShowChargeModal] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [showSplitModal, setShowSplitModal] = useState(false);
 
   useEffect(() => {
     if (bookingId) {
