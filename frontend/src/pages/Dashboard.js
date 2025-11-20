@@ -82,8 +82,24 @@ const Dashboard = ({ user, tenant, onLogout }) => {
       badge: 'NEW'
     },
     {
+      title: 'Housekeeping',
+      description: 'Staff, rooms & task management',
+      icon: Hotel,
+      path: '/housekeeping',
+      color: '#3b82f6',
+      badge: 'NEW'
+    },
+    {
+      title: 'POS Restaurant',
+      description: 'Tables, menu & orders',
+      icon: ShoppingCart,
+      path: '/pos',
+      color: '#f97316',
+      badge: 'NEW'
+    },
+    {
       title: '✨ New Features',
-      description: 'POS, Staff, Messaging & More',
+      description: 'All new features showcase',
       icon: Award,
       path: '/features',
       color: '#a855f7',
