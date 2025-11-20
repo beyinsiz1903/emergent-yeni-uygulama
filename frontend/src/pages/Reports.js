@@ -171,22 +171,29 @@ const Reports = ({ user, tenant, onLogout }) => {
                   {category.reports.map((report, reportIdx) => (
                     <div 
                       key={reportIdx}
-                      className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+                      className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors group"
                     >
-                      <div className="flex items-center gap-2">
-                        <FileText className="w-4 h-4 text-gray-500" />
-                        <span className="text-sm font-medium text-gray-700">
-                          {report.name}
-                        </span>
+                      <div className="flex items-center gap-2 flex-1">
+                        <FileSpreadsheet className="w-4 h-4 text-green-600" />
+                        <div className="flex-1">
+                          <span className="text-sm font-medium text-gray-700 block">
+                            {report.name}
+                          </span>
+                          {report.hasDateRange && (
+                            <span className="text-xs text-gray-500">
+                              Requires date range
+                            </span>
+                          )}
+                        </div>
                       </div>
                       <Button
                         size="sm"
-                        variant="ghost"
+                        className="h-8 bg-green-600 hover:bg-green-700 text-white"
                         onClick={() => handleDownloadReport(report)}
                         disabled={loading}
-                        className="h-8"
                       >
-                        <Download className="w-4 h-4" />
+                        <Download className="w-4 h-4 mr-1" />
+                        Excel
                       </Button>
                     </div>
                   ))}
