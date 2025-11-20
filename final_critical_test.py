@@ -37,7 +37,7 @@ async def test_complete_flow():
                 rooms = await response.json()
                 available_room = None
                 for room in rooms:
-                    if room['room_number'] == '102':  # Use room 102 which is available
+                    if room['room_number'] == '201':  # Use room 201 which is available
                         available_room = room
                         break
                 
