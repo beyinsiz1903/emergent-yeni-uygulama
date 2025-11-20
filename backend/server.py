@@ -8743,13 +8743,20 @@ async def release_allotment_rooms(
 @api_router.post("/guest/self-checkin/{booking_id}")
 async def guest_self_checkin(
     booking_id: str,
-    checkin_data: dict,
+    checkin_data: dict = {},
     current_user: User = Depends(get_current_user)
 ):
-    """Complete self check-in process"""
+    """Complete self check-in process for guest"""
+    # Find booking by guest email (multi-tenant support)
+    guest_records = []
+    async for guest in db.guests.find({'email': current_user.email}):
+        guest_records.append(guest)
+    
+    guest_ids = [g['id'] for g in guest_records]
+    
     booking = await db.bookings.find_one({
         'id': booking_id,
-        'tenant_id': current_user.tenant_id
+        'guest_id': {'$in': guest_ids}
     })
     
     if not booking:
