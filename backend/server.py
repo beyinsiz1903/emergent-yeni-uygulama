@@ -21399,9 +21399,10 @@ async def get_notification_preferences(
     current_user: User = Depends(get_current_user)
 ):
     """Get guest notification preferences (user-level, not tenant-specific)"""
-    prefs = await db.guest_notification_preferences.find_one({
-        'user_id': current_user.id
-    })
+    prefs = await db.guest_notification_preferences.find_one(
+        {'user_id': current_user.id},
+        {'_id': 0}  # Exclude MongoDB ObjectId
+    )
     
     if not prefs:
         # Default preferences
