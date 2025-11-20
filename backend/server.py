@@ -1746,7 +1746,7 @@ async def create_company(company_data: CompanyCreate, current_user: User = Depen
     await db.companies.insert_one(company_dict)
     return company
 
-@api_router.get("/companies", response_model=List[Company])
+@api_router.get("/companies")
 async def get_companies(
     search: Optional[str] = None,
     status: Optional[CompanyStatus] = None,
@@ -1765,6 +1765,7 @@ async def get_companies(
         ]
     
     companies = await db.companies.find(query, {'_id': 0}).to_list(1000)
+    # Remove response_model validation to allow flexible contracted_rate types
     return companies
 
 @api_router.get("/companies/{company_id}", response_model=Company)
