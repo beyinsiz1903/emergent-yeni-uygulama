@@ -111,6 +111,13 @@ const EnhancedFolioManager = ({ bookingId }) => {
             💳 Post Payment
           </button>
           <button
+            onClick={() => setShowSplitModal(true)}
+            className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
+            disabled={folio.status !== 'open'}
+          >
+            ✂️ Split Folio
+          </button>
+          <button
             onClick={handleCheckout}
             className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
           >
