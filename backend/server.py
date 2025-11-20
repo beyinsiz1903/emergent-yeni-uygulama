@@ -17764,14 +17764,6 @@ class ResourcePermissions(BaseModel):
 
 # Enhanced role definitions
 RBAC_V2_PERMISSIONS = {
-    UserRole.OWNER: {
-        'reservations': PermissionSet(view=True, create=True, edit=True, delete=True, export=True, approve=True),
-        'pricing': PermissionSet(view=True, create=True, edit=True, delete=True, export=True, approve=True),
-        'housekeeping': PermissionSet(view=True, create=True, edit=True, delete=True, export=True, approve=True),
-        'accounting': PermissionSet(view=True, create=True, edit=True, delete=True, export=True, approve=True),
-        'reports': PermissionSet(view=True, create=True, edit=True, delete=True, export=True, approve=True),
-        'settings': PermissionSet(view=True, create=True, edit=True, delete=True, export=True, approve=True)
-    },
     UserRole.ADMIN: {
         'reservations': PermissionSet(view=True, create=True, edit=True, delete=True, export=True, approve=True),
         'pricing': PermissionSet(view=True, create=True, edit=True, delete=False, export=True, approve=False),
