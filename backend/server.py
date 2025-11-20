@@ -17179,16 +17179,19 @@ async def get_auto_purchase_suggestions(
     }
 
 
+class MinimumStockAlertRequest(BaseModel):
+    item_id: str
+    min_stock_level: int
+    alert_recipients: List[str] = []
+
 @api_router.post("/procurement/minimum-stock-alert")
 async def set_minimum_stock_alert(
-    item_id: str,
-    min_stock_level: int,
-    alert_recipients: List[str] = [],
+    request: MinimumStockAlertRequest,
     current_user: User = Depends(get_current_user)
 ):
     """Set minimum stock alert for an item"""
     item = await db.inventory.find_one({
-        'id': item_id,
+        'id': request.item_id,
         'tenant_id': current_user.tenant_id
     })
     
@@ -17196,17 +17199,17 @@ async def set_minimum_stock_alert(
         raise HTTPException(status_code=404, detail="Item not found")
     
     await db.inventory.update_one(
-        {'id': item_id},
+        {'id': request.item_id},
         {'$set': {
-            'reorder_level': min_stock_level,
-            'alert_recipients': alert_recipients
+            'reorder_level': request.min_stock_level,
+            'alert_recipients': request.alert_recipients
         }}
     )
     
     return {
         'success': True,
-        'item_id': item_id,
-        'min_stock_level': min_stock_level,
+        'item_id': request.item_id,
+        'min_stock_level': request.min_stock_level,
         'message': 'Minimum stock alert configured'
     }
 
