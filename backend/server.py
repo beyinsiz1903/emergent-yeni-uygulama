@@ -1488,10 +1488,11 @@ async def login(data: UserLogin):
 async def get_me(current_user: User = Depends(get_current_user)):
     return current_user
 
-# ============= GUEST PORTAL ENDPOINTS =============
+# ============= GUEST PORTAL ENDPOINTS (OLD - DEPRECATED) =============
+# NOTE: New guest endpoints are at line 21170+ (GUEST MOBILE APP ENDPOINTS)
 
-@api_router.get("/guest/bookings")
-async def get_guest_bookings(current_user: User = Depends(get_current_user)):
+@api_router.get("/guest/bookings-old")
+async def get_guest_bookings_old(current_user: User = Depends(get_current_user)):
     if current_user.role != UserRole.GUEST:
         raise HTTPException(status_code=403, detail="Only guests can access this endpoint")
     
