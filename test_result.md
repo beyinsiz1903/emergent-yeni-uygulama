@@ -218,15 +218,18 @@ user_problem_statement: |
 
   - task: "Guest Profile - Preferences Management"
     implemented: true
-    working: "NA"
+    working: false
     file: "/app/backend/server.py"
-    stuck_count: 0
+    stuck_count: 1
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: "NA"
         agent: "main"
         comment: "Added POST /api/guests/{guest_id}/preferences - Update guest preferences: pillow_type, floor_preference, room_temperature, smoking, special_needs, dietary_restrictions, newspaper_preference"
+      - working: false
+        agent: "testing"
+        comment: "❌ ENDPOINT FAILING - POST /api/guests/{guest_id}/preferences returns HTTP 422 error. Request body validation failing. Tested with pillow_type, floor_preference, room_temperature, smoking, special_needs, dietary_restrictions, newspaper_preference fields but endpoint expects different request structure."
 
   - task: "Guest Profile - Tags Management (VIP/Blacklist)"
     implemented: true
