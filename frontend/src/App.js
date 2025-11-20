@@ -468,6 +468,16 @@ function App() {
               )
             }
           />
+          <Route
+            path="/features"
+            element={
+              isAuthenticated ? (
+                <FeaturesShowcase user={user} tenant={tenant} onLogout={handleLogout} />
+              ) : (
+                <Navigate to="/auth" replace />
+              )
+            }
+          />
         </Routes>
       </BrowserRouter>
     </div>
