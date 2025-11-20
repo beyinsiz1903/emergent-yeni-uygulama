@@ -450,13 +450,13 @@ const LoyaltyModule = ({ user, tenant, onLogout }) => {
                 <div className="grid grid-cols-2 gap-4">
                   <Card>
                     <CardContent className="pt-6">
-                      <div className="text-3xl font-bold text-blue-600">{selectedProgram.points.toLocaleString()}</div>
+                      <div className="text-3xl font-bold text-blue-600">{(selectedProgram?.points || 0).toLocaleString()}</div>
                       <div className="text-sm text-gray-600">Available Points</div>
                     </CardContent>
                   </Card>
                   <Card>
                     <CardContent className="pt-6">
-                      <div className="text-3xl font-bold text-purple-600">{selectedProgram.lifetime_points.toLocaleString()}</div>
+                      <div className="text-3xl font-bold text-purple-600">{(selectedProgram?.lifetime_points || 0).toLocaleString()}</div>
                       <div className="text-sm text-gray-600">Lifetime Points</div>
                     </CardContent>
                   </Card>
