@@ -284,7 +284,7 @@ const GuestPortal = ({ user, onLogout }) => {
                               <div className="flex flex-col items-end space-y-2">
                                 {booking.status === 'confirmed' && (
                                   <Button
-                                    onClick={() => navigate(`/guest/checkin/${booking.id}`)}
+                                    onClick={() => navigate(`/checkin/${booking.id}`)}
                                     className="bg-green-600 hover:bg-green-700"
                                   >
                                     \ud83c\udfcb Check-in Now
@@ -292,7 +292,7 @@ const GuestPortal = ({ user, onLogout }) => {
                                 )}
                                 {booking.status === 'checked_in' && (
                                   <Button
-                                    onClick={() => navigate(`/guest/digital-key/${booking.id}`)}
+                                    onClick={() => navigate(`/digital-key/${booking.id}`)}
                                   >
                                     <QrCode className="w-4 h-4 mr-2" />
                                     Digital Key
@@ -300,7 +300,7 @@ const GuestPortal = ({ user, onLogout }) => {
                                 )}
                                 <Button
                                   variant="outline"
-                                  onClick={() => navigate(`/guest/upsell/${booking.id}`)}
+                                  onClick={() => navigate(`/upsell/${booking.id}`)}
                                 >
                                   \u2728 Enhance Stay
                                 </Button>
