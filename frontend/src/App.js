@@ -368,6 +368,16 @@ function App() {
               )
             }
           />
+          <Route
+            path="/reports"
+            element={
+              isAuthenticated ? (
+                <Reports user={user} tenant={tenant} onLogout={handleLogout} />
+              ) : (
+                <Navigate to="/auth" replace />
+              )
+            }
+          />
         </Routes>
       </BrowserRouter>
     </div>
