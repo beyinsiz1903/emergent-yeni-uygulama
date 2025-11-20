@@ -24273,6 +24273,1158 @@ async def get_logs_dashboard(
     }
 
 
+# ============= NEW ENHANCEMENTS: OTA, GUEST PROFILE, HK MOBILE, RMS, MESSAGING, POS =============
+
+# ===== 1. OTA RESERVATION DETAILS ENHANCEMENTS =====
+
+class BookingSourceType(str, Enum):
+    OTA = "ota"
+    WEBSITE = "website"
+    CORPORATE = "corporate"
+    WALK_IN = "walk_in"
+    PHONE = "phone"
+    AGENT = "agent"
+
+# Extra charges model
+class ExtraCharge(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    booking_id: str
+    tenant_id: str
+    charge_name: str
+    charge_amount: float
+    charge_date: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    notes: Optional[str] = None
+
+# Multi-room reservation tracking
+class MultiRoomBooking(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    tenant_id: str
+    group_name: str
+    primary_booking_id: str
+    related_booking_ids: List[str] = []
+    total_rooms: int
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+@api_router.get("/reservations/{booking_id}/ota-details")
+async def get_ota_reservation_details(
+    booking_id: str,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Get detailed OTA reservation information including special requests, multi-room, source, extra charges"""
+    current_user = await get_current_user(credentials)
+    
+    # Get booking
+    booking = await db.bookings.find_one({
+        'id': booking_id,
+        'tenant_id': current_user.tenant_id
+    })
+    
+    if not booking:
+        raise HTTPException(status_code=404, detail="Booking not found")
+    
+    # Get extra charges
+    extra_charges = []
+    async for charge in db.extra_charges.find({
+        'booking_id': booking_id,
+        'tenant_id': current_user.tenant_id
+    }):
+        extra_charges.append(charge)
+    
+    # Check if part of multi-room reservation
+    multi_room_info = None
+    multi_room = await db.multi_room_bookings.find_one({
+        'tenant_id': current_user.tenant_id,
+        '$or': [
+            {'primary_booking_id': booking_id},
+            {'related_booking_ids': booking_id}
+        ]
+    })
+    
+    if multi_room:
+        # Get all related bookings
+        related_bookings = []
+        all_booking_ids = [multi_room['primary_booking_id']] + multi_room.get('related_booking_ids', [])
+        async for related_booking in db.bookings.find({
+            'id': {'$in': all_booking_ids},
+            'tenant_id': current_user.tenant_id
+        }):
+            # Get room info
+            room = await db.rooms.find_one({'id': related_booking['room_id'], 'tenant_id': current_user.tenant_id})
+            related_bookings.append({
+                'booking_id': related_booking['id'],
+                'room_number': room.get('room_number') if room else 'N/A',
+                'guest_name': await get_guest_name(related_booking['guest_id'], current_user.tenant_id)
+            })
+        
+        multi_room_info = {
+            'group_name': multi_room.get('group_name'),
+            'total_rooms': multi_room.get('total_rooms'),
+            'related_bookings': related_bookings
+        }
+    
+    # Determine source of booking
+    source_of_booking = BookingSourceType.WEBSITE.value  # Default
+    if booking.get('ota_channel'):
+        source_of_booking = BookingSourceType.OTA.value
+    elif booking.get('company_id'):
+        source_of_booking = BookingSourceType.CORPORATE.value
+    elif booking.get('channel') == 'walk_in':
+        source_of_booking = BookingSourceType.WALK_IN.value
+    elif booking.get('channel') == 'phone':
+        source_of_booking = BookingSourceType.PHONE.value
+    
+    return {
+        'booking_id': booking_id,
+        'special_requests': booking.get('special_requests', ''),
+        'remarks': booking.get('notes', ''),
+        'source_of_booking': source_of_booking,
+        'ota_channel': booking.get('ota_channel'),
+        'ota_confirmation': booking.get('ota_confirmation'),
+        'extra_charges': extra_charges,
+        'multi_room_info': multi_room_info,
+        'commission_pct': booking.get('commission_pct'),
+        'payment_model': booking.get('payment_model')
+    }
+
+async def get_guest_name(guest_id: str, tenant_id: str) -> str:
+    """Helper to get guest name"""
+    guest = await db.guests.find_one({'id': guest_id, 'tenant_id': tenant_id})
+    return guest.get('name', 'Unknown') if guest else 'Unknown'
+
+@api_router.post("/reservations/{booking_id}/extra-charges")
+async def add_extra_charge(
+    booking_id: str,
+    charge_name: str,
+    charge_amount: float,
+    notes: Optional[str] = None,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Add an extra charge to a reservation"""
+    current_user = await get_current_user(credentials)
+    
+    # Verify booking exists
+    booking = await db.bookings.find_one({
+        'id': booking_id,
+        'tenant_id': current_user.tenant_id
+    })
+    
+    if not booking:
+        raise HTTPException(status_code=404, detail="Booking not found")
+    
+    # Create extra charge
+    extra_charge = ExtraCharge(
+        booking_id=booking_id,
+        tenant_id=current_user.tenant_id,
+        charge_name=charge_name,
+        charge_amount=charge_amount,
+        notes=notes
+    )
+    
+    await db.extra_charges.insert_one(extra_charge.model_dump())
+    
+    return {
+        'success': True,
+        'message': 'Extra charge added successfully',
+        'extra_charge': extra_charge.model_dump()
+    }
+
+@api_router.post("/reservations/multi-room")
+async def create_multi_room_reservation(
+    group_name: str,
+    primary_booking_id: str,
+    related_booking_ids: List[str],
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Link multiple bookings as a multi-room reservation"""
+    current_user = await get_current_user(credentials)
+    
+    # Create multi-room booking record
+    multi_room = MultiRoomBooking(
+        tenant_id=current_user.tenant_id,
+        group_name=group_name,
+        primary_booking_id=primary_booking_id,
+        related_booking_ids=related_booking_ids,
+        total_rooms=len(related_booking_ids) + 1
+    )
+    
+    await db.multi_room_bookings.insert_one(multi_room.model_dump())
+    
+    return {
+        'success': True,
+        'message': 'Multi-room reservation created',
+        'multi_room_id': multi_room.id
+    }
+
+# ===== 2. HOUSEKEEPING MOBILE VIEW ENHANCEMENTS =====
+
+@api_router.get("/housekeeping/mobile/room-assignments")
+async def get_room_assignments(
+    staff_name: Optional[str] = None,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Get room assignments showing who is cleaning which room"""
+    current_user = await get_current_user(credentials)
+    
+    # Build query
+    query = {
+        'tenant_id': current_user.tenant_id,
+        'status': {'$in': ['pending', 'in_progress']}
+    }
+    
+    if staff_name:
+        query['assigned_to'] = staff_name
+    
+    # Get all active housekeeping tasks
+    assignments = []
+    async for task in db.housekeeping_tasks.find(query):
+        # Get room info
+        room = await db.rooms.find_one({'id': task['room_id'], 'tenant_id': current_user.tenant_id})
+        
+        # Calculate duration if in progress
+        duration_minutes = None
+        if task.get('started_at') and task['status'] == 'in_progress':
+            duration_minutes = (datetime.now(timezone.utc) - task['started_at']).total_seconds() / 60
+        
+        assignments.append({
+            'task_id': task['id'],
+            'room_number': room.get('room_number') if room else 'N/A',
+            'room_type': room.get('room_type') if room else 'N/A',
+            'assigned_to': task.get('assigned_to', 'Unassigned'),
+            'task_type': task.get('task_type'),
+            'status': task['status'],
+            'priority': task.get('priority', 'normal'),
+            'started_at': task.get('started_at'),
+            'duration_minutes': round(duration_minutes, 1) if duration_minutes else None
+        })
+    
+    return {
+        'assignments': assignments,
+        'total_count': len(assignments)
+    }
+
+@api_router.get("/housekeeping/cleaning-time-statistics")
+async def get_cleaning_time_statistics(
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Get room cleaning time statistics by staff member"""
+    current_user = await get_current_user(credentials)
+    
+    # Date range
+    if start_date and end_date:
+        start = datetime.fromisoformat(start_date)
+        end = datetime.fromisoformat(end_date)
+    else:
+        # Default to last 30 days
+        end = datetime.now(timezone.utc)
+        start = end - timedelta(days=30)
+    
+    # Get completed tasks
+    completed_tasks = []
+    async for task in db.housekeeping_tasks.find({
+        'tenant_id': current_user.tenant_id,
+        'status': 'completed',
+        'completed_at': {'$gte': start, '$lte': end},
+        'started_at': {'$exists': True}
+    }):
+        if task.get('started_at') and task.get('completed_at'):
+            duration_minutes = (task['completed_at'] - task['started_at']).total_seconds() / 60
+            completed_tasks.append({
+                'assigned_to': task.get('assigned_to', 'Unknown'),
+                'task_type': task.get('task_type'),
+                'duration_minutes': duration_minutes
+            })
+    
+    # Group by staff member
+    staff_stats = {}
+    for task in completed_tasks:
+        staff_name = task['assigned_to']
+        if staff_name not in staff_stats:
+            staff_stats[staff_name] = {
+                'total_tasks': 0,
+                'total_duration': 0,
+                'by_task_type': {}
+            }
+        
+        staff_stats[staff_name]['total_tasks'] += 1
+        staff_stats[staff_name]['total_duration'] += task['duration_minutes']
+        
+        task_type = task['task_type']
+        if task_type not in staff_stats[staff_name]['by_task_type']:
+            staff_stats[staff_name]['by_task_type'][task_type] = {
+                'count': 0,
+                'total_duration': 0
+            }
+        
+        staff_stats[staff_name]['by_task_type'][task_type]['count'] += 1
+        staff_stats[staff_name]['by_task_type'][task_type]['total_duration'] += task['duration_minutes']
+    
+    # Calculate averages
+    statistics = []
+    for staff_name, stats in staff_stats.items():
+        avg_duration = stats['total_duration'] / stats['total_tasks'] if stats['total_tasks'] > 0 else 0
+        
+        task_type_avg = {}
+        for task_type, type_stats in stats['by_task_type'].items():
+            task_type_avg[task_type] = {
+                'count': type_stats['count'],
+                'avg_duration': round(type_stats['total_duration'] / type_stats['count'], 1) if type_stats['count'] > 0 else 0
+            }
+        
+        statistics.append({
+            'staff_name': staff_name,
+            'total_tasks_completed': stats['total_tasks'],
+            'avg_cleaning_time_minutes': round(avg_duration, 1),
+            'by_task_type': task_type_avg
+        })
+    
+    # Sort by total tasks
+    statistics.sort(key=lambda x: x['total_tasks_completed'], reverse=True)
+    
+    return {
+        'period': {
+            'start_date': start.isoformat(),
+            'end_date': end.isoformat()
+        },
+        'statistics': statistics,
+        'total_staff_members': len(statistics)
+    }
+
+# ===== 3. GUEST PROFILE ENHANCEMENTS =====
+
+class GuestPreference(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    guest_id: str
+    tenant_id: str
+    pillow_type: Optional[str] = None  # soft, firm, extra_firm
+    floor_preference: Optional[str] = None  # low, middle, high, no_preference
+    room_temperature: Optional[str] = None  # cool, moderate, warm
+    smoking: bool = False
+    special_needs: Optional[str] = None
+    dietary_restrictions: Optional[str] = None
+    newspaper_preference: Optional[str] = None
+
+class GuestTag(str, Enum):
+    VIP = "vip"
+    BLACKLIST = "blacklist"
+    HONEYMOON = "honeymoon"
+    ANNIVERSARY = "anniversary"
+    BUSINESS_TRAVELER = "business_traveler"
+    FREQUENT_GUEST = "frequent_guest"
+    COMPLAINER = "complainer"
+    HIGH_SPENDER = "high_spender"
+
+@api_router.get("/guests/{guest_id}/profile-complete")
+async def get_complete_guest_profile(
+    guest_id: str,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Get complete guest profile including history, preferences, and tags"""
+    current_user = await get_current_user(credentials)
+    
+    # Get guest
+    guest = await db.guests.find_one({'id': guest_id, 'tenant_id': current_user.tenant_id})
+    if not guest:
+        raise HTTPException(status_code=404, detail="Guest not found")
+    
+    # Get stay history (all bookings)
+    stay_history = []
+    async for booking in db.bookings.find({
+        'guest_id': guest_id,
+        'tenant_id': current_user.tenant_id,
+        'status': {'$in': ['checked_out', 'checked_in']}
+    }).sort('check_in', -1):
+        room = await db.rooms.find_one({'id': booking['room_id'], 'tenant_id': current_user.tenant_id})
+        
+        # Calculate nights
+        nights = (booking['check_out'] - booking['check_in']).days if isinstance(booking['check_in'], datetime) else 0
+        
+        stay_history.append({
+            'booking_id': booking['id'],
+            'check_in': booking['check_in'].isoformat() if isinstance(booking['check_in'], datetime) else booking['check_in'],
+            'check_out': booking['check_out'].isoformat() if isinstance(booking['check_out'], datetime) else booking['check_out'],
+            'room_number': room.get('room_number') if room else 'N/A',
+            'room_type': room.get('room_type') if room else 'N/A',
+            'nights': nights,
+            'total_amount': booking.get('total_amount', 0),
+            'status': booking['status']
+        })
+    
+    # Get preferences
+    preferences = await db.guest_preferences.find_one({
+        'guest_id': guest_id,
+        'tenant_id': current_user.tenant_id
+    })
+    
+    # Get tags
+    guest_tags_doc = await db.guest_tags.find_one({
+        'guest_id': guest_id,
+        'tenant_id': current_user.tenant_id
+    })
+    
+    tags = guest_tags_doc.get('tags', []) if guest_tags_doc else []
+    
+    return {
+        'guest': guest,
+        'stay_history': stay_history,
+        'total_stays': len(stay_history),
+        'preferences': preferences if preferences else {},
+        'tags': tags,
+        'vip_status': 'vip' in tags or guest.get('vip_status', False),
+        'blacklist_status': 'blacklist' in tags
+    }
+
+@api_router.post("/guests/{guest_id}/preferences")
+async def update_guest_preferences(
+    guest_id: str,
+    pillow_type: Optional[str] = None,
+    floor_preference: Optional[str] = None,
+    room_temperature: Optional[str] = None,
+    smoking: bool = False,
+    special_needs: Optional[str] = None,
+    dietary_restrictions: Optional[str] = None,
+    newspaper_preference: Optional[str] = None,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Update or create guest preferences"""
+    current_user = await get_current_user(credentials)
+    
+    # Verify guest exists
+    guest = await db.guests.find_one({'id': guest_id, 'tenant_id': current_user.tenant_id})
+    if not guest:
+        raise HTTPException(status_code=404, detail="Guest not found")
+    
+    # Update or create preferences
+    preference_data = {
+        'guest_id': guest_id,
+        'tenant_id': current_user.tenant_id,
+        'pillow_type': pillow_type,
+        'floor_preference': floor_preference,
+        'room_temperature': room_temperature,
+        'smoking': smoking,
+        'special_needs': special_needs,
+        'dietary_restrictions': dietary_restrictions,
+        'newspaper_preference': newspaper_preference
+    }
+    
+    await db.guest_preferences.update_one(
+        {'guest_id': guest_id, 'tenant_id': current_user.tenant_id},
+        {'$set': preference_data},
+        upsert=True
+    )
+    
+    return {
+        'success': True,
+        'message': 'Guest preferences updated',
+        'preferences': preference_data
+    }
+
+@api_router.post("/guests/{guest_id}/tags")
+async def update_guest_tags(
+    guest_id: str,
+    tags: List[str],
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Update guest tags (VIP, Blacklist, etc.)"""
+    current_user = await get_current_user(credentials)
+    
+    # Verify guest exists
+    guest = await db.guests.find_one({'id': guest_id, 'tenant_id': current_user.tenant_id})
+    if not guest:
+        raise HTTPException(status_code=404, detail="Guest not found")
+    
+    # Update tags
+    await db.guest_tags.update_one(
+        {'guest_id': guest_id, 'tenant_id': current_user.tenant_id},
+        {'$set': {'tags': tags}},
+        upsert=True
+    )
+    
+    # Update VIP status in guest record if vip tag is present
+    if 'vip' in tags:
+        await db.guests.update_one(
+            {'id': guest_id, 'tenant_id': current_user.tenant_id},
+            {'$set': {'vip_status': True}}
+        )
+    
+    return {
+        'success': True,
+        'message': 'Guest tags updated',
+        'tags': tags
+    }
+
+# ===== 4. REVENUE MANAGEMENT ENHANCEMENTS =====
+
+@api_router.get("/rms/price-recommendation-slider")
+async def get_price_recommendation_with_range(
+    room_type: str,
+    check_in_date: str,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Get price recommendations with slider range (min, recommended, max)"""
+    current_user = await get_current_user(credentials)
+    
+    # Get base room price
+    room = await db.rooms.find_one({
+        'tenant_id': current_user.tenant_id,
+        'room_type': room_type
+    })
+    
+    base_price = room.get('base_price', 100) if room else 100
+    
+    # Get historical occupancy
+    check_in = datetime.fromisoformat(check_in_date)
+    
+    # Calculate occupancy for same date last year
+    last_year_date = check_in - timedelta(days=365)
+    last_year_bookings = await db.bookings.count_documents({
+        'tenant_id': current_user.tenant_id,
+        'check_in': {
+            '$gte': last_year_date,
+            '$lt': last_year_date + timedelta(days=1)
+        },
+        'status': {'$in': ['confirmed', 'guaranteed', 'checked_in', 'checked_out']}
+    })
+    
+    total_rooms = await db.rooms.count_documents({'tenant_id': current_user.tenant_id})
+    historical_occupancy_pct = (last_year_bookings / total_rooms * 100) if total_rooms > 0 else 50
+    
+    # Calculate current occupancy for the target date
+    current_bookings = await db.bookings.count_documents({
+        'tenant_id': current_user.tenant_id,
+        'check_in': {
+            '$gte': check_in,
+            '$lt': check_in + timedelta(days=1)
+        },
+        'status': {'$in': ['confirmed', 'guaranteed', 'checked_in']}
+    })
+    
+    current_occupancy_pct = (current_bookings / total_rooms * 100) if total_rooms > 0 else 0
+    
+    # Pricing logic based on occupancy
+    if current_occupancy_pct < 30:
+        # Low occupancy - discount to attract bookings
+        recommended_price = base_price * 0.85
+        min_price = base_price * 0.7
+        max_price = base_price
+    elif current_occupancy_pct < 60:
+        # Medium occupancy - standard pricing
+        recommended_price = base_price
+        min_price = base_price * 0.85
+        max_price = base_price * 1.15
+    elif current_occupancy_pct < 80:
+        # Good occupancy - increase prices
+        recommended_price = base_price * 1.15
+        min_price = base_price
+        max_price = base_price * 1.3
+    else:
+        # High occupancy - maximize revenue
+        recommended_price = base_price * 1.3
+        min_price = base_price * 1.15
+        max_price = base_price * 1.5
+    
+    return {
+        'room_type': room_type,
+        'check_in_date': check_in_date,
+        'base_price': round(base_price, 2),
+        'pricing_recommendation': {
+            'min_price': round(min_price, 2),
+            'recommended_price': round(recommended_price, 2),
+            'max_price': round(max_price, 2)
+        },
+        'occupancy_analysis': {
+            'current_occupancy_pct': round(current_occupancy_pct, 1),
+            'historical_occupancy_pct': round(historical_occupancy_pct, 1),
+            'current_bookings': current_bookings,
+            'total_rooms': total_rooms
+        },
+        'recommendation_reason': get_pricing_reason(current_occupancy_pct)
+    }
+
+def get_pricing_reason(occupancy_pct: float) -> str:
+    """Get human-readable pricing recommendation reason"""
+    if occupancy_pct < 30:
+        return "Low occupancy - recommend discount to attract bookings"
+    elif occupancy_pct < 60:
+        return "Medium occupancy - standard pricing strategy"
+    elif occupancy_pct < 80:
+        return "Good occupancy - increase prices to maximize revenue"
+    else:
+        return "High occupancy - premium pricing for limited availability"
+
+@api_router.get("/rms/demand-heatmap")
+async def get_demand_heatmap(
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Get historical demand heatmap for visualization"""
+    current_user = await get_current_user(credentials)
+    
+    # Default to next 90 days
+    if start_date and end_date:
+        start = datetime.fromisoformat(start_date)
+        end = datetime.fromisoformat(end_date)
+    else:
+        start = datetime.now(timezone.utc)
+        end = start + timedelta(days=90)
+    
+    total_rooms = await db.rooms.count_documents({'tenant_id': current_user.tenant_id})
+    
+    # Generate heatmap data for each day
+    heatmap_data = []
+    current_date = start
+    
+    while current_date <= end:
+        # Count bookings for this date
+        bookings_count = await db.bookings.count_documents({
+            'tenant_id': current_user.tenant_id,
+            'check_in': {
+                '$lte': current_date
+            },
+            'check_out': {
+                '$gt': current_date
+            },
+            'status': {'$in': ['confirmed', 'guaranteed', 'checked_in']}
+        })
+        
+        occupancy_pct = (bookings_count / total_rooms * 100) if total_rooms > 0 else 0
+        
+        # Determine demand level
+        if occupancy_pct < 30:
+            demand_level = 'low'
+        elif occupancy_pct < 60:
+            demand_level = 'medium'
+        elif occupancy_pct < 80:
+            demand_level = 'high'
+        else:
+            demand_level = 'very_high'
+        
+        heatmap_data.append({
+            'date': current_date.strftime('%Y-%m-%d'),
+            'day_of_week': current_date.strftime('%A'),
+            'occupancy_pct': round(occupancy_pct, 1),
+            'bookings_count': bookings_count,
+            'demand_level': demand_level
+        })
+        
+        current_date += timedelta(days=1)
+    
+    return {
+        'period': {
+            'start_date': start.isoformat(),
+            'end_date': end.isoformat(),
+            'total_days': len(heatmap_data)
+        },
+        'heatmap_data': heatmap_data
+    }
+
+@api_router.get("/rms/compset-analysis")
+async def get_compset_analysis(
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Get competitive set analysis - most wanted features"""
+    current_user = await get_current_user(credentials)
+    
+    # Get competitor data
+    competitors = []
+    async for comp in db.competitors.find({'tenant_id': current_user.tenant_id}):
+        competitors.append(comp)
+    
+    # If no competitors, return sample data
+    if len(competitors) == 0:
+        competitors = [
+            {
+                'name': 'Competitor Hotel A',
+                'avg_rate': 120.0,
+                'occupancy_estimate': 75.0,
+                'rating': 4.2,
+                'features': ['Free WiFi', 'Breakfast', 'Pool', 'Spa', 'Gym']
+            },
+            {
+                'name': 'Competitor Hotel B',
+                'avg_rate': 110.0,
+                'occupancy_estimate': 82.0,
+                'rating': 4.5,
+                'features': ['Free WiFi', 'Breakfast', 'Pool', 'Restaurant', 'Parking']
+            },
+            {
+                'name': 'Competitor Hotel C',
+                'avg_rate': 135.0,
+                'occupancy_estimate': 68.0,
+                'rating': 4.0,
+                'features': ['Free WiFi', 'Breakfast', 'Spa', 'Gym', 'Business Center']
+            }
+        ]
+    
+    # Analyze features
+    feature_count = {}
+    for comp in competitors:
+        for feature in comp.get('features', []):
+            feature_count[feature] = feature_count.get(feature, 0) + 1
+    
+    # Sort by popularity
+    most_wanted_features = [
+        {'feature': feature, 'competitor_count': count, 'popularity_pct': round(count / len(competitors) * 100, 1)}
+        for feature, count in sorted(feature_count.items(), key=lambda x: x[1], reverse=True)
+    ]
+    
+    # Calculate averages
+    avg_rate = sum(c.get('avg_rate', 0) for c in competitors) / len(competitors) if competitors else 0
+    avg_occupancy = sum(c.get('occupancy_estimate', 0) for c in competitors) / len(competitors) if competitors else 0
+    avg_rating = sum(c.get('rating', 0) for c in competitors) / len(competitors) if competitors else 0
+    
+    return {
+        'compset_summary': {
+            'total_competitors': len(competitors),
+            'avg_rate': round(avg_rate, 2),
+            'avg_occupancy_pct': round(avg_occupancy, 1),
+            'avg_rating': round(avg_rating, 2)
+        },
+        'competitors': competitors,
+        'most_wanted_features': most_wanted_features[:10],  # Top 10
+        'feature_gap_analysis': 'To be implemented with property amenity comparison'
+    }
+
+# ===== 5. MESSAGING MODULE (WHATSAPP / SMS / AUTO MESSAGES) =====
+
+class MessageType(str, Enum):
+    WHATSAPP = "whatsapp"
+    SMS = "sms"
+    EMAIL = "email"
+
+class AutoMessageTrigger(str, Enum):
+    PRE_ARRIVAL = "pre_arrival"  # 1 day before check-in
+    CHECK_IN_REMINDER = "check_in_reminder"  # Morning of check-in
+    POST_CHECKOUT = "post_checkout"  # After checkout
+    BIRTHDAY = "birthday"
+    ANNIVERSARY = "anniversary"
+
+class MessageTemplate(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    tenant_id: str
+    template_name: str
+    message_type: MessageType
+    trigger: AutoMessageTrigger
+    message_content: str
+    active: bool = True
+    variables: List[str] = []  # e.g., ['{guest_name}', '{room_number}', '{check_in_date}']
+
+class SentMessage(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    tenant_id: str
+    guest_id: str
+    booking_id: Optional[str] = None
+    message_type: MessageType
+    recipient: str  # phone or email
+    message_content: str
+    status: str = "sent"  # sent, delivered, failed
+    sent_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+@api_router.post("/messaging/send-message")
+async def send_message(
+    guest_id: str,
+    message_type: MessageType,
+    recipient: str,
+    message_content: str,
+    booking_id: Optional[str] = None,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Send a message (WhatsApp/SMS/Email) to a guest"""
+    current_user = await get_current_user(credentials)
+    
+    # Verify guest exists
+    guest = await db.guests.find_one({'id': guest_id, 'tenant_id': current_user.tenant_id})
+    if not guest:
+        raise HTTPException(status_code=404, detail="Guest not found")
+    
+    # In production, integrate with Twilio/WhatsApp Business API
+    # For now, simulate sending
+    message = SentMessage(
+        tenant_id=current_user.tenant_id,
+        guest_id=guest_id,
+        booking_id=booking_id,
+        message_type=message_type,
+        recipient=recipient,
+        message_content=message_content,
+        status="sent"
+    )
+    
+    await db.sent_messages.insert_one(message.model_dump())
+    
+    return {
+        'success': True,
+        'message': f'{message_type.value.upper()} sent successfully',
+        'message_id': message.id,
+        'note': 'Production integration with Twilio/WhatsApp Business API required'
+    }
+
+@api_router.get("/messaging/templates")
+async def get_message_templates(
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Get all message templates"""
+    current_user = await get_current_user(credentials)
+    
+    templates = []
+    async for template in db.message_templates.find({'tenant_id': current_user.tenant_id}):
+        templates.append(template)
+    
+    # If no templates, return default samples
+    if len(templates) == 0:
+        templates = [
+            {
+                'id': str(uuid.uuid4()),
+                'template_name': 'Pre-Arrival Welcome',
+                'message_type': 'whatsapp',
+                'trigger': 'pre_arrival',
+                'message_content': 'Hello {guest_name}! We are excited to welcome you tomorrow. Your room {room_number} will be ready for you at 2 PM. See you soon!',
+                'active': True
+            },
+            {
+                'id': str(uuid.uuid4()),
+                'template_name': 'Check-in Reminder',
+                'message_type': 'sms',
+                'trigger': 'check_in_reminder',
+                'message_content': 'Good morning {guest_name}! Your room {room_number} is ready. Check-in time is 2 PM. We look forward to your arrival!',
+                'active': True
+            },
+            {
+                'id': str(uuid.uuid4()),
+                'template_name': 'Post-Checkout Thank You',
+                'message_type': 'email',
+                'trigger': 'post_checkout',
+                'message_content': 'Thank you for staying with us, {guest_name}! We hope you enjoyed your stay. We would love to welcome you back soon.',
+                'active': True
+            }
+        ]
+    
+    return {
+        'templates': templates,
+        'count': len(templates)
+    }
+
+@api_router.post("/messaging/templates")
+async def create_message_template(
+    template_name: str,
+    message_type: MessageType,
+    trigger: AutoMessageTrigger,
+    message_content: str,
+    variables: List[str] = [],
+    active: bool = True,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Create a new message template"""
+    current_user = await get_current_user(credentials)
+    
+    template = MessageTemplate(
+        tenant_id=current_user.tenant_id,
+        template_name=template_name,
+        message_type=message_type,
+        trigger=trigger,
+        message_content=message_content,
+        variables=variables,
+        active=active
+    )
+    
+    await db.message_templates.insert_one(template.model_dump())
+    
+    return {
+        'success': True,
+        'message': 'Message template created',
+        'template_id': template.id
+    }
+
+@api_router.get("/messaging/auto-messages/trigger")
+async def trigger_auto_messages(
+    trigger_type: AutoMessageTrigger,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Trigger automatic messages based on trigger type"""
+    current_user = await get_current_user(credentials)
+    
+    messages_sent = 0
+    
+    if trigger_type == AutoMessageTrigger.PRE_ARRIVAL:
+        # Find bookings with check-in tomorrow
+        tomorrow = datetime.now(timezone.utc) + timedelta(days=1)
+        tomorrow_start = tomorrow.replace(hour=0, minute=0, second=0, microsecond=0)
+        tomorrow_end = tomorrow.replace(hour=23, minute=59, second=59, microsecond=999999)
+        
+        async for booking in db.bookings.find({
+            'tenant_id': current_user.tenant_id,
+            'check_in': {'$gte': tomorrow_start, '$lte': tomorrow_end},
+            'status': {'$in': ['confirmed', 'guaranteed']}
+        }):
+            # Get guest
+            guest = await db.guests.find_one({'id': booking['guest_id'], 'tenant_id': current_user.tenant_id})
+            if guest and guest.get('phone'):
+                # Get template
+                template = await db.message_templates.find_one({
+                    'tenant_id': current_user.tenant_id,
+                    'trigger': trigger_type.value,
+                    'active': True
+                })
+                
+                if template:
+                    # Replace variables
+                    room = await db.rooms.find_one({'id': booking['room_id'], 'tenant_id': current_user.tenant_id})
+                    message_content = template['message_content'].replace('{guest_name}', guest['name'])
+                    message_content = message_content.replace('{room_number}', room.get('room_number', 'N/A') if room else 'N/A')
+                    message_content = message_content.replace('{check_in_date}', booking['check_in'].strftime('%Y-%m-%d') if isinstance(booking['check_in'], datetime) else str(booking['check_in']))
+                    
+                    # Send message
+                    message = SentMessage(
+                        tenant_id=current_user.tenant_id,
+                        guest_id=guest['id'],
+                        booking_id=booking['id'],
+                        message_type=MessageType(template['message_type']),
+                        recipient=guest['phone'],
+                        message_content=message_content
+                    )
+                    
+                    await db.sent_messages.insert_one(message.model_dump())
+                    messages_sent += 1
+    
+    return {
+        'success': True,
+        'trigger_type': trigger_type.value,
+        'messages_sent': messages_sent,
+        'note': 'Production integration with messaging services required'
+    }
+
+# ===== 6. POS IMPROVEMENTS =====
+
+class POSCategory(str, Enum):
+    FOOD = "food"
+    BEVERAGE = "beverage"
+    ALCOHOL = "alcohol"
+    DESSERT = "dessert"
+    APPETIZER = "appetizer"
+
+class POSMenuItem(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    tenant_id: str
+    item_name: str
+    category: POSCategory
+    unit_price: float
+    available: bool = True
+
+class POSOrderItem(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    item_id: str
+    item_name: str
+    category: POSCategory
+    quantity: int
+    unit_price: float
+    total_price: float
+
+class POSOrder(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    tenant_id: str
+    booking_id: Optional[str] = None
+    guest_id: Optional[str] = None
+    folio_id: Optional[str] = None
+    order_items: List[POSOrderItem]
+    subtotal: float
+    tax_amount: float
+    total_amount: float
+    status: str = "pending"  # pending, completed, cancelled
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+@api_router.get("/pos/menu-items")
+async def get_pos_menu_items(
+    category: Optional[POSCategory] = None,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Get POS menu items"""
+    current_user = await get_current_user(credentials)
+    
+    query = {'tenant_id': current_user.tenant_id, 'available': True}
+    if category:
+        query['category'] = category.value
+    
+    items = []
+    async for item in db.pos_menu_items.find(query):
+        items.append(item)
+    
+    # If no items, return sample menu
+    if len(items) == 0:
+        items = [
+            {'id': str(uuid.uuid4()), 'item_name': 'Breakfast Buffet', 'category': 'food', 'unit_price': 25.0, 'available': True},
+            {'id': str(uuid.uuid4()), 'item_name': 'Club Sandwich', 'category': 'food', 'unit_price': 15.0, 'available': True},
+            {'id': str(uuid.uuid4()), 'item_name': 'Caesar Salad', 'category': 'food', 'unit_price': 12.0, 'available': True},
+            {'id': str(uuid.uuid4()), 'item_name': 'Coffee', 'category': 'beverage', 'unit_price': 5.0, 'available': True},
+            {'id': str(uuid.uuid4()), 'item_name': 'Orange Juice', 'category': 'beverage', 'unit_price': 6.0, 'available': True},
+            {'id': str(uuid.uuid4()), 'item_name': 'Beer', 'category': 'alcohol', 'unit_price': 8.0, 'available': True},
+            {'id': str(uuid.uuid4()), 'item_name': 'Wine Glass', 'category': 'alcohol', 'unit_price': 12.0, 'available': True},
+            {'id': str(uuid.uuid4()), 'item_name': 'Cheesecake', 'category': 'dessert', 'unit_price': 8.0, 'available': True}
+        ]
+    
+    return {
+        'menu_items': items,
+        'count': len(items)
+    }
+
+@api_router.post("/pos/create-order")
+async def create_pos_order(
+    booking_id: Optional[str] = None,
+    folio_id: Optional[str] = None,
+    order_items: List[dict] = [],  # [{item_id, quantity}, ...]
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Create a POS order with detailed items"""
+    current_user = await get_current_user(credentials)
+    
+    if not order_items:
+        raise HTTPException(status_code=400, detail="Order items required")
+    
+    # Get booking and guest info
+    guest_id = None
+    if booking_id:
+        booking = await db.bookings.find_one({'id': booking_id, 'tenant_id': current_user.tenant_id})
+        if booking:
+            guest_id = booking['guest_id']
+    
+    # Build order items
+    order_items_list = []
+    subtotal = 0.0
+    
+    for item_data in order_items:
+        # Get menu item
+        menu_item = await db.pos_menu_items.find_one({
+            'id': item_data['item_id'],
+            'tenant_id': current_user.tenant_id
+        })
+        
+        if not menu_item:
+            continue
+        
+        quantity = item_data.get('quantity', 1)
+        total_price = menu_item['unit_price'] * quantity
+        subtotal += total_price
+        
+        order_items_list.append(POSOrderItem(
+            item_id=menu_item['id'],
+            item_name=menu_item['item_name'],
+            category=POSCategory(menu_item['category']),
+            quantity=quantity,
+            unit_price=menu_item['unit_price'],
+            total_price=total_price
+        ))
+    
+    # Calculate tax (18% VAT for Turkey)
+    tax_amount = subtotal * 0.18
+    total_amount = subtotal + tax_amount
+    
+    # Create order
+    order = POSOrder(
+        tenant_id=current_user.tenant_id,
+        booking_id=booking_id,
+        guest_id=guest_id,
+        folio_id=folio_id,
+        order_items=order_items_list,
+        subtotal=subtotal,
+        tax_amount=tax_amount,
+        total_amount=total_amount,
+        status="completed"
+    )
+    
+    await db.pos_orders.insert_one(order.model_dump())
+    
+    # If folio_id provided, post charge to folio
+    if folio_id:
+        # Post charge to folio
+        for order_item in order_items_list:
+            charge = FolioCharge(
+                tenant_id=current_user.tenant_id,
+                folio_id=folio_id,
+                charge_category=ChargeCategory.FOOD if order_item.category in ['food', 'dessert', 'appetizer'] else ChargeCategory.BEVERAGE,
+                description=f"POS: {order_item.item_name} x {order_item.quantity}",
+                quantity=order_item.quantity,
+                unit_price=order_item.unit_price,
+                amount=order_item.total_price,
+                tax_amount=order_item.total_price * 0.18,
+                total=order_item.total_price * 1.18,
+                voided=False
+            )
+            
+            await db.folio_charges.insert_one(charge.model_dump())
+        
+        # Update folio balance
+        await recalculate_folio_balance(folio_id, current_user.tenant_id)
+    
+    return {
+        'success': True,
+        'message': 'POS order created',
+        'order_id': order.id,
+        'order': order.model_dump()
+    }
+
+async def recalculate_folio_balance(folio_id: str, tenant_id: str):
+    """Helper to recalculate folio balance"""
+    # Get all non-voided charges
+    total_charges = 0.0
+    async for charge in db.folio_charges.find({
+        'folio_id': folio_id,
+        'tenant_id': tenant_id,
+        'voided': False
+    }):
+        total_charges += charge.get('total', charge.get('amount', 0))
+    
+    # Get all payments
+    total_payments = 0.0
+    async for payment in db.payments.find({
+        'folio_id': folio_id,
+        'tenant_id': tenant_id
+    }):
+        total_payments += payment.get('amount', 0)
+    
+    # Update folio balance
+    balance = total_charges - total_payments
+    await db.folios.update_one(
+        {'id': folio_id, 'tenant_id': tenant_id},
+        {'$set': {'balance': balance}}
+    )
+
+@api_router.get("/pos/orders")
+async def get_pos_orders(
+    booking_id: Optional[str] = None,
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Get POS orders with filtering"""
+    current_user = await get_current_user(credentials)
+    
+    query = {'tenant_id': current_user.tenant_id}
+    
+    if booking_id:
+        query['booking_id'] = booking_id
+    
+    if start_date and end_date:
+        query['created_at'] = {
+            '$gte': datetime.fromisoformat(start_date),
+            '$lte': datetime.fromisoformat(end_date)
+        }
+    
+    orders = []
+    async for order in db.pos_orders.find(query).sort('created_at', -1):
+        orders.append(order)
+    
+    return {
+        'orders': orders,
+        'count': len(orders)
+    }
+
+
 # Include router at the very end after ALL endpoints are defined
 app.include_router(api_router)
 
