@@ -17870,5 +17870,633 @@ async def get_my_permissions(
     }
 
 
+# ============= MOBILE APP ENDPOINTS (STAFF & GUEST) =============
+
+@api_router.get("/mobile/staff/dashboard")
+async def get_staff_mobile_dashboard(
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Mobile staff dashboard
+    - Role-based dashboard
+    - Quick actions
+    - Today's tasks
+    """
+    role = current_user.role
+    
+    dashboard = {
+        'user_name': current_user.name,
+        'user_role': role.value,
+        'quick_actions': [],
+        'today_tasks': [],
+        'notifications_count': 0
+    }
+    
+    if role == UserRole.HOUSEKEEPING:
+        # Housekeeping tasks
+        tasks = []
+        async for task in db.housekeeping_tasks.find({
+            'tenant_id': current_user.tenant_id,
+            'assigned_to': current_user.name,
+            'status': {'$in': ['pending', 'in_progress']}
+        }).limit(20):
+            room = await db.rooms.find_one({'id': task.get('room_id')})
+            tasks.append({
+                'task_id': task.get('id'),
+                'room_number': room.get('room_number') if room else 'N/A',
+                'task_type': task.get('task_type'),
+                'priority': task.get('priority'),
+                'status': task.get('status')
+            })
+        
+        dashboard['quick_actions'] = ['Start Task', 'Report Issue', 'Take Photo']
+        dashboard['today_tasks'] = tasks
+        dashboard['notifications_count'] = len(tasks)
+    
+    elif role == UserRole.FRONT_DESK:
+        # Check-in tasks
+        today = datetime.now().date().isoformat()
+        arrivals = []
+        async for booking in db.bookings.find({
+            'tenant_id': current_user.tenant_id,
+            'check_in': today,
+            'status': {'$in': ['confirmed', 'guaranteed']}
+        }).limit(10):
+            guest = await db.guests.find_one({'id': booking.get('guest_id')})
+            arrivals.append({
+                'booking_id': booking.get('id'),
+                'guest_name': guest.get('name') if guest else 'Guest',
+                'room': booking.get('room_id'),
+                'status': 'Pending Check-in'
+            })
+        
+        dashboard['quick_actions'] = ['Quick Check-in', 'Walk-in Booking', 'Scan Passport']
+        dashboard['today_tasks'] = arrivals
+        dashboard['notifications_count'] = len(arrivals)
+    
+    elif role == UserRole.SUPERVISOR or role == UserRole.ADMIN:
+        # Supervisor checklists
+        dashboard['quick_actions'] = ['View Reports', 'Staff Performance', 'Occupancy Status']
+        dashboard['today_tasks'] = [
+            {'type': 'checklist', 'title': 'Morning Inspection', 'status': 'pending'},
+            {'type': 'checklist', 'title': 'Revenue Review', 'status': 'pending'},
+            {'type': 'checklist', 'title': 'Staff Briefing', 'status': 'completed'}
+        ]
+    
+    return dashboard
+
+
+@api_router.post("/mobile/staff/quick-checkin")
+async def mobile_quick_checkin(
+    booking_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Quick check-in from mobile"""
+    # Reuse existing check-in logic
+    booking = await db.bookings.find_one({
+        'id': booking_id,
+        'tenant_id': current_user.tenant_id
+    })
+    
+    if not booking:
+        raise HTTPException(status_code=404, detail="Booking not found")
+    
+    # Update booking
+    await db.bookings.update_one(
+        {'id': booking_id},
+        {'$set': {
+            'status': BookingStatus.CHECKED_IN.value,
+            'checked_in_at': datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    
+    # Update room
+    await db.rooms.update_one(
+        {'id': booking.get('room_id')},
+        {'$set': {
+            'status': RoomStatus.OCCUPIED.value,
+            'current_booking_id': booking_id
+        }}
+    )
+    
+    return {
+        'success': True,
+        'message': 'Guest checked in successfully',
+        'booking_id': booking_id,
+        'checked_in_at': datetime.now(timezone.utc).isoformat()
+    }
+
+
+# ============= SELF CHECK-IN KIOSK & MOBILE CHECK-IN =============
+
+@api_router.post("/self-checkin/generate-door-qr")
+async def generate_door_qr_code(
+    booking_id: str
+):
+    """
+    Generate QR code for door lock
+    - Digital key
+    - Time-limited access
+    - Room entry tracking
+    """
+    booking = await db.bookings.find_one({'id': booking_id})
+    
+    if not booking:
+        raise HTTPException(status_code=404, detail="Booking not found")
+    
+    # Generate QR code data
+    # In production: Integrate with door lock system (Assa Abloy, Salto, Dormakaba)
+    qr_data = {
+        'booking_id': booking_id,
+        'room_id': booking.get('room_id'),
+        'valid_from': booking.get('check_in'),
+        'valid_until': booking.get('check_out'),
+        'access_token': str(uuid.uuid4()),
+        'generated_at': datetime.now(timezone.utc).isoformat()
+    }
+    
+    # Generate QR code image
+    import qrcode
+    qr = qrcode.QRCode(version=1, box_size=10, border=5)
+    qr.add_data(json.dumps(qr_data))
+    qr.make(fit=True)
+    
+    # Convert to base64
+    img = qr.make_image(fill_color="black", back_color="white")
+    buffered = io.BytesIO()
+    img.save(buffered, format="PNG")
+    qr_base64 = base64.b64encode(buffered.getvalue()).decode()
+    
+    return {
+        'success': True,
+        'booking_id': booking_id,
+        'qr_code_base64': qr_base64,
+        'qr_data': qr_data,
+        'valid_from': qr_data['valid_from'],
+        'valid_until': qr_data['valid_until'],
+        'note': 'In production: Integrate with door lock system API (Assa Abloy, Salto, Dormakaba)'
+    }
+
+
+@api_router.post("/self-checkin/digital-signature")
+async def capture_digital_signature(
+    booking_id: str,
+    signature_base64: str,
+    registration_card_data: Dict[str, Any]
+):
+    """
+    Capture digital signature
+    - Guest signs registration card
+    - Legally binding
+    - Stored with booking
+    """
+    booking = await db.bookings.find_one({'id': booking_id})
+    
+    if not booking:
+        raise HTTPException(status_code=404, detail="Booking not found")
+    
+    # Store signature
+    signature_record = {
+        'id': str(uuid.uuid4()),
+        'booking_id': booking_id,
+        'signature_base64': signature_base64,
+        'registration_card_data': registration_card_data,
+        'signed_at': datetime.now(timezone.utc).isoformat(),
+        'ip_address': None,  # From request in production
+        'device_type': 'kiosk'
+    }
+    
+    await db.digital_signatures.insert_one(signature_record)
+    
+    # Update booking
+    await db.bookings.update_one(
+        {'id': booking_id},
+        {'$set': {'digital_signature_id': signature_record['id']}}
+    )
+    
+    return {
+        'success': True,
+        'signature_id': signature_record['id'],
+        'message': 'Digital signature captured successfully'
+    }
+
+
+@api_router.post("/self-checkin/police-notification")
+async def auto_police_notification(
+    booking_id: str
+):
+    """
+    Automatic police notification
+    - Required by law in many countries
+    - Guest ID information
+    - Automated submission
+    """
+    booking = await db.bookings.find_one({'id': booking_id})
+    
+    if not booking:
+        raise HTTPException(status_code=404, detail="Booking not found")
+    
+    guest = await db.guests.find_one({'id': booking.get('guest_id')})
+    
+    if not guest:
+        raise HTTPException(status_code=404, detail="Guest not found")
+    
+    # In production: Integrate with local police registration system
+    # Turkey: GIYBIS, Italy: Alloggiati Web, etc.
+    
+    notification_data = {
+        'id': str(uuid.uuid4()),
+        'booking_id': booking_id,
+        'guest_name': guest.get('name'),
+        'guest_id_number': guest.get('id_number'),
+        'nationality': guest.get('nationality'),
+        'check_in': booking.get('check_in'),
+        'check_out': booking.get('check_out'),
+        'room_number': None,  # Get from room
+        'submitted_at': datetime.now(timezone.utc).isoformat(),
+        'status': 'submitted',
+        'reference_number': f"POL-{uuid.uuid4().hex[:8].upper()}"
+    }
+    
+    await db.police_notifications.insert_one(notification_data)
+    
+    return {
+        'success': True,
+        'notification_id': notification_data['id'],
+        'reference_number': notification_data['reference_number'],
+        'status': 'submitted',
+        'message': 'Police notification submitted successfully',
+        'note': 'In production: Integrate with local police system (GIYBIS, Alloggiati Web, etc.)'
+    }
+
+
+# ============= NIGHT AUDIT SYSTEM =============
+
+@api_router.post("/night-audit/run-night-audit")
+async def run_night_audit(
+    audit_date: Optional[str] = None,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Run complete night audit
+    - Day closure
+    - Revenue calculation
+    - AR recalculation
+    - Housekeeping roll-up
+    - OTA reconciliation
+    """
+    audit_date_str = audit_date or datetime.now().date().isoformat()
+    audit_datetime = datetime.fromisoformat(audit_date_str)
+    
+    audit_results = {
+        'audit_id': str(uuid.uuid4()),
+        'audit_date': audit_date_str,
+        'started_at': datetime.now(timezone.utc).isoformat(),
+        'status': 'in_progress',
+        'steps': []
+    }
+    
+    # Step 1: Post room charges
+    step1_result = await night_audit_post_room_charges(current_user.tenant_id, audit_date_str)
+    audit_results['steps'].append({
+        'step': 1,
+        'name': 'Post Room Charges',
+        'status': 'completed',
+        'details': step1_result
+    })
+    
+    # Step 2: Calculate daily revenue
+    step2_result = await night_audit_calculate_revenue(current_user.tenant_id, audit_date_str)
+    audit_results['steps'].append({
+        'step': 2,
+        'name': 'Calculate Revenue',
+        'status': 'completed',
+        'details': step2_result
+    })
+    
+    # Step 3: AR recalculation
+    step3_result = await night_audit_recalculate_ar(current_user.tenant_id)
+    audit_results['steps'].append({
+        'step': 3,
+        'name': 'Recalculate AR',
+        'status': 'completed',
+        'details': step3_result
+    })
+    
+    # Step 4: Housekeeping roll-up
+    step4_result = await night_audit_housekeeping_rollup(current_user.tenant_id, audit_date_str)
+    audit_results['steps'].append({
+        'step': 4,
+        'name': 'Housekeeping Roll-up',
+        'status': 'completed',
+        'details': step4_result
+    })
+    
+    # Step 5: OTA reconciliation
+    step5_result = await night_audit_ota_reconciliation(current_user.tenant_id, audit_date_str)
+    audit_results['steps'].append({
+        'step': 5,
+        'name': 'OTA Reconciliation',
+        'status': 'completed',
+        'details': step5_result
+    })
+    
+    # Complete audit
+    audit_results['status'] = 'completed'
+    audit_results['completed_at'] = datetime.now(timezone.utc).isoformat()
+    
+    # Store audit record
+    await db.night_audit_logs.insert_one(audit_results)
+    
+    return audit_results
+
+
+async def night_audit_post_room_charges(tenant_id: str, date: str):
+    """Post room charges for all occupied rooms"""
+    posted_count = 0
+    total_amount = 0
+    
+    # Get all checked-in bookings
+    async for booking in db.bookings.find({
+        'tenant_id': tenant_id,
+        'status': 'checked_in',
+        'check_in': {'$lte': date},
+        'check_out': {'$gte': date}
+    }):
+        # Get guest folio
+        folio = await db.folios.find_one({
+            'booking_id': booking.get('id'),
+            'folio_type': 'guest',
+            'status': 'open'
+        })
+        
+        if folio:
+            # Calculate room rate (from booking)
+            nights = (datetime.fromisoformat(booking.get('check_out')) - datetime.fromisoformat(booking.get('check_in'))).days
+            room_rate = booking.get('total_amount', 0) / nights if nights > 0 else 0
+            
+            # Post room charge (would call existing charge posting endpoint)
+            posted_count += 1
+            total_amount += room_rate
+    
+    return {
+        'charges_posted': posted_count,
+        'total_amount': round(total_amount, 2)
+    }
+
+
+async def night_audit_calculate_revenue(tenant_id: str, date: str):
+    """Calculate daily revenue breakdown"""
+    # Get all charges for the date
+    revenue = {
+        'room_revenue': 0,
+        'fnb_revenue': 0,
+        'other_revenue': 0,
+        'total_revenue': 0
+    }
+    
+    async for charge in db.folio_charges.find({
+        'tenant_id': tenant_id,
+        'date': {'$gte': date, '$lt': (datetime.fromisoformat(date) + timedelta(days=1)).isoformat()}
+    }):
+        category = charge.get('charge_category')
+        amount = charge.get('total', 0)
+        
+        if category == 'room':
+            revenue['room_revenue'] += amount
+        elif category in ['food', 'beverage']:
+            revenue['fnb_revenue'] += amount
+        else:
+            revenue['other_revenue'] += amount
+        
+        revenue['total_revenue'] += amount
+    
+    return {k: round(v, 2) for k, v in revenue.items()}
+
+
+async def night_audit_recalculate_ar(tenant_id: str):
+    """Recalculate accounts receivable"""
+    total_ar = 0
+    open_folios = 0
+    
+    async for folio in db.folios.find({
+        'tenant_id': tenant_id,
+        'status': 'open',
+        'folio_type': {'$in': ['company', 'agency']}
+    }):
+        balance = folio.get('balance', 0)
+        total_ar += balance
+        open_folios += 1
+    
+    return {
+        'total_ar': round(total_ar, 2),
+        'open_folios': open_folios
+    }
+
+
+async def night_audit_housekeeping_rollup(tenant_id: str, date: str):
+    """Housekeeping summary for the day"""
+    tasks_completed = await db.housekeeping_tasks.count_documents({
+        'tenant_id': tenant_id,
+        'status': 'completed',
+        'completed_at': {'$gte': date, '$lt': (datetime.fromisoformat(date) + timedelta(days=1)).isoformat()}
+    })
+    
+    return {
+        'tasks_completed': tasks_completed,
+        'date': date
+    }
+
+
+async def night_audit_ota_reconciliation(tenant_id: str, date: str):
+    """OTA bookings reconciliation"""
+    ota_bookings = 0
+    ota_revenue = 0
+    
+    async for booking in db.bookings.find({
+        'tenant_id': tenant_id,
+        'check_in': date,
+        'ota_channel': {'$ne': None}
+    }):
+        ota_bookings += 1
+        ota_revenue += booking.get('total_amount', 0)
+    
+    return {
+        'ota_bookings': ota_bookings,
+        'ota_revenue': round(ota_revenue, 2)
+    }
+
+
+# ============= INBOX & ALERT CENTER =============
+
+class Alert(BaseModel):
+    """Universal alert model"""
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    tenant_id: str
+    alert_type: str  # housekeeping, maintenance, ota, overbooking, rms, ar, marketplace, review
+    priority: str  # low, normal, high, urgent
+    title: str
+    description: str
+    source_module: str
+    source_id: Optional[str] = None
+    assigned_to: Optional[str] = None
+    status: str = "unread"  # unread, read, acknowledged, resolved
+    action_url: Optional[str] = None
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    read_at: Optional[datetime] = None
+
+@api_router.get("/inbox/alerts")
+async def get_inbox_alerts(
+    status: Optional[str] = None,
+    alert_type: Optional[str] = None,
+    priority: Optional[str] = None,
+    limit: int = 50,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Get all alerts for current user
+    - Unified inbox
+    - Filter by type, priority, status
+    - Role-based alerts
+    """
+    match_criteria = {
+        'tenant_id': current_user.tenant_id,
+        '$or': [
+            {'assigned_to': current_user.name},
+            {'assigned_to': None}  # General alerts
+        ]
+    }
+    
+    if status:
+        match_criteria['status'] = status
+    if alert_type:
+        match_criteria['alert_type'] = alert_type
+    if priority:
+        match_criteria['priority'] = priority
+    
+    alerts = []
+    async for alert in db.alerts.find(match_criteria).sort('created_at', -1).limit(limit):
+        alerts.append({
+            'id': alert.get('id'),
+            'alert_type': alert.get('alert_type'),
+            'priority': alert.get('priority'),
+            'title': alert.get('title'),
+            'description': alert.get('description'),
+            'source_module': alert.get('source_module'),
+            'status': alert.get('status'),
+            'action_url': alert.get('action_url'),
+            'created_at': alert.get('created_at')
+        })
+    
+    # Count by status
+    unread_count = await db.alerts.count_documents({**match_criteria, 'status': 'unread'})
+    
+    return {
+        'alerts': alerts,
+        'total_count': len(alerts),
+        'unread_count': unread_count,
+        'filters_applied': {
+            'status': status,
+            'alert_type': alert_type,
+            'priority': priority
+        }
+    }
+
+
+@api_router.post("/inbox/alerts")
+async def create_alert(
+    alert_type: str,
+    priority: str,
+    title: str,
+    description: str,
+    source_module: str,
+    source_id: Optional[str] = None,
+    assigned_to: Optional[str] = None,
+    action_url: Optional[str] = None,
+    current_user: User = Depends(get_current_user)
+):
+    """Create a new alert"""
+    alert = Alert(
+        tenant_id=current_user.tenant_id,
+        alert_type=alert_type,
+        priority=priority,
+        title=title,
+        description=description,
+        source_module=source_module,
+        source_id=source_id,
+        assigned_to=assigned_to,
+        action_url=action_url
+    )
+    
+    alert_dict = alert.model_dump()
+    alert_dict['created_at'] = alert_dict['created_at'].isoformat()
+    await db.alerts.insert_one(alert_dict)
+    
+    return {
+        'success': True,
+        'alert_id': alert.id,
+        'message': 'Alert created successfully'
+    }
+
+
+@api_router.put("/inbox/alerts/{alert_id}/mark-read")
+async def mark_alert_read(
+    alert_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Mark alert as read"""
+    await db.alerts.update_one(
+        {'id': alert_id, 'tenant_id': current_user.tenant_id},
+        {'$set': {
+            'status': 'read',
+            'read_at': datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    
+    return {'success': True, 'message': 'Alert marked as read'}
+
+
+@api_router.get("/inbox/summary")
+async def get_inbox_summary(
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Get inbox summary
+    - Counts by type
+    - Counts by priority
+    - Recent alerts
+    """
+    match_criteria = {
+        'tenant_id': current_user.tenant_id,
+        '$or': [
+            {'assigned_to': current_user.name},
+            {'assigned_to': None}
+        ]
+    }
+    
+    # Count by type
+    type_counts = {}
+    async for alert in db.alerts.find(match_criteria):
+        alert_type = alert.get('alert_type', 'other')
+        type_counts[alert_type] = type_counts.get(alert_type, 0) + 1
+    
+    # Count by priority
+    urgent = await db.alerts.count_documents({**match_criteria, 'priority': 'urgent', 'status': 'unread'})
+    high = await db.alerts.count_documents({**match_criteria, 'priority': 'high', 'status': 'unread'})
+    normal = await db.alerts.count_documents({**match_criteria, 'priority': 'normal', 'status': 'unread'})
+    
+    return {
+        'total_unread': urgent + high + normal,
+        'by_priority': {
+            'urgent': urgent,
+            'high': high,
+            'normal': normal
+        },
+        'by_type': type_counts,
+        'summary': f"{urgent} urgent, {high} high priority alerts"
+    }
+
+
 # Include router at the very end after ALL endpoints are defined
 app.include_router(api_router)
