@@ -25349,9 +25349,9 @@ async def create_pos_order(
     # Create order
     order = POSOrder(
         tenant_id=current_user.tenant_id,
-        booking_id=booking_id,
+        booking_id=data.booking_id,
         guest_id=guest_id,
-        folio_id=folio_id,
+        folio_id=data.folio_id,
         order_items=order_items_list,
         subtotal=subtotal,
         tax_amount=tax_amount,
@@ -25362,7 +25362,7 @@ async def create_pos_order(
     await db.pos_orders.insert_one(order.model_dump())
     
     # If folio_id provided, post charge to folio
-    if folio_id:
+    if data.folio_id:
         # Post charge to folio
         for order_item in order_items_list:
             charge = FolioCharge(
