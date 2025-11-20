@@ -504,6 +504,299 @@ const GuestPortal = ({ user, onLogout }) => {
             }
           />
 
+          {/* Self Check-in Page */}
+          <Route
+            path="/checkin/:bookingId"
+            element={
+              <div className="space-y-6">
+                <h1 className="text-4xl font-bold" style={{ fontFamily: 'Space Grotesk' }}>Self Check-in</h1>
+                
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Complete Your Check-in</CardTitle>
+                    <CardDescription>Review your booking details and check-in online</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                        <p className="text-sm text-blue-800">
+                          ✅ Your check-in is almost complete! Please review your details below.
+                        </p>
+                      </div>
+                      
+                      {(() => {
+                        const bookingId = window.location.pathname.split('/').pop();
+                        const booking = activeBookings.find(b => b.id === bookingId);
+                        
+                        if (!booking) {
+                          return <p className="text-gray-500">Booking not found</p>;
+                        }
+                        
+                        return (
+                          <div className="space-y-6">
+                            <div>
+                              <h3 className="font-semibold mb-3">Booking Details</h3>
+                              <div className="grid grid-cols-2 gap-4 text-sm">
+                                <div>
+                                  <Label className="text-gray-500">Hotel</Label>
+                                  <p className="font-medium">{booking.hotel?.property_name}</p>
+                                </div>
+                                <div>
+                                  <Label className="text-gray-500">Room</Label>
+                                  <p className="font-medium">Room {booking.room?.room_number} - {booking.room?.room_type}</p>
+                                </div>
+                                <div>
+                                  <Label className="text-gray-500">Check-in</Label>
+                                  <p className="font-medium">{new Date(booking.check_in).toLocaleDateString()}</p>
+                                </div>
+                                <div>
+                                  <Label className="text-gray-500">Check-out</Label>
+                                  <p className="font-medium">{new Date(booking.check_out).toLocaleDateString()}</p>
+                                </div>
+                                <div>
+                                  <Label className="text-gray-500">Guests</Label>
+                                  <p className="font-medium">{booking.guests_count} guest(s)</p>
+                                </div>
+                                <div>
+                                  <Label className="text-gray-500">Total Amount</Label>
+                                  <p className="font-medium text-blue-600">${booking.total_amount}</p>
+                                </div>
+                              </div>
+                            </div>
+                            
+                            <div className="border-t pt-4">
+                              <Button 
+                                className="w-full bg-green-600 hover:bg-green-700"
+                                onClick={async () => {
+                                  try {
+                                    await axios.post(`/guest/self-checkin/${booking.id}`);
+                                    toast.success('Check-in successful! Welcome!');
+                                    loadData();
+                                    navigate('/');
+                                  } catch (error) {
+                                    toast.error('Check-in failed. Please try again or contact reception.');
+                                  }
+                                }}
+                              >
+                                Confirm Check-in
+                              </Button>
+                              <Button 
+                                variant="outline"
+                                className="w-full mt-2"
+                                onClick={() => navigate('/')}
+                              >
+                                Back to Home
+                              </Button>
+                            </div>
+                          </div>
+                        );
+                      })()}
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            }
+          />
+
+          {/* Digital Key Page */}
+          <Route
+            path="/digital-key/:bookingId"
+            element={
+              <div className="space-y-6">
+                <h1 className="text-4xl font-bold" style={{ fontFamily: 'Space Grotesk' }}>Digital Key</h1>
+                
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Your Digital Room Key</CardTitle>
+                    <CardDescription>Use this QR code to access your room</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    {(() => {
+                      const bookingId = window.location.pathname.split('/').pop();
+                      const booking = activeBookings.find(b => b.id === bookingId);
+                      
+                      if (!booking) {
+                        return <p className="text-gray-500">Booking not found</p>;
+                      }
+                      
+                      return (
+                        <div className="space-y-6">
+                          <div className="bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl p-8 text-white text-center">
+                            <div className="mb-4">
+                              <h3 className="text-2xl font-bold">{booking.hotel?.property_name}</h3>
+                              <p className="text-blue-100">Room {booking.room?.room_number}</p>
+                            </div>
+                            
+                            {booking.qr_code_data ? (
+                              <div className="bg-white rounded-lg p-6 mx-auto inline-block">
+                                <div className="text-6xl">🔑</div>
+                                <p className="text-gray-800 font-mono text-sm mt-2">{booking.confirmation_number}</p>
+                              </div>
+                            ) : (
+                              <div className="bg-white rounded-lg p-6 mx-auto inline-block">
+                                <QrCode className="w-32 h-32 text-gray-400" />
+                              </div>
+                            )}
+                            
+                            <p className="mt-4 text-sm text-blue-100">
+                              Show this code at the door lock to access your room
+                            </p>
+                          </div>
+                          
+                          <div className="grid grid-cols-2 gap-4 text-sm">
+                            <div className="bg-gray-50 rounded-lg p-4">
+                              <Label className="text-gray-500">Check-in</Label>
+                              <p className="font-medium">{new Date(booking.check_in).toLocaleString()}</p>
+                            </div>
+                            <div className="bg-gray-50 rounded-lg p-4">
+                              <Label className="text-gray-500">Check-out</Label>
+                              <p className="font-medium">{new Date(booking.check_out).toLocaleString()}</p>
+                            </div>
+                          </div>
+                          
+                          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                            <p className="text-sm text-yellow-800">
+                              <strong>Note:</strong> This digital key is valid only during your stay. 
+                              Keep your phone charged to ensure access to your room.
+                            </p>
+                          </div>
+                          
+                          <Button 
+                            variant="outline"
+                            className="w-full"
+                            onClick={() => navigate('/')}
+                          >
+                            Back to Home
+                          </Button>
+                        </div>
+                      );
+                    })()}
+                  </CardContent>
+                </Card>
+              </div>
+            }
+          />
+
+          {/* Upsell / Enhance Stay Page */}
+          <Route
+            path="/upsell/:bookingId"
+            element={
+              <div className="space-y-6">
+                <h1 className="text-4xl font-bold" style={{ fontFamily: 'Space Grotesk' }}>Enhance Your Stay</h1>
+                <p className="text-gray-600">Make your stay even more special with our exclusive offers</p>
+                
+                {(() => {
+                  const bookingId = window.location.pathname.split('/').pop();
+                  const booking = activeBookings.find(b => b.id === bookingId);
+                  
+                  if (!booking) {
+                    return <p className="text-gray-500">Booking not found</p>;
+                  }
+                  
+                  const upsellOffers = [
+                    {
+                      id: 1,
+                      title: 'Room Upgrade',
+                      description: 'Upgrade to a deluxe suite with panoramic city views',
+                      price: 50,
+                      icon: '🏆',
+                      category: 'Room'
+                    },
+                    {
+                      id: 2,
+                      title: 'Late Checkout',
+                      description: 'Extend your stay until 4 PM (subject to availability)',
+                      price: 30,
+                      icon: '🕐',
+                      category: 'Service'
+                    },
+                    {
+                      id: 3,
+                      title: 'Breakfast Package',
+                      description: 'Daily continental breakfast for 2 guests',
+                      price: 25,
+                      icon: '🍳',
+                      category: 'Dining'
+                    },
+                    {
+                      id: 4,
+                      title: 'Spa Treatment',
+                      description: '60-minute relaxing massage at our wellness center',
+                      price: 80,
+                      icon: '💆',
+                      category: 'Wellness'
+                    },
+                    {
+                      id: 5,
+                      title: 'Airport Transfer',
+                      description: 'Private car service to/from the airport',
+                      price: 45,
+                      icon: '🚗',
+                      category: 'Transport'
+                    },
+                    {
+                      id: 6,
+                      title: 'Welcome Package',
+                      description: 'Champagne, chocolates, and fresh flowers in your room',
+                      price: 35,
+                      icon: '🍾',
+                      category: 'Amenity'
+                    }
+                  ];
+                  
+                  return (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {upsellOffers.map((offer) => (
+                        <Card key={offer.id} className="card-hover">
+                          <CardContent className="pt-6">
+                            <div className="flex items-start justify-between mb-4">
+                              <div className="text-4xl">{offer.icon}</div>
+                              <span className="bg-blue-100 text-blue-700 text-xs font-medium px-2 py-1 rounded">
+                                {offer.category}
+                              </span>
+                            </div>
+                            
+                            <h3 className="text-xl font-bold mb-2">{offer.title}</h3>
+                            <p className="text-gray-600 text-sm mb-4">{offer.description}</p>
+                            
+                            <div className="flex items-center justify-between">
+                              <div className="text-2xl font-bold text-blue-600">
+                                ${offer.price}
+                              </div>
+                              <Button
+                                onClick={async () => {
+                                  try {
+                                    await axios.post(`/guest/purchase-upsell/${booking.id}`, {
+                                      offer_id: offer.id,
+                                      offer_name: offer.title,
+                                      price: offer.price
+                                    });
+                                    toast.success(`${offer.title} added to your booking!`);
+                                  } catch (error) {
+                                    toast.error('Failed to add offer. Please try again.');
+                                  }
+                                }}
+                              >
+                                Add to Stay
+                              </Button>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+                  );
+                })()}
+                
+                <Button 
+                  variant="outline"
+                  onClick={() => navigate('/')}
+                >
+                  Back to Home
+                </Button>
+              </div>
+            }
+          />
+
           {/* Settings Page */}
           <Route
             path="/settings"
