@@ -1,7 +1,11 @@
 import { useState } from 'react';
+import axios from 'axios';
+import { toast } from 'sonner';
 import Layout from '@/components/Layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { 
   FileText, 
   Download, 
@@ -9,39 +13,56 @@ import {
   TrendingUp,
   DollarSign,
   Users,
-  Building
+  Building,
+  FileSpreadsheet
 } from 'lucide-react';
 
 const Reports = ({ user, tenant, onLogout }) => {
   const [loading, setLoading] = useState(false);
+  const [startDate, setStartDate] = useState(new Date(new Date().setMonth(new Date().getMonth() - 1)).toISOString().split('T')[0]);
+  const [endDate, setEndDate] = useState(new Date().toISOString().split('T')[0]);
 
   const reportCategories = [
     {
       title: 'Financial Reports',
       icon: DollarSign,
       reports: [
-        { name: 'Daily Flash Report', endpoint: '/reports/daily-flash', type: 'pdf' },
-        { name: 'Revenue Report', endpoint: '/reports/revenue', type: 'pdf' },
-        { name: 'Company Aging Report', endpoint: '/reports/company-aging', type: 'pdf' },
-        { name: 'Finance Snapshot', endpoint: '/reports/finance-snapshot', type: 'pdf' }
+        { 
+          name: 'Daily Flash Report', 
+          endpoint: '/reports/daily-flash/excel',
+          hasDateRange: false,
+          needsParams: false
+        },
+        { 
+          name: 'Company Aging Report', 
+          endpoint: '/reports/company-aging/excel',
+          hasDateRange: false,
+          needsParams: false
+        }
       ]
     },
     {
       title: 'Operational Reports',
       icon: Building,
       reports: [
-        { name: 'Occupancy Report', endpoint: '/reports/occupancy', type: 'pdf' },
-        { name: 'Daily Summary', endpoint: '/reports/daily-summary', type: 'pdf' },
-        { name: 'Housekeeping Efficiency', endpoint: '/reports/housekeeping-efficiency', type: 'pdf' }
+        { 
+          name: 'Housekeeping Efficiency', 
+          endpoint: '/reports/housekeeping-efficiency/excel',
+          hasDateRange: true,
+          needsParams: true
+        }
       ]
     },
     {
       title: 'Market Reports',
       icon: TrendingUp,
       reports: [
-        { name: 'Market Segment Analysis', endpoint: '/reports/market-segment', type: 'pdf' },
-        { name: 'Forecast Report', endpoint: '/reports/forecast', type: 'pdf' },
-        { name: 'GM Dashboard Forecast', endpoint: '/dashboard/gm-forecast', type: 'json' }
+        { 
+          name: 'Market Segment Analysis', 
+          endpoint: '/reports/market-segment/excel',
+          hasDateRange: true,
+          needsParams: true
+        }
       ]
     }
   ];
@@ -49,11 +70,45 @@ const Reports = ({ user, tenant, onLogout }) => {
   const handleDownloadReport = async (report) => {
     setLoading(true);
     try {
-      // This is a placeholder - actual implementation would fetch the report
-      console.log(`Downloading report: ${report.name}`);
-      // You can implement the actual download logic here
+      let url = report.endpoint;
+      
+      // Add date parameters if needed
+      if (report.needsParams) {
+        url += `?start_date=${startDate}&end_date=${endDate}`;
+      }
+      
+      const response = await axios.get(url, {
+        responseType: 'blob'
+      });
+      
+      // Create download link
+      const blob = new Blob([response.data], { 
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
+      });
+      const downloadUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = downloadUrl;
+      
+      // Get filename from content-disposition header or use default
+      const contentDisposition = response.headers['content-disposition'];
+      let filename = `${report.name.replace(/\s+/g, '_')}.xlsx`;
+      if (contentDisposition) {
+        const filenameMatch = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
+        if (filenameMatch && filenameMatch[1]) {
+          filename = filenameMatch[1].replace(/['"]/g, '');
+        }
+      }
+      
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(downloadUrl);
+      
+      toast.success(`${report.name} downloaded successfully!`);
     } catch (error) {
       console.error('Failed to download report:', error);
+      toast.error('Failed to download report. Please try again.');
     } finally {
       setLoading(false);
     }
