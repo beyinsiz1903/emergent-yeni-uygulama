@@ -103,7 +103,7 @@
 #====================================================================================================
 
 user_problem_statement: |
-  Comprehensive Hotel PMS Enhancement - 17 Categories:
+  Comprehensive Hotel PMS Enhancement - 17 Categories + NEW ENHANCEMENTS:
   1. Dashboard - Employee Performance, Guest Satisfaction Trends, OTA Cancellation Rate
   2. Check-in - Passport scan, Walk-in booking, Guest alerts
   3. Housekeeping - Task timing, Staff performance, Linen inventory
@@ -121,8 +121,15 @@ user_problem_statement: |
   15. Loyalty Program - Perks, Points, LTV calculation
   16. Procurement - Auto-purchase suggestions, Stock alerts
   17. Reservation Improvements - Double-booking check, ADR visibility, Rate override panel
-
   18. ML Training Infrastructure - RMS, Persona, Predictive Maintenance, HK Scheduler
+
+  NEW ENHANCEMENTS (Current Task):
+  19. OTA Reservation Details - Special requests/remarks (expandable), Multi-room reservation, Extra charges, Source of booking
+  20. Housekeeping Mobile View - Room assignment (staff tracking), Cleaning time statistics
+  21. Guest Profile Complete - Guest history (all stays), Preferences (pillow/floor/temperature), Blacklist/VIP tagging
+  22. Revenue Management Advanced - Price recommendation slider (min/recommended/max), Historical demand heatmap, CompSet analysis
+  23. Messaging Module - WhatsApp/SMS/Email sending, Message templates, Auto-message triggers (pre-arrival, check-in reminder, post-checkout)
+  24. POS Improvements - Detailed F&B charge entry, Menu items, Order tracking
 
 backend:
   - task: "Dashboard - Employee Performance Endpoint"
