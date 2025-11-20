@@ -203,15 +203,18 @@ user_problem_statement: |
 
   - task: "Guest Profile - Complete Profile Endpoint"
     implemented: true
-    working: "NA"
+    working: false
     file: "/app/backend/server.py"
-    stuck_count: 0
+    stuck_count: 1
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: "NA"
         agent: "main"
         comment: "Added GET /api/guests/{guest_id}/profile-complete - Returns stay history (all bookings), preferences, tags (VIP/Blacklist), total stays, vip_status, blacklist_status"
+      - working: false
+        agent: "testing"
+        comment: "❌ ENDPOINT FAILING - GET /api/guests/{guest_id}/profile-complete returns HTTP 500 internal server error. Server-side error in endpoint implementation. Endpoint exists but has runtime error that needs debugging. Non-existent guest validation works correctly (404 error)."
 
   - task: "Guest Profile - Preferences Management"
     implemented: true
