@@ -25038,20 +25038,23 @@ class SentMessage(BaseModel):
     status: str = "sent"  # sent, delivered, failed
     sent_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
+class SendMessageRequest(BaseModel):
+    guest_id: str
+    message_type: MessageType
+    recipient: str
+    message_content: str
+    booking_id: Optional[str] = None
+
 @api_router.post("/messaging/send-message")
 async def send_message(
-    guest_id: str,
-    message_type: MessageType,
-    recipient: str,
-    message_content: str,
-    booking_id: Optional[str] = None,
+    data: SendMessageRequest,
     credentials: HTTPAuthorizationCredentials = Depends(security)
 ):
     """Send a message (WhatsApp/SMS/Email) to a guest"""
     current_user = await get_current_user(credentials)
     
     # Verify guest exists
-    guest = await db.guests.find_one({'id': guest_id, 'tenant_id': current_user.tenant_id})
+    guest = await db.guests.find_one({'id': data.guest_id, 'tenant_id': current_user.tenant_id})
     if not guest:
         raise HTTPException(status_code=404, detail="Guest not found")
     
@@ -25059,11 +25062,11 @@ async def send_message(
     # For now, simulate sending
     message = SentMessage(
         tenant_id=current_user.tenant_id,
-        guest_id=guest_id,
-        booking_id=booking_id,
-        message_type=message_type,
-        recipient=recipient,
-        message_content=message_content,
+        guest_id=data.guest_id,
+        booking_id=data.booking_id,
+        message_type=data.message_type,
+        recipient=data.recipient,
+        message_content=data.message_content,
         status="sent"
     )
     
@@ -25071,7 +25074,7 @@ async def send_message(
     
     return {
         'success': True,
-        'message': f'{message_type.value.upper()} sent successfully',
+        'message': f'{data.message_type.value.upper()} sent successfully',
         'message_id': message.id,
         'note': 'Production integration with Twilio/WhatsApp Business API required'
     }
