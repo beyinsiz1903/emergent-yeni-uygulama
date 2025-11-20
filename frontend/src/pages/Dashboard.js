@@ -74,6 +74,22 @@ const Dashboard = ({ user, tenant, onLogout }) => {
       color: '#4facfe'
     },
     {
+      title: 'Cost Management',
+      description: 'Track operational costs & expenses',
+      icon: TrendingUp,
+      path: '/cost-management',
+      color: '#f093fb',
+      badge: 'NEW'
+    },
+    {
+      title: '✨ New Features',
+      description: 'POS, Staff, Messaging & More',
+      icon: Award,
+      path: '/features',
+      color: '#a855f7',
+      badge: 'NEW'
+    },
+    {
       title: t('nav.loyalty'),
       description: t('dashboard.guestRewards'),
       icon: Award,
