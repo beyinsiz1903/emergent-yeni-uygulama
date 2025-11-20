@@ -24275,3 +24275,7 @@ async def get_logs_dashboard(
 
 # Include router at the very end after ALL endpoints are defined
 app.include_router(api_router)
+
+# Include desktop enhancements router
+if desktop_router:
+    app.include_router(desktop_router, prefix="/api", tags=["desktop-enhancements"])
