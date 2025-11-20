@@ -4579,6 +4579,166 @@ async def get_revenue_by_department(
         }
     }
 
+@api_router.post("/bookings/{booking_id}/assign-room")
+async def assign_room_to_booking(
+    booking_id: str,
+    room_assignment: dict,
+    current_user: User = Depends(get_current_user)
+):
+    """Assign a specific room to a booking"""
+    room_id = room_assignment.get('room_id')
+    room_number = room_assignment.get('room_number')
+    notes = room_assignment.get('notes', '')
+    
+    # Get booking
+    booking = await db.bookings.find_one({
+        'id': booking_id,
+        'tenant_id': current_user.tenant_id
+    })
+    
+    if not booking:
+        raise HTTPException(status_code=404, detail="Booking not found")
+    
+    # Get room
+    room = await db.rooms.find_one({
+        'id': room_id,
+        'tenant_id': current_user.tenant_id
+    })
+    
+    if not room:
+        raise HTTPException(status_code=404, detail="Room not found")
+    
+    # Check room availability
+    check_in = datetime.fromisoformat(booking.get('check_in'))
+    check_out = datetime.fromisoformat(booking.get('check_out'))
+    
+    # Check for conflicts
+    conflicts = await db.bookings.count_documents({
+        'tenant_id': current_user.tenant_id,
+        'room_id': room_id,
+        'id': {'$ne': booking_id},
+        'status': {'$in': ['confirmed', 'guaranteed', 'checked_in']},
+        '$or': [
+            {
+                'check_in': {'$lte': check_in.isoformat()},
+                'check_out': {'$gt': check_in.isoformat()}
+            },
+            {
+                'check_in': {'$lt': check_out.isoformat()},
+                'check_out': {'$gte': check_out.isoformat()}
+            }
+        ]
+    })
+    
+    if conflicts > 0:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Room {room_number} is not available for this period"
+        )
+    
+    # Update booking
+    await db.bookings.update_one(
+        {'id': booking_id},
+        {
+            '$set': {
+                'room_id': room_id,
+                'room_number': room_number,
+                'room_type': room.get('room_type'),
+                'room_assigned_at': datetime.now(timezone.utc).isoformat(),
+                'room_assigned_by': current_user.email,
+                'room_assignment_notes': notes
+            }
+        }
+    )
+    
+    # Log activity
+    await db.activity_log.insert_one({
+        'id': str(uuid.uuid4()),
+        'tenant_id': current_user.tenant_id,
+        'type': 'room_assignment',
+        'booking_id': booking_id,
+        'room_id': room_id,
+        'room_number': room_number,
+        'performed_by': current_user.email,
+        'notes': notes,
+        'timestamp': datetime.now(timezone.utc).isoformat()
+    })
+    
+    return {
+        'success': True,
+        'message': f'Room {room_number} assigned successfully',
+        'booking_id': booking_id,
+        'room_number': room_number,
+        'assigned_at': datetime.now(timezone.utc).isoformat()
+    }
+
+@api_router.get("/bookings/{booking_id}/available-rooms")
+async def get_available_rooms_for_booking(
+    booking_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Get list of available rooms for a specific booking"""
+    booking = await db.bookings.find_one({
+        'id': booking_id,
+        'tenant_id': current_user.tenant_id
+    })
+    
+    if not booking:
+        raise HTTPException(status_code=404, detail="Booking not found")
+    
+    check_in = datetime.fromisoformat(booking.get('check_in'))
+    check_out = datetime.fromisoformat(booking.get('check_out'))
+    requested_type = booking.get('room_type', 'standard')
+    
+    # Get all rooms
+    all_rooms = await db.rooms.find({'tenant_id': current_user.tenant_id}).to_list(1000)
+    
+    available_rooms = []
+    for room in all_rooms:
+        # Check if room has conflicts
+        conflicts = await db.bookings.count_documents({
+            'tenant_id': current_user.tenant_id,
+            'room_id': room['id'],
+            'id': {'$ne': booking_id},
+            'status': {'$in': ['confirmed', 'guaranteed', 'checked_in']},
+            '$or': [
+                {
+                    'check_in': {'$lte': check_in.isoformat()},
+                    'check_out': {'$gt': check_in.isoformat()}
+                },
+                {
+                    'check_in': {'$lt': check_out.isoformat()},
+                    'check_out': {'$gte': check_out.isoformat()}
+                }
+            ]
+        })
+        
+        if conflicts == 0 and room.get('status') in ['available', 'inspected']:
+            available_rooms.append({
+                'id': room['id'],
+                'room_number': room['room_number'],
+                'room_type': room['room_type'],
+                'floor': room.get('floor', 1),
+                'status': room['status'],
+                'price_per_night': room.get('price_per_night', 0),
+                'is_same_type': room['room_type'].lower() == requested_type.lower(),
+                'is_upgrade': room.get('price_per_night', 0) > booking.get('rate', 0),
+                'amenities': room.get('amenities', [])
+            })
+    
+    # Sort: same type first, then by floor
+    available_rooms.sort(key=lambda x: (not x['is_same_type'], x['floor']))
+    
+    return {
+        'available_rooms': available_rooms,
+        'total_available': len(available_rooms),
+        'requested_type': requested_type,
+        'booking_dates': {
+            'check_in': check_in.isoformat(),
+            'check_out': check_out.isoformat()
+        }
+    }
+
 @api_router.get("/reports/market-segment")
 async def get_market_segment_report(
     start_date: str,
