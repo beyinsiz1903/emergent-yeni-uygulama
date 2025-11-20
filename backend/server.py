@@ -21289,82 +21289,106 @@ async def get_guest_bookings(
 async def get_guest_loyalty(
     current_user: User = Depends(get_current_user)
 ):
-    """Get guest loyalty information"""
-    guest = await db.guests.find_one({
-        'email': current_user.email,
-        'tenant_id': current_user.tenant_id
-    })
+    """Get guest loyalty information across ALL hotels (multi-tenant support)"""
+    # Find ALL guest records across all tenants with this email
+    guest_records = []
+    async for guest in db.guests.find({'email': current_user.email}):
+        guest_records.append(guest)
     
-    if not guest:
+    if not guest_records:
         return {
             'total_points': 0,
-            'tier': 'bronze',
             'loyalty_programs': [],
-            'upcoming_rewards': []
+            'upcoming_rewards': [],
+            'global_tier': 'bronze'
         }
     
-    loyalty_points = guest.get('loyalty_points', 0)
-    loyalty_tier = guest.get('loyalty_tier', 'bronze')
+    # Build loyalty programs array - one per hotel
+    loyalty_programs = []
+    total_points_all_hotels = 0
     
-    # Get loyalty program benefits
-    benefits = await db.loyalty_benefits.find_one({
-        'tenant_id': current_user.tenant_id,
-        'tier': loyalty_tier
-    })
+    for guest in guest_records:
+        tenant = await db.tenants.find_one({'id': guest.get('tenant_id')})
+        loyalty_points = guest.get('loyalty_points', 0)
+        loyalty_tier = guest.get('loyalty_tier', 'bronze')
+        total_points_all_hotels += loyalty_points
+        
+        # Get loyalty program benefits for this hotel
+        benefits = await db.loyalty_benefits.find_one({
+            'tenant_id': guest.get('tenant_id'),
+            'tier': loyalty_tier
+        })
+        
+        # Calculate points to next tier
+        tier_thresholds = {
+            'bronze': 0,
+            'silver': 1000,
+            'gold': 5000,
+            'platinum': 10000
+        }
+        
+        next_tier = None
+        points_to_next = 0
+        
+        if loyalty_tier == 'bronze':
+            next_tier = 'silver'
+            points_to_next = 1000 - loyalty_points
+        elif loyalty_tier == 'silver':
+            next_tier = 'gold'
+            points_to_next = 5000 - loyalty_points
+        elif loyalty_tier == 'gold':
+            next_tier = 'platinum'
+            points_to_next = 10000 - loyalty_points
+        
+        # Get recent point transactions for this hotel
+        transactions = []
+        async for txn in db.loyalty_transactions.find({
+            'tenant_id': guest.get('tenant_id'),
+            'guest_id': guest.get('id')
+        }).sort('created_at', -1).limit(5):
+            transactions.append(txn)
+        
+        loyalty_programs.append({
+            'id': guest.get('id'),
+            'hotel_id': guest.get('tenant_id'),
+            'hotel_name': tenant.get('property_name', 'Hotel') if tenant else 'Hotel',
+            'tier': loyalty_tier,
+            'points': loyalty_points,
+            'next_tier': next_tier,
+            'points_to_next_tier': max(0, points_to_next) if next_tier else 0,
+            'tier_benefits': benefits.get('benefits', []) if benefits else [],
+            'recent_transactions': transactions
+        })
     
-    # Calculate points to next tier
-    tier_thresholds = {
-        'bronze': 0,
-        'silver': 1000,
-        'gold': 5000,
-        'platinum': 10000
-    }
-    
-    current_threshold = tier_thresholds.get(loyalty_tier, 0)
-    next_tier = None
-    points_to_next = 0
-    
-    if loyalty_tier == 'bronze':
-        next_tier = 'silver'
-        points_to_next = 1000 - loyalty_points
-    elif loyalty_tier == 'silver':
-        next_tier = 'gold'
-        points_to_next = 5000 - loyalty_points
-    elif loyalty_tier == 'gold':
-        next_tier = 'platinum'
-        points_to_next = 10000 - loyalty_points
-    
-    # Get recent point transactions
-    transactions = []
-    async for txn in db.loyalty_transactions.find({
-        'tenant_id': current_user.tenant_id,
-        'guest_id': guest.get('id')
-    }).sort('created_at', -1).limit(10):
-        transactions.append(txn)
+    # Calculate global tier based on total points across all hotels
+    if total_points_all_hotels >= 10000:
+        global_tier = 'platinum'
+    elif total_points_all_hotels >= 5000:
+        global_tier = 'gold'
+    elif total_points_all_hotels >= 1000:
+        global_tier = 'silver'
+    else:
+        global_tier = 'bronze'
     
     return {
-        'total_points': loyalty_points,
-        'tier': loyalty_tier,
-        'next_tier': next_tier,
-        'points_to_next_tier': max(0, points_to_next) if next_tier else 0,
-        'tier_benefits': benefits.get('benefits', []) if benefits else [],
-        'loyalty_programs': [{
-            'id': '1',
-            'name': 'Hotel Rewards',
-            'tier': loyalty_tier,
-            'points': loyalty_points
-        }],
-        'recent_transactions': transactions,
+        'total_points': total_points_all_hotels,
+        'global_tier': global_tier,
+        'loyalty_programs': loyalty_programs,
         'upcoming_rewards': [
             {
                 'name': 'Free Night Stay',
                 'points_required': 5000,
-                'points_remaining': max(0, 5000 - loyalty_points)
+                'points_remaining': max(0, 5000 - total_points_all_hotels)
             },
             {
                 'name': 'Room Upgrade',
                 'points_required': 2000,
-                'points_remaining': max(0, 2000 - loyalty_points)
+                'points_remaining': max(0, 2000 - total_points_all_hotels)
+            },
+            {
+                'name': 'Late Checkout',
+                'points_required': 500,
+                'points_remaining': max(0, 500 - total_points_all_hotels)
             }
         ]
     }
