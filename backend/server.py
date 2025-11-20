@@ -24751,12 +24751,12 @@ async def update_guest_tags(
     # Update tags
     await db.guest_tags.update_one(
         {'guest_id': guest_id, 'tenant_id': current_user.tenant_id},
-        {'$set': {'tags': tags}},
+        {'$set': {'tags': data.tags}},
         upsert=True
     )
     
     # Update VIP status in guest record if vip tag is present
-    if 'vip' in tags:
+    if 'vip' in data.tags:
         await db.guests.update_one(
             {'id': guest_id, 'tenant_id': current_user.tenant_id},
             {'$set': {'vip_status': True}}
@@ -24765,7 +24765,7 @@ async def update_guest_tags(
     return {
         'success': True,
         'message': 'Guest tags updated',
-        'tags': tags
+        'tags': data.tags
     }
 
 # ===== 4. REVENUE MANAGEMENT ENHANCEMENTS =====
