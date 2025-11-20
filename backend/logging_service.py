@@ -277,11 +277,11 @@ class LoggingService:
         self,
         tenant_id: str,
         prediction_type: str,  # failure_risk, days_until_failure, preventive_schedule
+        prediction_result: str,  # low, medium, high risk
         equipment_id: Optional[str] = None,
         equipment_type: Optional[str] = None,
         room_id: Optional[str] = None,
         room_number: Optional[str] = None,
-        prediction_result: str,  # low, medium, high risk
         confidence_score: float = 0.0,
         days_until_failure: Optional[int] = None,
         indicators: Optional[List[str]] = None,
