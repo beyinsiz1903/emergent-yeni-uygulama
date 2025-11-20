@@ -1,7 +1,13 @@
 #!/usr/bin/env python3
 """
-Comprehensive Backend Testing for Monitoring & Logging System
-Testing 6 log types and 12 endpoints with integration testing
+Comprehensive Backend Testing for Hotel PMS Enhancements
+Testing 17 NEW ENDPOINTS across 6 categories:
+1. OTA Reservation Details (3 endpoints)
+2. Housekeeping Mobile View (2 endpoints) 
+3. Guest Profile Complete (3 endpoints)
+4. Revenue Management Advanced (3 endpoints)
+5. Messaging Module (3 endpoints)
+6. POS Improvements (3 endpoints)
 """
 
 import asyncio
@@ -15,8 +21,8 @@ import uuid
 
 # Configuration
 BACKEND_URL = "https://hotelops-central-1.preview.emergentagent.com/api"
-TEST_EMAIL = "test@hotel.com"
-TEST_PASSWORD = "test123"
+TEST_EMAIL = "admin@hotel.com"
+TEST_PASSWORD = "admin123"
 
 class LoggingSystemTester:
     def __init__(self):
