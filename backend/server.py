@@ -22,6 +22,7 @@ import io
 import base64
 import secrets
 import sys
+import random
 
 # Add current directory to path for accounting models
 sys.path.append(os.path.dirname(__file__))
