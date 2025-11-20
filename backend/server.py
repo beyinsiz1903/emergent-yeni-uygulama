@@ -25288,17 +25288,24 @@ async def get_pos_menu_items(
         'count': len(items)
     }
 
+class POSOrderItemRequest(BaseModel):
+    item_id: str
+    quantity: int = 1
+
+class POSOrderCreateRequest(BaseModel):
+    booking_id: Optional[str] = None
+    folio_id: Optional[str] = None
+    order_items: List[POSOrderItemRequest]
+
 @api_router.post("/pos/create-order")
 async def create_pos_order(
-    booking_id: Optional[str] = None,
-    folio_id: Optional[str] = None,
-    order_items: List[dict] = [],  # [{item_id, quantity}, ...]
+    data: POSOrderCreateRequest,
     credentials: HTTPAuthorizationCredentials = Depends(security)
 ):
     """Create a POS order with detailed items"""
     current_user = await get_current_user(credentials)
     
-    if not order_items:
+    if not data.order_items:
         raise HTTPException(status_code=400, detail="Order items required")
     
     # Get booking and guest info
