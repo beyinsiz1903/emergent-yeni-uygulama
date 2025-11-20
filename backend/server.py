@@ -1473,7 +1473,16 @@ async def login(data: UserLogin):
     if not user_doc or not verify_password(data.password, user_doc.get('password', '')):
         raise HTTPException(status_code=401, detail="Invalid credentials")
     
-    user = User(**{k: v for k, v in user_doc.items() if k != 'password'})
+    # Debug: Print user_doc to see what we're getting
+    print(f"DEBUG LOGIN - user_doc keys: {list(user_doc.keys())}")
+    print(f"DEBUG LOGIN - tenant_id in doc: {user_doc.get('tenant_id', 'NOT FOUND')}")
+    
+    user_data = {k: v for k, v in user_doc.items() if k != 'password'}
+    print(f"DEBUG LOGIN - user_data keys: {list(user_data.keys())}")
+    print(f"DEBUG LOGIN - tenant_id in data: {user_data.get('tenant_id', 'NOT FOUND')}")
+    
+    user = User(**user_data)
+    print(f"DEBUG LOGIN - user.tenant_id: {user.tenant_id}")
     
     tenant = None
     if user.tenant_id:
