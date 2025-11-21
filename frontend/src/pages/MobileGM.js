@@ -392,6 +392,27 @@ const MobileGM = ({ user }) => {
                 <TrendingUp className="w-6 h-6 mb-1" />
                 <span className="text-xs">Raporlar</span>
               </Button>
+              <Button
+                className="h-20 flex flex-col items-center justify-center bg-blue-600 hover:bg-blue-700"
+                onClick={loadPickupAnalysis}
+              >
+                <Target className="w-6 h-6 mb-1" />
+                <span className="text-xs">Pickup Analizi</span>
+              </Button>
+              <Button
+                className="h-20 flex flex-col items-center justify-center bg-orange-600 hover:bg-orange-700"
+                onClick={loadAnomalyDetection}
+              >
+                <AlertCircle className="w-6 h-6 mb-1" />
+                <span className="text-xs">Anomali Tespiti</span>
+              </Button>
+              <Button
+                className="h-20 flex flex-col items-center justify-center bg-purple-600 hover:bg-purple-700"
+                onClick={loadForecast}
+              >
+                <Calendar className="w-6 h-6 mb-1" />
+                <span className="text-xs">Tahminler</span>
+              </Button>
             </div>
           </CardContent>
         </Card>
