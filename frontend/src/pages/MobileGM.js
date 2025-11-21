@@ -71,6 +71,40 @@ const MobileGM = ({ user }) => {
     loadData();
   };
 
+  const loadPickupAnalysis = async () => {
+    try {
+      const res = await axios.get('/dashboard/gm/pickup-analysis');
+      setPickupData(res.data);
+      setPickupModalOpen(true);
+    } catch (error) {
+      toast.error('Pickup analizi yüklenemedi');
+    }
+  };
+
+  const loadAnomalyDetection = async () => {
+    try {
+      const res = await axios.get('/dashboard/gm/anomaly-detection');
+      setAnomalies(res.data.anomalies || []);
+      setAnomalyModalOpen(true);
+    } catch (error) {
+      toast.error('Anomali tespiti yüklenemedi');
+    }
+  };
+
+  const loadForecast = async () => {
+    try {
+      const [weeklyRes, monthlyRes] = await Promise.all([
+        axios.get('/dashboard/gm/forecast-weekly'),
+        axios.get('/dashboard/gm/forecast-monthly')
+      ]);
+      setWeeklyForecast(weeklyRes.data.weeks || []);
+      setMonthlyForecast(monthlyRes.data.months || []);
+      setForecastModalOpen(true);
+    } catch (error) {
+      toast.error('Tahmin verileri yüklenemedi');
+    }
+  };
+
   const formatCurrency = (amount) => {
     return `₺${parseFloat(amount || 0).toFixed(2)}`;
   };
