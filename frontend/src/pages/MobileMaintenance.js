@@ -97,6 +97,17 @@ const MobileMaintenance = ({ user }) => {
     }
   };
 
+  const loadAssetHistory = async (assetId, assetName) => {
+    try {
+      const res = await axios.get(`/maintenance/asset-history/${assetId}`);
+      setAssetHistory(res.data);
+      setSelectedAsset(assetName);
+      setAssetHistoryModalOpen(true);
+    } catch (error) {
+      toast.error('Bakım geçmişi yüklenemedi');
+    }
+  };
+
   const getPriorityColor = (priority) => {
     const colors = {
       urgent: 'bg-red-500',
