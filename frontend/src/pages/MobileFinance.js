@@ -32,6 +32,9 @@ const MobileFinance = ({ user }) => {
   const [refreshing, setRefreshing] = useState(false);
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
   const [selectedFolio, setSelectedFolio] = useState(null);
+  const [reportsModalOpen, setReportsModalOpen] = useState(false);
+  const [invoicesModalOpen, setInvoicesModalOpen] = useState(false);
+  const [allInvoices, setAllInvoices] = useState([]);
 
   useEffect(() => {
     loadData();
