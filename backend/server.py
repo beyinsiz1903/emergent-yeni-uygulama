@@ -26876,6 +26876,949 @@ async def get_daily_collections_mobile(
     if date:
         target_date = datetime.fromisoformat(date)
     else:
+
+
+# ============================================================================
+# FAZ 1 - HIZLI EKLENEBİLİR ÖZELLIKLER
+# ============================================================================
+
+# --------------------------------------------------------------------------
+# GM Dashboard - Pickup Analysis & Anomaly Detection
+# --------------------------------------------------------------------------
+
+@api_router.get("/dashboard/gm/pickup-analysis")
+async def get_pickup_analysis(
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Get pickup analysis for revenue management"""
+    current_user = await get_current_user(credentials)
+    
+    if not start_date:
+        start_date = datetime.now(timezone.utc).replace(day=1)
+    else:
+        start_date = datetime.fromisoformat(start_date)
+    
+    if not end_date:
+        # Next 30 days
+        end_date = datetime.now(timezone.utc) + timedelta(days=30)
+    else:
+        end_date = datetime.fromisoformat(end_date)
+    
+    # Get bookings for date range
+    pickup_data = []
+    
+    # Group by booking date (created_at)
+    pipeline = [
+        {
+            '$match': {
+                'tenant_id': current_user.tenant_id,
+                'check_in': {
+                    '$gte': start_date,
+                    '$lte': end_date
+                },
+                'status': {'$in': ['confirmed', 'guaranteed', 'checked_in']}
+            }
+        },
+        {
+            '$group': {
+                '_id': {
+                    'stay_date': '$check_in',
+                    'booking_date': '$created_at'
+                },
+                'room_count': {'$sum': 1},
+                'total_revenue': {'$sum': '$total_amount'}
+            }
+        },
+        {
+            '$sort': {'_id.stay_date': 1}
+        }
+    ]
+    
+    async for doc in db.bookings.aggregate(pipeline):
+        stay_date = doc['_id']['stay_date']
+        booking_date = doc['_id']['booking_date']
+        
+        # Calculate days before arrival
+        days_before = (stay_date - booking_date).days if stay_date and booking_date else 0
+        
+        pickup_data.append({
+            'stay_date': stay_date.date().isoformat() if stay_date else None,
+            'booking_date': booking_date.date().isoformat() if booking_date else None,
+            'days_before_arrival': days_before,
+            'rooms': doc['room_count'],
+            'revenue': doc['total_revenue']
+        })
+    
+    # Calculate pickup velocity
+    total_rooms = sum(d['rooms'] for d in pickup_data)
+    total_revenue = sum(d['revenue'] for d in pickup_data)
+    
+    # Group by days_before_arrival for trend analysis
+    pickup_trends = {}
+    for data in pickup_data:
+        days_key = data['days_before_arrival']
+        if days_key not in pickup_trends:
+            pickup_trends[days_key] = {'rooms': 0, 'revenue': 0}
+        pickup_trends[days_key]['rooms'] += data['rooms']
+        pickup_trends[days_key]['revenue'] += data['revenue']
+    
+    return {
+        'date_range': {
+            'start': start_date.date().isoformat(),
+            'end': end_date.date().isoformat()
+        },
+        'pickup_details': pickup_data,
+        'pickup_trends': pickup_trends,
+        'summary': {
+            'total_rooms': total_rooms,
+            'total_revenue': total_revenue,
+            'avg_days_before': sum(d['days_before_arrival'] for d in pickup_data) / len(pickup_data) if pickup_data else 0
+        }
+    }
+
+
+@api_router.get("/dashboard/gm/anomaly-detection")
+async def get_anomaly_detection(
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Detect anomalies in room operations"""
+    current_user = await get_current_user(credentials)
+    
+    anomalies = []
+    
+    # 1. Price Anomalies - Rooms priced significantly below average
+    avg_rate_pipeline = [
+        {
+            '$match': {
+                'tenant_id': current_user.tenant_id,
+                'status': {'$in': ['confirmed', 'guaranteed', 'checked_in']},
+                'created_at': {'$gte': datetime.now(timezone.utc) - timedelta(days=30)}
+            }
+        },
+        {
+            '$group': {
+                '_id': '$room_type',
+                'avg_rate': {'$avg': '$room_rate'},
+                'min_rate': {'$min': '$room_rate'},
+                'max_rate': {'$max': '$room_rate'}
+            }
+        }
+    ]
+    
+    rate_stats = {}
+    async for stat in db.bookings.aggregate(avg_rate_pipeline):
+        rate_stats[stat['_id']] = stat
+    
+    # Check for low-priced bookings
+    async for booking in db.bookings.find({
+        'tenant_id': current_user.tenant_id,
+        'check_in': {'$gte': datetime.now(timezone.utc)},
+        'status': {'$in': ['confirmed', 'guaranteed']}
+    }):
+        room_type = booking.get('room_type')
+        room_rate = booking.get('room_rate', 0)
+        
+        if room_type in rate_stats:
+            avg_rate = rate_stats[room_type]['avg_rate']
+            if room_rate < avg_rate * 0.7:  # 30% below average
+                anomalies.append({
+                    'type': 'low_price',
+                    'severity': 'medium',
+                    'booking_id': booking.get('id'),
+                    'room_number': booking.get('room_number'),
+                    'guest_name': booking.get('guest_name'),
+                    'current_rate': room_rate,
+                    'average_rate': avg_rate,
+                    'difference_pct': ((avg_rate - room_rate) / avg_rate * 100),
+                    'message': f"Oda {booking.get('room_number')} ortalamanın %{((avg_rate - room_rate) / avg_rate * 100):.0f} altında fiyatlandırılmış"
+                })
+    
+    # 2. Cleaning Delay Anomalies
+    async for task in db.housekeeping_tasks.find({
+        'tenant_id': current_user.tenant_id,
+        'task_type': 'cleaning',
+        'status': 'in_progress',
+        'started_at': {'$lte': datetime.now(timezone.utc) - timedelta(hours=1)}
+    }):
+        duration = (datetime.now(timezone.utc) - task.get('started_at')).total_seconds() / 60
+        
+        room = await db.rooms.find_one({
+            'id': task.get('room_id'),
+            'tenant_id': current_user.tenant_id
+        })
+        
+        anomalies.append({
+            'type': 'cleaning_delay',
+            'severity': 'high' if duration > 90 else 'medium',
+            'room_id': task.get('room_id'),
+            'room_number': room.get('room_number') if room else 'N/A',
+            'duration_minutes': int(duration),
+            'assigned_to': task.get('assigned_to'),
+            'message': f"Oda {room.get('room_number') if room else 'N/A'} {int(duration)} dakikadır temizleniyor"
+        })
+    
+    # 3. Overstay Risk Detection
+    today = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0)
+    async for booking in db.bookings.find({
+        'tenant_id': current_user.tenant_id,
+        'check_out': {'$lte': today},
+        'status': 'checked_in'
+    }):
+        days_over = (today - booking.get('check_out')).days
+        
+        anomalies.append({
+            'type': 'overstay',
+            'severity': 'high',
+            'booking_id': booking.get('id'),
+            'room_number': booking.get('room_number'),
+            'guest_name': booking.get('guest_name'),
+            'days_over': days_over,
+            'original_checkout': booking.get('check_out').date().isoformat(),
+            'message': f"Misafir {booking.get('guest_name')} check-out yapması gerekirken hala odada ({days_over} gün geçti)"
+        })
+    
+    # 4. High Maintenance Frequency Rooms
+    maintenance_pipeline = [
+        {
+            '$match': {
+                'tenant_id': current_user.tenant_id,
+                'department': 'maintenance',
+                'created_at': {'$gte': datetime.now(timezone.utc) - timedelta(days=30)}
+            }
+        },
+        {
+            '$group': {
+                '_id': '$room_id',
+                'count': {'$sum': 1},
+                'room_number': {'$first': '$room_number'}
+            }
+        },
+        {
+            '$match': {'count': {'$gte': 3}}
+        },
+        {
+            '$sort': {'count': -1}
+        }
+    ]
+    
+    async for room_stat in db.tasks.aggregate(maintenance_pipeline):
+        anomalies.append({
+            'type': 'high_maintenance',
+            'severity': 'medium',
+            'room_id': room_stat['_id'],
+            'room_number': room_stat['room_number'],
+            'maintenance_count': room_stat['count'],
+            'message': f"Oda {room_stat['room_number']} son 30 günde {room_stat['count']} kez bakıma girdi"
+        })
+    
+    return {
+        'anomalies': anomalies,
+        'count': len(anomalies),
+        'by_severity': {
+            'high': len([a for a in anomalies if a['severity'] == 'high']),
+            'medium': len([a for a in anomalies if a['severity'] == 'medium']),
+            'low': len([a for a in anomalies if a['severity'] == 'low'])
+        }
+    }
+
+
+@api_router.get("/dashboard/gm/forecast-weekly")
+async def get_weekly_forecast(
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Get weekly forecast for next 4 weeks"""
+    current_user = await get_current_user(credentials)
+    
+    today = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0)
+    forecast_weeks = []
+    
+    for week_num in range(4):
+        week_start = today + timedelta(days=week_num * 7)
+        week_end = week_start + timedelta(days=6)
+        
+        # Get bookings for this week
+        bookings_count = await db.bookings.count_documents({
+            'tenant_id': current_user.tenant_id,
+            'check_in': {'$gte': week_start, '$lte': week_end},
+            'status': {'$in': ['confirmed', 'guaranteed', 'checked_in']}
+        })
+        
+        # Calculate revenue
+        revenue_pipeline = [
+            {
+                '$match': {
+                    'tenant_id': current_user.tenant_id,
+                    'check_in': {'$gte': week_start, '$lte': week_end},
+                    'status': {'$in': ['confirmed', 'guaranteed', 'checked_in']}
+                }
+            },
+            {
+                '$group': {
+                    '_id': None,
+                    'total_revenue': {'$sum': '$total_amount'},
+                    'avg_rate': {'$avg': '$room_rate'}
+                }
+            }
+        ]
+        
+        revenue_data = None
+        async for data in db.bookings.aggregate(revenue_pipeline):
+            revenue_data = data
+        
+        # Get total rooms
+        total_rooms = await db.rooms.count_documents({'tenant_id': current_user.tenant_id})
+        
+        # Calculate occupancy
+        expected_occupancy = (bookings_count / (total_rooms * 7)) * 100 if total_rooms > 0 else 0
+        
+        forecast_weeks.append({
+            'week_number': week_num + 1,
+            'start_date': week_start.date().isoformat(),
+            'end_date': week_end.date().isoformat(),
+            'bookings': bookings_count,
+            'expected_revenue': revenue_data['total_revenue'] if revenue_data else 0,
+            'avg_rate': revenue_data['avg_rate'] if revenue_data else 0,
+            'expected_occupancy': expected_occupancy
+        })
+    
+    return {
+        'forecast_period': 'weekly',
+        'weeks': forecast_weeks,
+        'total_expected_revenue': sum(w['expected_revenue'] for w in forecast_weeks),
+        'avg_weekly_occupancy': sum(w['expected_occupancy'] for w in forecast_weeks) / len(forecast_weeks)
+    }
+
+
+@api_router.get("/dashboard/gm/forecast-monthly")
+async def get_monthly_forecast(
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Get monthly forecast for next 3 months"""
+    current_user = await get_current_user(credentials)
+    
+    today = datetime.now(timezone.utc)
+    forecast_months = []
+    
+    for month_offset in range(3):
+        # Calculate month start and end
+        if month_offset == 0:
+            month_start = today.replace(day=1, hour=0, minute=0, second=0)
+        else:
+            year = today.year
+            month = today.month + month_offset
+            if month > 12:
+                month = month - 12
+                year += 1
+            month_start = datetime(year, month, 1, tzinfo=timezone.utc)
+        
+        # Calculate month end
+        if month_start.month == 12:
+            month_end = datetime(month_start.year + 1, 1, 1, tzinfo=timezone.utc) - timedelta(days=1)
+        else:
+            month_end = datetime(month_start.year, month_start.month + 1, 1, tzinfo=timezone.utc) - timedelta(days=1)
+        
+        # Get bookings
+        bookings_count = await db.bookings.count_documents({
+            'tenant_id': current_user.tenant_id,
+            'check_in': {'$gte': month_start, '$lte': month_end},
+            'status': {'$in': ['confirmed', 'guaranteed', 'checked_in']}
+        })
+        
+        # Calculate revenue
+        revenue_pipeline = [
+            {
+                '$match': {
+                    'tenant_id': current_user.tenant_id,
+                    'check_in': {'$gte': month_start, '$lte': month_end},
+                    'status': {'$in': ['confirmed', 'guaranteed', 'checked_in']}
+                }
+            },
+            {
+                '$group': {
+                    '_id': None,
+                    'total_revenue': {'$sum': '$total_amount'},
+                    'avg_rate': {'$avg': '$room_rate'}
+                }
+            }
+        ]
+        
+        revenue_data = None
+        async for data in db.bookings.aggregate(revenue_pipeline):
+            revenue_data = data
+        
+        # Get total rooms and days
+        total_rooms = await db.rooms.count_documents({'tenant_id': current_user.tenant_id})
+        days_in_month = (month_end - month_start).days + 1
+        
+        # Calculate metrics
+        expected_occupancy = (bookings_count / (total_rooms * days_in_month)) * 100 if total_rooms > 0 else 0
+        expected_revenue = revenue_data['total_revenue'] if revenue_data else 0
+        avg_rate = revenue_data['avg_rate'] if revenue_data else 0
+        revpar = expected_revenue / (total_rooms * days_in_month) if total_rooms > 0 else 0
+        
+        forecast_months.append({
+            'month': month_start.strftime('%B %Y'),
+            'month_number': month_start.month,
+            'year': month_start.year,
+            'start_date': month_start.date().isoformat(),
+            'end_date': month_end.date().isoformat(),
+            'days': days_in_month,
+            'bookings': bookings_count,
+            'expected_revenue': expected_revenue,
+            'avg_rate': avg_rate,
+            'expected_occupancy': expected_occupancy,
+            'revpar': revpar
+        })
+    
+    return {
+        'forecast_period': 'monthly',
+        'months': forecast_months,
+        'total_expected_revenue': sum(m['expected_revenue'] for m in forecast_months),
+        'avg_monthly_occupancy': sum(m['expected_occupancy'] for m in forecast_months) / len(forecast_months)
+    }
+
+
+# --------------------------------------------------------------------------
+# Front Office - Enhanced Features
+# --------------------------------------------------------------------------
+
+@api_router.get("/frontdesk/rooms-with-filters")
+async def get_rooms_with_filters(
+    bed_type: Optional[str] = None,
+    floor: Optional[int] = None,
+    status: Optional[str] = None,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Get rooms with advanced filters for room moves"""
+    current_user = await get_current_user(credentials)
+    
+    query = {'tenant_id': current_user.tenant_id}
+    
+    if bed_type:
+        query['bed_type'] = bed_type
+    if floor is not None:
+        query['floor'] = floor
+    if status:
+        query['status'] = status
+    
+    rooms = []
+    async for room in db.rooms.find(query).sort('room_number', 1):
+        rooms.append({
+            'id': room.get('id'),
+            'room_number': room.get('room_number'),
+            'room_type': room.get('room_type'),
+            'bed_type': room.get('bed_type', 'unknown'),
+            'floor': room.get('floor', 0),
+            'status': room.get('status'),
+            'max_occupancy': room.get('max_occupancy', 2),
+            'features': room.get('features', [])
+        })
+    
+    return {
+        'rooms': rooms,
+        'count': len(rooms),
+        'filters_applied': {
+            'bed_type': bed_type,
+            'floor': floor,
+            'status': status
+        }
+    }
+
+
+@api_router.post("/frontdesk/calculate-early-late-fees")
+async def calculate_early_late_fees(
+    booking_id: str,
+    early_checkin_time: Optional[str] = None,
+    late_checkout_time: Optional[str] = None,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Calculate fees for early check-in or late checkout"""
+    current_user = await get_current_user(credentials)
+    
+    booking = await db.bookings.find_one({
+        'id': booking_id,
+        'tenant_id': current_user.tenant_id
+    })
+    
+    if not booking:
+        raise HTTPException(status_code=404, detail="Booking not found")
+    
+    room_rate = booking.get('room_rate', 0)
+    fees = {}
+    
+    # Early check-in fee calculation
+    if early_checkin_time:
+        # Standard check-in is 14:00
+        early_hour = int(early_checkin_time.split(':')[0])
+        
+        if early_hour < 12:
+            # Before 12:00 - charge 50% of room rate
+            fees['early_checkin_fee'] = room_rate * 0.5
+            fees['early_checkin_reason'] = 'Before 12:00 - Half day charge'
+        elif early_hour < 14:
+            # 12:00-14:00 - charge 25% of room rate
+            fees['early_checkin_fee'] = room_rate * 0.25
+            fees['early_checkin_reason'] = '12:00-14:00 - Quarter day charge'
+        else:
+            fees['early_checkin_fee'] = 0
+            fees['early_checkin_reason'] = 'Within standard check-in time'
+    
+    # Late checkout fee calculation
+    if late_checkout_time:
+        # Standard checkout is 12:00
+        late_hour = int(late_checkout_time.split(':')[0])
+        
+        if late_hour >= 18:
+            # After 18:00 - charge full room rate
+            fees['late_checkout_fee'] = room_rate
+            fees['late_checkout_reason'] = 'After 18:00 - Full day charge'
+        elif late_hour > 14:
+            # 14:00-18:00 - charge 50% of room rate
+            fees['late_checkout_fee'] = room_rate * 0.5
+            fees['late_checkout_reason'] = '14:00-18:00 - Half day charge'
+        elif late_hour > 12:
+            # 12:00-14:00 - charge 25% of room rate
+            fees['late_checkout_fee'] = room_rate * 0.25
+            fees['late_checkout_reason'] = '12:00-14:00 - Quarter day charge'
+        else:
+            fees['late_checkout_fee'] = 0
+            fees['late_checkout_reason'] = 'Within standard checkout time'
+    
+    fees['total_additional_fees'] = fees.get('early_checkin_fee', 0) + fees.get('late_checkout_fee', 0)
+    fees['room_rate'] = room_rate
+    fees['booking_id'] = booking_id
+    
+    return fees
+
+
+@api_router.get("/frontdesk/guest-alerts")
+async def get_guest_alerts(
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Get guest alerts (VIP, birthday, health issues, etc.)"""
+    current_user = await get_current_user(credentials)
+    
+    alerts = []
+    today = datetime.now(timezone.utc).date()
+    
+    # Get all in-house and arriving guests
+    async for booking in db.bookings.find({
+        'tenant_id': current_user.tenant_id,
+        '$or': [
+            {'status': 'checked_in'},
+            {
+                'check_in': {
+                    '$gte': datetime.combine(today, datetime.min.time()).replace(tzinfo=timezone.utc),
+                    '$lte': datetime.combine(today, datetime.max.time()).replace(tzinfo=timezone.utc)
+                },
+                'status': {'$in': ['confirmed', 'guaranteed']}
+            }
+        ]
+    }):
+        guest = await db.guests.find_one({
+            'id': booking.get('guest_id'),
+            'tenant_id': current_user.tenant_id
+        })
+        
+        if not guest:
+            continue
+        
+        # VIP Status Alert
+        if guest.get('vip_status'):
+            alerts.append({
+                'type': 'vip',
+                'priority': 'high',
+                'guest_name': booking.get('guest_name'),
+                'room_number': booking.get('room_number'),
+                'message': f"VIP Misafir - {guest.get('vip_tier', 'Standard')} seviye",
+                'icon': '⭐',
+                'details': {
+                    'tier': guest.get('vip_tier'),
+                    'preferences': guest.get('preferences', [])
+                }
+            })
+        
+        # Birthday Alert
+        if guest.get('date_of_birth'):
+            birthday = guest.get('date_of_birth')
+            if isinstance(birthday, str):
+                birthday = datetime.fromisoformat(birthday).date()
+            
+            if birthday.month == today.month and birthday.day == today.day:
+                alerts.append({
+                    'type': 'birthday',
+                    'priority': 'medium',
+                    'guest_name': booking.get('guest_name'),
+                    'room_number': booking.get('room_number'),
+                    'message': 'Bugün doğum günü! 🎂',
+                    'icon': '🎂',
+                    'details': {
+                        'age': today.year - birthday.year
+                    }
+                })
+        
+        # Health Issues Alert
+        if guest.get('health_notes') or guest.get('allergies'):
+            alerts.append({
+                'type': 'health',
+                'priority': 'high',
+                'guest_name': booking.get('guest_name'),
+                'room_number': booking.get('room_number'),
+                'message': 'Sağlık notu/alerji var',
+                'icon': '🏥',
+                'details': {
+                    'health_notes': guest.get('health_notes', ''),
+                    'allergies': guest.get('allergies', [])
+                }
+            })
+        
+        # Special Requests Alert
+        if booking.get('special_requests'):
+            alerts.append({
+                'type': 'special_request',
+                'priority': 'medium',
+                'guest_name': booking.get('guest_name'),
+                'room_number': booking.get('room_number'),
+                'message': 'Özel istek var',
+                'icon': '📝',
+                'details': {
+                    'requests': booking.get('special_requests')
+                }
+            })
+        
+        # Repeat Guest Alert
+        guest_booking_count = await db.bookings.count_documents({
+            'guest_id': guest.get('id'),
+            'tenant_id': current_user.tenant_id,
+            'status': 'checked_out'
+        })
+        
+        if guest_booking_count >= 5:
+            alerts.append({
+                'type': 'repeat_guest',
+                'priority': 'low',
+                'guest_name': booking.get('guest_name'),
+                'room_number': booking.get('room_number'),
+                'message': f"Sadık misafir - {guest_booking_count} konaklama",
+                'icon': '💎',
+                'details': {
+                    'total_stays': guest_booking_count
+                }
+            })
+    
+    return {
+        'alerts': alerts,
+        'count': len(alerts),
+        'by_priority': {
+            'high': len([a for a in alerts if a['priority'] == 'high']),
+            'medium': len([a for a in alerts if a['priority'] == 'medium']),
+            'low': len([a for a in alerts if a['priority'] == 'low'])
+        }
+    }
+
+
+# --------------------------------------------------------------------------
+# Housekeeping - Enhanced Features
+# --------------------------------------------------------------------------
+
+@api_router.get("/housekeeping/status-change-logs")
+async def get_status_change_logs(
+    room_id: Optional[str] = None,
+    limit: int = 50,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Get room status change logs (audit trail)"""
+    current_user = await get_current_user(credentials)
+    
+    query = {
+        'tenant_id': current_user.tenant_id,
+        'action': 'ROOM_STATUS_CHANGE'
+    }
+    
+    if room_id:
+        query['entity_id'] = room_id
+    
+    logs = []
+    async for log in db.audit_logs.find(query).sort('timestamp', -1).limit(limit):
+        room = await db.rooms.find_one({
+            'id': log.get('entity_id'),
+            'tenant_id': current_user.tenant_id
+        })
+        
+        logs.append({
+            'log_id': log.get('id'),
+            'room_id': log.get('entity_id'),
+            'room_number': room.get('room_number') if room else 'N/A',
+            'old_status': log.get('changes', {}).get('old_status'),
+            'new_status': log.get('changes', {}).get('new_status'),
+            'changed_by': log.get('user_name'),
+            'timestamp': log.get('timestamp').isoformat() if log.get('timestamp') else None,
+            'reason': log.get('changes', {}).get('reason', '')
+        })
+    
+    return {
+        'logs': logs,
+        'count': len(logs)
+    }
+
+
+class LostFoundItemCreate(BaseModel):
+    item_description: str
+    location_found: str
+    found_by: str
+    category: Optional[str] = 'other'
+    room_number: Optional[str] = None
+    guest_name: Optional[str] = None
+    notes: Optional[str] = None
+
+@api_router.post("/housekeeping/lost-found/item")
+async def create_lost_found_item(
+    item: LostFoundItemCreate,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Create a new lost and found item"""
+    current_user = await get_current_user(credentials)
+    
+    item_id = str(uuid.uuid4())
+    lost_found_item = {
+        'id': item_id,
+        'tenant_id': current_user.tenant_id,
+        'item_description': item.item_description,
+        'location_found': item.location_found,
+        'found_by': item.found_by,
+        'category': item.category,
+        'room_number': item.room_number,
+        'guest_name': item.guest_name,
+        'notes': item.notes,
+        'status': 'unclaimed',
+        'found_date': datetime.now(timezone.utc),
+        'created_by': current_user.username,
+        'created_at': datetime.now(timezone.utc)
+    }
+    
+    await db.lost_found.insert_one(lost_found_item)
+    
+    return {
+        'message': 'Lost & found item created',
+        'item_id': item_id,
+        'item_description': item.item_description
+    }
+
+
+@api_router.get("/housekeeping/lost-found/items")
+async def get_lost_found_items(
+    status: Optional[str] = None,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Get lost and found items"""
+    current_user = await get_current_user(credentials)
+    
+    query = {'tenant_id': current_user.tenant_id}
+    if status:
+        query['status'] = status
+    
+    items = []
+    async for item in db.lost_found.find(query).sort('found_date', -1):
+        items.append({
+            'id': item.get('id'),
+            'item_description': item.get('item_description'),
+            'category': item.get('category'),
+            'location_found': item.get('location_found'),
+            'room_number': item.get('room_number'),
+            'guest_name': item.get('guest_name'),
+            'found_by': item.get('found_by'),
+            'found_date': item.get('found_date').isoformat() if item.get('found_date') else None,
+            'status': item.get('status'),
+            'notes': item.get('notes')
+        })
+    
+    return {
+        'items': items,
+        'count': len(items),
+        'by_status': {
+            'unclaimed': len([i for i in items if i['status'] == 'unclaimed']),
+            'claimed': len([i for i in items if i['status'] == 'claimed']),
+            'disposed': len([i for i in items if i['status'] == 'disposed'])
+        }
+    }
+
+
+@api_router.get("/housekeeping/task-assignments")
+async def get_task_assignments(
+    date: Optional[str] = None,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Get housekeeping task assignments and routes"""
+    current_user = await get_current_user(credentials)
+    
+    if date:
+        target_date = datetime.fromisoformat(date).replace(tzinfo=timezone.utc)
+    else:
+        target_date = datetime.now(timezone.utc)
+    
+    start_of_day = target_date.replace(hour=0, minute=0, second=0)
+    end_of_day = target_date.replace(hour=23, minute=59, second=59)
+    
+    # Get all housekeeping staff
+    staff_list = []
+    async for task in db.housekeeping_tasks.find({
+        'tenant_id': current_user.tenant_id,
+        'assigned_to': {'$exists': True, '$ne': None}
+    }).limit(100):
+        staff_name = task.get('assigned_to')
+        if staff_name and staff_name not in staff_list:
+            staff_list.append(staff_name)
+    
+    # Get assignments for each staff
+    assignments = []
+    
+    for staff_name in staff_list:
+        staff_tasks = []
+        completed_count = 0
+        
+        async for task in db.housekeeping_tasks.find({
+            'tenant_id': current_user.tenant_id,
+            'assigned_to': staff_name,
+            'created_at': {'$gte': start_of_day, '$lte': end_of_day}
+        }).sort('room_number', 1):
+            
+            room = await db.rooms.find_one({
+                'id': task.get('room_id'),
+                'tenant_id': current_user.tenant_id
+            })
+            
+            task_info = {
+                'task_id': task.get('id'),
+                'room_id': task.get('room_id'),
+                'room_number': room.get('room_number') if room else task.get('room_number'),
+                'floor': room.get('floor') if room else 0,
+                'task_type': task.get('task_type'),
+                'status': task.get('status'),
+                'priority': task.get('priority', 'normal'),
+                'started_at': task.get('started_at').isoformat() if task.get('started_at') else None
+            }
+            
+            staff_tasks.append(task_info)
+            
+            if task.get('status') == 'completed':
+                completed_count += 1
+        
+        # Sort tasks by floor and room number for optimal route
+        staff_tasks.sort(key=lambda x: (x['floor'], x['room_number']))
+        
+        assignments.append({
+            'staff_name': staff_name,
+            'total_tasks': len(staff_tasks),
+            'completed': completed_count,
+            'in_progress': len([t for t in staff_tasks if t['status'] == 'in_progress']),
+            'pending': len([t for t in staff_tasks if t['status'] in ['new', 'assigned']]),
+            'tasks': staff_tasks,
+            'route': [t['room_number'] for t in staff_tasks]
+        })
+    
+    return {
+        'date': target_date.date().isoformat(),
+        'assignments': assignments,
+        'total_staff': len(assignments),
+        'total_tasks': sum(a['total_tasks'] for a in assignments)
+    }
+
+
+# --------------------------------------------------------------------------
+# Maintenance - Asset History
+# --------------------------------------------------------------------------
+
+@api_router.get("/maintenance/asset-history/{asset_id}")
+async def get_asset_maintenance_history(
+    asset_id: str,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Get maintenance history for a specific asset/equipment"""
+    current_user = await get_current_user(credentials)
+    
+    # Get asset info
+    asset = await db.equipment.find_one({
+        'id': asset_id,
+        'tenant_id': current_user.tenant_id
+    })
+    
+    if not asset:
+        # Try finding by room_id
+        room = await db.rooms.find_one({
+            'id': asset_id,
+            'tenant_id': current_user.tenant_id
+        })
+        
+        if not room:
+            raise HTTPException(status_code=404, detail="Asset not found")
+        
+        asset = {
+            'id': room.get('id'),
+            'name': f"Room {room.get('room_number')}",
+            'type': 'room',
+            'room_number': room.get('room_number')
+        }
+    
+    # Get all maintenance tasks for this asset
+    history = []
+    async for task in db.tasks.find({
+        '$or': [
+            {'room_id': asset_id},
+            {'equipment_id': asset_id}
+        ],
+        'tenant_id': current_user.tenant_id,
+        'department': 'maintenance'
+    }).sort('created_at', -1):
+        
+        history.append({
+            'task_id': task.get('id'),
+            'title': task.get('title'),
+            'description': task.get('description'),
+            'issue_type': task.get('issue_type'),
+            'priority': task.get('priority'),
+            'status': task.get('status'),
+            'assigned_to': task.get('assigned_to'),
+            'created_at': task.get('created_at').isoformat() if task.get('created_at') else None,
+            'completed_at': task.get('completed_at').isoformat() if task.get('completed_at') else None,
+            'resolution_notes': task.get('resolution_notes', ''),
+            'cost': task.get('cost', 0)
+        })
+    
+    # Calculate statistics
+    total_tasks = len(history)
+    completed_tasks = len([h for h in history if h['status'] == 'completed'])
+    total_cost = sum(h['cost'] for h in history)
+    
+    # Calculate average resolution time
+    resolution_times = []
+    for h in history:
+        if h['completed_at'] and h['created_at']:
+            created = datetime.fromisoformat(h['created_at'])
+            completed = datetime.fromisoformat(h['completed_at'])
+            duration = (completed - created).total_seconds() / 3600  # hours
+            resolution_times.append(duration)
+    
+    avg_resolution_time = sum(resolution_times) / len(resolution_times) if resolution_times else 0
+    
+    return {
+        'asset': {
+            'id': asset.get('id'),
+            'name': asset.get('name'),
+            'type': asset.get('type'),
+            'room_number': asset.get('room_number')
+        },
+        'history': history,
+        'statistics': {
+            'total_tasks': total_tasks,
+            'completed_tasks': completed_tasks,
+            'pending_tasks': total_tasks - completed_tasks,
+            'total_cost': total_cost,
+            'avg_resolution_time_hours': avg_resolution_time
+        }
+    }
+
         target_date = datetime.now(timezone.utc)
     
     start_of_day = target_date.replace(hour=0, minute=0, second=0, microsecond=0)
