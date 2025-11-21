@@ -41,6 +41,11 @@ const MobileFnB = ({ user }) => {
   const [selectedOutlet, setSelectedOutlet] = useState(null);
   const [orderItems, setOrderItems] = useState([]);
   const [tableNumber, setTableNumber] = useState('');
+  const [zReportModalOpen, setZReportModalOpen] = useState(false);
+  const [voidReportModalOpen, setVoidReportModalOpen] = useState(false);
+  const [menuManagementModalOpen, setMenuManagementModalOpen] = useState(false);
+  const [zReportData, setZReportData] = useState(null);
+  const [voidTransactions, setVoidTransactions] = useState([]);
 
   useEffect(() => {
     loadData();
