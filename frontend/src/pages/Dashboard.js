@@ -195,51 +195,51 @@ const Dashboard = ({ user, tenant, onLogout }) => {
 
             {/* Quick Stats */}
             {stats?.pms && (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                <Card>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-xs font-medium text-gray-600">{t('dashboard.totalRooms')}</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="flex items-center">
-                      <BedDouble className="w-6 h-6 mr-2 text-blue-500" />
-                      <div className="text-2xl font-bold">{stats.pms.total_rooms}</div>
+              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-4 gap-3">
+                <Card className="hover:shadow-md transition-shadow">
+                  <CardContent className="p-4 text-center">
+                    <div className="flex flex-col items-center space-y-2">
+                      <div className="p-2 bg-blue-100 rounded-lg">
+                        <BedDouble className="w-6 h-6 text-blue-500" />
+                      </div>
+                      <div className="text-2xl font-bold text-gray-900">{stats.pms.total_rooms}</div>
+                      <div className="text-xs font-medium text-gray-600">{t('dashboard.totalRooms')}</div>
                     </div>
                   </CardContent>
                 </Card>
 
-                <Card>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-xs font-medium text-gray-600">{t('dashboard.occupancyRate')}</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="flex items-center">
-                      <Hotel className="w-6 h-6 mr-2 text-green-500" />
-                      <div className="text-2xl font-bold">{stats.pms.occupancy_rate.toFixed(1)}%</div>
+                <Card className="hover:shadow-md transition-shadow">
+                  <CardContent className="p-4 text-center">
+                    <div className="flex flex-col items-center space-y-2">
+                      <div className="p-2 bg-green-100 rounded-lg">
+                        <Hotel className="w-6 h-6 text-green-500" />
+                      </div>
+                      <div className="text-2xl font-bold text-gray-900">{stats.pms.occupancy_rate.toFixed(1)}%</div>
+                      <div className="text-xs font-medium text-gray-600">{t('dashboard.occupancyRate')}</div>
                     </div>
                   </CardContent>
                 </Card>
 
-                <Card>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-xs font-medium text-gray-600">{t('dashboard.todayCheckins')}</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="flex items-center">
-                      <Calendar className="w-6 h-6 mr-2 text-purple-500" />
-                      <div className="text-2xl font-bold">{stats.pms.today_checkins}</div>
+                <Card className="hover:shadow-md transition-shadow">
+                  <CardContent className="p-4 text-center">
+                    <div className="flex flex-col items-center space-y-2">
+                      <div className="p-2 bg-purple-100 rounded-lg">
+                        <Calendar className="w-6 h-6 text-purple-500" />
+                      </div>
+                      <div className="text-2xl font-bold text-gray-900">{stats.pms.today_checkins}</div>
+                      <div className="text-xs font-medium text-gray-600">{t('dashboard.todayCheckins')}</div>
                     </div>
                   </CardContent>
                 </Card>
 
-                <Card>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-xs font-medium text-gray-600">{t('dashboard.totalGuests')}</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="flex items-center">
-                      <Users className="w-6 h-6 mr-2 text-orange-500" />
-                      <div className="text-2xl font-bold">{stats.pms.total_guests}</div>
+                <Card className="hover:shadow-md transition-shadow">
+                  <CardContent className="p-4 text-center">
+                    <div className="flex flex-col items-center space-y-2">
+                      <div className="p-2 bg-orange-100 rounded-lg">
+                        <Users className="w-6 h-6 text-orange-500" />
+                      </div>
+                      <div className="text-2xl font-bold text-gray-900">{stats.pms.total_guests}</div>
+                      <div className="text-xs font-medium text-gray-600">{t('dashboard.totalGuests')}</div>
                     </div>
                   </CardContent>
                 </Card>
