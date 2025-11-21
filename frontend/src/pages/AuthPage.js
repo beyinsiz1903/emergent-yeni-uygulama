@@ -106,20 +106,25 @@ const AuthPage = ({ onLogin }) => {
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-      padding: '20px'
+      background: isMobile 
+        ? 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)' 
+        : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+      padding: isMobile ? '10px' : '20px'
     }}>
-      <div style={{ width: '100%', maxWidth: '500px' }}>
-        <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
+      <div style={{ width: '100%', maxWidth: isMobile ? '100%' : '500px' }}>
+        <div style={{ textAlign: 'center', marginBottom: isMobile ? '1.5rem' : '2rem' }}>
           <h1 style={{ 
-            fontSize: '3rem', 
+            fontSize: isMobile ? '2rem' : '3rem', 
             fontWeight: '700', 
             color: 'white',
             marginBottom: '0.5rem',
             fontFamily: 'Space Grotesk'
-          }}>RoomOps</h1>
-          <p style={{ color: 'rgba(255,255,255,0.9)', fontSize: '1.1rem' }}>
-            Complete Hotel Management Platform
+          }}>
+            {isMobile && <Smartphone className="inline-block mr-2 mb-1" size={isMobile ? 32 : 48} />}
+            RoomOps
+          </h1>
+          <p style={{ color: 'rgba(255,255,255,0.9)', fontSize: isMobile ? '0.9rem' : '1.1rem' }}>
+            {isMobile ? 'Mobile Hotel Management' : 'Complete Hotel Management Platform'}
           </p>
           
           {/* Language Selector */}
@@ -128,11 +133,23 @@ const AuthPage = ({ onLogin }) => {
           </div>
         </div>
 
-        <Card>
+        <Card style={{ 
+          borderRadius: isMobile ? '20px 20px 0 0' : '8px',
+          ...(isMobile && {
+            position: 'fixed',
+            bottom: 0,
+            left: 0,
+            right: 0,
+            maxHeight: '80vh',
+            overflowY: 'auto'
+          })
+        }}>
           <CardHeader>
-            <CardTitle>{t('common.welcome')}</CardTitle>
+            <CardTitle style={{ fontSize: isMobile ? '1.25rem' : '1.5rem' }}>
+              {isMobile ? 'Mobile Login' : t('common.welcome')}
+            </CardTitle>
             <CardDescription>
-              {t('auth.signIn')}
+              {isMobile ? 'Access your hotel on the go' : t('auth.signIn')}
             </CardDescription>
           </CardHeader>
           <CardContent>
