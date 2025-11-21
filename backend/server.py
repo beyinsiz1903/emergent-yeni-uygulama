@@ -28148,6 +28148,865 @@ async def get_profit_loss_report(
             }
         },
         {
+
+
+
+# ============================================================================
+# FAZ 2 - ORTA SEVİYE ÖZELLIKLER (Sales, Revenue, IT, Inventory)
+# ============================================================================
+
+# --------------------------------------------------------------------------
+# Sales & Marketing - Group Sales, Corporate Contracts, OTA Promotions
+# --------------------------------------------------------------------------
+
+@api_router.get("/sales/group-bookings")
+async def get_group_bookings(
+    status: Optional[str] = None,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Get group bookings (weddings, meetings, conferences)"""
+    current_user = await get_current_user(credentials)
+    
+    query = {
+        'tenant_id': current_user.tenant_id,
+        'booking_type': 'group'
+    }
+    
+    if status:
+        query['status'] = status
+    
+    group_bookings = []
+    async for booking in db.group_bookings.find(query).sort('event_date', 1):
+        group_bookings.append({
+            'id': booking.get('id'),
+            'group_name': booking.get('group_name'),
+            'group_type': booking.get('group_type'),  # wedding, meeting, conference
+            'event_date': booking.get('event_date').date().isoformat() if booking.get('event_date') else None,
+            'start_date': booking.get('start_date').date().isoformat() if booking.get('start_date') else None,
+            'end_date': booking.get('end_date').date().isoformat() if booking.get('end_date') else None,
+            'total_rooms': booking.get('total_rooms', 0),
+            'total_guests': booking.get('total_guests', 0),
+            'total_revenue': booking.get('total_revenue', 0),
+            'status': booking.get('status'),
+            'contact_person': booking.get('contact_person'),
+            'contact_email': booking.get('contact_email'),
+            'contact_phone': booking.get('contact_phone'),
+            'special_requirements': booking.get('special_requirements', ''),
+            'notes': booking.get('notes', '')
+        })
+    
+    return {
+        'group_bookings': group_bookings,
+        'count': len(group_bookings),
+        'by_type': {
+            'wedding': len([g for g in group_bookings if g['group_type'] == 'wedding']),
+            'meeting': len([g for g in group_bookings if g['group_type'] == 'meeting']),
+            'conference': len([g for g in group_bookings if g['group_type'] == 'conference'])
+        }
+    }
+
+
+class GroupBookingCreate(BaseModel):
+    group_name: str
+    group_type: str  # wedding, meeting, conference
+    event_date: str
+    start_date: str
+    end_date: str
+    total_rooms: int
+    total_guests: int
+    contact_person: str
+    contact_email: str
+    contact_phone: str
+    special_requirements: Optional[str] = None
+    notes: Optional[str] = None
+
+@api_router.post("/sales/group-booking")
+async def create_group_booking(
+    booking: GroupBookingCreate,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Create a new group booking"""
+    current_user = await get_current_user(credentials)
+    
+    booking_id = str(uuid.uuid4())
+    group_booking = {
+        'id': booking_id,
+        'tenant_id': current_user.tenant_id,
+        'booking_type': 'group',
+        'group_name': booking.group_name,
+        'group_type': booking.group_type,
+        'event_date': datetime.fromisoformat(booking.event_date),
+        'start_date': datetime.fromisoformat(booking.start_date),
+        'end_date': datetime.fromisoformat(booking.end_date),
+        'total_rooms': booking.total_rooms,
+        'total_guests': booking.total_guests,
+        'contact_person': booking.contact_person,
+        'contact_email': booking.contact_email,
+        'contact_phone': booking.contact_phone,
+        'special_requirements': booking.special_requirements,
+        'notes': booking.notes,
+        'status': 'inquiry',
+        'created_at': datetime.now(timezone.utc),
+        'created_by': current_user.username
+    }
+    
+    await db.group_bookings.insert_one(group_booking)
+    
+    return {
+        'message': 'Group booking created',
+        'booking_id': booking_id,
+        'group_name': booking.group_name
+    }
+
+
+@api_router.get("/sales/corporate-contracts")
+async def get_corporate_contracts(
+    status: Optional[str] = None,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Get corporate contracts"""
+    current_user = await get_current_user(credentials)
+    
+    query = {'tenant_id': current_user.tenant_id}
+    if status:
+        query['status'] = status
+    
+    contracts = []
+    async for contract in db.corporate_contracts.find(query).sort('start_date', -1):
+        contracts.append({
+            'id': contract.get('id'),
+            'company_name': contract.get('company_name'),
+            'contract_type': contract.get('contract_type'),  # direct, negotiated, corporate_rate
+            'rate_code': contract.get('rate_code'),
+            'negotiated_rate': contract.get('negotiated_rate'),
+            'discount_percentage': contract.get('discount_percentage', 0),
+            'start_date': contract.get('start_date').date().isoformat() if contract.get('start_date') else None,
+            'end_date': contract.get('end_date').date().isoformat() if contract.get('end_date') else None,
+            'allotment': contract.get('allotment', 0),
+            'blackout_dates': contract.get('blackout_dates', []),
+            'status': contract.get('status'),
+            'total_bookings': contract.get('total_bookings', 0),
+            'total_room_nights': contract.get('total_room_nights', 0),
+            'total_revenue': contract.get('total_revenue', 0),
+            'contact_person': contract.get('contact_person'),
+            'notes': contract.get('notes', '')
+        })
+    
+    return {
+        'contracts': contracts,
+        'count': len(contracts),
+        'active_contracts': len([c for c in contracts if c['status'] == 'active'])
+    }
+
+
+class CorporateContractCreate(BaseModel):
+    company_name: str
+    contract_type: str
+    rate_code: str
+    negotiated_rate: Optional[float] = None
+    discount_percentage: Optional[float] = 0
+    start_date: str
+    end_date: str
+    allotment: Optional[int] = 0
+    blackout_dates: Optional[List[str]] = []
+    contact_person: str
+    contact_email: str
+    contact_phone: str
+    notes: Optional[str] = None
+
+@api_router.post("/sales/corporate-contract")
+async def create_corporate_contract(
+    contract: CorporateContractCreate,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Create a new corporate contract"""
+    current_user = await get_current_user(credentials)
+    
+    contract_id = str(uuid.uuid4())
+    corporate_contract = {
+        'id': contract_id,
+        'tenant_id': current_user.tenant_id,
+        'company_name': contract.company_name,
+        'contract_type': contract.contract_type,
+        'rate_code': contract.rate_code,
+        'negotiated_rate': contract.negotiated_rate,
+        'discount_percentage': contract.discount_percentage,
+        'start_date': datetime.fromisoformat(contract.start_date),
+        'end_date': datetime.fromisoformat(contract.end_date),
+        'allotment': contract.allotment,
+        'blackout_dates': contract.blackout_dates,
+        'contact_person': contract.contact_person,
+        'contact_email': contract.contact_email,
+        'contact_phone': contract.contact_phone,
+        'notes': contract.notes,
+        'status': 'active',
+        'total_bookings': 0,
+        'total_room_nights': 0,
+        'total_revenue': 0,
+        'created_at': datetime.now(timezone.utc),
+        'created_by': current_user.username
+    }
+    
+    await db.corporate_contracts.insert_one(corporate_contract)
+    
+    return {
+        'message': 'Corporate contract created',
+        'contract_id': contract_id,
+        'company_name': contract.company_name
+    }
+
+
+@api_router.put("/sales/corporate-contract/{contract_id}")
+async def update_corporate_contract(
+    contract_id: str,
+    contract: CorporateContractCreate,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Update a corporate contract"""
+    current_user = await get_current_user(credentials)
+    
+    existing = await db.corporate_contracts.find_one({
+        'id': contract_id,
+        'tenant_id': current_user.tenant_id
+    })
+    
+    if not existing:
+        raise HTTPException(status_code=404, detail="Contract not found")
+    
+    await db.corporate_contracts.update_one(
+        {'id': contract_id, 'tenant_id': current_user.tenant_id},
+        {
+            '$set': {
+                'company_name': contract.company_name,
+                'contract_type': contract.contract_type,
+                'rate_code': contract.rate_code,
+                'negotiated_rate': contract.negotiated_rate,
+                'discount_percentage': contract.discount_percentage,
+                'start_date': datetime.fromisoformat(contract.start_date),
+                'end_date': datetime.fromisoformat(contract.end_date),
+                'allotment': contract.allotment,
+                'blackout_dates': contract.blackout_dates,
+                'contact_person': contract.contact_person,
+                'contact_email': contract.contact_email,
+                'contact_phone': contract.contact_phone,
+                'notes': contract.notes,
+                'updated_at': datetime.now(timezone.utc),
+                'updated_by': current_user.username
+            }
+        }
+    )
+    
+    return {
+        'message': 'Contract updated',
+        'contract_id': contract_id
+    }
+
+
+@api_router.get("/sales/ota-promotions")
+async def get_ota_promotions(
+    active_only: bool = False,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Get OTA promotions"""
+    current_user = await get_current_user(credentials)
+    
+    query = {'tenant_id': current_user.tenant_id}
+    
+    if active_only:
+        today = datetime.now(timezone.utc)
+        query['start_date'] = {'$lte': today}
+        query['end_date'] = {'$gte': today}
+        query['is_active'] = True
+    
+    promotions = []
+    async for promo in db.ota_promotions.find(query).sort('start_date', -1):
+        promotions.append({
+            'id': promo.get('id'),
+            'promotion_name': promo.get('promotion_name'),
+            'ota_channel': promo.get('ota_channel'),  # booking.com, expedia, airbnb
+            'promotion_type': promo.get('promotion_type'),  # discount, free_night, upgrade
+            'discount_percentage': promo.get('discount_percentage', 0),
+            'discount_amount': promo.get('discount_amount', 0),
+            'start_date': promo.get('start_date').date().isoformat() if promo.get('start_date') else None,
+            'end_date': promo.get('end_date').date().isoformat() if promo.get('end_date') else None,
+            'min_stay_nights': promo.get('min_stay_nights', 1),
+            'max_bookings': promo.get('max_bookings', 0),
+            'current_bookings': promo.get('current_bookings', 0),
+            'is_active': promo.get('is_active', True),
+            'terms': promo.get('terms', ''),
+            'created_at': promo.get('created_at').isoformat() if promo.get('created_at') else None
+        })
+    
+    return {
+        'promotions': promotions,
+        'count': len(promotions),
+        'active_count': len([p for p in promotions if p['is_active']])
+    }
+
+
+class OTAPromotionCreate(BaseModel):
+    promotion_name: str
+    ota_channel: str
+    promotion_type: str
+    discount_percentage: Optional[float] = 0
+    discount_amount: Optional[float] = 0
+    start_date: str
+    end_date: str
+    min_stay_nights: Optional[int] = 1
+    max_bookings: Optional[int] = 0
+    terms: Optional[str] = None
+
+@api_router.post("/sales/ota-promotion")
+async def create_ota_promotion(
+    promotion: OTAPromotionCreate,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Create a new OTA promotion"""
+    current_user = await get_current_user(credentials)
+    
+    promo_id = str(uuid.uuid4())
+    ota_promotion = {
+        'id': promo_id,
+        'tenant_id': current_user.tenant_id,
+        'promotion_name': promotion.promotion_name,
+        'ota_channel': promotion.ota_channel,
+        'promotion_type': promotion.promotion_type,
+        'discount_percentage': promotion.discount_percentage,
+        'discount_amount': promotion.discount_amount,
+        'start_date': datetime.fromisoformat(promotion.start_date),
+        'end_date': datetime.fromisoformat(promotion.end_date),
+        'min_stay_nights': promotion.min_stay_nights,
+        'max_bookings': promotion.max_bookings,
+        'current_bookings': 0,
+        'is_active': True,
+        'terms': promotion.terms,
+        'created_at': datetime.now(timezone.utc),
+        'created_by': current_user.username
+    }
+    
+    await db.ota_promotions.insert_one(ota_promotion)
+    
+    return {
+        'message': 'OTA promotion created',
+        'promotion_id': promo_id,
+        'promotion_name': promotion.promotion_name
+    }
+
+
+# --------------------------------------------------------------------------
+# Revenue Management - Pickup Report, CompSet, Market Share
+# --------------------------------------------------------------------------
+
+@api_router.get("/revenue/pickup-report")
+async def get_pickup_report(
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+    format: str = 'json',
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Get pickup report with export capability (JSON, CSV ready)"""
+    current_user = await get_current_user(credentials)
+    
+    if not start_date:
+        start_date = datetime.now(timezone.utc).replace(day=1)
+    else:
+        start_date = datetime.fromisoformat(start_date)
+    
+    if not end_date:
+        end_date = start_date + timedelta(days=30)
+    else:
+        end_date = datetime.fromisoformat(end_date)
+    
+    # Get booking pace by arrival date
+    pickup_report = []
+    
+    # Iterate through each day in range
+    current_date = start_date
+    while current_date <= end_date:
+        # Get bookings for this arrival date
+        day_bookings = []
+        
+        async for booking in db.bookings.find({
+            'tenant_id': current_user.tenant_id,
+            'check_in': {
+                '$gte': current_date,
+                '$lt': current_date + timedelta(days=1)
+            },
+            'status': {'$in': ['confirmed', 'guaranteed', 'checked_in']}
+        }):
+            days_before = (current_date - booking.get('created_at')).days if booking.get('created_at') else 0
+            day_bookings.append({
+                'booking_id': booking.get('id'),
+                'created_at': booking.get('created_at').date().isoformat() if booking.get('created_at') else None,
+                'days_before_arrival': days_before,
+                'room_nights': booking.get('nights', 1),
+                'revenue': booking.get('total_amount', 0)
+            })
+        
+        # Aggregate data
+        total_rooms = len(day_bookings)
+        total_revenue = sum(b['revenue'] for b in day_bookings)
+        
+        # Group by booking window
+        booking_windows = {
+            '0-7_days': 0,
+            '8-14_days': 0,
+            '15-30_days': 0,
+            '31-60_days': 0,
+            '61+_days': 0
+        }
+        
+        for booking in day_bookings:
+            days = booking['days_before_arrival']
+            if days <= 7:
+                booking_windows['0-7_days'] += 1
+            elif days <= 14:
+                booking_windows['8-14_days'] += 1
+            elif days <= 30:
+                booking_windows['15-30_days'] += 1
+            elif days <= 60:
+                booking_windows['31-60_days'] += 1
+            else:
+                booking_windows['61+_days'] += 1
+        
+        pickup_report.append({
+            'arrival_date': current_date.date().isoformat(),
+            'total_rooms': total_rooms,
+            'total_revenue': total_revenue,
+            'booking_windows': booking_windows
+        })
+        
+        current_date += timedelta(days=1)
+    
+    # If CSV format requested, prepare for export
+    if format == 'csv':
+        # Return data in CSV-friendly format
+        csv_data = []
+        for row in pickup_report:
+            csv_data.append({
+                'Arrival Date': row['arrival_date'],
+                'Total Rooms': row['total_rooms'],
+                'Total Revenue': row['total_revenue'],
+                '0-7 Days': row['booking_windows']['0-7_days'],
+                '8-14 Days': row['booking_windows']['8-14_days'],
+                '15-30 Days': row['booking_windows']['15-30_days'],
+                '31-60 Days': row['booking_windows']['31-60_days'],
+                '61+ Days': row['booking_windows']['61+_days']
+            })
+        
+        return {
+            'format': 'csv',
+            'data': csv_data,
+            'filename': f"pickup_report_{start_date.date()}_{end_date.date()}.csv"
+        }
+    
+    return {
+        'format': 'json',
+        'date_range': {
+            'start': start_date.date().isoformat(),
+            'end': end_date.date().isoformat()
+        },
+        'pickup_report': pickup_report,
+        'summary': {
+            'total_rooms': sum(r['total_rooms'] for r in pickup_report),
+            'total_revenue': sum(r['total_revenue'] for r in pickup_report)
+        }
+    }
+
+
+@api_router.get("/revenue/compset-analysis")
+async def get_compset_analysis(
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Get competitive set analysis"""
+    current_user = await get_current_user(credentials)
+    
+    # Get competitor data (would be manually entered or API integrated)
+    competitors = []
+    
+    async for comp in db.competitors.find({
+        'tenant_id': current_user.tenant_id,
+        'is_active': True
+    }):
+        # Get their rates (if available)
+        latest_rate = await db.competitor_rates.find_one(
+            {
+                'competitor_id': comp.get('id'),
+                'tenant_id': current_user.tenant_id
+            },
+            sort=[('date', -1)]
+        )
+        
+        competitors.append({
+            'competitor_id': comp.get('id'),
+            'competitor_name': comp.get('name'),
+            'star_rating': comp.get('star_rating'),
+            'location': comp.get('location'),
+            'distance_km': comp.get('distance_km'),
+            'current_adr': latest_rate.get('adr') if latest_rate else 0,
+            'current_occupancy': latest_rate.get('occupancy_pct') if latest_rate else 0,
+            'last_updated': latest_rate.get('date').isoformat() if latest_rate and latest_rate.get('date') else None
+        })
+    
+    # Get own property data
+    today = datetime.now(timezone.utc)
+    own_bookings = await db.bookings.count_documents({
+        'tenant_id': current_user.tenant_id,
+        'check_in': {
+            '$gte': today.replace(hour=0, minute=0, second=0),
+            '$lte': today.replace(hour=23, minute=59, second=59)
+        },
+        'status': {'$in': ['confirmed', 'guaranteed', 'checked_in']}
+    })
+    
+    total_rooms = await db.rooms.count_documents({'tenant_id': current_user.tenant_id})
+    own_occupancy = (own_bookings / total_rooms * 100) if total_rooms > 0 else 0
+    
+    # Calculate own ADR
+    own_adr = 0
+    async for booking in db.bookings.find({
+        'tenant_id': current_user.tenant_id,
+        'check_in': {'$gte': today - timedelta(days=30)},
+        'status': {'$in': ['checked_in', 'checked_out']}
+    }):
+        own_adr += booking.get('room_rate', 0)
+    
+    booking_count = await db.bookings.count_documents({
+        'tenant_id': current_user.tenant_id,
+        'check_in': {'$gte': today - timedelta(days=30)},
+        'status': {'$in': ['checked_in', 'checked_out']}
+    })
+    
+    own_adr = own_adr / booking_count if booking_count > 0 else 0
+    
+    return {
+        'own_property': {
+            'adr': own_adr,
+            'occupancy': own_occupancy,
+            'revpar': own_adr * (own_occupancy / 100)
+        },
+        'competitors': competitors,
+        'compset_count': len(competitors),
+        'analysis_date': today.date().isoformat()
+    }
+
+
+@api_router.get("/revenue/market-share")
+async def get_market_share(
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Get market share analysis"""
+    current_user = await get_current_user(credentials)
+    
+    # Calculate market share based on bookings and revenue
+    today = datetime.now(timezone.utc)
+    last_30_days = today - timedelta(days=30)
+    
+    # Own performance
+    own_rooms = await db.bookings.count_documents({
+        'tenant_id': current_user.tenant_id,
+        'check_in': {'$gte': last_30_days},
+        'status': {'$in': ['checked_in', 'checked_out']}
+    })
+    
+    own_revenue = 0
+    async for booking in db.bookings.find({
+        'tenant_id': current_user.tenant_id,
+        'check_in': {'$gte': last_30_days},
+        'status': {'$in': ['checked_in', 'checked_out']}
+    }):
+        own_revenue += booking.get('total_amount', 0)
+    
+    # Market data (would need competitor API or manual entry)
+    # For now, estimating based on competitor count and average
+    total_market_rooms = own_rooms  # Base
+    total_market_revenue = own_revenue  # Base
+    
+    competitor_count = await db.competitors.count_documents({
+        'tenant_id': current_user.tenant_id,
+        'is_active': True
+    })
+    
+    # Estimate market (assuming similar performance)
+    if competitor_count > 0:
+        total_market_rooms += (own_rooms * competitor_count)
+        total_market_revenue += (own_revenue * competitor_count)
+    
+    room_share = (own_rooms / total_market_rooms * 100) if total_market_rooms > 0 else 0
+    revenue_share = (own_revenue / total_market_revenue * 100) if total_market_revenue > 0 else 0
+    
+    # Calculate fair share (1 / number of properties in compset)
+    fair_share = 100 / (competitor_count + 1) if competitor_count >= 0 else 100
+    
+    return {
+        'period': '30_days',
+        'own_performance': {
+            'room_nights': own_rooms,
+            'revenue': own_revenue
+        },
+        'market_totals': {
+            'room_nights': total_market_rooms,
+            'revenue': total_market_revenue
+        },
+        'market_share': {
+            'room_share_pct': room_share,
+            'revenue_share_pct': revenue_share,
+            'fair_share_pct': fair_share
+        },
+        'performance_index': {
+            'room_mpi': (room_share / fair_share * 100) if fair_share > 0 else 100,
+            'revenue_rgi': (revenue_share / fair_share * 100) if fair_share > 0 else 100
+        }
+    }
+
+
+# --------------------------------------------------------------------------
+# IT & Security - User Activity Logs, API Rate Limits
+# --------------------------------------------------------------------------
+
+@api_router.get("/security/user-activity-logs")
+async def get_user_activity_logs(
+    user_id: Optional[str] = None,
+    action_type: Optional[str] = None,
+    limit: int = 100,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Get user activity logs for security monitoring"""
+    current_user = await get_current_user(credentials)
+    
+    query = {'tenant_id': current_user.tenant_id}
+    
+    if user_id:
+        query['user_id'] = user_id
+    if action_type:
+        query['action'] = action_type
+    
+    logs = []
+    async for log in db.audit_logs.find(query).sort('timestamp', -1).limit(limit):
+        logs.append({
+            'log_id': log.get('id'),
+            'user_id': log.get('user_id'),
+            'user_name': log.get('user_name'),
+            'action': log.get('action'),
+            'entity_type': log.get('entity_type'),
+            'entity_id': log.get('entity_id'),
+            'ip_address': log.get('ip_address'),
+            'user_agent': log.get('user_agent'),
+            'timestamp': log.get('timestamp').isoformat() if log.get('timestamp') else None,
+            'changes': log.get('changes', {})
+        })
+    
+    # Get activity summary
+    activity_summary = {}
+    for log in logs:
+        action = log['action']
+        activity_summary[action] = activity_summary.get(action, 0) + 1
+    
+    return {
+        'logs': logs,
+        'total_count': len(logs),
+        'activity_summary': activity_summary
+    }
+
+
+@api_router.get("/security/api-rate-limits")
+async def get_api_rate_limits(
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Get API rate limit monitoring data"""
+    current_user = await get_current_user(credentials)
+    
+    # Track API calls per endpoint
+    today = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0)
+    
+    # Get API access logs
+    endpoint_stats = {}
+    
+    async for log in db.api_access_logs.find({
+        'tenant_id': current_user.tenant_id,
+        'timestamp': {'$gte': today}
+    }):
+        endpoint = log.get('endpoint', 'unknown')
+        
+        if endpoint not in endpoint_stats:
+            endpoint_stats[endpoint] = {
+                'endpoint': endpoint,
+                'total_requests': 0,
+                'successful_requests': 0,
+                'failed_requests': 0,
+                'avg_response_time_ms': [],
+                'rate_limit_hits': 0
+            }
+        
+        endpoint_stats[endpoint]['total_requests'] += 1
+        
+        if log.get('status_code', 200) < 400:
+            endpoint_stats[endpoint]['successful_requests'] += 1
+        else:
+            endpoint_stats[endpoint]['failed_requests'] += 1
+        
+        if log.get('status_code') == 429:  # Too Many Requests
+            endpoint_stats[endpoint]['rate_limit_hits'] += 1
+        
+        if log.get('response_time_ms'):
+            endpoint_stats[endpoint]['avg_response_time_ms'].append(log.get('response_time_ms'))
+    
+    # Calculate averages
+    for endpoint in endpoint_stats.values():
+        if endpoint['avg_response_time_ms']:
+            endpoint['avg_response_time_ms'] = sum(endpoint['avg_response_time_ms']) / len(endpoint['avg_response_time_ms'])
+        else:
+            endpoint['avg_response_time_ms'] = 0
+    
+    return {
+        'date': today.date().isoformat(),
+        'endpoint_stats': list(endpoint_stats.values()),
+        'total_api_calls': sum(s['total_requests'] for s in endpoint_stats.values()),
+        'total_rate_limit_hits': sum(s['rate_limit_hits'] for s in endpoint_stats.values())
+    }
+
+
+# --------------------------------------------------------------------------
+# Housekeeping - Inventory & Stock Management
+# --------------------------------------------------------------------------
+
+@api_router.get("/housekeeping/inventory")
+async def get_inventory(
+    category: Optional[str] = None,
+    low_stock_only: bool = False,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Get housekeeping inventory"""
+    current_user = await get_current_user(credentials)
+    
+    query = {'tenant_id': current_user.tenant_id}
+    
+    if category:
+        query['category'] = category
+    
+    if low_stock_only:
+        query['$expr'] = {'$lte': ['$current_stock', '$minimum_stock']}
+    
+    inventory_items = []
+    async for item in db.housekeeping_inventory.find(query).sort('name', 1):
+        inventory_items.append({
+            'id': item.get('id'),
+            'name': item.get('name'),
+            'category': item.get('category'),  # linen, amenities, cleaning_supplies
+            'unit': item.get('unit'),  # pieces, bottles, kg
+            'current_stock': item.get('current_stock', 0),
+            'minimum_stock': item.get('minimum_stock', 0),
+            'maximum_stock': item.get('maximum_stock', 0),
+            'unit_cost': item.get('unit_cost', 0),
+            'supplier': item.get('supplier', ''),
+            'last_restock_date': item.get('last_restock_date').isoformat() if item.get('last_restock_date') else None,
+            'is_low_stock': item.get('current_stock', 0) <= item.get('minimum_stock', 0)
+        })
+    
+    return {
+        'inventory_items': inventory_items,
+        'total_items': len(inventory_items),
+        'low_stock_items': len([i for i in inventory_items if i['is_low_stock']]),
+        'categories': list(set(i['category'] for i in inventory_items))
+    }
+
+
+class InventoryItemCreate(BaseModel):
+    name: str
+    category: str
+    unit: str
+    current_stock: int
+    minimum_stock: int
+    maximum_stock: int
+    unit_cost: float
+    supplier: Optional[str] = None
+
+@api_router.post("/housekeeping/inventory/item")
+async def create_inventory_item(
+    item: InventoryItemCreate,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Create a new inventory item"""
+    current_user = await get_current_user(credentials)
+    
+    item_id = str(uuid.uuid4())
+    inventory_item = {
+        'id': item_id,
+        'tenant_id': current_user.tenant_id,
+        'name': item.name,
+        'category': item.category,
+        'unit': item.unit,
+        'current_stock': item.current_stock,
+        'minimum_stock': item.minimum_stock,
+        'maximum_stock': item.maximum_stock,
+        'unit_cost': item.unit_cost,
+        'supplier': item.supplier,
+        'last_restock_date': datetime.now(timezone.utc),
+        'created_at': datetime.now(timezone.utc),
+        'created_by': current_user.username
+    }
+    
+    await db.housekeeping_inventory.insert_one(inventory_item)
+    
+    return {
+        'message': 'Inventory item created',
+        'item_id': item_id,
+        'name': item.name
+    }
+
+
+class InventoryUsage(BaseModel):
+    quantity: int
+    used_by: str
+    notes: Optional[str] = None
+
+@api_router.put("/housekeeping/inventory/item/{item_id}/usage")
+async def record_inventory_usage(
+    item_id: str,
+    usage: InventoryUsage,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Record inventory usage"""
+    current_user = await get_current_user(credentials)
+    
+    item = await db.housekeeping_inventory.find_one({
+        'id': item_id,
+        'tenant_id': current_user.tenant_id
+    })
+    
+    if not item:
+        raise HTTPException(status_code=404, detail="Inventory item not found")
+    
+    new_stock = item.get('current_stock', 0) - usage.quantity
+    
+    if new_stock < 0:
+        raise HTTPException(status_code=400, detail="Insufficient stock")
+    
+    # Update stock
+    await db.housekeeping_inventory.update_one(
+        {'id': item_id, 'tenant_id': current_user.tenant_id},
+        {'$set': {'current_stock': new_stock}}
+    )
+    
+    # Log usage
+    await db.inventory_usage_logs.insert_one({
+        'id': str(uuid.uuid4()),
+        'tenant_id': current_user.tenant_id,
+        'item_id': item_id,
+        'item_name': item.get('name'),
+        'quantity': usage.quantity,
+        'used_by': usage.used_by,
+        'notes': usage.notes,
+        'timestamp': datetime.now(timezone.utc)
+    })
+    
+    return {
+        'message': 'Usage recorded',
+        'item_id': item_id,
+        'new_stock': new_stock,
+        'is_low_stock': new_stock <= item.get('minimum_stock', 0)
+    }
+
             '$group': {
                 '_id': None,
                 'total': {'$sum': '$room_revenue'}
