@@ -44,12 +44,13 @@ const MobileFinance = ({ user }) => {
     try {
       setLoading(true);
       
-      const [dailyRes, monthlyRes, receivablesRes, costsRes, notifRes] = await Promise.all([
+      const [dailyRes, monthlyRes, receivablesRes, costsRes, notifRes, invoicesRes] = await Promise.all([
         axios.get('/finance/mobile/daily-collections'),
         axios.get('/finance/mobile/monthly-collections'),
         axios.get('/finance/mobile/pending-receivables'),
         axios.get('/finance/mobile/monthly-costs'),
-        axios.get('/notifications/mobile/finance')
+        axios.get('/notifications/mobile/finance'),
+        axios.get('/invoice/list').catch(() => ({ data: { invoices: [] } }))
       ]);
 
       setDailyCollections(dailyRes.data);
@@ -57,6 +58,7 @@ const MobileFinance = ({ user }) => {
       setPendingReceivables(receivablesRes.data);
       setMonthlyCosts(costsRes.data);
       setNotifications(notifRes.data.notifications || []);
+      setAllInvoices(invoicesRes.data.invoices || []);
     } catch (error) {
       console.error('Failed to load finance data:', error);
       toast.error('Veri yüklenemedi');
