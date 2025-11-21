@@ -259,27 +259,27 @@ const Dashboard = ({ user, tenant, onLogout }) => {
                       onClick={() => navigate(module.path)}
                       data-testid={`module-${module.title.toLowerCase()}`}
                     >
-                      <CardHeader>
-                        <div className="flex items-center space-x-3">
+                      <CardHeader className="p-4">
+                        <div className="flex items-center space-x-2">
                           <div 
                             style={{ 
                               background: module.color,
-                              padding: '12px',
-                              borderRadius: '12px'
+                              padding: '8px',
+                              borderRadius: '8px'
                             }}
                           >
-                            <Icon className="w-6 h-6 text-white" />
+                            <Icon className="w-5 h-5 text-white" />
                           </div>
                           <div className="flex-1">
                             <div className="flex items-center justify-between">
-                              <CardTitle>{module.title}</CardTitle>
+                              <CardTitle className="text-base">{module.title}</CardTitle>
                               {module.badge && (
-                                <span className="px-2 py-1 text-xs font-bold bg-purple-100 text-purple-700 rounded">
+                                <span className="px-1.5 py-0.5 text-xs font-bold bg-purple-100 text-purple-700 rounded">
                                   {module.badge}
                                 </span>
                               )}
                             </div>
-                            <CardDescription>{module.description}</CardDescription>
+                            <CardDescription className="text-xs">{module.description}</CardDescription>
                           </div>
                         </div>
                       </CardHeader>
