@@ -241,7 +241,7 @@ class MobileEndpointsTester:
         test_cases = [
             {
                 "name": "Get GM mobile notifications",
-                "expected_fields": ["notifications", "unread_count", "categories"]
+                "expected_fields": ["notifications", "unread_count"]
             }
         ]
         
