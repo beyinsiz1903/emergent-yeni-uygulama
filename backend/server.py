@@ -26998,7 +26998,9 @@ async def get_pickup_analysis(
         pickup_trends[days_key]['revenue'] += data['revenue']
     
     return {
-
+        'pickup_data': pickup_data,
+        'pickup_trends': pickup_trends
+    }
 
 # ============= POS / F&B ENDPOINTS =============
 
