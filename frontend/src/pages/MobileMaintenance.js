@@ -549,7 +549,7 @@ const MobileMaintenance = ({ user }) => {
             <Card className="bg-blue-50">
               <CardContent className="p-4">
                 <p className="text-sm text-blue-900 mb-3 font-medium">
-                  <Tool className="w-4 h-4 inline mr-1" />
+                  <Wrench className="w-4 h-4 inline mr-1" />
                   Tüm odaların bakım geçmişini görebilirsiniz
                 </p>
                 <div className="grid gap-2">
