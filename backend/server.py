@@ -27246,7 +27246,6 @@ async def get_cashier_shift_report(current_user: User = Depends(get_current_user
             'total_revenue': total_revenue,
             'avg_days_before': sum(d['days_before_arrival'] for d in pickup_data) / len(pickup_data) if pickup_data else 0
         }
-    }
 
 
 @api_router.get("/dashboard/gm/anomaly-detection")
