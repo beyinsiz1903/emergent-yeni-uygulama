@@ -27108,7 +27108,8 @@ async def create_quick_order(order_data: Dict[str, Any], current_user: User = De
         }
         await db.orders.insert_one(order)
         return {'success': True, 'order_id': order['id']}
-
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 # ============= FINANCE P&L ENDPOINTS =============
 
