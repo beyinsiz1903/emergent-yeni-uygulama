@@ -188,32 +188,54 @@ const MobileFnB = ({ user }) => {
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
       {/* Header */}
-      <div className="bg-gradient-to-r from-orange-600 to-orange-500 text-white p-4 sticky top-0 z-50 shadow-lg">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-3">
+      <div className="bg-gradient-to-r from-orange-600 to-orange-500 text-white sticky top-0 z-50 shadow-lg">
+        <div className="p-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => navigate('/mobile')}
+                className="text-white hover:bg-white/20 p-2"
+              >
+                <ArrowLeft className="w-5 h-5" />
+              </Button>
+              <div>
+                <h1 className="text-xl font-bold">F&B Yönetimi</h1>
+                <p className="text-xs text-orange-100">Food & Beverage Dashboard</p>
+              </div>
+            </div>
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => navigate('/mobile')}
+              onClick={handleRefresh}
+              disabled={refreshing}
               className="text-white hover:bg-white/20 p-2"
             >
-              <ArrowLeft className="w-5 h-5" />
+              <RefreshCw className={`w-5 h-5 ${refreshing ? 'animate-spin' : ''}`} />
             </Button>
-            <div>
-              <h1 className="text-xl font-bold">F&B Yönetimi</h1>
-              <p className="text-xs text-orange-100">Food & Beverage Dashboard</p>
-            </div>
           </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleRefresh}
-            disabled={refreshing}
-            className="text-white hover:bg-white/20 p-2"
-          >
-            <RefreshCw className={`w-5 h-5 ${refreshing ? 'animate-spin' : ''}`} />
-          </Button>
         </div>
+
+        {/* Outlet Selector */}
+        {outlets.length > 0 && (
+          <div className="px-4 pb-3">
+            <Button
+              variant="ghost"
+              className="w-full bg-white/10 hover:bg-white/20 text-white border border-white/30 justify-between"
+              onClick={() => setOutletSelectorOpen(true)}
+            >
+              <div className="flex items-center space-x-2">
+                <Store className="w-4 h-4" />
+                <div className="text-left">
+                  <p className="text-xs font-normal opacity-80">Seçili Outlet</p>
+                  <p className="text-sm font-bold">{activeOutlet?.name || 'Outlet Seçin'}</p>
+                </div>
+              </div>
+              <ChevronDown className="w-4 h-4" />
+            </Button>
+          </div>
+        )}
       </div>
 
       <div className="p-4 space-y-4">
