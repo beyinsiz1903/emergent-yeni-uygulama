@@ -28,6 +28,8 @@ const MobileGM = ({ user }) => {
   const [roomStatus, setRoomStatus] = useState(null);
   const [staffTasks, setStaffTasks] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [dashboardModalOpen, setDashboardModalOpen] = useState(false);
+  const [reportsModalOpen, setReportsModalOpen] = useState(false);
 
   useEffect(() => {
     loadData();
