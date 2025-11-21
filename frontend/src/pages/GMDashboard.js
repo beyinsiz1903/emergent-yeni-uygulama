@@ -169,10 +169,10 @@ const GMDashboard = ({ user, tenant, onLogout }) => {
           </div>
         </div>
 
-        {/* UNIQUE_TEST_STRING_XYZ123 - Simple Metrics - Vertical Layout - HARDCODED FOR TESTING */}
+        {/* TEST: ALL CARDS IDENTICAL */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6" data-testid="vertical-cards-container">
-          {/* Total Rooms */}
-          <Card className="hover:shadow-md transition-all p-4 text-center border-2 border-blue-200">
+          {/* Card 1 */}
+          <Card className="hover:shadow-md transition-all p-4 text-center border-4 border-red-500 bg-red-50">
             <CardContent className="p-0 space-y-2">
               <div className="flex justify-center mb-2">
                 <div className="bg-blue-100 p-2 rounded-lg">
@@ -180,61 +180,61 @@ const GMDashboard = ({ user, tenant, onLogout }) => {
                 </div>
               </div>
               <div className="text-2xl font-bold text-gray-900">
-                50
+                CARD 1
               </div>
               <div className="text-xs font-medium text-gray-600">
-                Total Rooms
+                First Card
               </div>
             </CardContent>
           </Card>
 
-          {/* Occupancy Rate */}
-          <Card className="hover:shadow-md transition-all p-4 text-center border-2 border-green-200">
+          {/* Card 2 - EXACT COPY */}
+          <Card className="hover:shadow-md transition-all p-4 text-center border-4 border-green-500 bg-green-50">
             <CardContent className="p-0 space-y-2">
               <div className="flex justify-center mb-2">
-                <div className="bg-green-100 p-2 rounded-lg">
-                  <Activity className="w-6 h-6 text-green-500" />
+                <div className="bg-blue-100 p-2 rounded-lg">
+                  <Bed className="w-6 h-6 text-blue-500" />
                 </div>
               </div>
               <div className="text-2xl font-bold text-gray-900">
-                75.5%
+                CARD 2
               </div>
               <div className="text-xs font-medium text-gray-600">
-                Occupancy Rate
+                Second Card
               </div>
             </CardContent>
           </Card>
 
-          {/* Today's Check-ins */}
-          <Card className="hover:shadow-md transition-all p-4 text-center border-2 border-purple-200">
+          {/* Card 3 - EXACT COPY */}
+          <Card className="hover:shadow-md transition-all p-4 text-center border-4 border-yellow-500 bg-yellow-50">
             <CardContent className="p-0 space-y-2">
               <div className="flex justify-center mb-2">
-                <div className="bg-purple-100 p-2 rounded-lg">
-                  <LogIn className="w-6 h-6 text-purple-500" />
+                <div className="bg-blue-100 p-2 rounded-lg">
+                  <Bed className="w-6 h-6 text-blue-500" />
                 </div>
               </div>
               <div className="text-2xl font-bold text-gray-900">
-                12
+                CARD 3
               </div>
               <div className="text-xs font-medium text-gray-600">
-                Today's Check-ins
+                Third Card
               </div>
             </CardContent>
           </Card>
 
-          {/* Total Guests */}
-          <Card className="hover:shadow-md transition-all p-4 text-center border-2 border-orange-200">
+          {/* Card 4 - EXACT COPY */}
+          <Card className="hover:shadow-md transition-all p-4 text-center border-4 border-purple-500 bg-purple-50">
             <CardContent className="p-0 space-y-2">
               <div className="flex justify-center mb-2">
-                <div className="bg-orange-100 p-2 rounded-lg">
-                  <Users className="w-6 h-6 text-orange-500" />
+                <div className="bg-blue-100 p-2 rounded-lg">
+                  <Bed className="w-6 h-6 text-blue-500" />
                 </div>
               </div>
               <div className="text-2xl font-bold text-gray-900">
-                89
+                CARD 4
               </div>
               <div className="text-xs font-medium text-gray-600">
-                Total Guests
+                Fourth Card
               </div>
             </CardContent>
           </Card>
