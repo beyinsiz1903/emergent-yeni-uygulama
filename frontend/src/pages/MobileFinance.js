@@ -530,6 +530,386 @@ const MobileFinance = ({ user }) => {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* P&L Detail Modal */}
+      <Dialog open={plDetailModalOpen} onOpenChange={setPlDetailModalOpen}>
+        <DialogContent className="max-w-full w-[95vw] max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center space-x-2">
+              <BarChart3 className="w-5 h-5 text-green-600" />
+              <span>Kar/Zarar Detayı (P&L)</span>
+            </DialogTitle>
+          </DialogHeader>
+          
+          {plData ? (
+            <div className="space-y-4">
+              {/* Period Info */}
+              <Card className="bg-gradient-to-r from-green-50 to-blue-50">
+                <CardContent className="p-4">
+                  <div className="text-center">
+                    <p className="text-sm text-gray-600">Dönem</p>
+                    <p className="text-lg font-bold text-gray-900">
+                      {plData.period || new Date().toLocaleDateString('tr-TR', { year: 'numeric', month: 'long' })}
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Revenue Section */}
+              <Card>
+                <CardHeader className="pb-3 bg-green-50">
+                  <CardTitle className="text-base text-green-800">💰 Gelirler</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2 pt-3">
+                  <div className="flex justify-between p-2 bg-green-50 rounded">
+                    <span className="text-gray-700">Oda Gelirleri:</span>
+                    <span className="font-bold">{formatCurrency(plData.room_revenue || 0)}</span>
+                  </div>
+                  <div className="flex justify-between p-2">
+                    <span className="text-gray-700">F&B Gelirleri:</span>
+                    <span className="font-bold">{formatCurrency(plData.fnb_revenue || 0)}</span>
+                  </div>
+                  <div className="flex justify-between p-2 bg-green-50 rounded">
+                    <span className="text-gray-700">Diğer Gelirler:</span>
+                    <span className="font-bold">{formatCurrency(plData.other_revenue || 0)}</span>
+                  </div>
+                  <div className="flex justify-between p-3 bg-green-200 rounded-lg border-2 border-green-400 mt-2">
+                    <span className="font-bold text-green-900">TOPLAM GELİR:</span>
+                    <span className="font-bold text-xl text-green-700">
+                      {formatCurrency(plData.total_revenue || 0)}
+                    </span>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Cost of Sales Section */}
+              <Card>
+                <CardHeader className="pb-3 bg-orange-50">
+                  <CardTitle className="text-base text-orange-800">📦 Satış Maliyeti</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2 pt-3">
+                  <div className="flex justify-between p-2 bg-orange-50 rounded">
+                    <span className="text-gray-700">F&B Maliyeti:</span>
+                    <span className="font-bold">{formatCurrency(plData.fnb_cost || 0)}</span>
+                  </div>
+                  <div className="flex justify-between p-2">
+                    <span className="text-gray-700">Housekeeping Maliyeti:</span>
+                    <span className="font-bold">{formatCurrency(plData.housekeeping_cost || 0)}</span>
+                  </div>
+                  <div className="flex justify-between p-3 bg-orange-200 rounded-lg border-2 border-orange-400 mt-2">
+                    <span className="font-bold text-orange-900">TOPLAM SATIŞ MALİYETİ:</span>
+                    <span className="font-bold text-xl text-orange-700">
+                      {formatCurrency(plData.total_cost_of_sales || 0)}
+                    </span>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Gross Profit */}
+              <Card className="bg-blue-50">
+                <CardContent className="p-4">
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <p className="text-sm text-blue-700 font-medium">BRÜT KAR</p>
+                      <p className="text-xs text-blue-600 mt-1">
+                        Brüt Kar Marjı: {formatPercent(plData.gross_profit_margin || 0)}
+                      </p>
+                    </div>
+                    <p className="text-3xl font-bold text-blue-700">
+                      {formatCurrency(plData.gross_profit || 0)}
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Operating Expenses */}
+              <Card>
+                <CardHeader className="pb-3 bg-purple-50">
+                  <CardTitle className="text-base text-purple-800">🏢 Faaliyet Giderleri</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2 pt-3">
+                  <div className="flex justify-between p-2 bg-purple-50 rounded">
+                    <span className="text-gray-700">Personel Giderleri:</span>
+                    <span className="font-bold">{formatCurrency(plData.personnel_cost || 0)}</span>
+                  </div>
+                  <div className="flex justify-between p-2">
+                    <span className="text-gray-700">Enerji Giderleri:</span>
+                    <span className="font-bold">{formatCurrency(plData.utility_cost || 0)}</span>
+                  </div>
+                  <div className="flex justify-between p-2 bg-purple-50 rounded">
+                    <span className="text-gray-700">Bakım Onarım:</span>
+                    <span className="font-bold">{formatCurrency(plData.maintenance_cost || 0)}</span>
+                  </div>
+                  <div className="flex justify-between p-2">
+                    <span className="text-gray-700">Pazarlama Giderleri:</span>
+                    <span className="font-bold">{formatCurrency(plData.marketing_cost || 0)}</span>
+                  </div>
+                  <div className="flex justify-between p-2 bg-purple-50 rounded">
+                    <span className="text-gray-700">Yönetim Giderleri:</span>
+                    <span className="font-bold">{formatCurrency(plData.admin_cost || 0)}</span>
+                  </div>
+                  <div className="flex justify-between p-3 bg-purple-200 rounded-lg border-2 border-purple-400 mt-2">
+                    <span className="font-bold text-purple-900">TOPLAM FAALİYET GİDERİ:</span>
+                    <span className="font-bold text-xl text-purple-700">
+                      {formatCurrency(plData.total_operating_expenses || 0)}
+                    </span>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Net Profit/Loss */}
+              <Card className={plData.net_profit >= 0 ? 'bg-green-100' : 'bg-red-100'}>
+                <CardContent className="p-5">
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <p className={`text-lg font-bold ${plData.net_profit >= 0 ? 'text-green-900' : 'text-red-900'}`}>
+                        {plData.net_profit >= 0 ? '✅ NET KAR' : '❌ NET ZARAR'}
+                      </p>
+                      <p className={`text-sm mt-1 ${plData.net_profit >= 0 ? 'text-green-700' : 'text-red-700'}`}>
+                        Net Kar Marjı: {formatPercent(plData.net_profit_margin || 0)}
+                      </p>
+                    </div>
+                    <p className={`text-4xl font-bold ${plData.net_profit >= 0 ? 'text-green-700' : 'text-red-700'}`}>
+                      {formatCurrency(Math.abs(plData.net_profit || 0))}
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Key Ratios */}
+              {plData.key_metrics && (
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-base">📊 Anahtar Metrikler</CardTitle>
+                  </CardHeader>
+                  <CardContent className="grid grid-cols-2 gap-3">
+                    <div className="text-center p-3 bg-blue-50 rounded">
+                      <p className="text-xs text-blue-600">RevPAR</p>
+                      <p className="text-lg font-bold text-blue-900">
+                        {formatCurrency(plData.key_metrics.revpar || 0)}
+                      </p>
+                    </div>
+                    <div className="text-center p-3 bg-green-50 rounded">
+                      <p className="text-xs text-green-600">ADR</p>
+                      <p className="text-lg font-bold text-green-900">
+                        {formatCurrency(plData.key_metrics.adr || 0)}
+                      </p>
+                    </div>
+                    <div className="text-center p-3 bg-purple-50 rounded">
+                      <p className="text-xs text-purple-600">Occ %</p>
+                      <p className="text-lg font-bold text-purple-900">
+                        {formatPercent(plData.key_metrics.occupancy || 0)}
+                      </p>
+                    </div>
+                    <div className="text-center p-3 bg-orange-50 rounded">
+                      <p className="text-xs text-orange-600">GOP %</p>
+                      <p className="text-lg font-bold text-orange-900">
+                        {formatPercent(plData.key_metrics.gop_percentage || 0)}
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+          ) : (
+            <div className="text-center py-8">
+              <FileText className="w-12 h-12 mx-auto text-gray-300 mb-2" />
+              <p className="text-gray-500">P&L raporu yükleniyor...</p>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Cashier Shift Report Modal */}
+      <Dialog open={cashierShiftModalOpen} onOpenChange={setCashierShiftModalOpen}>
+        <DialogContent className="max-w-full w-[95vw] max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center space-x-2">
+              <User className="w-5 h-5 text-purple-600" />
+              <span>Kasiyer Vardiya Raporu</span>
+            </DialogTitle>
+          </DialogHeader>
+          
+          {shiftReportData ? (
+            <div className="space-y-4">
+              {/* Shift Info */}
+              <Card className="bg-gradient-to-r from-purple-50 to-indigo-50">
+                <CardContent className="p-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-xs text-gray-600">Kasiyer</p>
+                      <p className="font-bold text-gray-900">{shiftReportData.cashier_name || user?.name || 'N/A'}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-600">Vardiya</p>
+                      <p className="font-bold text-gray-900">{shiftReportData.shift_name || 'Gündüz'}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-600">Başlangıç</p>
+                      <p className="text-sm font-medium">
+                        <Clock className="w-3 h-3 inline mr-1" />
+                        {shiftReportData.shift_start ? new Date(shiftReportData.shift_start).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' }) : '08:00'}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-600">Bitiş</p>
+                      <p className="text-sm font-medium">
+                        <Clock className="w-3 h-3 inline mr-1" />
+                        {shiftReportData.shift_end ? new Date(shiftReportData.shift_end).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' }) : 'Devam Ediyor'}
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Opening/Closing Balance */}
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base">💰 Kasa Durumu</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  <div className="flex justify-between p-3 bg-blue-50 rounded">
+                    <span className="text-gray-700">Açılış Bakiyesi:</span>
+                    <span className="font-bold text-blue-700">
+                      {formatCurrency(shiftReportData.opening_balance || 0)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between p-3 bg-green-50 rounded">
+                    <span className="text-gray-700">Toplam Tahsilat:</span>
+                    <span className="font-bold text-green-700">
+                      {formatCurrency(shiftReportData.total_collected || 0)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between p-3 bg-red-50 rounded">
+                    <span className="text-gray-700">Ödemeler:</span>
+                    <span className="font-bold text-red-700">
+                      -{formatCurrency(shiftReportData.total_paid_out || 0)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between p-4 bg-purple-100 rounded-lg border-2 border-purple-300">
+                    <span className="font-bold text-purple-900">Beklenen Bakiye:</span>
+                    <span className="font-bold text-2xl text-purple-700">
+                      {formatCurrency(shiftReportData.expected_balance || 0)}
+                    </span>
+                  </div>
+                  
+                  {shiftReportData.actual_balance !== undefined && (
+                    <>
+                      <div className="flex justify-between p-3 bg-yellow-50 rounded mt-2">
+                        <span className="text-gray-700">Fiili Bakiye:</span>
+                        <span className="font-bold">
+                          {formatCurrency(shiftReportData.actual_balance)}
+                        </span>
+                      </div>
+                      <div className={`flex justify-between p-3 rounded ${
+                        Math.abs(shiftReportData.variance || 0) < 0.01 ? 'bg-green-50' : 'bg-red-50'
+                      }`}>
+                        <span className="text-gray-700">Fark:</span>
+                        <span className={`font-bold ${
+                          Math.abs(shiftReportData.variance || 0) < 0.01 ? 'text-green-700' : 'text-red-700'
+                        }`}>
+                          {shiftReportData.variance >= 0 ? '+' : ''}{formatCurrency(shiftReportData.variance || 0)}
+                        </span>
+                      </div>
+                    </>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Transaction Summary */}
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base">📊 İşlem Özeti</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="text-center p-3 bg-green-50 rounded">
+                      <p className="text-xs text-green-600">Toplam İşlem</p>
+                      <p className="text-2xl font-bold text-green-900">
+                        {shiftReportData.transaction_count || 0}
+                      </p>
+                    </div>
+                    <div className="text-center p-3 bg-blue-50 rounded">
+                      <p className="text-xs text-blue-600">Check-in</p>
+                      <p className="text-2xl font-bold text-blue-900">
+                        {shiftReportData.checkin_count || 0}
+                      </p>
+                    </div>
+                    <div className="text-center p-3 bg-purple-50 rounded">
+                      <p className="text-xs text-purple-600">Check-out</p>
+                      <p className="text-2xl font-bold text-purple-900">
+                        {shiftReportData.checkout_count || 0}
+                      </p>
+                    </div>
+                    <div className="text-center p-3 bg-orange-50 rounded">
+                      <p className="text-xs text-orange-600">Ort. İşlem</p>
+                      <p className="text-2xl font-bold text-orange-900">
+                        {formatCurrency(shiftReportData.average_transaction || 0)}
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Payment Methods Breakdown */}
+              {shiftReportData.payment_methods && (
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-base">💳 Ödeme Yöntemleri</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-2">
+                    {Object.entries(shiftReportData.payment_methods).map(([method, data]) => (
+                      <div key={method} className="p-3 bg-gray-50 rounded border">
+                        <div className="flex items-center justify-between">
+                          <div className="flex-1">
+                            <p className="font-bold text-gray-900 capitalize">
+                              {method === 'cash' ? '💵 Nakit' : 
+                               method === 'card' ? '💳 Kredi Kartı' :
+                               method === 'transfer' ? '🏦 Havale' :
+                               method === 'check' ? '📄 Çek' : method}
+                            </p>
+                            <p className="text-xs text-gray-500">
+                              {data.count || 0} işlem
+                            </p>
+                          </div>
+                          <p className="font-bold text-lg text-indigo-700">
+                            {formatCurrency(data.amount || 0)}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Shift Notes */}
+              {shiftReportData.notes && (
+                <Card className="bg-yellow-50">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-base">📝 Notlar</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-sm text-gray-700">{shiftReportData.notes}</p>
+                  </CardContent>
+                </Card>
+              )}
+
+              <Button 
+                className="w-full bg-purple-600 hover:bg-purple-700"
+                onClick={() => toast.success('Vardiya raporu kapatıldı!')}
+              >
+                <CheckCircle className="w-4 h-4 mr-2" />
+                Vardiya Kapat
+              </Button>
+            </div>
+          ) : (
+            <div className="text-center py-8">
+              <User className="w-12 h-12 mx-auto text-gray-300 mb-2" />
+              <p className="text-gray-500">Vardiya raporu yükleniyor...</p>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
