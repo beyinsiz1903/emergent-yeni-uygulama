@@ -74,6 +74,15 @@ const MobileDashboard = ({ user, onLogout }) => {
       color: 'bg-red-500',
       roles: ['ADMIN', 'SUPERVISOR'],
       path: '/mobile/gm'
+    },
+    {
+      id: 'security',
+      name: 'Güvenlik & IT',
+      nameEn: 'Security & IT',
+      icon: Shield,
+      color: 'bg-gray-700',
+      roles: ['ADMIN', 'SUPERVISOR', 'IT'],
+      path: '/mobile/security'
     }
   ];
 
