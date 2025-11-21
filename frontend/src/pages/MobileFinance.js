@@ -124,6 +124,33 @@ const MobileFinance = ({ user }) => {
     }
   };
 
+  const downloadPLReport = async () => {
+    try {
+      const currentMonth = new Date().toISOString().slice(0, 7);
+      const response = await axios.get(`/finance/pl-detail/pdf?month=${currentMonth}`, {
+        responseType: 'blob'
+      });
+      
+      // Create download link
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `P&L_Report_${currentMonth}.pdf`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+      
+      toast.success('P&L raporu indirildi!');
+    } catch (error) {
+      // Fallback: Create a simple HTML print version
+      toast.info('PDF oluşturuluyor... Yazdırma ekranı açılıyor.');
+      setTimeout(() => {
+        window.print();
+      }, 500);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
