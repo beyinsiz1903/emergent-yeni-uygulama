@@ -5,6 +5,9 @@ import { toast } from 'sonner';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { 
   ArrowLeft, 
   UtensilsCrossed, 
@@ -14,7 +17,9 @@ import {
   Users,
   RefreshCw,
   ShoppingBag,
-  BarChart3
+  BarChart3,
+  Plus,
+  Minus
 } from 'lucide-react';
 
 const MobileFnB = ({ user }) => {
@@ -24,7 +29,13 @@ const MobileFnB = ({ user }) => {
   const [recentTransactions, setRecentTransactions] = useState([]);
   const [outlets, setOutlets] = useState([]);
   const [topItems, setTopItems] = useState([]);
+  const [menuItems, setMenuItems] = useState([]);
   const [refreshing, setRefreshing] = useState(false);
+  const [orderModalOpen, setOrderModalOpen] = useState(false);
+  const [reportsModalOpen, setReportsModalOpen] = useState(false);
+  const [selectedOutlet, setSelectedOutlet] = useState(null);
+  const [orderItems, setOrderItems] = useState([]);
+  const [tableNumber, setTableNumber] = useState('');
 
   useEffect(() => {
     loadData();
@@ -35,24 +46,18 @@ const MobileFnB = ({ user }) => {
       setLoading(true);
       const today = new Date().toISOString().split('T')[0];
       
-      const [summaryRes, transactionsRes, outletsRes] = await Promise.all([
+      const [summaryRes, transactionsRes, outletsRes, menuRes] = await Promise.all([
         axios.get(`/pos/daily-summary?date=${today}`),
         axios.get('/pos/transactions?limit=10'),
-        axios.get('/pos/outlets')
+        axios.get('/pos/outlets'),
+        axios.get('/pos/menu-items')
       ]);
 
       setDailySummary(summaryRes.data);
       setRecentTransactions(transactionsRes.data.transactions || []);
       setOutlets(outletsRes.data.outlets || []);
-
-      // Try to get top items from menu
-      try {
-        const menuRes = await axios.get('/pos/menu-items');
-        const items = menuRes.data.items || [];
-        setTopItems(items.slice(0, 5));
-      } catch (error) {
-        console.log('Menu items not available');
-      }
+      setMenuItems(menuRes.data.menu_items || []);
+      setTopItems((menuRes.data.menu_items || []).slice(0, 5));
     } catch (error) {
       console.error('Failed to load F&B data:', error);
       toast.error('Veri yüklenemedi');
@@ -65,6 +70,60 @@ const MobileFnB = ({ user }) => {
   const handleRefresh = () => {
     setRefreshing(true);
     loadData();
+  };
+
+  const handleAddItem = (item) => {
+    const existing = orderItems.find(i => i.item_id === item.id);
+    if (existing) {
+      setOrderItems(orderItems.map(i => 
+        i.item_id === item.id ? {...i, quantity: i.quantity + 1} : i
+      ));
+    } else {
+      setOrderItems([...orderItems, { item_id: item.id, name: item.name, price: item.price, quantity: 1 }]);
+    }
+  };
+
+  const handleRemoveItem = (itemId) => {
+    const existing = orderItems.find(i => i.item_id === itemId);
+    if (existing && existing.quantity > 1) {
+      setOrderItems(orderItems.map(i => 
+        i.item_id === itemId ? {...i, quantity: i.quantity - 1} : i
+      ));
+    } else {
+      setOrderItems(orderItems.filter(i => i.item_id !== itemId));
+    }
+  };
+
+  const calculateTotal = () => {
+    return orderItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+  };
+
+  const handleSubmitOrder = async () => {
+    try {
+      if (!selectedOutlet) {
+        toast.error('Lütfen outlet seçin');
+        return;
+      }
+      if (orderItems.length === 0) {
+        toast.error('Lütfen ürün ekleyin');
+        return;
+      }
+
+      await axios.post('/pos/mobile/quick-order', {
+        outlet_id: selectedOutlet,
+        table_number: tableNumber,
+        items: orderItems,
+        notes: ''
+      });
+
+      toast.success('Sipariş başarıyla oluşturuldu!');
+      setOrderModalOpen(false);
+      setOrderItems([]);
+      setTableNumber('');
+      loadData();
+    } catch (error) {
+      toast.error('Sipariş oluşturulamadı: ' + (error.response?.data?.detail || 'Hata'));
+    }
   };
 
   const formatCurrency = (amount) => {
@@ -243,46 +302,13 @@ const MobileFnB = ({ user }) => {
           </CardContent>
         </Card>
 
-        {/* Top Menu Items */}
-        {topItems.length > 0 && (
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-lg flex items-center">
-                <TrendingUp className="w-5 h-5 mr-2 text-green-600" />
-                Popüler Menü Öğeleri
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              {topItems.map((item, idx) => (
-                <div key={item.id} className="flex items-center justify-between p-3 bg-green-50 rounded-lg border border-green-200">
-                  <div className="flex items-center space-x-3 flex-1">
-                    <div className="bg-green-600 text-white w-8 h-8 rounded-full flex items-center justify-center font-bold">
-                      {idx + 1}
-                    </div>
-                    <div>
-                      <p className="font-bold text-gray-900">{item.name}</p>
-                      <p className="text-sm text-gray-600">{item.category}</p>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <p className="font-bold text-green-700">{formatCurrency(item.price)}</p>
-                    <Badge variant="outline" className="mt-1">
-                      {item.outlet_id || 'Genel'}
-                    </Badge>
-                  </div>
-                </div>
-              ))}
-            </CardContent>
-          </Card>
-        )}
-
         {/* Quick Actions */}
         <Card className="bg-gradient-to-r from-orange-50 to-red-50">
           <CardContent className="p-4">
             <div className="grid grid-cols-2 gap-3">
               <Button
                 className="h-20 flex flex-col items-center justify-center bg-orange-600 hover:bg-orange-700"
-                onClick={() => toast.info('POS ekranı açılıyor...')}
+                onClick={() => setOrderModalOpen(true)}
               >
                 <ShoppingBag className="w-6 h-6 mb-1" />
                 <span className="text-xs">Yeni Sipariş</span>
@@ -290,7 +316,7 @@ const MobileFnB = ({ user }) => {
               <Button
                 className="h-20 flex flex-col items-center justify-center"
                 variant="outline"
-                onClick={() => navigate('/reports')}
+                onClick={() => setReportsModalOpen(true)}
               >
                 <BarChart3 className="w-6 h-6 mb-1" />
                 <span className="text-xs">Raporlar</span>
@@ -299,6 +325,140 @@ const MobileFnB = ({ user }) => {
           </CardContent>
         </Card>
       </div>
+
+      {/* Order Modal */}
+      <Dialog open={orderModalOpen} onOpenChange={setOrderModalOpen}>
+        <DialogContent className="max-w-full w-[95vw] max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Yeni Sipariş Oluştur</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label>Outlet Seçin</Label>
+              <select 
+                className="w-full p-2 border rounded mt-1"
+                value={selectedOutlet || ''}
+                onChange={(e) => setSelectedOutlet(e.target.value)}
+              >
+                <option value="">Seçin...</option>
+                {outlets.filter(o => o.status === 'active').map(outlet => (
+                  <option key={outlet.id} value={outlet.id}>{outlet.name}</option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <Label>Masa Numarası</Label>
+              <Input 
+                value={tableNumber}
+                onChange={(e) => setTableNumber(e.target.value)}
+                placeholder="Örn: 12"
+              />
+            </div>
+
+            <div>
+              <Label>Ürünler</Label>
+              <div className="space-y-2 mt-2 max-h-60 overflow-y-auto">
+                {menuItems.map(item => (
+                  <div key={item.id} className="flex items-center justify-between p-2 border rounded">
+                    <div className="flex-1">
+                      <p className="font-medium text-sm">{item.name}</p>
+                      <p className="text-xs text-gray-500">{formatCurrency(item.price)}</p>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      {orderItems.find(i => i.item_id === item.id) && (
+                        <>
+                          <Button size="sm" variant="outline" onClick={() => handleRemoveItem(item.id)}>
+                            <Minus className="w-3 h-3" />
+                          </Button>
+                          <span className="text-sm font-bold">
+                            {orderItems.find(i => i.item_id === item.id)?.quantity || 0}
+                          </span>
+                        </>
+                      )}
+                      <Button size="sm" onClick={() => handleAddItem(item)}>
+                        <Plus className="w-3 h-3" />
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {orderItems.length > 0 && (
+              <div className="border-t pt-3">
+                <div className="space-y-1">
+                  {orderItems.map(item => (
+                    <div key={item.item_id} className="flex justify-between text-sm">
+                      <span>{item.name} x{item.quantity}</span>
+                      <span>{formatCurrency(item.price * item.quantity)}</span>
+                    </div>
+                  ))}
+                  <div className="flex justify-between font-bold text-lg border-t pt-2">
+                    <span>TOPLAM:</span>
+                    <span>{formatCurrency(calculateTotal())}</span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <Button 
+              className="w-full bg-orange-600 hover:bg-orange-700"
+              onClick={handleSubmitOrder}
+              disabled={!selectedOutlet || orderItems.length === 0}
+            >
+              Sipariş Oluştur
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Reports Modal */}
+      <Dialog open={reportsModalOpen} onOpenChange={setReportsModalOpen}>
+        <DialogContent className="max-w-full w-[95vw] max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>F&B Raporları</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Bugünkü Özet</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Toplam Satış:</span>
+                  <span className="font-bold">{formatCurrency(dailySummary?.total_sales || 0)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">İşlem Sayısı:</span>
+                  <span className="font-bold">{dailySummary?.transaction_count || 0}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Ortalama Sepet:</span>
+                  <span className="font-bold">{formatCurrency(dailySummary?.average_transaction || 0)}</span>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Popüler Ürünler</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                {topItems.map((item, idx) => (
+                  <div key={item.id} className="flex items-center justify-between p-2 bg-gray-50 rounded">
+                    <div className="flex items-center space-x-2">
+                      <span className="font-bold text-orange-600">{idx + 1}.</span>
+                      <span className="text-sm">{item.name}</span>
+                    </div>
+                    <span className="text-sm font-bold">{formatCurrency(item.price)}</span>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
