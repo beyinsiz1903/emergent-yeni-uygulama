@@ -76,6 +76,22 @@ const MobileMaintenance = ({ user }) => {
     }
   };
 
+  const handleCreateTask = async (formData) => {
+    try {
+      await axios.post('/maintenance/mobile/quick-issue', {
+        room_id: formData.get('room_id'),
+        issue_type: formData.get('issue_type'),
+        description: formData.get('description'),
+        priority: formData.get('priority')
+      });
+      toast.success('Yeni görev oluşturuldu!');
+      setNewTaskModalOpen(false);
+      loadData();
+    } catch (error) {
+      toast.error('Görev oluşturulamadı: ' + (error.response?.data?.detail || 'Hata'));
+    }
+  };
+
   const getPriorityColor = (priority) => {
     const colors = {
       urgent: 'bg-red-500',
