@@ -2866,18 +2866,6 @@ async def get_price_analysis(current_user: User = Depends(get_current_user)):
     analyses = await db.price_analysis.find({'tenant_id': current_user.tenant_id}, {'_id': 0}).to_list(1000)
     return analyses
 
-@api_router.get("/rms/suggestions")
-async def get_price_suggestions(current_user: User = Depends(get_current_user)):
-    rooms = await db.rooms.find({'tenant_id': current_user.tenant_id}, {'_id': 0}).to_list(1000)
-    suggestions = []
-    for room in rooms:
-        total_bookings = await db.bookings.count_documents({'tenant_id': current_user.tenant_id, 'room_id': room['id']})
-        occupancy_rate = min(total_bookings * 10, 100)
-        suggested_price = room['base_price'] * (1.2 if occupancy_rate > 80 else 0.9 if occupancy_rate < 50 else 1.0)
-        suggestions.append({'room_type': room['room_type'], 'room_number': room['room_number'], 'current_price': room['base_price'],
-                          'suggested_price': round(suggested_price, 2), 'occupancy_rate': occupancy_rate, 'demand_score': occupancy_rate/100})
-    return suggestions
-
 # ============= LOYALTY =============
 
 @api_router.post("/loyalty/programs", response_model=LoyaltyProgram)
