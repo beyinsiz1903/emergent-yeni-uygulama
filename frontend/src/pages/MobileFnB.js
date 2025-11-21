@@ -19,7 +19,12 @@ import {
   ShoppingBag,
   BarChart3,
   Plus,
-  Minus
+  Minus,
+  FileText,
+  XCircle,
+  MenuIcon,
+  Calculator,
+  Download
 } from 'lucide-react';
 
 const MobileFnB = ({ user }) => {
