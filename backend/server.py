@@ -26528,14 +26528,15 @@ async def get_pm_schedule_mobile(
 
 @api_router.post("/maintenance/mobile/quick-issue")
 async def create_quick_issue_mobile(
-    room_id: str,
-    issue_type: str,
-    description: str,
-    priority: str = 'normal',
+    request: QuickIssueRequest,
     credentials: HTTPAuthorizationCredentials = Depends(security)
 ):
     """Create a quick maintenance issue from mobile"""
     current_user = await get_current_user(credentials)
+    room_id = request.room_id
+    issue_type = request.issue_type
+    description = request.description
+    priority = request.priority
     
     # Validate room
     room = await db.rooms.find_one({
