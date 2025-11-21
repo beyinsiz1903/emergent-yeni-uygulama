@@ -53,6 +53,33 @@ console.log('🔍 Backend Configuration:', {
 });
 
 axios.defaults.baseURL = API;
+axios.defaults.timeout = 30000;
+
+// Setup axios interceptor for token
+axios.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
+
+// Setup response interceptor for 401 errors
+axios.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      console.warn('⚠️ 401 Unauthorized - Token may be invalid');
+      // Don't auto-logout on first 401, let app handle it
+    }
+    return Promise.reject(error);
+  }
+);
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
