@@ -169,92 +169,72 @@ const GMDashboard = ({ user, tenant, onLogout }) => {
           </div>
         </div>
 
-        {/* ULTRA SIMPLE TEST - NO CARD COMPONENT */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6" style={{backgroundColor: 'yellow', padding: '20px', minHeight: '200px'}}>
-          <div style={{border: '5px solid red', padding: '20px', backgroundColor: 'white'}}>
-            <h1 style={{fontSize: '48px', color: 'red'}}>KART 1</h1>
-            <p style={{fontSize: '24px'}}>Bu kart görünüyor mu?</p>
-          </div>
-          <div style={{border: '5px solid green', padding: '20px', backgroundColor: 'white'}}>
-            <h1 style={{fontSize: '48px', color: 'green'}}>KART 2</h1>
-            <p style={{fontSize: '24px'}}>Bu kart görünüyor mu?</p>
-          </div>
-          <div style={{border: '5px solid blue', padding: '20px', backgroundColor: 'white'}}>
-            <h1 style={{fontSize: '48px', color: 'blue'}}>KART 3</h1>
-            <p style={{fontSize: '24px'}}>Bu kart görünüyor mu?</p>
-          </div>
-          <div style={{border: '5px solid purple', padding: '20px', backgroundColor: 'white'}}>
-            <h1 style={{fontSize: '48px', color: 'purple'}}>KART 4</h1>
-            <p style={{fontSize: '24px'}}>Bu kart görünüyor mu?</p>
-          </div>
-        </div>
-
-        {/* OLD CARD COMPONENT TEST - DELETE LATER */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6" data-testid="old-cards-container">
-          {/* Card 1 */}
-          <Card className="hover:shadow-md transition-all p-4 text-center border-4 border-red-500 bg-red-50">
-            <CardContent className="p-0 space-y-2">
-              <div className="flex justify-center mb-2">
-                <div className="bg-blue-100 p-2 rounded-lg">
-                  <Bed className="w-6 h-6 text-blue-500" />
+        {/* Dashboard Metric Cards - Compact & Beautiful */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+          {/* Total Rooms */}
+          <Card className="hover:shadow-lg transition-all">
+            <CardContent className="p-6 text-center">
+              <div className="flex justify-center mb-3">
+                <div className="bg-blue-100 p-3 rounded-lg">
+                  <Bed className="w-8 h-8 text-blue-600" />
                 </div>
               </div>
-              <div className="text-2xl font-bold text-gray-900">
-                CARD 1
+              <div className="text-3xl font-bold text-gray-900 mb-1">
+                {occupancy.total_rooms || 0}
               </div>
-              <div className="text-xs font-medium text-gray-600">
-                First Card
+              <div className="text-sm font-medium text-gray-600">
+                Total Rooms
               </div>
             </CardContent>
           </Card>
 
-          {/* Card 2 - EXACT COPY */}
-          <Card className="hover:shadow-md transition-all p-4 text-center border-4 border-green-500 bg-green-50">
-            <CardContent className="p-0 space-y-2">
-              <div className="flex justify-center mb-2">
-                <div className="bg-blue-100 p-2 rounded-lg">
-                  <Bed className="w-6 h-6 text-blue-500" />
+          {/* Occupancy Rate */}
+          <Card className="hover:shadow-lg transition-all">
+            <CardContent className="p-6 text-center">
+              <div className="flex justify-center mb-3">
+                <div className="bg-green-100 p-3 rounded-lg">
+                  <Activity className="w-8 h-8 text-green-600" />
                 </div>
               </div>
-              <div className="text-2xl font-bold text-gray-900">
-                CARD 2
+              <div className="text-3xl font-bold text-gray-900 mb-1">
+                {(occupancy.occupancy_percentage || 0).toFixed(1)}%
               </div>
-              <div className="text-xs font-medium text-gray-600">
-                Second Card
+              <div className="text-sm font-medium text-gray-600">
+                Occupancy Rate
               </div>
             </CardContent>
           </Card>
 
-          {/* Card 3 - EXACT COPY */}
-          <Card className="hover:shadow-md transition-all p-4 text-center border-4 border-yellow-500 bg-yellow-50">
-            <CardContent className="p-0 space-y-2">
-              <div className="flex justify-center mb-2">
-                <div className="bg-blue-100 p-2 rounded-lg">
-                  <Bed className="w-6 h-6 text-blue-500" />
+          {/* Today's Arrivals */}
+          <Card className="hover:shadow-lg transition-all">
+            <CardContent className="p-6 text-center">
+              <div className="flex justify-center mb-3">
+                <div className="bg-purple-100 p-3 rounded-lg">
+                  <LogIn className="w-8 h-8 text-purple-600" />
                 </div>
               </div>
-              <div className="text-2xl font-bold text-gray-900">
-                CARD 3
+              <div className="text-3xl font-bold text-gray-900 mb-1">
+                {movements.arrivals || 0}
               </div>
-              <div className="text-xs font-medium text-gray-600">
-                Third Card
+              <div className="text-sm font-medium text-gray-600">
+                Today's Check-ins
               </div>
             </CardContent>
           </Card>
 
-          {/* Card 4 - EXACT COPY */}
-          <Card className="hover:shadow-md transition-all p-4 text-center border-4 border-purple-500 bg-purple-50">
-            <CardContent className="p-0 space-y-2">
-              <div className="flex justify-center mb-2">
-                <div className="bg-blue-100 p-2 rounded-lg">
-                  <Bed className="w-6 h-6 text-blue-500" />
+          {/* Total Guests */}
+          <Card className="hover:shadow-lg transition-all">
+            <CardContent className="p-6 text-center">
+              <div className="flex justify-center mb-3">
+                <div className="bg-orange-100 p-3 rounded-lg">
+                  <Users className="w-8 h-8 text-orange-600" />
                 </div>
               </div>
-              <div className="text-2xl font-bold text-gray-900">
-                CARD 4
+              <div className="text-3xl font-bold text-gray-900 mb-1">
+                {Math.round((occupancy.occupied_rooms || 0) * 1.5)}
               </div>
-              <div className="text-xs font-medium text-gray-600">
-                Fourth Card
+              <div className="text-sm font-medium text-gray-600">
+                Total Guests
               </div>
             </CardContent>
           </Card>
