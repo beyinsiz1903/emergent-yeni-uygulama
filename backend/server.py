@@ -27876,6 +27876,443 @@ async def get_monthly_collections_mobile(
     
     # Get payments for the month
     total_collected = 0.0
+
+
+
+# --------------------------------------------------------------------------
+# F&B - Z Report, Void Report, Menu Management
+# --------------------------------------------------------------------------
+
+@api_router.get("/pos/z-report")
+async def get_z_report(
+    date: Optional[str] = None,
+    outlet_id: Optional[str] = None,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Get Z report (end of day report) for POS"""
+    current_user = await get_current_user(credentials)
+    
+    if date:
+        target_date = datetime.fromisoformat(date)
+    else:
+        target_date = datetime.now(timezone.utc)
+    
+    start_of_day = target_date.replace(hour=0, minute=0, second=0)
+    end_of_day = target_date.replace(hour=23, minute=59, second=59)
+    
+    query = {
+        'tenant_id': current_user.tenant_id,
+        'created_at': {'$gte': start_of_day, '$lte': end_of_day}
+    }
+    
+    if outlet_id:
+        query['outlet_id'] = outlet_id
+    
+    # Get all transactions
+    total_sales = 0
+    total_tax = 0
+    transaction_count = 0
+    payment_methods = {}
+    voided_amount = 0
+    
+    async for transaction in db.pos_transactions.find(query):
+        if transaction.get('status') == 'voided':
+            voided_amount += transaction.get('total_amount', 0)
+            continue
+        
+        total_sales += transaction.get('total_amount', 0)
+        total_tax += transaction.get('tax_amount', 0)
+        transaction_count += 1
+        
+        payment_method = transaction.get('payment_method', 'cash')
+        payment_methods[payment_method] = payment_methods.get(payment_method, 0) + transaction.get('total_amount', 0)
+    
+    # Get category breakdown
+    category_sales = {}
+    async for order in db.pos_orders.find(query):
+        for item in order.get('items', []):
+            category = item.get('category', 'other')
+            category_sales[category] = category_sales.get(category, 0) + item.get('total', 0)
+    
+    # Calculate net sales
+    net_sales = total_sales - voided_amount
+    
+    return {
+        'date': target_date.date().isoformat(),
+        'outlet_id': outlet_id,
+        'report_type': 'z_report',
+        'summary': {
+            'gross_sales': total_sales,
+            'voided_amount': voided_amount,
+            'net_sales': net_sales,
+            'total_tax': total_tax,
+            'transaction_count': transaction_count,
+            'average_transaction': net_sales / transaction_count if transaction_count > 0 else 0
+        },
+        'payment_methods': payment_methods,
+        'category_sales': category_sales,
+        'generated_at': datetime.now(timezone.utc).isoformat()
+    }
+
+
+@api_router.get("/pos/void-report")
+async def get_void_report(
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Get voided transactions report"""
+    current_user = await get_current_user(credentials)
+    
+    if not start_date:
+        start_date = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0)
+    else:
+        start_date = datetime.fromisoformat(start_date)
+    
+    if not end_date:
+        end_date = datetime.now(timezone.utc).replace(hour=23, minute=59, second=59)
+    else:
+        end_date = datetime.fromisoformat(end_date)
+    
+    voided_transactions = []
+    total_voided_amount = 0
+    
+    async for transaction in db.pos_transactions.find({
+        'tenant_id': current_user.tenant_id,
+        'status': 'voided',
+        'voided_at': {'$gte': start_date, '$lte': end_date}
+    }).sort('voided_at', -1):
+        
+        voided_transactions.append({
+            'transaction_id': transaction.get('id'),
+            'outlet_name': transaction.get('outlet_name'),
+            'table_number': transaction.get('table_number'),
+            'original_amount': transaction.get('total_amount', 0),
+            'voided_by': transaction.get('voided_by'),
+            'voided_at': transaction.get('voided_at').isoformat() if transaction.get('voided_at') else None,
+            'void_reason': transaction.get('void_reason', ''),
+            'items': transaction.get('items', [])
+        })
+        
+        total_voided_amount += transaction.get('total_amount', 0)
+    
+    return {
+        'date_range': {
+            'start': start_date.date().isoformat(),
+            'end': end_date.date().isoformat()
+        },
+        'voided_transactions': voided_transactions,
+        'total_voided_count': len(voided_transactions),
+        'total_voided_amount': total_voided_amount
+    }
+
+
+class MenuItemCreate(BaseModel):
+    name: str
+    category: str
+    price: float
+    description: Optional[str] = None
+    cost: Optional[float] = None
+    available: bool = True
+    image_url: Optional[str] = None
+
+@api_router.post("/pos/menu-item")
+async def create_menu_item(
+    item: MenuItemCreate,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Create a new menu item"""
+    current_user = await get_current_user(credentials)
+    
+    item_id = str(uuid.uuid4())
+    menu_item = {
+        'id': item_id,
+        'tenant_id': current_user.tenant_id,
+        'name': item.name,
+        'category': item.category,
+        'price': item.price,
+        'description': item.description,
+        'cost': item.cost,
+        'available': item.available,
+        'image_url': item.image_url,
+        'created_at': datetime.now(timezone.utc),
+        'created_by': current_user.username
+    }
+    
+    await db.pos_menu_items.insert_one(menu_item)
+    
+    return {
+        'message': 'Menu item created',
+        'item_id': item_id,
+        'name': item.name
+    }
+
+
+@api_router.put("/pos/menu-item/{item_id}")
+async def update_menu_item(
+    item_id: str,
+    item: MenuItemCreate,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Update a menu item"""
+    current_user = await get_current_user(credentials)
+    
+    existing_item = await db.pos_menu_items.find_one({
+        'id': item_id,
+        'tenant_id': current_user.tenant_id
+    })
+    
+    if not existing_item:
+        raise HTTPException(status_code=404, detail="Menu item not found")
+    
+    await db.pos_menu_items.update_one(
+        {'id': item_id, 'tenant_id': current_user.tenant_id},
+        {
+            '$set': {
+                'name': item.name,
+                'category': item.category,
+                'price': item.price,
+                'description': item.description,
+                'cost': item.cost,
+                'available': item.available,
+                'image_url': item.image_url,
+                'updated_at': datetime.now(timezone.utc),
+                'updated_by': current_user.username
+            }
+        }
+    )
+    
+    return {
+        'message': 'Menu item updated',
+        'item_id': item_id
+    }
+
+
+@api_router.delete("/pos/menu-item/{item_id}")
+async def delete_menu_item(
+    item_id: str,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Delete a menu item"""
+    current_user = await get_current_user(credentials)
+    
+    result = await db.pos_menu_items.delete_one({
+        'id': item_id,
+        'tenant_id': current_user.tenant_id
+    })
+    
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Menu item not found")
+    
+    return {
+        'message': 'Menu item deleted',
+        'item_id': item_id
+    }
+
+
+# --------------------------------------------------------------------------
+# Finance - P&L Report and Cashier Shift Report
+# --------------------------------------------------------------------------
+
+@api_router.get("/finance/profit-loss")
+async def get_profit_loss_report(
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Get Profit & Loss (P&L) report"""
+    current_user = await get_current_user(credentials)
+    
+    if not start_date:
+        # Default to current month
+        start_date = datetime.now(timezone.utc).replace(day=1, hour=0, minute=0, second=0)
+    else:
+        start_date = datetime.fromisoformat(start_date)
+    
+    if not end_date:
+        # End of current month
+        if start_date.month == 12:
+            end_date = datetime(start_date.year + 1, 1, 1, tzinfo=timezone.utc) - timedelta(days=1)
+        else:
+            end_date = datetime(start_date.year, start_date.month + 1, 1, tzinfo=timezone.utc) - timedelta(days=1)
+    else:
+        end_date = datetime.fromisoformat(end_date)
+    
+    # REVENUE
+    # Room Revenue
+    room_revenue_pipeline = [
+        {
+            '$match': {
+                'tenant_id': current_user.tenant_id,
+                'check_in': {'$gte': start_date, '$lte': end_date},
+                'status': {'$in': ['checked_in', 'checked_out']}
+            }
+        },
+        {
+            '$group': {
+                '_id': None,
+                'total': {'$sum': '$room_revenue'}
+            }
+        }
+    ]
+    
+    room_revenue = 0
+    async for result in db.bookings.aggregate(room_revenue_pipeline):
+        room_revenue = result.get('total', 0)
+    
+    # F&B Revenue
+    fnb_revenue_pipeline = [
+        {
+            '$match': {
+                'tenant_id': current_user.tenant_id,
+                'created_at': {'$gte': start_date, '$lte': end_date},
+                'status': {'$ne': 'voided'}
+            }
+        },
+        {
+            '$group': {
+                '_id': None,
+                'total': {'$sum': '$total_amount'}
+            }
+        }
+    ]
+    
+    fnb_revenue = 0
+    async for result in db.pos_transactions.aggregate(fnb_revenue_pipeline):
+        fnb_revenue = result.get('total', 0)
+    
+    # Other Revenue (laundry, minibar, etc.)
+    other_revenue = 0
+    async for charge in db.charges.find({
+        'tenant_id': current_user.tenant_id,
+        'created_at': {'$gte': start_date, '$lte': end_date},
+        'charge_type': {'$nin': ['room', 'fnb']}
+    }):
+        other_revenue += charge.get('amount', 0)
+    
+    total_revenue = room_revenue + fnb_revenue + other_revenue
+    
+    # EXPENSES
+    expenses_by_category = {}
+    total_expenses = 0
+    
+    async for expense in db.expenses.find({
+        'tenant_id': current_user.tenant_id,
+        'expense_date': {'$gte': start_date, '$lte': end_date}
+    }):
+        category = expense.get('category', 'other')
+        amount = expense.get('amount', 0)
+        
+        expenses_by_category[category] = expenses_by_category.get(category, 0) + amount
+        total_expenses += amount
+    
+    # Calculate gross profit and net profit
+    gross_profit = total_revenue - expenses_by_category.get('cost_of_goods', 0)
+    operating_expenses = sum(v for k, v in expenses_by_category.items() if k != 'cost_of_goods')
+    net_profit = gross_profit - operating_expenses
+    
+    # Calculate margins
+    gross_margin = (gross_profit / total_revenue * 100) if total_revenue > 0 else 0
+    net_margin = (net_profit / total_revenue * 100) if total_revenue > 0 else 0
+    
+    return {
+        'period': {
+            'start_date': start_date.date().isoformat(),
+            'end_date': end_date.date().isoformat()
+        },
+        'revenue': {
+            'room_revenue': room_revenue,
+            'fnb_revenue': fnb_revenue,
+            'other_revenue': other_revenue,
+            'total_revenue': total_revenue
+        },
+        'expenses': {
+            'by_category': expenses_by_category,
+            'total_expenses': total_expenses
+        },
+        'profit': {
+            'gross_profit': gross_profit,
+            'net_profit': net_profit,
+            'gross_margin_pct': gross_margin,
+            'net_margin_pct': net_margin
+        }
+    }
+
+
+@api_router.get("/finance/cashier-shift-report")
+async def get_cashier_shift_report(
+    shift_date: Optional[str] = None,
+    cashier_name: Optional[str] = None,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Get cashier shift report"""
+    current_user = await get_current_user(credentials)
+    
+    if shift_date:
+        target_date = datetime.fromisoformat(shift_date)
+    else:
+        target_date = datetime.now(timezone.utc)
+    
+    start_of_day = target_date.replace(hour=0, minute=0, second=0)
+    end_of_day = target_date.replace(hour=23, minute=59, second=59)
+    
+    query = {
+        'tenant_id': current_user.tenant_id,
+        'created_at': {'$gte': start_of_day, '$lte': end_of_day}
+    }
+    
+    if cashier_name:
+        query['created_by'] = cashier_name
+    
+    # Get all payments/transactions
+    total_cash = 0
+    total_card = 0
+    total_transfer = 0
+    total_other = 0
+    transaction_count = 0
+    
+    async for payment in db.payments.find(query):
+        amount = payment.get('amount', 0)
+        method = payment.get('payment_method', 'cash')
+        
+        if method == 'cash':
+            total_cash += amount
+        elif method == 'card':
+            total_card += amount
+        elif method == 'transfer':
+            total_transfer += amount
+        else:
+            total_other += amount
+        
+        transaction_count += 1
+    
+    total_collected = total_cash + total_card + total_transfer + total_other
+    
+    # Get opening and closing balance (if tracked)
+    opening_balance = 0  # Should be from shift start record
+    expected_closing = opening_balance + total_cash
+    
+    # Calculate variances
+    variance = 0  # Would be: actual_closing - expected_closing
+    
+    return {
+        'shift_date': target_date.date().isoformat(),
+        'cashier_name': cashier_name or 'All Cashiers',
+        'opening_balance': opening_balance,
+        'collections': {
+            'cash': total_cash,
+            'card': total_card,
+            'transfer': total_transfer,
+            'other': total_other,
+            'total': total_collected
+        },
+        'expected_closing_balance': expected_closing,
+        'variance': variance,
+        'transaction_count': transaction_count,
+        'average_transaction': total_collected / transaction_count if transaction_count > 0 else 0,
+        'generated_at': datetime.now(timezone.utc).isoformat()
+    }
+
     payment_count = 0
     
     async for payment in db.payments.find({
