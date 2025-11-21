@@ -526,6 +526,16 @@ function App() {
             }
           />
           <Route
+            path="/mobile/maintenance/priority-visual"
+            element={
+              isAuthenticated ? (
+                <MaintenancePriorityVisual user={user} />
+              ) : (
+                <Navigate to="/auth" replace />
+              )
+            }
+          />
+          <Route
             path="/mobile/security"
             element={
               isAuthenticated ? (
