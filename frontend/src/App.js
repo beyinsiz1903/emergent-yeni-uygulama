@@ -59,18 +59,52 @@ function App() {
   const [tenant, setTenant] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  // Setup axios interceptor for handling auth errors
+  useEffect(() => {
+    const interceptor = axios.interceptors.response.use(
+      (response) => response,
+      (error) => {
+        // If we get 401 Unauthorized, logout the user
+        if (error.response && error.response.status === 401) {
+          console.warn('Authentication error detected, logging out...');
+          handleLogout();
+        }
+        return Promise.reject(error);
+      }
+    );
+
+    // Cleanup interceptor on unmount
+    return () => {
+      axios.interceptors.response.eject(interceptor);
+    };
+  }, []);
+
   useEffect(() => {
     const token = localStorage.getItem('token');
     const storedUser = localStorage.getItem('user');
     const storedTenant = localStorage.getItem('tenant');
     
     if (token && storedUser) {
-      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-      setUser(JSON.parse(storedUser));
-      if (storedTenant && storedTenant !== 'null') {
-        setTenant(JSON.parse(storedTenant));
+      try {
+        axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+        const parsedUser = JSON.parse(storedUser);
+        setUser(parsedUser);
+        
+        if (storedTenant && storedTenant !== 'null') {
+          try {
+            setTenant(JSON.parse(storedTenant));
+          } catch (e) {
+            console.warn('Failed to parse tenant data:', e);
+          }
+        }
+        setIsAuthenticated(true);
+      } catch (e) {
+        console.error('Failed to restore auth state:', e);
+        // Clear invalid data
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        localStorage.removeItem('tenant');
       }
-      setIsAuthenticated(true);
     }
     setLoading(false);
   }, []);
