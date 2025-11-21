@@ -440,6 +440,202 @@ const MobileFrontDesk = ({ user }) => {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Guest Alerts Modal */}
+      <Dialog open={guestAlertsModalOpen} onOpenChange={setGuestAlertsModalOpen}>
+        <DialogContent className="max-w-full w-[95vw] max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>⭐ Misafir Uyarıları ({guestAlerts.length})</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-2">
+            {guestAlerts.length === 0 ? (
+              <p className="text-center text-gray-500 py-8">Uyarı yok</p>
+            ) : (
+              guestAlerts.map((alert, idx) => (
+                <Card key={idx} className={`border-2 ${
+                  alert.priority === 'high' ? 'border-red-300 bg-red-50' :
+                  alert.priority === 'medium' ? 'border-yellow-300 bg-yellow-50' :
+                  'border-blue-300 bg-blue-50'
+                }`}>
+                  <CardContent className="p-3">
+                    <div className="flex items-start space-x-2">
+                      <span className="text-2xl">{alert.icon}</span>
+                      <div className="flex-1">
+                        <div className="flex items-center justify-between mb-1">
+                          <p className="font-bold text-gray-900">{alert.guest_name}</p>
+                          <Badge>{alert.type}</Badge>
+                        </div>
+                        <p className="text-sm text-gray-700 mb-1">{alert.message}</p>
+                        <p className="text-xs text-gray-600">Oda: {alert.room_number}</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Fee Calculator Modal */}
+      <Dialog open={feeCalculatorModalOpen} onOpenChange={setFeeCalculatorModalOpen}>
+        <DialogContent className="max-w-full w-[95vw]">
+          <DialogHeader>
+            <DialogTitle>💰 Ücret Hesaplayıcı</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label>Rezervasyon Seçin</Label>
+              <select 
+                className="w-full p-2 border rounded mt-1"
+                onChange={(e) => {
+                  const booking = [...todayArrivals, ...todayDepartures].find(b => b.id === e.target.value);
+                  setSelectedBookingForFee(booking);
+                  setCalculatedFees(null);
+                }}
+              >
+                <option value="">Seçin...</option>
+                {[...todayArrivals, ...todayDepartures].map(booking => (
+                  <option key={booking.id} value={booking.id}>
+                    {booking.guest_name} - Oda {booking.room_number}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {selectedBookingForFee && (
+              <>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label>Erken Check-in Saati</Label>
+                    <Input 
+                      type="time" 
+                      onChange={(e) => calculateFees(selectedBookingForFee, e.target.value, null)}
+                    />
+                  </div>
+                  <div>
+                    <Label>Geç Check-out Saati</Label>
+                    <Input 
+                      type="time" 
+                      onChange={(e) => calculateFees(selectedBookingForFee, null, e.target.value)}
+                    />
+                  </div>
+                </div>
+
+                {calculatedFees && (
+                  <Card className="bg-green-50 border-green-200">
+                    <CardContent className="p-4">
+                      <p className="font-bold text-lg mb-2">Hesaplanan Ücretler:</p>
+                      {calculatedFees.early_checkin_fee > 0 && (
+                        <div className="mb-2">
+                          <p className="text-sm text-gray-700">Erken Check-in:</p>
+                          <p className="text-lg font-bold text-green-700">₺{calculatedFees.early_checkin_fee}</p>
+                          <p className="text-xs text-gray-600">{calculatedFees.early_checkin_reason}</p>
+                        </div>
+                      )}
+                      {calculatedFees.late_checkout_fee > 0 && (
+                        <div className="mb-2">
+                          <p className="text-sm text-gray-700">Geç Check-out:</p>
+                          <p className="text-lg font-bold text-green-700">₺{calculatedFees.late_checkout_fee}</p>
+                          <p className="text-xs text-gray-600">{calculatedFees.late_checkout_reason}</p>
+                        </div>
+                      )}
+                      <div className="border-t pt-2 mt-2">
+                        <p className="text-sm text-gray-700">Toplam Ek Ücret:</p>
+                        <p className="text-2xl font-bold text-green-700">₺{calculatedFees.total_additional_fees}</p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+              </>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Room Filter Modal */}
+      <Dialog open={roomFilterModalOpen} onOpenChange={setRoomFilterModalOpen}>
+        <DialogContent className="max-w-full w-[95vw] max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>🔍 Oda Filtrele</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="grid grid-cols-3 gap-3">
+              <div>
+                <Label>Yatak Tipi</Label>
+                <select 
+                  className="w-full p-2 border rounded mt-1"
+                  value={roomFilters.bed_type}
+                  onChange={(e) => {
+                    const newFilters = {...roomFilters, bed_type: e.target.value};
+                    setRoomFilters(newFilters);
+                    loadFilteredRooms(newFilters);
+                  }}
+                >
+                  <option value="">Tümü</option>
+                  <option value="single">Tek</option>
+                  <option value="double">Çift</option>
+                  <option value="twin">İkiz</option>
+                  <option value="king">King</option>
+                  <option value="queen">Queen</option>
+                </select>
+              </div>
+              <div>
+                <Label>Kat</Label>
+                <Input 
+                  type="number"
+                  value={roomFilters.floor}
+                  onChange={(e) => {
+                    const newFilters = {...roomFilters, floor: e.target.value};
+                    setRoomFilters(newFilters);
+                    loadFilteredRooms(newFilters);
+                  }}
+                />
+              </div>
+              <div>
+                <Label>Durum</Label>
+                <select 
+                  className="w-full p-2 border rounded mt-1"
+                  value={roomFilters.status}
+                  onChange={(e) => {
+                    const newFilters = {...roomFilters, status: e.target.value};
+                    setRoomFilters(newFilters);
+                    loadFilteredRooms(newFilters);
+                  }}
+                >
+                  <option value="">Tümü</option>
+                  <option value="available">Müsait</option>
+                  <option value="occupied">Dolu</option>
+                  <option value="dirty">Kirli</option>
+                  <option value="cleaning">Temizleniyor</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <p className="font-bold">Sonuçlar ({filteredRooms.length})</p>
+              {filteredRooms.map((room) => (
+                <div key={room.id} className="p-3 bg-gray-50 rounded-lg border">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="font-bold text-gray-900">Oda {room.room_number}</p>
+                      <p className="text-sm text-gray-600">{room.room_type} • {room.bed_type} • Kat {room.floor}</p>
+                    </div>
+                    <Badge className={{
+                      'available': 'bg-green-500',
+                      'occupied': 'bg-blue-500',
+                      'dirty': 'bg-red-500',
+                      'cleaning': 'bg-yellow-500'
+                    }[room.status] || 'bg-gray-500'}>
+                      {room.status}
+                    </Badge>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
