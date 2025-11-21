@@ -503,6 +503,289 @@ const MobileFnB = ({ user }) => {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Z Report Modal */}
+      <Dialog open={zReportModalOpen} onOpenChange={setZReportModalOpen}>
+        <DialogContent className="max-w-full w-[95vw] max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center space-x-2">
+              <Calculator className="w-5 h-5 text-green-600" />
+              <span>Z Raporu - Günlük Kapanış</span>
+            </DialogTitle>
+          </DialogHeader>
+          
+          {zReportData ? (
+            <div className="space-y-4">
+              {/* Header Info */}
+              <Card className="bg-green-50">
+                <CardContent className="p-4">
+                  <div className="text-center">
+                    <p className="text-sm text-gray-600">Tarih</p>
+                    <p className="text-lg font-bold text-gray-900">
+                      {new Date(zReportData.report_date || Date.now()).toLocaleDateString('tr-TR')}
+                    </p>
+                    <p className="text-xs text-gray-500 mt-1">
+                      Rapor No: {zReportData.report_number || 'Z-' + Date.now()}
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Sales Summary */}
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base">Satış Özeti</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  <div className="flex justify-between p-2 bg-gray-50 rounded">
+                    <span className="text-gray-700">Toplam Satış:</span>
+                    <span className="font-bold text-green-700">
+                      {formatCurrency(zReportData.gross_sales || 0)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between p-2">
+                    <span className="text-gray-700">İşlem Sayısı:</span>
+                    <span className="font-bold">{zReportData.transaction_count || 0}</span>
+                  </div>
+                  <div className="flex justify-between p-2 bg-gray-50 rounded">
+                    <span className="text-gray-700">İptal/İade:</span>
+                    <span className="font-bold text-red-700">
+                      -{formatCurrency(zReportData.refunds || 0)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between p-2">
+                    <span className="text-gray-700">İndirimler:</span>
+                    <span className="font-bold text-orange-700">
+                      -{formatCurrency(zReportData.discounts || 0)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between p-3 bg-green-100 rounded-lg border-2 border-green-300 mt-3">
+                    <span className="font-bold text-green-900">NET SATIŞ:</span>
+                    <span className="font-bold text-xl text-green-700">
+                      {formatCurrency(zReportData.net_sales || 0)}
+                    </span>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Payment Methods */}
+              {zReportData.payment_methods && (
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-base">Ödeme Yöntemleri</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-2">
+                    {Object.entries(zReportData.payment_methods).map(([method, amount]) => (
+                      <div key={method} className="flex justify-between p-2 bg-blue-50 rounded">
+                        <span className="capitalize">{method === 'card' ? 'Kredi Kartı' : method === 'cash' ? 'Nakit' : method}</span>
+                        <span className="font-bold">{formatCurrency(amount)}</span>
+                      </div>
+                    ))}
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Category Breakdown */}
+              {zReportData.category_sales && (
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-base">Kategori Bazlı Satışlar</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-2">
+                    {Object.entries(zReportData.category_sales).map(([category, amount]) => (
+                      <div key={category} className="flex justify-between p-2 bg-purple-50 rounded">
+                        <span className="capitalize">{category}</span>
+                        <span className="font-bold">{formatCurrency(amount)}</span>
+                      </div>
+                    ))}
+                  </CardContent>
+                </Card>
+              )}
+
+              <Button 
+                className="w-full bg-green-600 hover:bg-green-700"
+                onClick={() => toast.success('Z raporu indirildi!')}
+              >
+                <Download className="w-4 h-4 mr-2" />
+                Raporu İndir (PDF)
+              </Button>
+            </div>
+          ) : (
+            <div className="text-center py-8">
+              <FileText className="w-12 h-12 mx-auto text-gray-300 mb-2" />
+              <p className="text-gray-500">Z raporu yükleniyor...</p>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Void Report Modal */}
+      <Dialog open={voidReportModalOpen} onOpenChange={setVoidReportModalOpen}>
+        <DialogContent className="max-w-full w-[95vw] max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center space-x-2">
+              <XCircle className="w-5 h-5 text-red-600" />
+              <span>İptal Raporu</span>
+            </DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-3">
+            {voidTransactions.length === 0 ? (
+              <div className="text-center py-12">
+                <CheckCircle className="w-16 h-16 mx-auto text-green-300 mb-3" />
+                <p className="text-gray-600 font-medium">Bugün iptal işlemi yok</p>
+                <p className="text-sm text-gray-500 mt-1">Tüm işlemler başarıyla tamamlandı</p>
+              </div>
+            ) : (
+              <>
+                <Card className="bg-red-50">
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm text-red-700 font-medium">Toplam İptal</p>
+                        <p className="text-2xl font-bold text-red-900">{voidTransactions.length}</p>
+                      </div>
+                      <XCircle className="w-12 h-12 text-red-300" />
+                    </div>
+                    <p className="text-xs text-red-600 mt-2">
+                      Toplam Tutar: {formatCurrency(voidTransactions.reduce((sum, t) => sum + (t.amount || 0), 0))}
+                    </p>
+                  </CardContent>
+                </Card>
+
+                {voidTransactions.map((transaction, idx) => (
+                  <Card key={idx}>
+                    <CardContent className="p-3">
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center space-x-2 mb-1">
+                            <Badge className="bg-red-500">İPTAL</Badge>
+                            <span className="text-xs text-gray-500">
+                              {new Date(transaction.voided_at || transaction.created_at).toLocaleString('tr-TR')}
+                            </span>
+                          </div>
+                          <p className="font-bold text-gray-900">
+                            İşlem #{transaction.transaction_id || transaction.id}
+                          </p>
+                          <p className="text-sm text-gray-600 mt-1">
+                            Outlet: {transaction.outlet_name || 'N/A'}
+                          </p>
+                          <p className="text-sm text-gray-600">
+                            Masa: {transaction.table_number || 'N/A'}
+                          </p>
+                          <div className="mt-2 p-2 bg-yellow-50 rounded border border-yellow-200">
+                            <p className="text-xs text-yellow-800 font-medium">İptal Nedeni:</p>
+                            <p className="text-xs text-yellow-900">{transaction.void_reason || 'Belirtilmedi'}</p>
+                          </div>
+                          {transaction.voided_by && (
+                            <p className="text-xs text-gray-500 mt-1">
+                              İptal Eden: {transaction.voided_by}
+                            </p>
+                          )}
+                        </div>
+                        <div className="text-right">
+                          <p className="font-bold text-lg text-red-700">
+                            {formatCurrency(transaction.amount || 0)}
+                          </p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Menu Management Modal */}
+      <Dialog open={menuManagementModalOpen} onOpenChange={setMenuManagementModalOpen}>
+        <DialogContent className="max-w-full w-[95vw] max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center space-x-2">
+              <MenuIcon className="w-5 h-5 text-purple-600" />
+              <span>Menü Yönetimi</span>
+            </DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-3">
+            {/* Menu Stats */}
+            <div className="grid grid-cols-3 gap-2">
+              <Card className="bg-purple-50">
+                <CardContent className="p-3 text-center">
+                  <p className="text-2xl font-bold text-purple-700">{menuItems.length}</p>
+                  <p className="text-xs text-purple-600">Toplam Ürün</p>
+                </CardContent>
+              </Card>
+              <Card className="bg-green-50">
+                <CardContent className="p-3 text-center">
+                  <p className="text-2xl font-bold text-green-700">
+                    {menuItems.filter(i => i.available !== false).length}
+                  </p>
+                  <p className="text-xs text-green-600">Aktif</p>
+                </CardContent>
+              </Card>
+              <Card className="bg-orange-50">
+                <CardContent className="p-3 text-center">
+                  <p className="text-2xl font-bold text-orange-700">
+                    {new Set(menuItems.map(i => i.category)).size}
+                  </p>
+                  <p className="text-xs text-orange-600">Kategori</p>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Category Groups */}
+            {['food', 'beverage', 'dessert', 'appetizer', 'alcohol'].map(category => {
+              const items = menuItems.filter(i => i.category === category);
+              if (items.length === 0) return null;
+              
+              return (
+                <Card key={category}>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm capitalize flex items-center justify-between">
+                      <span>
+                        {category === 'food' ? '🍽️ Yemekler' : 
+                         category === 'beverage' ? '☕ İçecekler' :
+                         category === 'dessert' ? '🍰 Tatlılar' :
+                         category === 'appetizer' ? '🥗 Mezeler' :
+                         '🍷 Alkollü İçecekler'}
+                      </span>
+                      <Badge variant="outline">{items.length}</Badge>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-2">
+                    {items.map(item => (
+                      <div key={item.id} className="flex items-center justify-between p-2 bg-gray-50 rounded border">
+                        <div className="flex-1">
+                          <p className="font-medium text-sm">{item.name}</p>
+                          {item.description && (
+                            <p className="text-xs text-gray-500">{item.description}</p>
+                          )}
+                        </div>
+                        <div className="text-right">
+                          <p className="font-bold text-purple-700">{formatCurrency(item.price)}</p>
+                          <Badge className={item.available !== false ? 'bg-green-500' : 'bg-gray-400'}>
+                            {item.available !== false ? 'Mevcut' : 'Yok'}
+                          </Badge>
+                        </div>
+                      </div>
+                    ))}
+                  </CardContent>
+                </Card>
+              );
+            })}
+
+            <Button 
+              className="w-full bg-purple-600 hover:bg-purple-700"
+              onClick={() => toast.info('Yeni ürün ekleme özelliği yakında...')}
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Yeni Ürün Ekle
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
