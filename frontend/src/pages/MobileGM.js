@@ -373,6 +373,190 @@ const MobileGM = ({ user }) => {
           </CardContent>
         </Card>
       </div>
+
+      {/* Dashboard Modal */}
+      <Dialog open={dashboardModalOpen} onOpenChange={setDashboardModalOpen}>
+        <DialogContent className="max-w-full w-[95vw] max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Executive Dashboard - Detaylı Görünüm</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Günlük Performans</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="p-3 bg-blue-50 rounded-lg">
+                    <p className="text-xs text-blue-600 mb-1">Doluluk Oranı</p>
+                    <p className="text-2xl font-bold text-blue-700">
+                      {dailyFlash?.occupancy_rate?.toFixed(1) || 0}%
+                    </p>
+                  </div>
+                  <div className="p-3 bg-green-50 rounded-lg">
+                    <p className="text-xs text-green-600 mb-1">RevPAR</p>
+                    <p className="text-2xl font-bold text-green-700">
+                      ₺{dailyFlash?.revpar?.toFixed(0) || 0}
+                    </p>
+                  </div>
+                  <div className="p-3 bg-purple-50 rounded-lg">
+                    <p className="text-xs text-purple-600 mb-1">ADR</p>
+                    <p className="text-2xl font-bold text-purple-700">
+                      ₺{dailyFlash?.adr?.toFixed(0) || 0}
+                    </p>
+                  </div>
+                  <div className="p-3 bg-orange-50 rounded-lg">
+                    <p className="text-xs text-orange-600 mb-1">Günlük Gelir</p>
+                    <p className="text-2xl font-bold text-orange-700">
+                      ₺{dailyFlash?.total_revenue?.toFixed(0) || 0}
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Operasyonel Durum</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Toplam Oda:</span>
+                  <span className="font-bold">{roomStatus?.total_rooms || 0}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Dolu Odalar:</span>
+                  <span className="font-bold text-blue-700">{roomStatus?.status_counts?.occupied || 0}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Müsait Odalar:</span>
+                  <span className="font-bold text-green-700">{roomStatus?.status_counts?.available || 0}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Temizlik Bekleyen:</span>
+                  <span className="font-bold text-red-700">{roomStatus?.status_counts?.dirty || 0}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Bakımda:</span>
+                  <span className="font-bold text-orange-700">{roomStatus?.status_counts?.maintenance || 0}</span>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Finansal Özet</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Bugünkü Tahsilat:</span>
+                  <span className="font-bold text-green-700">₺{financeSnapshot?.today_collections?.toFixed(0) || 0}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Bekleyen Alacaklar:</span>
+                  <span className="font-bold text-orange-700">₺{financeSnapshot?.pending_receivables?.toFixed(0) || 0}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Aylık Toplam Gelir:</span>
+                  <span className="font-bold text-blue-700">₺{financeSnapshot?.monthly_revenue?.toFixed(0) || 0}</span>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Reports Modal */}
+      <Dialog open={reportsModalOpen} onOpenChange={setReportsModalOpen}>
+        <DialogContent className="max-w-full w-[95vw] max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Executive Raporlar</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Bugünkü Flash Rapor</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                <div className="grid grid-cols-2 gap-2 text-sm">
+                  <div>
+                    <p className="text-gray-500">Doluluk:</p>
+                    <p className="font-bold">{dailyFlash?.occupancy_rate?.toFixed(1) || 0}%</p>
+                  </div>
+                  <div>
+                    <p className="text-gray-500">RevPAR:</p>
+                    <p className="font-bold">₺{dailyFlash?.revpar?.toFixed(0) || 0}</p>
+                  </div>
+                  <div>
+                    <p className="text-gray-500">ADR:</p>
+                    <p className="font-bold">₺{dailyFlash?.adr?.toFixed(0) || 0}</p>
+                  </div>
+                  <div>
+                    <p className="text-gray-500">Günlük Gelir:</p>
+                    <p className="font-bold">₺{dailyFlash?.total_revenue?.toFixed(0) || 0}</p>
+                  </div>
+                  <div>
+                    <p className="text-gray-500">Gelen Misafir:</p>
+                    <p className="font-bold">{dailyFlash?.arrivals || 0}</p>
+                  </div>
+                  <div>
+                    <p className="text-gray-500">Çıkan Misafir:</p>
+                    <p className="font-bold">{dailyFlash?.departures || 0}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Departman Durumu</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                <div className="flex items-center justify-between p-2 bg-green-50 rounded">
+                  <span className="text-sm">Ön Büro</span>
+                  <Badge className="bg-green-500">Operasyonel</Badge>
+                </div>
+                <div className="flex items-center justify-between p-2 bg-green-50 rounded">
+                  <span className="text-sm">Housekeeping</span>
+                  <Badge className="bg-green-500">
+                    {roomStatus?.status_counts?.dirty || 0} kirli oda
+                  </Badge>
+                </div>
+                <div className="flex items-center justify-between p-2 bg-green-50 rounded">
+                  <span className="text-sm">Teknik Servis</span>
+                  <Badge className="bg-green-500">
+                    {roomStatus?.status_counts?.maintenance || 0} bakımda
+                  </Badge>
+                </div>
+                <div className="flex items-center justify-between p-2 bg-green-50 rounded">
+                  <span className="text-sm">F&B</span>
+                  <Badge className="bg-green-500">Operasyonel</Badge>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Performans Göstergeleri</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-600">Ortalama Konaklama Süresi:</span>
+                  <span className="font-bold">{dailyFlash?.avg_stay_duration || 0} gece</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-600">Rezervasyon Kaynağı (OTA):</span>
+                  <span className="font-bold">{dailyFlash?.ota_percentage || 0}%</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-600">Direkt Rezervasyon:</span>
+                  <span className="font-bold">{dailyFlash?.direct_percentage || 0}%</span>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
