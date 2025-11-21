@@ -1542,7 +1542,7 @@ async def register_tenant(data: TenantRegister):
         phone=data.phone
     )
     user_dict = user.model_dump()
-    user_dict['password'] = hash_password(data.password)
+    user_dict['hashed_password'] = hash_password(data.password)
     user_dict['created_at'] = user_dict['created_at'].isoformat()
     await db.users.insert_one(user_dict)
     
