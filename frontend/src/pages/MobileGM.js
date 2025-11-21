@@ -40,8 +40,20 @@ const MobileGM = ({ user }) => {
   const [anomalies, setAnomalies] = useState([]);
   const [weeklyForecast, setWeeklyForecast] = useState([]);
   const [monthlyForecast, setMonthlyForecast] = useState([]);
+  const [propertyModalOpen, setPropertyModalOpen] = useState(false);
+  const [selectedProperty, setSelectedProperty] = useState(null);
+  const [properties, setProperties] = useState([
+    { id: 1, name: 'Hilton Istanbul Bosphorus', location: 'Istanbul, TR', rooms: 498, status: 'active' },
+    { id: 2, name: 'Hilton Ankara', location: 'Ankara, TR', rooms: 312, status: 'active' },
+    { id: 3, name: 'Hilton Izmir', location: 'Izmir, TR', rooms: 276, status: 'active' },
+    { id: 4, name: 'Hilton Antalya', location: 'Antalya, TR', rooms: 425, status: 'active' }
+  ]);
 
   useEffect(() => {
+    // Set default property
+    if (!selectedProperty && properties.length > 0) {
+      setSelectedProperty(properties[0]);
+    }
     loadData();
   }, []);
 
