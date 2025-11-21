@@ -25656,6 +25656,1745 @@ async def get_pos_orders(
     }
 
 
+
+# ============================================================================
+# MOBILE ENDPOINTS - Departman Bazlı Mobile Dashboard API'leri
+# ============================================================================
+
+# --------------------------------------------------------------------------
+# GM Mobile Dashboard Endpoints
+# --------------------------------------------------------------------------
+
+@api_router.get("/dashboard/mobile/critical-issues")
+async def get_critical_issues_mobile(
+    limit: int = 5,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Get recent critical issues for GM mobile dashboard"""
+    current_user = await get_current_user(credentials)
+    
+    # Get critical maintenance tasks
+    critical_tasks = []
+    async for task in db.tasks.find({
+        'tenant_id': current_user.tenant_id,
+        'department': 'maintenance',
+        'priority': 'urgent',
+        'status': {'$ne': 'completed'}
+    }).sort('created_at', -1).limit(limit):
+        critical_tasks.append({
+            'id': task.get('id'),
+            'title': task.get('title'),
+            'description': task.get('description'),
+            'room_number': task.get('room_number'),
+            'priority': task.get('priority'),
+            'status': task.get('status'),
+            'created_at': task.get('created_at'),
+            'type': 'maintenance'
+        })
+    
+    # Get overbooking situations
+    today = datetime.now(timezone.utc)
+    overbookings = []
+    async for booking in db.bookings.find({
+        'tenant_id': current_user.tenant_id,
+        'check_in': {'$lte': today + timedelta(days=1)},
+        'status': 'confirmed'
+    }):
+        # Check if room is already occupied
+        room = await db.rooms.find_one({
+            'id': booking.get('room_id'),
+            'tenant_id': current_user.tenant_id,
+            'status': 'occupied'
+        })
+        if room:
+            overbookings.append({
+                'id': booking.get('id'),
+                'title': f"Overbooking - Oda {booking.get('room_number')}",
+                'description': f"Misafir: {booking.get('guest_name')}",
+                'room_number': booking.get('room_number'),
+                'priority': 'urgent',
+                'created_at': booking.get('created_at'),
+                'type': 'overbooking'
+            })
+    
+    # Combine and sort by date
+    all_issues = critical_tasks + overbookings[:limit]
+    all_issues.sort(key=lambda x: x['created_at'], reverse=True)
+    
+    return {
+        'critical_issues': all_issues[:limit],
+        'total_count': len(all_issues)
+    }
+
+
+@api_router.get("/dashboard/mobile/recent-complaints")
+async def get_recent_complaints_mobile(
+    limit: int = 5,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Get recent guest complaints for GM mobile dashboard"""
+    current_user = await get_current_user(credentials)
+    
+    # Get recent negative feedback/reviews
+    complaints = []
+    async for feedback in db.feedback.find({
+        'tenant_id': current_user.tenant_id,
+        '$or': [
+            {'rating': {'$lte': 3}},
+            {'sentiment': 'negative'}
+        ]
+    }).sort('created_at', -1).limit(limit):
+        complaints.append({
+            'id': feedback.get('id'),
+            'guest_name': feedback.get('guest_name'),
+            'rating': feedback.get('rating'),
+            'comment': feedback.get('comment', ''),
+            'category': feedback.get('category', 'general'),
+            'sentiment': feedback.get('sentiment', 'negative'),
+            'source': feedback.get('source', 'internal'),
+            'created_at': feedback.get('created_at'),
+            'status': feedback.get('status', 'new')
+        })
+    
+    return {
+        'complaints': complaints,
+        'total_count': len(complaints)
+    }
+
+
+@api_router.get("/notifications/mobile/gm")
+async def get_gm_notifications_mobile(
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Get notifications for GM mobile dashboard"""
+    current_user = await get_current_user(credentials)
+    today = datetime.now(timezone.utc)
+    
+    notifications = []
+    
+    # VIP Check-ins today
+    vip_checkins = 0
+    async for booking in db.bookings.find({
+        'tenant_id': current_user.tenant_id,
+        'check_in': {
+            '$gte': today.replace(hour=0, minute=0, second=0),
+            '$lte': today.replace(hour=23, minute=59, second=59)
+        },
+        'status': {'$in': ['confirmed', 'guaranteed']}
+    }):
+        guest = await db.guests.find_one({
+            'id': booking.get('guest_id'),
+            'tenant_id': current_user.tenant_id
+        })
+        if guest and guest.get('vip_status'):
+            vip_checkins += 1
+            notifications.append({
+                'id': str(uuid.uuid4()),
+                'type': 'vip_checkin',
+                'title': 'VIP Check-in Bugün',
+                'message': f"{booking.get('guest_name')} - Oda {booking.get('room_number')}",
+                'priority': 'high',
+                'created_at': today.isoformat()
+            })
+    
+    # Low inventory warning (occupancy > 90%)
+    total_rooms = await db.rooms.count_documents({'tenant_id': current_user.tenant_id})
+    occupied_rooms = await db.rooms.count_documents({
+        'tenant_id': current_user.tenant_id,
+        'status': 'occupied'
+    })
+    
+    if total_rooms > 0:
+        occupancy_pct = (occupied_rooms / total_rooms) * 100
+        if occupancy_pct > 90:
+            notifications.append({
+                'id': str(uuid.uuid4()),
+                'type': 'low_inventory',
+                'title': 'Düşük Envanter Uyarısı',
+                'message': f"Doluluk %{occupancy_pct:.1f} - Sadece {total_rooms - occupied_rooms} oda kaldı",
+                'priority': 'high',
+                'created_at': today.isoformat()
+            })
+    
+    # High-risk reviews (rating <= 2 in last 24 hours)
+    risk_reviews = 0
+    yesterday = today - timedelta(days=1)
+    async for feedback in db.feedback.find({
+        'tenant_id': current_user.tenant_id,
+        'rating': {'$lte': 2},
+        'created_at': {'$gte': yesterday}
+    }):
+        risk_reviews += 1
+    
+    if risk_reviews > 0:
+        notifications.append({
+            'id': str(uuid.uuid4()),
+            'type': 'high_risk_review',
+            'title': 'Riskli İncelemeler',
+            'message': f"Son 24 saatte {risk_reviews} adet düşük puanlı değerlendirme alındı",
+            'priority': 'medium',
+            'created_at': today.isoformat()
+        })
+    
+    return {
+        'notifications': notifications,
+        'unread_count': len(notifications)
+    }
+
+
+# --------------------------------------------------------------------------
+# Front Desk Mobile Dashboard Endpoints
+# --------------------------------------------------------------------------
+
+@api_router.get("/frontdesk/mobile/early-checkin-requests")
+async def get_early_checkin_requests_mobile(
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Get early check-in requests for front desk mobile"""
+    current_user = await get_current_user(credentials)
+    today = datetime.now(timezone.utc)
+    
+    requests = []
+    async for booking in db.bookings.find({
+        'tenant_id': current_user.tenant_id,
+        'check_in': {
+            '$gte': today.replace(hour=0, minute=0, second=0),
+            '$lte': today.replace(hour=23, minute=59, second=59)
+        },
+        'status': {'$in': ['confirmed', 'guaranteed']},
+        'early_checkin_requested': True
+    }).sort('check_in', 1):
+        requests.append({
+            'booking_id': booking.get('id'),
+            'guest_name': booking.get('guest_name'),
+            'room_number': booking.get('room_number'),
+            'requested_time': booking.get('early_checkin_time', '12:00'),
+            'check_in': booking.get('check_in'),
+            'room_status': 'checking',  # Will be updated with actual room status
+            'notes': booking.get('special_requests', '')
+        })
+    
+    # Check actual room status for each request
+    for req in requests:
+        if req['room_number']:
+            room = await db.rooms.find_one({
+                'room_number': req['room_number'],
+                'tenant_id': current_user.tenant_id
+            })
+            if room:
+                req['room_status'] = room.get('status', 'unknown')
+    
+    return {
+        'early_checkin_requests': requests,
+        'count': len(requests)
+    }
+
+
+@api_router.get("/frontdesk/mobile/late-checkout-requests")
+async def get_late_checkout_requests_mobile(
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Get late checkout requests for front desk mobile"""
+    current_user = await get_current_user(credentials)
+    today = datetime.now(timezone.utc)
+    
+    requests = []
+    async for booking in db.bookings.find({
+        'tenant_id': current_user.tenant_id,
+        'check_out': {
+            '$gte': today.replace(hour=0, minute=0, second=0),
+            '$lte': today.replace(hour=23, minute=59, second=59)
+        },
+        'status': 'checked_in',
+        'late_checkout_requested': True
+    }).sort('check_out', 1):
+        requests.append({
+            'booking_id': booking.get('id'),
+            'guest_name': booking.get('guest_name'),
+            'room_number': booking.get('room_number'),
+            'requested_time': booking.get('late_checkout_time', '14:00'),
+            'check_out': booking.get('check_out'),
+            'has_next_arrival': False,  # Will be updated
+            'notes': booking.get('special_requests', '')
+        })
+    
+    # Check if there's a next arrival for the same room
+    for req in requests:
+        next_booking = await db.bookings.find_one({
+            'tenant_id': current_user.tenant_id,
+            'room_number': req['room_number'],
+            'check_in': {
+                '$gte': today.replace(hour=0, minute=0, second=0),
+                '$lte': today.replace(hour=23, minute=59, second=59)
+            },
+            'status': {'$in': ['confirmed', 'guaranteed']}
+        })
+        if next_booking:
+            req['has_next_arrival'] = True
+            req['next_arrival_time'] = next_booking.get('check_in')
+    
+    return {
+        'late_checkout_requests': requests,
+        'count': len(requests)
+    }
+
+
+@api_router.post("/frontdesk/mobile/process-no-show")
+async def process_no_show_mobile(
+    booking_id: str,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Process no-show for a booking"""
+    current_user = await get_current_user(credentials)
+    
+    # Find booking
+    booking = await db.bookings.find_one({
+        'id': booking_id,
+        'tenant_id': current_user.tenant_id
+    })
+    
+    if not booking:
+        raise HTTPException(status_code=404, detail="Booking not found")
+    
+    # Check if already processed
+    if booking.get('status') == 'no_show':
+        raise HTTPException(status_code=400, detail="Booking already marked as no-show")
+    
+    # Update booking status
+    await db.bookings.update_one(
+        {'id': booking_id, 'tenant_id': current_user.tenant_id},
+        {
+            '$set': {
+                'status': 'no_show',
+                'no_show_date': datetime.now(timezone.utc),
+                'no_show_processed_by': current_user.username
+            }
+        }
+    )
+    
+    # Apply no-show charge if policy exists
+    no_show_fee = booking.get('cancellation_policy', {}).get('no_show_fee', 0)
+    if no_show_fee > 0:
+        # Create charge record
+        charge_id = str(uuid.uuid4())
+        await db.charges.insert_one({
+            'id': charge_id,
+            'tenant_id': current_user.tenant_id,
+            'booking_id': booking_id,
+            'guest_id': booking.get('guest_id'),
+            'charge_type': 'no_show_fee',
+            'amount': no_show_fee,
+            'description': 'No-show cancellation fee',
+            'created_at': datetime.now(timezone.utc),
+            'created_by': current_user.username
+        })
+    
+    return {
+        'message': 'No-show processed successfully',
+        'booking_id': booking_id,
+        'no_show_fee': no_show_fee,
+        'status': 'no_show'
+    }
+
+
+@api_router.post("/frontdesk/mobile/change-room")
+async def change_room_mobile(
+    booking_id: str,
+    new_room_id: str,
+    reason: Optional[str] = None,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Change room for a booking"""
+    current_user = await get_current_user(credentials)
+    
+    # Find booking
+    booking = await db.bookings.find_one({
+        'id': booking_id,
+        'tenant_id': current_user.tenant_id
+    })
+    
+    if not booking:
+        raise HTTPException(status_code=404, detail="Booking not found")
+    
+    # Find new room
+    new_room = await db.rooms.find_one({
+        'id': new_room_id,
+        'tenant_id': current_user.tenant_id
+    })
+    
+    if not new_room:
+        raise HTTPException(status_code=404, detail="New room not found")
+    
+    # Check if new room is available
+    if new_room.get('status') not in ['available', 'inspected']:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Room {new_room.get('room_number')} is not available (status: {new_room.get('status')})"
+        )
+    
+    old_room_id = booking.get('room_id')
+    old_room_number = booking.get('room_number')
+    
+    # Update booking with new room
+    await db.bookings.update_one(
+        {'id': booking_id, 'tenant_id': current_user.tenant_id},
+        {
+            '$set': {
+                'room_id': new_room_id,
+                'room_number': new_room.get('room_number'),
+                'room_type': new_room.get('room_type'),
+                'room_changed_at': datetime.now(timezone.utc),
+                'room_changed_by': current_user.username,
+                'room_change_reason': reason
+            }
+        }
+    )
+    
+    # Update old room status (if checked in)
+    if booking.get('status') == 'checked_in' and old_room_id:
+        await db.rooms.update_one(
+            {'id': old_room_id, 'tenant_id': current_user.tenant_id},
+            {
+                '$set': {
+                    'status': 'dirty',
+                    'current_booking_id': None
+                }
+            }
+        )
+    
+    # Update new room status (if checked in)
+    if booking.get('status') == 'checked_in':
+        await db.rooms.update_one(
+            {'id': new_room_id, 'tenant_id': current_user.tenant_id},
+            {
+                '$set': {
+                    'status': 'occupied',
+                    'current_booking_id': booking_id
+                }
+            }
+        )
+    
+    # Log room change
+    await db.audit_logs.insert_one({
+        'id': str(uuid.uuid4()),
+        'tenant_id': current_user.tenant_id,
+        'user_id': current_user.user_id,
+        'user_name': current_user.username,
+        'action': 'ROOM_CHANGE',
+        'entity_type': 'booking',
+        'entity_id': booking_id,
+        'changes': {
+            'old_room_id': old_room_id,
+            'old_room_number': old_room_number,
+            'new_room_id': new_room_id,
+            'new_room_number': new_room.get('room_number'),
+            'reason': reason
+        },
+        'timestamp': datetime.now(timezone.utc)
+    })
+    
+    return {
+        'message': 'Room changed successfully',
+        'booking_id': booking_id,
+        'old_room_number': old_room_number,
+        'new_room_number': new_room.get('room_number'),
+        'reason': reason
+    }
+
+
+@api_router.get("/notifications/mobile/frontdesk")
+async def get_frontdesk_notifications_mobile(
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Get notifications for front desk mobile dashboard"""
+    current_user = await get_current_user(credentials)
+    today = datetime.now(timezone.utc)
+    
+    notifications = []
+    
+    # VIP arrivals today
+    async for booking in db.bookings.find({
+        'tenant_id': current_user.tenant_id,
+        'check_in': {
+            '$gte': today.replace(hour=0, minute=0, second=0),
+            '$lte': today.replace(hour=23, minute=59, second=59)
+        },
+        'status': {'$in': ['confirmed', 'guaranteed']}
+    }):
+        guest = await db.guests.find_one({
+            'id': booking.get('guest_id'),
+            'tenant_id': current_user.tenant_id
+        })
+        if guest and guest.get('vip_status'):
+            notifications.append({
+                'id': str(uuid.uuid4()),
+                'type': 'vip_arrival',
+                'title': 'VIP Geliş',
+                'message': f"{booking.get('guest_name')} - Oda {booking.get('room_number')}",
+                'priority': 'high',
+                'created_at': today.isoformat()
+            })
+    
+    # Overbooking risk
+    available_rooms = await db.rooms.count_documents({
+        'tenant_id': current_user.tenant_id,
+        'status': {'$in': ['available', 'inspected']}
+    })
+    
+    arrivals_today = await db.bookings.count_documents({
+        'tenant_id': current_user.tenant_id,
+        'check_in': {
+            '$gte': today.replace(hour=0, minute=0, second=0),
+            '$lte': today.replace(hour=23, minute=59, second=59)
+        },
+        'status': {'$in': ['confirmed', 'guaranteed']}
+    })
+    
+    if arrivals_today > available_rooms:
+        notifications.append({
+            'id': str(uuid.uuid4()),
+            'type': 'overbooking_risk',
+            'title': 'Overbooking Riski',
+            'message': f"{arrivals_today} geliş, sadece {available_rooms} oda hazır",
+            'priority': 'urgent',
+            'created_at': today.isoformat()
+        })
+    
+    # Room cleaning completed
+    recently_cleaned = 0
+    last_hour = today - timedelta(hours=1)
+    async for task in db.housekeeping_tasks.find({
+        'tenant_id': current_user.tenant_id,
+        'task_type': 'cleaning',
+        'status': 'completed',
+        'completed_at': {'$gte': last_hour}
+    }):
+        recently_cleaned += 1
+    
+    if recently_cleaned > 0:
+        notifications.append({
+            'id': str(uuid.uuid4()),
+            'type': 'room_ready',
+            'title': 'Odalar Hazır',
+            'message': f"Son 1 saatte {recently_cleaned} oda temizlendi",
+            'priority': 'info',
+            'created_at': today.isoformat()
+        })
+    
+    return {
+        'notifications': notifications,
+        'unread_count': len(notifications)
+    }
+
+
+# --------------------------------------------------------------------------
+# Housekeeping Mobile Dashboard Endpoints
+# --------------------------------------------------------------------------
+
+@api_router.get("/housekeeping/mobile/sla-delayed-rooms")
+async def get_sla_delayed_rooms_mobile(
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Get rooms with SLA delays for housekeeping mobile"""
+    current_user = await get_current_user(credentials)
+    
+    # SLA standard: cleaning should complete within 30 minutes
+    sla_threshold = timedelta(minutes=30)
+    delayed_rooms = []
+    
+    async for task in db.housekeeping_tasks.find({
+        'tenant_id': current_user.tenant_id,
+        'task_type': 'cleaning',
+        'status': 'in_progress'
+    }):
+        started_at = task.get('started_at')
+        if started_at:
+            duration = datetime.now(timezone.utc) - started_at
+            if duration > sla_threshold:
+                room = await db.rooms.find_one({
+                    'id': task.get('room_id'),
+                    'tenant_id': current_user.tenant_id
+                })
+                
+                delayed_rooms.append({
+                    'task_id': task.get('id'),
+                    'room_id': task.get('room_id'),
+                    'room_number': room.get('room_number') if room else 'N/A',
+                    'assigned_to': task.get('assigned_to'),
+                    'started_at': started_at.isoformat(),
+                    'duration_minutes': int(duration.total_seconds() / 60),
+                    'sla_breach_minutes': int((duration - sla_threshold).total_seconds() / 60),
+                    'priority': task.get('priority', 'normal')
+                })
+    
+    # Sort by breach time (most delayed first)
+    delayed_rooms.sort(key=lambda x: x['sla_breach_minutes'], reverse=True)
+    
+    return {
+        'sla_delayed_rooms': delayed_rooms,
+        'count': len(delayed_rooms),
+        'sla_threshold_minutes': 30
+    }
+
+
+@api_router.get("/housekeeping/mobile/team-assignments")
+async def get_team_assignments_mobile(
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Get team assignment overview for housekeeping mobile"""
+    current_user = await get_current_user(credentials)
+    
+    # Get all active housekeeping staff
+    staff_assignments = {}
+    
+    async for task in db.housekeeping_tasks.find({
+        'tenant_id': current_user.tenant_id,
+        'status': {'$in': ['assigned', 'in_progress']},
+        'assigned_to': {'$exists': True, '$ne': None}
+    }):
+        staff_name = task.get('assigned_to')
+        
+        if staff_name not in staff_assignments:
+            staff_assignments[staff_name] = {
+                'staff_name': staff_name,
+                'assigned_rooms': [],
+                'total_tasks': 0,
+                'completed_today': 0,
+                'in_progress': 0
+            }
+        
+        room = await db.rooms.find_one({
+            'id': task.get('room_id'),
+            'tenant_id': current_user.tenant_id
+        })
+        
+        staff_assignments[staff_name]['assigned_rooms'].append({
+            'room_number': room.get('room_number') if room else 'N/A',
+            'task_type': task.get('task_type'),
+            'status': task.get('status'),
+            'priority': task.get('priority')
+        })
+        
+        staff_assignments[staff_name]['total_tasks'] += 1
+        
+        if task.get('status') == 'in_progress':
+            staff_assignments[staff_name]['in_progress'] += 1
+    
+    # Get completed tasks today for each staff
+    today = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0)
+    
+    for staff_name in staff_assignments:
+        completed_count = await db.housekeeping_tasks.count_documents({
+            'tenant_id': current_user.tenant_id,
+            'assigned_to': staff_name,
+            'status': 'completed',
+            'completed_at': {'$gte': today}
+        })
+        staff_assignments[staff_name]['completed_today'] = completed_count
+    
+    return {
+        'team_assignments': list(staff_assignments.values()),
+        'total_staff': len(staff_assignments)
+    }
+
+
+@api_router.post("/housekeeping/mobile/quick-task")
+async def create_quick_task_mobile(
+    room_id: str,
+    task_type: str,
+    priority: str = 'normal',
+    assigned_to: Optional[str] = None,
+    notes: Optional[str] = None,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Create a quick housekeeping task from mobile"""
+    current_user = await get_current_user(credentials)
+    
+    # Validate room
+    room = await db.rooms.find_one({
+        'id': room_id,
+        'tenant_id': current_user.tenant_id
+    })
+    
+    if not room:
+        raise HTTPException(status_code=404, detail="Room not found")
+    
+    # Create task
+    task_id = str(uuid.uuid4())
+    task = {
+        'id': task_id,
+        'tenant_id': current_user.tenant_id,
+        'room_id': room_id,
+        'room_number': room.get('room_number'),
+        'task_type': task_type,
+        'priority': priority,
+        'status': 'assigned' if assigned_to else 'new',
+        'assigned_to': assigned_to,
+        'notes': notes,
+        'created_at': datetime.now(timezone.utc),
+        'created_by': current_user.username
+    }
+    
+    await db.housekeeping_tasks.insert_one(task)
+    
+    # Update room status if needed
+    if task_type == 'cleaning':
+        await db.rooms.update_one(
+            {'id': room_id, 'tenant_id': current_user.tenant_id},
+            {'$set': {'status': 'cleaning'}}
+        )
+    
+    return {
+        'message': 'Task created successfully',
+        'task_id': task_id,
+        'room_number': room.get('room_number'),
+        'task_type': task_type,
+        'priority': priority,
+        'assigned_to': assigned_to
+    }
+
+
+@api_router.get("/notifications/mobile/housekeeping")
+async def get_housekeeping_notifications_mobile(
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Get notifications for housekeeping mobile dashboard"""
+    current_user = await get_current_user(credentials)
+    
+    notifications = []
+    
+    # Damage reports
+    async for report in db.damage_reports.find({
+        'tenant_id': current_user.tenant_id,
+        'status': 'new',
+        'created_at': {'$gte': datetime.now(timezone.utc) - timedelta(days=1)}
+    }):
+        room = await db.rooms.find_one({
+            'id': report.get('room_id'),
+            'tenant_id': current_user.tenant_id
+        })
+        notifications.append({
+            'id': str(uuid.uuid4()),
+            'type': 'damage_report',
+            'title': 'Hasar Raporu',
+            'message': f"Oda {room.get('room_number') if room else 'N/A'}: {report.get('description', 'Hasar bildirildi')}",
+            'priority': 'high',
+            'created_at': report.get('created_at').isoformat()
+        })
+    
+    # Rush room requests (early check-in)
+    today = datetime.now(timezone.utc)
+    async for booking in db.bookings.find({
+        'tenant_id': current_user.tenant_id,
+        'check_in': {
+            '$gte': today.replace(hour=0, minute=0, second=0),
+            '$lte': today.replace(hour=23, minute=59, second=59)
+        },
+        'early_checkin_requested': True,
+        'status': {'$in': ['confirmed', 'guaranteed']}
+    }):
+        room = await db.rooms.find_one({
+            'room_number': booking.get('room_number'),
+            'tenant_id': current_user.tenant_id,
+            'status': {'$nin': ['available', 'inspected']}
+        })
+        if room:
+            notifications.append({
+                'id': str(uuid.uuid4()),
+                'type': 'rush_room',
+                'title': 'Acil Temizlik',
+                'message': f"Oda {booking.get('room_number')} - Erken check-in {booking.get('early_checkin_time', 'talebi')}",
+                'priority': 'urgent',
+                'created_at': datetime.now(timezone.utc).isoformat()
+            })
+    
+    # Guest "clean now" requests
+    async for request in db.room_service_requests.find({
+        'tenant_id': current_user.tenant_id,
+        'request_type': 'cleaning',
+        'status': 'pending',
+        'created_at': {'$gte': datetime.now(timezone.utc) - timedelta(hours=2)}
+    }):
+        notifications.append({
+            'id': str(uuid.uuid4()),
+            'type': 'clean_now_request',
+            'title': 'Misafir Temizlik Talebi',
+            'message': f"Oda {request.get('room_number')} - Şimdi temizlenmesini istiyor",
+            'priority': 'medium',
+            'created_at': request.get('created_at').isoformat()
+        })
+    
+    return {
+        'notifications': notifications,
+        'unread_count': len(notifications)
+    }
+
+
+# --------------------------------------------------------------------------
+# Maintenance Mobile Dashboard Endpoints
+# --------------------------------------------------------------------------
+
+@api_router.get("/maintenance/mobile/preventive-maintenance-schedule")
+async def get_pm_schedule_mobile(
+    days: int = 7,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Get preventive maintenance schedule for mobile"""
+    current_user = await get_current_user(credentials)
+    today = datetime.now(timezone.utc)
+    end_date = today + timedelta(days=days)
+    
+    # Get scheduled PM tasks
+    pm_schedule = []
+    
+    # Check equipment maintenance schedules
+    async for equipment in db.equipment.find({
+        'tenant_id': current_user.tenant_id,
+        'next_maintenance_date': {
+            '$gte': today,
+            '$lte': end_date
+        }
+    }):
+        pm_schedule.append({
+            'id': equipment.get('id'),
+            'equipment_name': equipment.get('name'),
+            'equipment_type': equipment.get('type'),
+            'location': equipment.get('location'),
+            'next_maintenance_date': equipment.get('next_maintenance_date').isoformat(),
+            'maintenance_type': equipment.get('maintenance_type', 'preventive'),
+            'frequency': equipment.get('maintenance_frequency', 'monthly'),
+            'last_maintenance_date': equipment.get('last_maintenance_date').isoformat() if equipment.get('last_maintenance_date') else None,
+            'assigned_technician': equipment.get('assigned_technician'),
+            'status': 'scheduled'
+        })
+    
+    # Sort by date
+    pm_schedule.sort(key=lambda x: x['next_maintenance_date'])
+    
+    return {
+        'pm_schedule': pm_schedule,
+        'count': len(pm_schedule),
+        'date_range': {
+            'from': today.isoformat(),
+            'to': end_date.isoformat()
+        }
+    }
+
+
+@api_router.post("/maintenance/mobile/quick-issue")
+async def create_quick_issue_mobile(
+    room_id: str,
+    issue_type: str,
+    description: str,
+    priority: str = 'normal',
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Create a quick maintenance issue from mobile"""
+    current_user = await get_current_user(credentials)
+    
+    # Validate room
+    room = await db.rooms.find_one({
+        'id': room_id,
+        'tenant_id': current_user.tenant_id
+    })
+    
+    if not room:
+        raise HTTPException(status_code=404, detail="Room not found")
+    
+    # Create maintenance task
+    task_id = str(uuid.uuid4())
+    task = {
+        'id': task_id,
+        'tenant_id': current_user.tenant_id,
+        'room_id': room_id,
+        'room_number': room.get('room_number'),
+        'department': 'maintenance',
+        'title': f"{issue_type} - Oda {room.get('room_number')}",
+        'description': description,
+        'issue_type': issue_type,
+        'priority': priority,
+        'status': 'new',
+        'created_at': datetime.now(timezone.utc),
+        'created_by': current_user.username,
+        'reported_by': current_user.username
+    }
+    
+    await db.tasks.insert_one(task)
+    
+    # If priority is urgent or high, update room status
+    if priority in ['urgent', 'high']:
+        await db.rooms.update_one(
+            {'id': room_id, 'tenant_id': current_user.tenant_id},
+            {'$set': {'status': 'maintenance'}}
+        )
+    
+    return {
+        'message': 'Maintenance issue created successfully',
+        'task_id': task_id,
+        'room_number': room.get('room_number'),
+        'issue_type': issue_type,
+        'priority': priority
+    }
+
+
+@api_router.get("/notifications/mobile/maintenance")
+async def get_maintenance_notifications_mobile(
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Get notifications for maintenance mobile dashboard"""
+    current_user = await get_current_user(credentials)
+    
+    notifications = []
+    
+    # Water leak / electrical issues (critical)
+    critical_issues = ['water_leak', 'electrical', 'gas_leak', 'fire_alarm']
+    
+    async for task in db.tasks.find({
+        'tenant_id': current_user.tenant_id,
+        'department': 'maintenance',
+        'issue_type': {'$in': critical_issues},
+        'status': {'$in': ['new', 'assigned', 'in_progress']},
+        'created_at': {'$gte': datetime.now(timezone.utc) - timedelta(hours=24)}
+    }):
+        notifications.append({
+            'id': str(uuid.uuid4()),
+            'type': 'critical_issue',
+            'title': 'Kritik Arıza',
+            'message': f"Oda {task.get('room_number', 'N/A')}: {task.get('issue_type', 'Bilinmeyen')} - {task.get('description', '')}",
+            'priority': 'urgent',
+            'created_at': task.get('created_at').isoformat()
+        })
+    
+    # SLA breach alerts
+    async for task in db.tasks.find({
+        'tenant_id': current_user.tenant_id,
+        'department': 'maintenance',
+        'priority': 'urgent',
+        'status': {'$in': ['new', 'assigned']},
+        'created_at': {'$lte': datetime.now(timezone.utc) - timedelta(hours=2)}
+    }):
+        notifications.append({
+            'id': str(uuid.uuid4()),
+            'type': 'sla_breach',
+            'title': 'SLA İhlali',
+            'message': f"Görev #{task.get('id')[:8]} - 2 saatten fazla bekliyor",
+            'priority': 'high',
+            'created_at': task.get('created_at').isoformat()
+        })
+    
+    # Critical room maintenance (room is out of order)
+    async for room in db.rooms.find({
+        'tenant_id': current_user.tenant_id,
+        'status': 'out_of_order',
+        'updated_at': {'$gte': datetime.now(timezone.utc) - timedelta(days=1)}
+    }):
+        notifications.append({
+            'id': str(uuid.uuid4()),
+            'type': 'critical_room',
+            'title': 'Oda Hizmet Dışı',
+            'message': f"Oda {room.get('room_number')} hizmet dışı - Acil müdahale gerekli",
+            'priority': 'high',
+            'created_at': room.get('updated_at').isoformat()
+        })
+    
+    return {
+        'notifications': notifications,
+        'unread_count': len(notifications)
+    }
+
+
+# --------------------------------------------------------------------------
+# F&B Mobile Dashboard Endpoints
+# --------------------------------------------------------------------------
+
+@api_router.post("/pos/mobile/quick-order")
+async def create_quick_order_mobile(
+    outlet_id: str,
+    table_number: Optional[str] = None,
+    items: List[Dict[str, Any]] = [],
+    notes: Optional[str] = None,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Create a quick POS order from mobile"""
+    current_user = await get_current_user(credentials)
+    
+    # Validate outlet
+    outlet = await db.pos_outlets.find_one({
+        'id': outlet_id,
+        'tenant_id': current_user.tenant_id
+    })
+    
+    if not outlet:
+        raise HTTPException(status_code=404, detail="Outlet not found")
+    
+    # Calculate total
+    subtotal = 0.0
+    order_items = []
+    
+    for item in items:
+        menu_item = await db.pos_menu_items.find_one({
+            'id': item.get('item_id'),
+            'tenant_id': current_user.tenant_id
+        })
+        
+        if not menu_item:
+            continue
+        
+        quantity = item.get('quantity', 1)
+        item_price = menu_item.get('price', 0)
+        item_total = item_price * quantity
+        subtotal += item_total
+        
+        order_items.append({
+            'item_id': item.get('item_id'),
+            'item_name': menu_item.get('name'),
+            'quantity': quantity,
+            'unit_price': item_price,
+            'total': item_total
+        })
+    
+    # Calculate tax (18% VAT)
+    tax = subtotal * 0.18
+    total = subtotal + tax
+    
+    # Create order
+    order_id = str(uuid.uuid4())
+    order = {
+        'id': order_id,
+        'tenant_id': current_user.tenant_id,
+        'outlet_id': outlet_id,
+        'outlet_name': outlet.get('name'),
+        'table_number': table_number,
+        'items': order_items,
+        'subtotal': subtotal,
+        'tax': tax,
+        'total': total,
+        'status': 'pending',
+        'notes': notes,
+        'created_at': datetime.now(timezone.utc),
+        'created_by': current_user.username
+    }
+    
+    await db.pos_orders.insert_one(order)
+    
+    return {
+        'message': 'Order created successfully',
+        'order_id': order_id,
+        'outlet_name': outlet.get('name'),
+        'table_number': table_number,
+        'total': total,
+        'items_count': len(order_items)
+    }
+
+
+@api_router.put("/pos/mobile/menu-items/{item_id}/price")
+async def update_menu_item_price_mobile(
+    item_id: str,
+    new_price: float,
+    reason: Optional[str] = None,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Update menu item price from mobile"""
+    current_user = await get_current_user(credentials)
+    
+    # Find menu item
+    menu_item = await db.pos_menu_items.find_one({
+        'id': item_id,
+        'tenant_id': current_user.tenant_id
+    })
+    
+    if not menu_item:
+        raise HTTPException(status_code=404, detail="Menu item not found")
+    
+    old_price = menu_item.get('price')
+    
+    # Update price
+    await db.pos_menu_items.update_one(
+        {'id': item_id, 'tenant_id': current_user.tenant_id},
+        {
+            '$set': {
+                'price': new_price,
+                'price_updated_at': datetime.now(timezone.utc),
+                'price_updated_by': current_user.username
+            }
+        }
+    )
+    
+    # Log price change
+    await db.audit_logs.insert_one({
+        'id': str(uuid.uuid4()),
+        'tenant_id': current_user.tenant_id,
+        'user_id': current_user.user_id,
+        'user_name': current_user.username,
+        'action': 'MENU_PRICE_UPDATE',
+        'entity_type': 'menu_item',
+        'entity_id': item_id,
+        'changes': {
+            'item_name': menu_item.get('name'),
+            'old_price': old_price,
+            'new_price': new_price,
+            'reason': reason
+        },
+        'timestamp': datetime.now(timezone.utc)
+    })
+    
+    return {
+        'message': 'Menu item price updated',
+        'item_id': item_id,
+        'item_name': menu_item.get('name'),
+        'old_price': old_price,
+        'new_price': new_price
+    }
+
+
+@api_router.get("/notifications/mobile/fnb")
+async def get_fnb_notifications_mobile(
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Get notifications for F&B mobile dashboard"""
+    current_user = await get_current_user(credentials)
+    
+    notifications = []
+    
+    # Void transactions in last 24 hours
+    void_transactions = 0
+    async for transaction in db.pos_transactions.find({
+        'tenant_id': current_user.tenant_id,
+        'status': 'voided',
+        'voided_at': {'$gte': datetime.now(timezone.utc) - timedelta(hours=24)}
+    }):
+        void_transactions += 1
+    
+    if void_transactions > 0:
+        notifications.append({
+            'id': str(uuid.uuid4()),
+            'type': 'void_transaction',
+            'title': 'İptal Edilen İşlemler',
+            'message': f"Son 24 saatte {void_transactions} işlem iptal edildi",
+            'priority': 'medium',
+            'created_at': datetime.now(timezone.utc).isoformat()
+        })
+    
+    # POS connection errors
+    async for error in db.system_logs.find({
+        'tenant_id': current_user.tenant_id,
+        'log_type': 'pos_error',
+        'created_at': {'$gte': datetime.now(timezone.utc) - timedelta(hours=1)}
+    }).limit(1):
+        notifications.append({
+            'id': str(uuid.uuid4()),
+            'type': 'pos_error',
+            'title': 'POS Bağlantı Hatası',
+            'message': error.get('message', 'POS sistemi ile bağlantı sorunu'),
+            'priority': 'high',
+            'created_at': error.get('created_at').isoformat()
+        })
+    
+    # End of day report ready notification
+    today = datetime.now(timezone.utc).date()
+    eod_report = await db.pos_eod_reports.find_one({
+        'tenant_id': current_user.tenant_id,
+        'report_date': today
+    })
+    
+    if eod_report and eod_report.get('status') == 'ready':
+        notifications.append({
+            'id': str(uuid.uuid4()),
+            'type': 'eod_report_ready',
+            'title': 'Gün Sonu Raporu Hazır',
+            'message': f"Toplam satış: ₺{eod_report.get('total_sales', 0):.2f}",
+            'priority': 'info',
+            'created_at': eod_report.get('created_at').isoformat()
+        })
+    
+    return {
+        'notifications': notifications,
+        'unread_count': len(notifications)
+    }
+
+
+# --------------------------------------------------------------------------
+# Finance Mobile Dashboard Endpoints (NEW)
+# --------------------------------------------------------------------------
+
+@api_router.get("/finance/mobile/daily-collections")
+async def get_daily_collections_mobile(
+    date: Optional[str] = None,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Get daily collections for finance mobile dashboard"""
+    current_user = await get_current_user(credentials)
+    
+    if date:
+        target_date = datetime.fromisoformat(date)
+    else:
+        target_date = datetime.now(timezone.utc)
+    
+    start_of_day = target_date.replace(hour=0, minute=0, second=0, microsecond=0)
+    end_of_day = target_date.replace(hour=23, minute=59, second=59, microsecond=999999)
+    
+    # Get payments for the day
+    total_collected = 0.0
+    payment_count = 0
+    payment_methods = {}
+    
+    async for payment in db.payments.find({
+        'tenant_id': current_user.tenant_id,
+        'created_at': {
+            '$gte': start_of_day,
+            '$lte': end_of_day
+        }
+    }):
+        amount = payment.get('amount', 0)
+        total_collected += amount
+        payment_count += 1
+        
+        method = payment.get('payment_method', 'unknown')
+        payment_methods[method] = payment_methods.get(method, 0) + amount
+    
+    return {
+        'date': target_date.date().isoformat(),
+        'total_collected': total_collected,
+        'payment_count': payment_count,
+        'payment_methods': payment_methods,
+        'average_transaction': total_collected / payment_count if payment_count > 0 else 0
+    }
+
+
+@api_router.get("/finance/mobile/monthly-collections")
+async def get_monthly_collections_mobile(
+    year: Optional[int] = None,
+    month: Optional[int] = None,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Get monthly collections for finance mobile dashboard"""
+    current_user = await get_current_user(credentials)
+    
+    today = datetime.now(timezone.utc)
+    target_year = year or today.year
+    target_month = month or today.month
+    
+    # First day of month
+    start_of_month = datetime(target_year, target_month, 1, tzinfo=timezone.utc)
+    
+    # First day of next month
+    if target_month == 12:
+        end_of_month = datetime(target_year + 1, 1, 1, tzinfo=timezone.utc)
+    else:
+        end_of_month = datetime(target_year, target_month + 1, 1, tzinfo=timezone.utc)
+    
+    # Get payments for the month
+    total_collected = 0.0
+    payment_count = 0
+    
+    async for payment in db.payments.find({
+        'tenant_id': current_user.tenant_id,
+        'created_at': {
+            '$gte': start_of_month,
+            '$lt': end_of_month
+        }
+    }):
+        total_collected += payment.get('amount', 0)
+        payment_count += 1
+    
+    # Calculate collection rate (collected vs expected)
+    total_expected = 0.0
+    async for booking in db.bookings.find({
+        'tenant_id': current_user.tenant_id,
+        'check_in': {
+            '$gte': start_of_month,
+            '$lt': end_of_month
+        }
+    }):
+        total_expected += booking.get('total_amount', 0)
+    
+    collection_rate = (total_collected / total_expected * 100) if total_expected > 0 else 0
+    
+    return {
+        'year': target_year,
+        'month': target_month,
+        'total_collected': total_collected,
+        'payment_count': payment_count,
+        'total_expected': total_expected,
+        'collection_rate': collection_rate,
+        'outstanding': total_expected - total_collected
+    }
+
+
+@api_router.get("/finance/mobile/pending-receivables")
+async def get_pending_receivables_mobile(
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Get pending receivables for finance mobile dashboard"""
+    current_user = await get_current_user(credentials)
+    
+    # Get all open folios with balance
+    total_pending = 0.0
+    overdue_amount = 0.0
+    receivables = []
+    
+    today = datetime.now(timezone.utc)
+    
+    async for folio in db.folios.find({
+        'tenant_id': current_user.tenant_id,
+        'status': 'open',
+        'balance': {'$gt': 0}
+    }):
+        balance = folio.get('balance', 0)
+        total_pending += balance
+        
+        # Get booking info
+        booking = await db.bookings.find_one({
+            'id': folio.get('booking_id'),
+            'tenant_id': current_user.tenant_id
+        })
+        
+        is_overdue = False
+        if booking:
+            checkout = booking.get('check_out')
+            if checkout and checkout < today:
+                is_overdue = True
+                overdue_amount += balance
+        
+        receivables.append({
+            'folio_id': folio.get('id'),
+            'folio_number': folio.get('folio_number'),
+            'guest_name': booking.get('guest_name') if booking else 'Unknown',
+            'balance': balance,
+            'is_overdue': is_overdue,
+            'checkout_date': booking.get('check_out').isoformat() if booking and booking.get('check_out') else None,
+            'created_at': folio.get('created_at').isoformat()
+        })
+    
+    # Sort by amount (highest first)
+    receivables.sort(key=lambda x: x['balance'], reverse=True)
+    
+    return {
+        'total_pending': total_pending,
+        'overdue_amount': overdue_amount,
+        'receivables_count': len(receivables),
+        'receivables': receivables[:20]  # Top 20
+    }
+
+
+@api_router.get("/finance/mobile/monthly-costs")
+async def get_monthly_costs_mobile(
+    year: Optional[int] = None,
+    month: Optional[int] = None,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Get monthly costs for finance mobile dashboard"""
+    current_user = await get_current_user(credentials)
+    
+    today = datetime.now(timezone.utc)
+    target_year = year or today.year
+    target_month = month or today.month
+    
+    # First day of month
+    start_of_month = datetime(target_year, target_month, 1, tzinfo=timezone.utc)
+    
+    # First day of next month
+    if target_month == 12:
+        end_of_month = datetime(target_year + 1, 1, 1, tzinfo=timezone.utc)
+    else:
+        end_of_month = datetime(target_year, target_month + 1, 1, tzinfo=timezone.utc)
+    
+    # Get expenses for the month
+    total_costs = 0.0
+    costs_by_category = {}
+    
+    async for expense in db.expenses.find({
+        'tenant_id': current_user.tenant_id,
+        'expense_date': {
+            '$gte': start_of_month,
+            '$lt': end_of_month
+        }
+    }):
+        amount = expense.get('amount', 0)
+        total_costs += amount
+        
+        category = expense.get('category', 'other')
+        costs_by_category[category] = costs_by_category.get(category, 0) + amount
+    
+    return {
+        'year': target_year,
+        'month': target_month,
+        'total_costs': total_costs,
+        'costs_by_category': costs_by_category
+    }
+
+
+@api_router.post("/finance/mobile/record-payment")
+async def record_payment_mobile(
+    folio_id: str,
+    amount: float,
+    payment_method: str,
+    notes: Optional[str] = None,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Record a payment from finance mobile"""
+    current_user = await get_current_user(credentials)
+    
+    # Validate folio
+    folio = await db.folios.find_one({
+        'id': folio_id,
+        'tenant_id': current_user.tenant_id
+    })
+    
+    if not folio:
+        raise HTTPException(status_code=404, detail="Folio not found")
+    
+    # Create payment
+    payment_id = str(uuid.uuid4())
+    payment = {
+        'id': payment_id,
+        'tenant_id': current_user.tenant_id,
+        'folio_id': folio_id,
+        'booking_id': folio.get('booking_id'),
+        'amount': amount,
+        'payment_method': payment_method,
+        'payment_type': 'final',
+        'notes': notes,
+        'created_at': datetime.now(timezone.utc),
+        'created_by': current_user.username
+    }
+    
+    await db.payments.insert_one(payment)
+    
+    # Update folio balance
+    new_balance = folio.get('balance', 0) - amount
+    await db.folios.update_one(
+        {'id': folio_id, 'tenant_id': current_user.tenant_id},
+        {'$set': {'balance': new_balance}}
+    )
+    
+    # Close folio if balance is zero
+    if abs(new_balance) < 0.01:
+        await db.folios.update_one(
+            {'id': folio_id, 'tenant_id': current_user.tenant_id},
+            {
+                '$set': {
+                    'status': 'closed',
+                    'closed_at': datetime.now(timezone.utc),
+                    'closed_by': current_user.username
+                }
+            }
+        )
+    
+    return {
+        'message': 'Payment recorded successfully',
+        'payment_id': payment_id,
+        'folio_id': folio_id,
+        'amount': amount,
+        'new_balance': new_balance,
+        'folio_closed': abs(new_balance) < 0.01
+    }
+
+
+@api_router.get("/notifications/mobile/finance")
+async def get_finance_notifications_mobile(
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Get notifications for finance mobile dashboard"""
+    current_user = await get_current_user(credentials)
+    
+    notifications = []
+    today = datetime.now(timezone.utc)
+    
+    # Overdue receivables
+    overdue_count = 0
+    overdue_amount = 0.0
+    
+    async for folio in db.folios.find({
+        'tenant_id': current_user.tenant_id,
+        'status': 'open',
+        'balance': {'$gt': 0}
+    }):
+        booking = await db.bookings.find_one({
+            'id': folio.get('booking_id'),
+            'tenant_id': current_user.tenant_id
+        })
+        
+        if booking:
+            checkout = booking.get('check_out')
+            if checkout and checkout < today - timedelta(days=7):
+                overdue_count += 1
+                overdue_amount += folio.get('balance', 0)
+    
+    if overdue_count > 0:
+        notifications.append({
+            'id': str(uuid.uuid4()),
+            'type': 'overdue_receivables',
+            'title': 'Vadesi Geçen Alacaklar',
+            'message': f"{overdue_count} adet gecikmiş alacak - Toplam: ₺{overdue_amount:.2f}",
+            'priority': 'high',
+            'created_at': today.isoformat()
+        })
+    
+    # Large payment approvals needed (> 10000 TL)
+    async for payment in db.payment_approvals.find({
+        'tenant_id': current_user.tenant_id,
+        'status': 'pending',
+        'amount': {'$gt': 10000}
+    }):
+        notifications.append({
+            'id': str(uuid.uuid4()),
+            'type': 'large_payment_approval',
+            'title': 'Büyük Ödeme Onayı',
+            'message': f"₺{payment.get('amount', 0):.2f} tutarında ödeme onay bekliyor",
+            'priority': 'medium',
+            'created_at': payment.get('created_at').isoformat()
+        })
+    
+    return {
+        'notifications': notifications,
+        'unread_count': len(notifications)
+    }
+
+
+# --------------------------------------------------------------------------
+# Security/IT Mobile Dashboard Endpoints (NEW)
+# --------------------------------------------------------------------------
+
+@api_router.get("/security/mobile/system-status")
+async def get_system_status_mobile(
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Get system status for security/IT mobile dashboard"""
+    current_user = await get_current_user(credentials)
+    
+    # Check various system components
+    system_status = {
+        'database': 'operational',
+        'pms': 'operational',
+        'pos': 'operational',
+        'channel_manager': 'operational',
+        'payment_gateway': 'operational'
+    }
+    
+    # Check for recent errors in logs
+    recent_errors = []
+    last_hour = datetime.now(timezone.utc) - timedelta(hours=1)
+    
+    async for log in db.system_logs.find({
+        'tenant_id': current_user.tenant_id,
+        'log_level': 'error',
+        'created_at': {'$gte': last_hour}
+    }).limit(10):
+        recent_errors.append({
+            'component': log.get('component', 'unknown'),
+            'message': log.get('message', ''),
+            'timestamp': log.get('created_at').isoformat()
+        })
+        
+        # Update system status if errors found
+        component = log.get('component', 'unknown')
+        if component in system_status:
+            system_status[component] = 'degraded'
+    
+    # Overall health score
+    operational_count = sum(1 for status in system_status.values() if status == 'operational')
+    health_score = (operational_count / len(system_status)) * 100
+    
+    return {
+        'overall_status': 'healthy' if health_score >= 80 else 'degraded' if health_score >= 50 else 'critical',
+        'health_score': health_score,
+        'components': system_status,
+        'recent_errors': recent_errors,
+        'last_check': datetime.now(timezone.utc).isoformat()
+    }
+
+
+@api_router.get("/security/mobile/connection-status")
+async def get_connection_status_mobile(
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Get POS and Channel Manager connection status"""
+    current_user = await get_current_user(credentials)
+    
+    connections = {}
+    
+    # Check POS connection (last successful transaction)
+    last_pos_transaction = await db.pos_transactions.find_one(
+        {'tenant_id': current_user.tenant_id},
+        sort=[('created_at', -1)]
+    )
+    
+    if last_pos_transaction:
+        last_activity = last_pos_transaction.get('created_at')
+        minutes_ago = (datetime.now(timezone.utc) - last_activity).total_seconds() / 60
+        
+        connections['pos'] = {
+            'status': 'connected' if minutes_ago < 60 else 'idle' if minutes_ago < 240 else 'disconnected',
+            'last_activity': last_activity.isoformat(),
+            'minutes_since_activity': int(minutes_ago)
+        }
+    else:
+        connections['pos'] = {
+            'status': 'no_data',
+            'last_activity': None,
+            'minutes_since_activity': None
+        }
+    
+    # Check Channel Manager sync (last successful sync)
+    last_cm_sync = await db.channel_manager_syncs.find_one(
+        {'tenant_id': current_user.tenant_id},
+        sort=[('sync_timestamp', -1)]
+    )
+    
+    if last_cm_sync:
+        last_sync = last_cm_sync.get('sync_timestamp')
+        minutes_ago = (datetime.now(timezone.utc) - last_sync).total_seconds() / 60
+        
+        connections['channel_manager'] = {
+            'status': 'connected' if minutes_ago < 15 else 'idle' if minutes_ago < 60 else 'disconnected',
+            'last_sync': last_sync.isoformat(),
+            'minutes_since_sync': int(minutes_ago),
+            'sync_status': last_cm_sync.get('status', 'unknown')
+        }
+    else:
+        connections['channel_manager'] = {
+            'status': 'no_data',
+            'last_sync': None,
+            'minutes_since_sync': None
+        }
+    
+    return {
+        'connections': connections,
+        'timestamp': datetime.now(timezone.utc).isoformat()
+    }
+
+
+@api_router.get("/security/mobile/security-alerts")
+async def get_security_alerts_mobile(
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Get security alerts for security/IT mobile dashboard"""
+    current_user = await get_current_user(credentials)
+    
+    alerts = []
+    
+    # Check for unauthorized access attempts
+    failed_logins = await db.auth_logs.count_documents({
+        'tenant_id': current_user.tenant_id,
+        'action': 'login_failed',
+        'timestamp': {'$gte': datetime.now(timezone.utc) - timedelta(hours=1)}
+    })
+    
+    if failed_logins > 5:
+        alerts.append({
+            'id': str(uuid.uuid4()),
+            'type': 'unauthorized_access',
+            'title': 'Yetkisiz Erişim Denemesi',
+            'message': f"Son 1 saatte {failed_logins} başarısız giriş denemesi",
+            'severity': 'high',
+            'timestamp': datetime.now(timezone.utc).isoformat()
+        })
+    
+    # Check for unusual data access patterns
+    async for log in db.audit_logs.find({
+        'tenant_id': current_user.tenant_id,
+        'action': {'$in': ['DATA_EXPORT', 'BULK_DELETE']},
+        'timestamp': {'$gte': datetime.now(timezone.utc) - timedelta(hours=24)}
+    }):
+        alerts.append({
+            'id': str(uuid.uuid4()),
+            'type': 'data_access',
+            'title': 'Olağandışı Veri Erişimi',
+            'message': f"{log.get('user_name')} tarafından {log.get('action')}",
+            'severity': 'medium',
+            'timestamp': log.get('timestamp').isoformat()
+        })
+    
+    # GDPR compliance alerts (guest data older than retention period)
+    retention_period = 365 * 2  # 2 years
+    old_data_cutoff = datetime.now(timezone.utc) - timedelta(days=retention_period)
+    
+    old_guest_count = await db.guests.count_documents({
+        'tenant_id': current_user.tenant_id,
+        'last_stay_date': {'$lt': old_data_cutoff}
+    })
+    
+    if old_guest_count > 0:
+        alerts.append({
+            'id': str(uuid.uuid4()),
+            'type': 'gdpr_compliance',
+            'title': 'GDPR Uyarısı',
+            'message': f"{old_guest_count} misafirin verileri saklama süresini aştı",
+            'severity': 'low',
+            'timestamp': datetime.now(timezone.utc).isoformat()
+        })
+    
+    return {
+        'alerts': alerts,
+        'alert_count': len(alerts)
+    }
+
+
+@api_router.get("/notifications/mobile/security")
+async def get_security_notifications_mobile(
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Get notifications for security/IT mobile dashboard"""
+    current_user = await get_current_user(credentials)
+    
+    notifications = []
+    
+    # System errors in last hour
+    error_count = await db.system_logs.count_documents({
+        'tenant_id': current_user.tenant_id,
+        'log_level': 'error',
+        'created_at': {'$gte': datetime.now(timezone.utc) - timedelta(hours=1)}
+    })
+    
+    if error_count > 0:
+        notifications.append({
+            'id': str(uuid.uuid4()),
+            'type': 'system_error',
+            'title': 'Sistem Hataları',
+            'message': f"Son 1 saatte {error_count} sistem hatası kaydedildi",
+            'priority': 'high',
+            'created_at': datetime.now(timezone.utc).isoformat()
+        })
+    
+    # Connection failures
+    async for error in db.system_logs.find({
+        'tenant_id': current_user.tenant_id,
+        'log_type': {'$in': ['pos_error', 'cm_sync_error']},
+        'created_at': {'$gte': datetime.now(timezone.utc) - timedelta(hours=1)}
+    }).limit(5):
+        notifications.append({
+            'id': str(uuid.uuid4()),
+            'type': 'connection_failure',
+            'title': 'Bağlantı Hatası',
+            'message': error.get('message', 'Bağlantı sorunu tespit edildi'),
+            'priority': 'medium',
+            'created_at': error.get('created_at').isoformat()
+        })
+    
+    # Security alerts
+    failed_logins = await db.auth_logs.count_documents({
+        'tenant_id': current_user.tenant_id,
+        'action': 'login_failed',
+        'timestamp': {'$gte': datetime.now(timezone.utc) - timedelta(hours=1)}
+    })
+    
+    if failed_logins > 5:
+        notifications.append({
+            'id': str(uuid.uuid4()),
+            'type': 'security_alert',
+            'title': 'Güvenlik Uyarısı',
+            'message': f"Çok sayıda başarısız giriş denemesi ({failed_logins})",
+            'priority': 'urgent',
+            'created_at': datetime.now(timezone.utc).isoformat()
+        })
+    
+    return {
+        'notifications': notifications,
+        'unread_count': len(notifications)
+    }
+
+
 # Include router at the very end after ALL endpoints are defined
 app.include_router(api_router)
 
