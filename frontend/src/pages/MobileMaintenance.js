@@ -19,7 +19,11 @@ import {
   RefreshCw,
   Settings,
   History,
-  FileText
+  FileText,
+  BarChart3,
+  Eye,
+  Calendar,
+  Tool
 } from 'lucide-react';
 
 const MobileMaintenance = ({ user }) => {
