@@ -169,8 +169,28 @@ const GMDashboard = ({ user, tenant, onLogout }) => {
           </div>
         </div>
 
-        {/* TEST: ALL CARDS IDENTICAL */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6" data-testid="vertical-cards-container">
+        {/* ULTRA SIMPLE TEST - NO CARD COMPONENT */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6" style={{backgroundColor: 'yellow', padding: '20px', minHeight: '200px'}}>
+          <div style={{border: '5px solid red', padding: '20px', backgroundColor: 'white'}}>
+            <h1 style={{fontSize: '48px', color: 'red'}}>KART 1</h1>
+            <p style={{fontSize: '24px'}}>Bu kart görünüyor mu?</p>
+          </div>
+          <div style={{border: '5px solid green', padding: '20px', backgroundColor: 'white'}}>
+            <h1 style={{fontSize: '48px', color: 'green'}}>KART 2</h1>
+            <p style={{fontSize: '24px'}}>Bu kart görünüyor mu?</p>
+          </div>
+          <div style={{border: '5px solid blue', padding: '20px', backgroundColor: 'white'}}>
+            <h1 style={{fontSize: '48px', color: 'blue'}}>KART 3</h1>
+            <p style={{fontSize: '24px'}}>Bu kart görünüyor mu?</p>
+          </div>
+          <div style={{border: '5px solid purple', padding: '20px', backgroundColor: 'white'}}>
+            <h1 style={{fontSize: '48px', color: 'purple'}}>KART 4</h1>
+            <p style={{fontSize: '24px'}}>Bu kart görünüyor mu?</p>
+          </div>
+        </div>
+
+        {/* OLD CARD COMPONENT TEST - DELETE LATER */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6" data-testid="old-cards-container">
           {/* Card 1 */}
           <Card className="hover:shadow-md transition-all p-4 text-center border-4 border-red-500 bg-red-50">
             <CardContent className="p-0 space-y-2">
