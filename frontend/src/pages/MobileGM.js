@@ -18,7 +18,9 @@ import {
   CheckCircle,
   Clock,
   Target,
-  Calendar
+  Calendar,
+  Building2,
+  ChevronDown
 } from 'lucide-react';
 
 const MobileGM = ({ user }) => {
