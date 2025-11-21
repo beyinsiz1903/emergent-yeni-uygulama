@@ -25983,11 +25983,12 @@ async def get_late_checkout_requests_mobile(
 
 @api_router.post("/frontdesk/mobile/process-no-show")
 async def process_no_show_mobile(
-    booking_id: str,
+    request: ProcessNoShowRequest,
     credentials: HTTPAuthorizationCredentials = Depends(security)
 ):
     """Process no-show for a booking"""
     current_user = await get_current_user(credentials)
+    booking_id = request.booking_id
     
     # Find booking
     booking = await db.bookings.find_one({
