@@ -35,6 +35,7 @@ import MobileFrontDesk from "@/pages/MobileFrontDesk";
 import MobileFnB from "@/pages/MobileFnB";
 import MobileMaintenance from "@/pages/MobileMaintenance";
 import MobileFinance from "@/pages/MobileFinance";
+import MobileSecurity from "@/pages/MobileSecurity";
 import MobileGM from "@/pages/MobileGM";
 import CostManagement from "@/pages/CostManagement";
 import FeaturesShowcase from "@/pages/FeaturesShowcase";
