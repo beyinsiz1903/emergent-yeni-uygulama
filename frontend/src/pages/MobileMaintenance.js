@@ -23,7 +23,9 @@ import {
   BarChart3,
   Eye,
   Calendar,
-  Tool
+  Tool,
+  Package,
+  ShoppingCart
 } from 'lucide-react';
 
 const MobileMaintenance = ({ user }) => {
