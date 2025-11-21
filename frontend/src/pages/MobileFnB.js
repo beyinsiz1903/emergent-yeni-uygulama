@@ -140,6 +140,28 @@ const MobileFnB = ({ user }) => {
     return `₺${parseFloat(amount || 0).toFixed(2)}`;
   };
 
+  const loadZReport = async () => {
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      const res = await axios.get(`/pos/z-report?date=${today}`);
+      setZReportData(res.data);
+      setZReportModalOpen(true);
+    } catch (error) {
+      toast.error('Z raporu yüklenemedi');
+    }
+  };
+
+  const loadVoidReport = async () => {
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      const res = await axios.get(`/pos/void-transactions?start_date=${today}&end_date=${today}`);
+      setVoidTransactions(res.data.void_transactions || []);
+      setVoidReportModalOpen(true);
+    } catch (error) {
+      toast.error('İptal raporu yüklenemedi');
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
