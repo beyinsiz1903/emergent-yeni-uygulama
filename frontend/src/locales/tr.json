@@ -23,7 +23,27 @@
     "confirm": "Onayla",
     "back": "Geri",
     "next": "İleri",
-    "previous": "Önceki"
+    "previous": "Önceki",
+    "view": "Görüntüle",
+    "print": "Yazdır",
+    "download": "İndir",
+    "refresh": "Yenile",
+    "export": "Dışa Aktar",
+    "import": "İçe Aktar",
+    "status": "Durum",
+    "actions": "İşlemler",
+    "total": "Toplam",
+    "date": "Tarih",
+    "time": "Saat",
+    "name": "Ad",
+    "phone": "Telefon",
+    "address": "Adres",
+    "description": "Açıklama",
+    "notes": "Notlar",
+    "success": "Başarılı",
+    "error": "Hata",
+    "warning": "Uyarı",
+    "info": "Bilgi"
   },
   "nav": {
     "dashboard": "Kontrol Paneli",
@@ -31,13 +51,27 @@
     "invoices": "Faturalar",
     "rms": "RMS",
     "loyalty": "Sadakat",
-    "marketplace": "Pazar Yeri"
+    "marketplace": "Pazar Yeri",
+    "frontDesk": "Ön Büro",
+    "housekeeping": "Kat Hizmetleri",
+    "maintenance": "Bakım",
+    "reports": "Raporlar",
+    "nightAudit": "Gece Denetimi",
+    "folio": "Folio",
+    "corporate": "Kurumsal Anlaşmalar",
+    "security": "Güvenlik & KVKK",
+    "channelManager": "Kanal Yöneticisi"
   },
   "auth": {
     "signIn": "Hesabınıza giriş yapın veya yeni bir hesap oluşturun",
     "hotel": "Otel",
     "guest": "Misafir",
-    "invalidCredentials": "Geçersiz kimlik bilgileri"
+    "invalidCredentials": "Geçersiz kimlik bilgileri",
+    "loginSuccess": "Giriş başarılı",
+    "loginFailed": "Giriş başarısız",
+    "logoutSuccess": "Çıkış başarılı",
+    "registerSuccess": "Kayıt başarılı",
+    "registerFailed": "Kayıt başarısız"
   },
   "invoice": {
     "title": "Muhasebe ve Faturalama",
@@ -69,9 +103,9 @@
     "taxType": "Vergi Türü",
     "calculationMethod": "Hesaplama Yöntemi",
     "percentage": "Yüzde (%)",
-    "fixedAmount": "Sabit Tutar (₺)",
+    "fixedAmount": "Sabit Tutar",
     "taxRate": "Vergi Oranı (%)",
-    "taxAmount": "Vergi Tutarı (₺)",
+    "taxAmount": "Vergi Tutarı",
     "addTax": "Vergi Ekle",
     "withholdingRate": "Tevkifat Oranı",
     "withholdingTax": "Tevkifat",
@@ -83,7 +117,11 @@
     "status": "Durum",
     "pending": "Beklemede",
     "paid": "Ödendi",
-    "overdue": "Gecikmiş"
+    "overdue": "Gecikmiş",
+    "invoiceNumber": "Fatura Numarası",
+    "invoiceDate": "Fatura Tarihi",
+    "paymentMethod": "Ödeme Yöntemi",
+    "generateEInvoice": "E-Fatura Oluştur"
   },
   "dashboard": {
     "monthlyIncome": "Aylık Gelir",
@@ -105,7 +143,12 @@
     "guestRewards": "Misafir Ödül Programı",
     "wholesalePurchasing": "Toptan Satın Alma",
     "totalInvoices": "Toplam Fatura",
-    "totalRevenue": "Toplam Gelir"
+    "totalRevenue": "Toplam Gelir",
+    "availableRooms": "Müsait Odalar",
+    "dirtyRooms": "Kirli Odalar",
+    "maintenanceRooms": "Bakımdaki Odalar",
+    "averageDailyRate": "Ortalama Günlük Oran",
+    "revPAR": "Oda Başı Gelir"
   },
   "pms": {
     "title": "Otel Yönetim Sistemi",
@@ -124,7 +167,78 @@
     "currentlyStaying": "Şu anda konaklıyor",
     "arrivals": "Girişler",
     "departures": "Çıkışlar",
-    "inHouse": "Otelde"
+    "inHouse": "Otelde",
+    "checkIn": "Giriş Yap",
+    "checkOut": "Çıkış Yap",
+    "reservation": "Rezervasyon",
+    "walkIn": "Anında Rezervasyon",
+    "guestName": "Misafir Adı",
+    "roomNumber": "Oda Numarası",
+    "roomType": "Oda Tipi",
+    "nightsStaying": "Konaklama Süresi",
+    "totalAmount": "Toplam Tutar"
+  },
+  "folio": {
+    "title": "Folio Yönetimi",
+    "folioNumber": "Folio Numarası",
+    "postCharge": "Masraf Ekle",
+    "postPayment": "Ödeme Ekle",
+    "splitFolio": "Folio Böl",
+    "checkout": "Çıkış Yap",
+    "totalCharges": "Toplam Masraflar",
+    "totalPayments": "Toplam Ödemeler",
+    "balance": "Bakiye",
+    "loadingFolio": "Folio yükleniyor...",
+    "chargePostedSuccess": "Masraf başarıyla eklendi",
+    "chargePostedFailed": "Masraf eklenemedi",
+    "paymentPostedSuccess": "Ödeme başarıyla eklendi",
+    "paymentPostedFailed": "Ödeme eklenemedi",
+    "checkoutConfirm": "Misafir çıkışını onaylıyor musunuz?",
+    "checkoutSuccess": "Misafir başarıyla çıkış yaptı",
+    "checkoutFailed": "Çıkış yapılamadı",
+    "chargeCategory": "Masraf Kategorisi",
+    "chargeAmount": "Masraf Tutarı",
+    "paymentAmount": "Ödeme Tutarı",
+    "paymentType": "Ödeme Tipi",
+    "paymentMethod": "Ödeme Yöntemi",
+    "room": "Oda",
+    "food": "Yiyecek & İçecek",
+    "minibar": "Minibar",
+    "laundry": "Çamaşırhane",
+    "telephone": "Telefon",
+    "internet": "İnternet",
+    "spa": "Spa",
+    "parking": "Otopark",
+    "other": "Diğer",
+    "cash": "Nakit",
+    "card": "Kredi Kartı",
+    "bankTransfer": "Banka Transferi",
+    "voucher": "Voucher"
+  },
+  "housekeeping": {
+    "title": "Kat Hizmetleri Yönetimi",
+    "roomStatus": "Oda Durumu",
+    "dueOutRooms": "Çıkış Yapacak Odalar",
+    "stayoverRooms": "Kalacak Odalar",
+    "arrivalRooms": "Giriş Yapacak Odalar",
+    "assignTask": "Görev Ata",
+    "updateStatus": "Durum Güncelle",
+    "available": "Müsait",
+    "occupied": "Dolu",
+    "dirty": "Kirli",
+    "cleaning": "Temizleniyor",
+    "inspected": "Kontrol Edildi",
+    "maintenance": "Bakımda",
+    "outOfOrder": "Hizmet Dışı",
+    "taskType": "Görev Tipi",
+    "assignedTo": "Atanan Kişi",
+    "priority": "Öncelik",
+    "high": "Yüksek",
+    "medium": "Orta",
+    "low": "Düşük",
+    "cleaningTime": "Temizlik Süresi",
+    "taskCompleted": "Görev Tamamlandı",
+    "staffPerformance": "Personel Performansı"
   },
   "loyalty": {
     "title": "Misafir Sadakat Programı",
@@ -134,7 +248,16 @@
     "notEnrolled": "Kayıtlı Değil",
     "overview": "Genel Bakış",
     "noMembers": "Henüz kayıtlı üye yok",
-    "startEnrolling": "Sadakat programınızı oluşturmak için misafirleri kaydetmeye başlayın"
+    "startEnrolling": "Sadakat programınızı oluşturmak için misafirleri kaydetmeye başlayın",
+    "points": "Puanlar",
+    "tier": "Seviye",
+    "bronze": "Bronz",
+    "silver": "Gümüş",
+    "gold": "Altın",
+    "platinum": "Platin",
+    "redeemPoints": "Puan Kullan",
+    "pointsHistory": "Puan Geçmişi",
+    "benefits": "Avantajlar"
   },
   "marketplace": {
     "title": "Toptan Satış Pazarı",
@@ -151,11 +274,24 @@
     "cleaning": "Temizlik",
     "piece": "Adet",
     "set": "Set",
-    "gallon": "Galon"
+    "gallon": "Galon",
+    "category": "Kategori",
+    "stockQuantity": "Stok Miktarı"
   },
   "rms": {
     "title": "Gelir Yönetim Sistemi",
-    "subtitle": "Fiyatlandırmayı optimize edin ve geliri maksimize edin"
+    "subtitle": "Fiyatlandırmayı optimize edin ve geliri maksimize edin",
+    "priceRecommendation": "Fiyat Önerisi",
+    "demandHeatmap": "Talep Haritası",
+    "compsetAnalysis": "Rakip Analizi",
+    "restrictions": "Kısıtlamalar",
+    "marketCompression": "Pazar Sıkışıklığı",
+    "minPrice": "Minimum Fiyat",
+    "maxPrice": "Maksimum Fiyat",
+    "recommendedPrice": "Önerilen Fiyat",
+    "occupancyForecast": "Doluluk Tahmini",
+    "rateParity": "Fiyat Paritesi",
+    "dynamicPricing": "Dinamik Fiyatlandırma"
   },
   "ai": {
     "dailyBriefing": "Günlük Brifing",
@@ -174,5 +310,53 @@
     "loading": "Yapay zeka öngörüleri oluşturuluyor...",
     "refreshInsights": "Öngörüleri Yenile",
     "poweredBy": "Yapay Zeka Destekli"
+  },
+  "messages": {
+    "success": {
+      "saved": "Başarıyla kaydedildi",
+      "created": "Başarıyla oluşturuldu",
+      "updated": "Başarıyla güncellendi",
+      "deleted": "Başarıyla silindi",
+      "sent": "Başarıyla gönderildi"
+    },
+    "error": {
+      "generic": "Bir hata oluştu",
+      "saveFailed": "Kaydetme başarısız",
+      "loadFailed": "Veri yükleme başarısız",
+      "deleteFailed": "Silme başarısız",
+      "networkError": "Ağ hatası oluştu",
+      "validationError": "Lütfen girişlerinizi kontrol edin"
+    },
+    "validation": {
+      "required": "Bu alan zorunludur",
+      "invalidEmail": "Geçersiz e-posta adresi",
+      "invalidPhone": "Geçersiz telefon numarası",
+      "minLength": "Minimum {{min}} karakter gerekli",
+      "maxLength": "Maksimum {{max}} karakter izin verilir",
+      "mustBeNumber": "Sayı olmalıdır",
+      "mustBePositive": "Pozitif bir sayı olmalıdır"
+    }
+  },
+  "reports": {
+    "title": "Raporlar ve Analitik",
+    "dailyFlash": "Günlük Özet Raporu",
+    "monthlyReport": "Aylık Rapor",
+    "occupancyReport": "Doluluk Raporu",
+    "revenueReport": "Gelir Raporu",
+    "guestReport": "Misafir Raporu",
+    "financialReport": "Finansal Rapor",
+    "generateReport": "Rapor Oluştur",
+    "dateRange": "Tarih Aralığı",
+    "startDate": "Başlangıç Tarihi",
+    "endDate": "Bitiş Tarihi"
+  },
+  "nightAudit": {
+    "title": "Gece Denetimi",
+    "postRoomCharges": "Oda Masraflarını Ekle",
+    "runAudit": "Gece Denetimi Çalıştır",
+    "auditDate": "Denetim Tarihi",
+    "roomChargesPosted": "Eklenen oda masrafları",
+    "bookingsProcessed": "İşlenen rezervasyonlar",
+    "auditComplete": "Gece denetimi başarıyla tamamlandı"
   }
 }
