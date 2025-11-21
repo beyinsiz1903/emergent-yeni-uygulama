@@ -83,6 +83,28 @@ const MobileHousekeeping = ({ user }) => {
     return colors[status] || 'bg-gray-100 text-gray-700 border-gray-300';
   };
 
+  const getNextStatus = (currentStatus) => {
+    const statusFlow = {
+      dirty: 'cleaning',
+      cleaning: 'inspected',
+      inspected: 'available',
+      available: 'dirty',
+      occupied: 'dirty'
+    };
+    return statusFlow[currentStatus] || 'available';
+  };
+
+  const getStatusIcon = (status) => {
+    switch(status) {
+      case 'dirty': return '🟥';
+      case 'cleaning': return '🟨';
+      case 'inspected': return '🟦';
+      case 'available': return '✅';
+      case 'occupied': return '🟪';
+      default: return '⬜';
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -229,6 +251,46 @@ const MobileHousekeeping = ({ user }) => {
           </Card>
         )}
 
+        {/* All Rooms List with Quick Status Change */}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-lg flex items-center">
+              <BarChart3 className="w-5 h-5 mr-2 text-gray-600" />
+              Tüm Odalar - Durum Değiştir ({roomStatus?.total_rooms || 0})
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {roomStatus?.rooms?.map((room) => (
+              <div key={room.id} className="p-3 bg-gray-50 rounded-lg border">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex-1">
+                    <p className="font-bold text-gray-900 flex items-center">
+                      <span className="text-xl mr-2">{getStatusIcon(room.status)}</span>
+                      Oda {room.room_number}
+                    </p>
+                    <p className="text-sm text-gray-600">{room.room_type}</p>
+                  </div>
+                  <Badge className={getStatusColor(room.status)}>
+                    {room.status}
+                  </Badge>
+                </div>
+                {room.status !== 'occupied' && (
+                  <Button
+                    size="sm"
+                    className="w-full mt-2"
+                    onClick={() => handleQuickStatusUpdate(room.id, getNextStatus(room.status))}
+                  >
+                    {room.status === 'dirty' && '🧹 Temizliğe Başla'}
+                    {room.status === 'cleaning' && '✅ Kontrol için Hazır'}
+                    {room.status === 'inspected' && '✅ Müsaite Aç'}
+                    {room.status === 'available' && '🧹 Kirliye Çevir'}
+                  </Button>
+                )}
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+
         {/* Staff Performance */}
         {staffPerformance?.staff_performance && staffPerformance.staff_performance.length > 0 && (
           <Card>
@@ -255,29 +317,6 @@ const MobileHousekeeping = ({ user }) => {
             </CardContent>
           </Card>
         )}
-
-        {/* All Rooms List */}
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-lg flex items-center">
-              <BarChart3 className="w-5 h-5 mr-2 text-gray-600" />
-              Tüm Odalar ({roomStatus?.total_rooms || 0})
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            {roomStatus?.rooms?.slice(0, 20).map((room) => (
-              <div key={room.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border">
-                <div className="flex-1">
-                  <p className="font-bold text-gray-900">Oda {room.room_number}</p>
-                  <p className="text-sm text-gray-600">{room.room_type}</p>
-                </div>
-                <Badge className={getStatusColor(room.status)}>
-                  {room.status}
-                </Badge>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
       </div>
     </div>
   );
