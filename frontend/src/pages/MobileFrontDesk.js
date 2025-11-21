@@ -117,6 +117,43 @@ const MobileFrontDesk = ({ user }) => {
     }
   };
 
+  const loadGuestAlerts = async () => {
+    try {
+      const res = await axios.get('/frontdesk/guest-alerts');
+      setGuestAlerts(res.data.alerts || []);
+      setGuestAlertsModalOpen(true);
+    } catch (error) {
+      toast.error('Misafir uyarıları yüklenemedi');
+    }
+  };
+
+  const calculateFees = async (booking, earlyTime, lateTime) => {
+    try {
+      const res = await axios.post('/frontdesk/calculate-early-late-fees', {
+        booking_id: booking.id,
+        early_checkin_time: earlyTime,
+        late_checkout_time: lateTime
+      });
+      setCalculatedFees(res.data);
+    } catch (error) {
+      toast.error('Ücret hesaplanamadı');
+    }
+  };
+
+  const loadFilteredRooms = async (filters) => {
+    try {
+      const params = new URLSearchParams();
+      if (filters.bed_type) params.append('bed_type', filters.bed_type);
+      if (filters.floor) params.append('floor', filters.floor);
+      if (filters.status) params.append('status', filters.status);
+      
+      const res = await axios.get(`/frontdesk/rooms-with-filters?${params.toString()}`);
+      setFilteredRooms(res.data.rooms || []);
+    } catch (error) {
+      toast.error('Odalar yüklenemedi');
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
