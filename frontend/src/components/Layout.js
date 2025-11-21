@@ -55,8 +55,8 @@ const Layout = ({ children, user, tenant, onLogout, currentModule }) => {
               </div>
             </div>
 
-            {/* Desktop Navigation */}
-            <nav className="hidden md:flex items-center space-x-1">
+            {/* Desktop Navigation - Compact & Beautiful */}
+            <nav className="hidden md:flex items-center space-x-1 max-w-4xl overflow-x-auto">
               {navigation.map((item) => {
                 const Icon = item.icon;
                 const isActive = currentModule === item.id;
@@ -64,12 +64,19 @@ const Layout = ({ children, user, tenant, onLogout, currentModule }) => {
                   <Button
                     key={item.path}
                     variant={isActive ? 'default' : 'ghost'}
+                    size="sm"
                     onClick={() => navigate(item.path)}
-                    className={`flex items-center space-x-2 ${item.highlight ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white hover:from-blue-600 hover:to-purple-600' : ''}`}
+                    className={`flex items-center space-x-1.5 px-3 py-2 text-xs whitespace-nowrap ${
+                      item.highlight 
+                        ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white hover:from-blue-600 hover:to-purple-600' 
+                        : isActive 
+                        ? 'bg-blue-600 text-white hover:bg-blue-700'
+                        : 'hover:bg-gray-100'
+                    }`}
                     data-testid={`nav-${item.id}`}
                   >
-                    <Icon className="w-4 h-4" />
-                    <span>{item.name}</span>
+                    <Icon className="w-3.5 h-3.5" />
+                    <span className="font-medium">{item.name}</span>
                   </Button>
                 );
               })}
