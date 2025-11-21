@@ -27111,18 +27111,6 @@ async def create_quick_order(order_data: Dict[str, Any], current_user: User = De
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-            'end': end_date.date().isoformat()
-        },
-        'pickup_details': pickup_data,
-        'pickup_trends': pickup_trends,
-        'summary': {
-            'total_rooms': total_rooms,
-            'total_revenue': total_revenue,
-            'avg_days_before': sum(d['days_before_arrival'] for d in pickup_data) / len(pickup_data) if pickup_data else 0
-        }
-
-
-@api_router.get("/dashboard/gm/anomaly-detection")
 async def get_anomaly_detection(
     credentials: HTTPAuthorizationCredentials = Depends(security)
 ):
