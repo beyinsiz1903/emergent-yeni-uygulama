@@ -26344,15 +26344,16 @@ async def get_team_assignments_mobile(
 
 @api_router.post("/housekeeping/mobile/quick-task")
 async def create_quick_task_mobile(
-    room_id: str,
-    task_type: str,
-    priority: str = 'normal',
-    assigned_to: Optional[str] = None,
-    notes: Optional[str] = None,
+    request: QuickTaskRequest,
     credentials: HTTPAuthorizationCredentials = Depends(security)
 ):
     """Create a quick housekeeping task from mobile"""
     current_user = await get_current_user(credentials)
+    room_id = request.room_id
+    task_type = request.task_type
+    priority = request.priority
+    assigned_to = request.assigned_to
+    notes = request.notes
     
     # Validate room
     room = await db.rooms.find_one({
