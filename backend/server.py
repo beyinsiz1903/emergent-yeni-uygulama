@@ -27074,14 +27074,15 @@ async def get_monthly_costs_mobile(
 
 @api_router.post("/finance/mobile/record-payment")
 async def record_payment_mobile(
-    folio_id: str,
-    amount: float,
-    payment_method: str,
-    notes: Optional[str] = None,
+    request: RecordPaymentRequest,
     credentials: HTTPAuthorizationCredentials = Depends(security)
 ):
     """Record a payment from finance mobile"""
     current_user = await get_current_user(credentials)
+    folio_id = request.folio_id
+    amount = request.amount
+    payment_method = request.payment_method
+    notes = request.notes
     
     # Validate folio
     folio = await db.folios.find_one({
