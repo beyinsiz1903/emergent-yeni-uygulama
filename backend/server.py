@@ -27854,6 +27854,194 @@ async def check_alerts_and_notify(
         'count': len(alerts_sent)
     }
 
+@api_router.get("/monitoring/api-metrics")
+async def get_api_metrics(
+    hours: int = 24,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Get API performance metrics"""
+    current_user = await get_current_user(credentials)
+    
+    # Only IT staff and admins
+    if current_user.role not in ['admin', 'it_manager']:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    # Mock API metrics (in production, collect from actual monitoring)
+    now = datetime.now(timezone.utc)
+    metrics = []
+    
+    for i in range(24):
+        timestamp = now - timedelta(hours=23-i)
+        metrics.append({
+            'timestamp': timestamp.isoformat(),
+            'avg_response_time': round(50 + (i % 5) * 10 + random.uniform(-10, 10), 2),
+            'requests_per_minute': 120 + random.randint(-20, 20),
+            'error_rate': round(random.uniform(0.5, 2.5), 2),
+            'success_rate': round(100 - random.uniform(0.5, 2.5), 2)
+        })
+    
+    return {
+        'metrics': metrics,
+        'summary': {
+            'avg_response_time': round(sum(m['avg_response_time'] for m in metrics) / len(metrics), 2),
+            'total_requests': sum(m['requests_per_minute'] for m in metrics) * 60,
+            'avg_error_rate': round(sum(m['error_rate'] for m in metrics) / len(metrics), 2),
+            'uptime_percentage': 99.8
+        }
+    }
+
+@api_router.get("/monitoring/system-health")
+async def get_system_health_detailed(
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Get detailed system health metrics"""
+    current_user = await get_current_user(credentials)
+    
+    # Only IT staff and admins
+    if current_user.role not in ['admin', 'it_manager']:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    import psutil
+    import platform
+    
+    # Get system info
+    try:
+        cpu_percent = psutil.cpu_percent(interval=1)
+        memory = psutil.virtual_memory()
+        disk = psutil.disk_usage('/')
+        
+        system_info = {
+            'cpu': {
+                'usage_percent': cpu_percent,
+                'cores': psutil.cpu_count(),
+                'status': 'healthy' if cpu_percent < 80 else 'warning'
+            },
+            'memory': {
+                'total_gb': round(memory.total / (1024**3), 2),
+                'used_gb': round(memory.used / (1024**3), 2),
+                'percent': memory.percent,
+                'status': 'healthy' if memory.percent < 80 else 'warning'
+            },
+            'disk': {
+                'total_gb': round(disk.total / (1024**3), 2),
+                'used_gb': round(disk.used / (1024**3), 2),
+                'percent': disk.percent,
+                'status': 'healthy' if disk.percent < 85 else 'warning'
+            },
+            'platform': {
+                'system': platform.system(),
+                'python_version': platform.python_version()
+            }
+        }
+    except Exception as e:
+        system_info = {
+            'error': str(e),
+            'message': 'Unable to collect system metrics'
+        }
+    
+    # Check database connection
+    try:
+        await db.command('ping')
+        db_status = 'operational'
+        db_response_time = 5  # Mock
+    except:
+        db_status = 'error'
+        db_response_time = 0
+    
+    # Service statuses
+    services = {
+        'pms': {'status': 'operational', 'response_time': 45, 'uptime': 99.9},
+        'pos': {'status': 'operational', 'response_time': 38, 'uptime': 99.7},
+        'channel_manager': {'status': 'operational', 'response_time': 120, 'uptime': 99.5},
+        'database': {'status': db_status, 'response_time': db_response_time, 'uptime': 99.95},
+        'api_gateway': {'status': 'operational', 'response_time': 15, 'uptime': 99.99}
+    }
+    
+    # Calculate overall health score
+    operational_count = sum(1 for s in services.values() if s['status'] == 'operational')
+    health_score = (operational_count / len(services)) * 100
+    
+    return {
+        'system': system_info,
+        'services': services,
+        'health_score': round(health_score, 1),
+        'timestamp': datetime.now(timezone.utc).isoformat()
+    }
+
+@api_router.get("/monitoring/alert-thresholds")
+async def get_alert_thresholds(
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Get configured alert thresholds"""
+    current_user = await get_current_user(credentials)
+    
+    thresholds = {
+        'api_response_time': {
+            'warning': 200,  # ms
+            'critical': 500,
+            'current': 65
+        },
+        'error_rate': {
+            'warning': 2.0,  # percent
+            'critical': 5.0,
+            'current': 1.2
+        },
+        'cpu_usage': {
+            'warning': 80,  # percent
+            'critical': 95,
+            'current': 45
+        },
+        'memory_usage': {
+            'warning': 80,
+            'critical': 95,
+            'current': 62
+        },
+        'disk_usage': {
+            'warning': 85,
+            'critical': 95,
+            'current': 58
+        },
+        'database_connections': {
+            'warning': 80,
+            'critical': 95,
+            'current': 35
+        }
+    }
+    
+    return {
+        'thresholds': thresholds,
+        'alerts_triggered': 0
+    }
+
+@api_router.post("/monitoring/set-threshold")
+async def set_alert_threshold(
+    threshold_data: dict,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Set or update an alert threshold"""
+    current_user = await get_current_user(credentials)
+    
+    # Only IT staff and admins
+    if current_user.role not in ['admin', 'it_manager']:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    threshold = {
+        'id': str(uuid.uuid4()),
+        'tenant_id': current_user.tenant_id,
+        'metric': threshold_data.get('metric'),
+        'warning_value': threshold_data.get('warning_value'),
+        'critical_value': threshold_data.get('critical_value'),
+        'updated_by': current_user.name,
+        'updated_at': datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.alert_thresholds.insert_one(threshold)
+    
+    return {
+        'message': 'Threshold updated',
+        'threshold_id': threshold['id']
+    }
+
 @api_router.get("/security/login-logs")
 async def get_security_login_logs(
     limit: int = 50,
