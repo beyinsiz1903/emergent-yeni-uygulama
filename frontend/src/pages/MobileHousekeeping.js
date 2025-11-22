@@ -43,6 +43,8 @@ const MobileHousekeeping = ({ user }) => {
   const [inventoryItems, setInventoryItems] = useState([]);
   const [taskAssignments, setTaskAssignments] = useState([]);
   const [statusLogs, setStatusLogs] = useState([]);
+  const [filterStatus, setFilterStatus] = useState('all');
+  const [allRooms, setAllRooms] = useState([]);
 
   useEffect(() => {
     loadData();
