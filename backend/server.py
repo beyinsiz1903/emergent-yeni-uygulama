@@ -3264,8 +3264,41 @@ async def create_booking(booking_data: BookingCreate, current_user: User = Depen
     return booking
 
 @api_router.get("/pms/bookings", response_model=List[Booking])
-async def get_bookings(current_user: User = Depends(get_current_user)):
-    bookings_raw = await db.bookings.find({'tenant_id': current_user.tenant_id}, {'_id': 0}).to_list(1000)
+async def get_bookings(
+    limit: int = 100,
+    offset: int = 0,
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+    status: Optional[str] = None,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Get bookings with pagination and filtering - OPTIMIZED"""
+    current_user = await get_current_user(credentials)
+    
+    # Build query
+    query = {'tenant_id': current_user.tenant_id}
+    
+    # Date filter (default to last 30 days if no filter)
+    if start_date or end_date:
+        date_filter = {}
+        if start_date:
+            date_filter['$gte'] = start_date
+        if end_date:
+            date_filter['$lte'] = end_date
+        query['check_in'] = date_filter
+    else:
+        # Default: last 30 days to next 30 days
+        today = datetime.now(timezone.utc)
+        start_default = (today - timedelta(days=30)).isoformat()
+        end_default = (today + timedelta(days=30)).isoformat()
+        query['check_in'] = {'$gte': start_default, '$lte': end_default}
+    
+    # Status filter
+    if status:
+        query['status'] = status
+    
+    # Get bookings with pagination
+    bookings_raw = await db.bookings.find(query, {'_id': 0}).skip(offset).limit(limit).to_list(limit)
     
     # Fix enum mismatches
     bookings = []
