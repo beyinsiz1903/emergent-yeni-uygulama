@@ -829,6 +829,107 @@ class MaintenanceTaskExtended(BaseModel):
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 
+
+# F&B Management Models
+class Outlet(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    tenant_id: str
+    name: str
+    outlet_type: OutletType
+    department: str  # F&B department
+    location: str
+    capacity: int
+    is_active: bool = True
+    opening_time: Optional[str] = None
+    closing_time: Optional[str] = None
+    contact_phone: Optional[str] = None
+    manager: Optional[str] = None
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+class Ingredient(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    tenant_id: str
+    name: str
+    category: str  # Meat, Vegetables, Dairy, Beverages, etc.
+    unit: MeasurementUnit
+    current_stock: float = 0.0
+    minimum_stock: float = 0.0
+    unit_cost: float = 0.0
+    supplier: Optional[str] = None
+    last_restocked: Optional[datetime] = None
+    expiry_date: Optional[datetime] = None
+    storage_location: str = "main_kitchen"
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+class RecipeIngredient(BaseModel):
+    ingredient_id: str
+    ingredient_name: str
+    quantity: float
+    unit: MeasurementUnit
+    cost: float
+
+class Recipe(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    tenant_id: str
+    menu_item_id: str
+    menu_item_name: str
+    ingredients: List[RecipeIngredient] = []
+    preparation_time_minutes: int
+    serving_size: int = 1
+    total_cost: float = 0.0
+    selling_price: float = 0.0
+    profit_margin: float = 0.0
+    notes: Optional[str] = None
+    created_by: str
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+class POSOrder(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    tenant_id: str
+    order_number: str
+    outlet_id: str
+    outlet_name: str
+    table_number: Optional[str] = None
+    room_number: Optional[str] = None
+    order_type: str  # dine_in, room_service, takeaway
+    items: List[Dict[str, Any]] = []
+    subtotal: float = 0.0
+    tax: float = 0.0
+    service_charge: float = 0.0
+    total: float = 0.0
+    status: OrderStatus = OrderStatus.PENDING
+    waiter: Optional[str] = None
+    chef: Optional[str] = None
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    started_at: Optional[datetime] = None
+    ready_at: Optional[datetime] = None
+    served_at: Optional[datetime] = None
+    notes: Optional[str] = None
+
+class StockConsumption(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    tenant_id: str
+    ingredient_id: str
+    ingredient_name: str
+    consumed_quantity: float
+    unit: MeasurementUnit
+    order_id: Optional[str] = None
+    recipe_id: Optional[str] = None
+    outlet_id: str
+    outlet_name: str
+    cost: float
+    consumed_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    recorded_by: str
+
+
 # Guest & Booking Models
 class GuestCreate(BaseModel):
     name: str
