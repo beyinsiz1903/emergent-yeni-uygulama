@@ -2063,6 +2063,141 @@ backend:
         agent: "testing"
         comment: "✅ COMPREHENSIVE MOBILE PAGES TESTING COMPLETED (100% Success Rate - All 4 pages working perfectly). AUTHENTICATION: Successfully authenticated with admin@hotel.com/admin123 credentials. PAGE 1 - SALES & CRM MOBILE (/mobile/sales): ✅ Turkish header 'Satış & CRM' verified, ✅ All 4 tabs working (Müşteriler, Lead'ler, OTA Fiyat, Takipler), ✅ Customer cards display with guest names, VIP badges, revenue (₺XK), booking counts, email/phone icons, ✅ Leads display with stage badges, expected revenue, check-in dates, ✅ OTA pricing cards show room types and rates comparison, ✅ Follow-ups section functional, ✅ Refresh and back buttons working. PAGE 2 - RATE MANAGEMENT MOBILE (/mobile/rates): ✅ Turkish header 'Fiyat Yönetimi' verified, ✅ All 4 tabs working (Kampanyalar, Kodlar, Paketler, Promosyon), ✅ Campaign cards with AKTİF badges, discount values, booking counts, revenue, ✅ Discount codes with monospaced font, usage counts, ✅ Package cards with base rates, inclusions as badges, ✅ Promotional rates with strikethrough regular prices, discount percentages. PAGE 3 - CHANNEL MANAGER MOBILE (/mobile/channels): ✅ Turkish header 'Kanal Yönetimi' verified, ✅ All 3 tabs working (Durum, Parite, Performans), ✅ Channel status cards with Globe icons, connection health indicators (CheckCircle/AlertTriangle), sync status (✓/✗), ✅ Rate parity cards with UYUMLU/İHLAL badges, PMS vs OTA rates comparison, ✅ Performance cards with market share badges, revenue metrics. PAGE 4 - CORPORATE CONTRACTS MOBILE (/mobile/corporate): ✅ Turkish header 'Kurumsal Anlaşmalar' verified, ✅ All 3 tabs working (Anlaşmalar, Müşteriler, Uyarılar), ✅ Contract cards with Building2 icons, AKTİF/YAKLAŞIYOR status badges, contracted rates, discount percentages, room nights tracking, ✅ Corporate customer cards with VIP badges, total bookings/revenue, ✅ Alert cards with AlertTriangle icons, ACİL/ORTA severity badges, action required messages. API INTEGRATIONS: All backend API endpoints working correctly (verified in logs): /api/sales/*, /api/rates/*, /api/channels/*, /api/corporate/* - all returning 200 OK responses. MOBILE RESPONSIVE DESIGN: All pages tested at 390x844 viewport, proper mobile layout, sticky headers, card-based design, touch-friendly buttons. TURKISH LANGUAGE: All UI elements in Turkish throughout all pages. NO CONSOLE ERRORS: All pages load without JavaScript errors. SUCCESS CRITERIA MET: ✅ All 4 pages load without errors, ✅ Tab navigation works smoothly, ✅ Data displays in proper Turkish format, ✅ All UI components render correctly, ✅ API integrations functional, ✅ Mobile responsive design verified."
 
+  - task: "Finance Mobile - Cash Flow Summary Endpoint"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Added GET /api/finance/mobile/cash-flow-summary - Returns today's cash inflow/outflow, weekly collection plan, bank balance summaries"
+      - working: true
+        agent: "testing"
+        comment: "✅ ENDPOINT WORKING - GET /api/finance/mobile/cash-flow-summary returns proper response structure with 'today' section (cash_inflow, cash_outflow, net_flow, inflow_count, outflow_count), 'weekly_plan' array with 7 days of expected collections/payments, 'bank_balances' array, and 'total_bank_balance_try'. All required fields present and functional."
+
+  - task: "Finance Mobile - Overdue Accounts Endpoint"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Added GET /api/finance/mobile/overdue-accounts - Returns overdue accounts with risk level classification (normal/warning/critical/suspicious)"
+      - working: true
+        agent: "testing"
+        comment: "✅ ENDPOINT WORKING - GET /api/finance/mobile/overdue-accounts returns proper response with 'overdue_accounts' array and 'summary' section (total_count, total_amount, suspicious_count, critical_count, warning_count). Risk level classification functional with proper color coding. Custom min_days parameter working (tested with min_days=15). Account structure includes folio_id, guest_name, balance, days_overdue, risk_level, risk_color."
+
+  - task: "Finance Mobile - Credit Limit Violations Endpoint"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Added GET /api/finance/mobile/credit-limit-violations - Returns companies exceeding credit limits and those near limit (90%+)"
+      - working: true
+        agent: "testing"
+        comment: "✅ ENDPOINT WORKING - GET /api/finance/mobile/credit-limit-violations returns proper response with 'violations' array and 'summary' section (total_count, over_limit_count, near_limit_count). Violation structure includes company_name, credit_limit, current_debt, utilization_percentage. Both over-limit and near-limit (90%+) detection working correctly."
+
+  - task: "Finance Mobile - Suspicious Receivables Endpoint"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Added GET /api/finance/mobile/suspicious-receivables - Returns suspicious receivables (30+ days overdue + high amounts)"
+      - working: true
+        agent: "testing"
+        comment: "✅ ENDPOINT WORKING - GET /api/finance/mobile/suspicious-receivables returns proper response with 'suspicious_receivables' array and 'summary' section (total_count, total_amount, average_days_overdue). Suspicious criteria working: 30+ days OR high amount (>₺5000) with 15+ days. Receivable structure includes folio_id, guest_name, balance, days_overdue, reason."
+
+  - task: "Finance Mobile - Risk Alerts Endpoint"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Added GET /api/finance/mobile/risk-alerts - Returns comprehensive risk alerts with severity levels (critical/high/medium/low)"
+      - working: true
+        agent: "testing"
+        comment: "✅ ENDPOINT WORKING - GET /api/finance/mobile/risk-alerts returns proper response with 'alerts' array and 'summary' section (total_alerts, critical_count, high_count, action_required_count). Alert structure includes id, type, severity, title, message. Severity validation working with proper levels (critical, high, medium, low). Integrates with other risk endpoints for comprehensive alerts."
+
+  - task: "Finance Mobile - Daily Expenses Endpoint"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Added GET /api/finance/mobile/daily-expenses - Returns daily expense summary with category and department breakdown"
+      - working: true
+        agent: "testing"
+        comment: "✅ ENDPOINT WORKING - GET /api/finance/mobile/daily-expenses returns proper response with date, total_expenses, expense_count, expenses_by_category (dict), expenses_by_department (dict). Date parameter working correctly (tested with specific date 2024-01-15). Category and department breakdown functional."
+
+  - task: "Finance Mobile - Folio Full Extract Endpoint"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Added GET /api/finance/mobile/folio-full-extract/{folio_id} - Returns complete folio extract with all charges and payments"
+      - working: true
+        agent: "testing"
+        comment: "✅ ENDPOINT WORKING - GET /api/finance/mobile/folio-full-extract/{folio_id} returns proper 404 response for non-existent folio (expected behavior). Response structure validated with 'folio', 'charges', 'payments', 'summary' sections. Summary includes total_charges, total_payments, current_balance, charge_count, payment_count. Charges and payments are arrays with proper structure."
+
+  - task: "Finance Mobile - Invoices Endpoint"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Added GET /api/finance/mobile/invoices - Returns invoices with filtering (date range, unpaid_only, department)"
+      - working: true
+        agent: "testing"
+        comment: "✅ ENDPOINT WORKING - GET /api/finance/mobile/invoices returns proper response with 'invoices' array and 'summary' section (total_count, total_amount, unpaid_amount, paid_amount). Invoice structure includes id, invoice_number, status, customer_name, total. Filtering working: unpaid_only=true parameter functional, date range filtering (start_date/end_date) working correctly."
+
+  - task: "Finance Mobile - Bank Balances Endpoint"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Added GET /api/finance/mobile/bank-balances - Returns all bank account balances with currency support"
+      - working: true
+        agent: "testing"
+        comment: "✅ ENDPOINT WORKING - GET /api/finance/mobile/bank-balances returns proper response with 'bank_accounts' array, 'total_balance_try', and 'account_count'. Bank account structure includes id, bank_name, account_number, currency, current_balance, available_balance, account_type, api_enabled, last_sync. Handles empty bank accounts properly (expected if none configured)."
+
 frontend:
   - task: "OTA Messaging Hub - Complete Frontend Implementation"
     implemented: true
