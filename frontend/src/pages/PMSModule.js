@@ -199,10 +199,10 @@ const PMSModule = ({ user, tenant, onLogout }) => {
   const loadData = async () => {
     try {
       const [roomsRes, guestsRes, bookingsRes, companiesRes] = await Promise.all([
-        axios.get('/pms/rooms'),
-        axios.get('/pms/guests'),
-        axios.get('/pms/bookings'),
-        axios.get('/companies')
+        axios.get('/pms/rooms', { timeout: 15000 }),
+        axios.get('/pms/guests', { timeout: 15000 }),
+        axios.get('/pms/bookings?limit=100', { timeout: 15000 }),
+        axios.get('/companies', { timeout: 15000 })
       ]);
       setRooms(roomsRes.data);
       setGuests(guestsRes.data);
