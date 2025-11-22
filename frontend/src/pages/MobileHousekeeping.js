@@ -535,7 +535,13 @@ const MobileHousekeeping = ({ user }) => {
                             <p className="font-bold text-sm">Oda {room.room_number}</p>
                             <p className="text-xs text-gray-500">{room.room_type}</p>
                           </div>
-                          <Badge className="bg-blue-500">✓ Hazır</Badge>
+                          <Button
+                            size="sm"
+                            className="h-7 text-xs px-3 bg-blue-600 hover:bg-blue-700"
+                            onClick={() => handleStatusChangeRequest(room.id, room.room_number, room.status, getNextStatus(room.status))}
+                          >
+                            ✓ Müsait Yap
+                          </Button>
                         </div>
                       </div>
                     ))}
