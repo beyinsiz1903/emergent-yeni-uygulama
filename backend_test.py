@@ -94,18 +94,18 @@ class ApprovalExecutiveNotificationTester:
         }
 
     async def create_test_data(self):
-        """Create comprehensive test data for F&B mobile endpoint testing"""
-        print("\n🔧 Creating test data for F&B Mobile endpoints...")
+        """Create comprehensive test data for approval, executive dashboard, and notification testing"""
+        print("\n🔧 Creating test data for Approval, Executive Dashboard, and Notification endpoints...")
         
         try:
-            # Create test guest
+            # Create test guest for bookings (needed for executive dashboard)
             guest_data = {
-                "name": "Emma Rodriguez",
-                "email": "emma.rodriguez@hotel.com",
-                "phone": "+1-555-0456",
-                "id_number": "ID987654321",
-                "nationality": "ES",
-                "vip_status": False
+                "name": "John Manager",
+                "email": "john.manager@hotel.com",
+                "phone": "+1-555-0123",
+                "id_number": "ID123456789",
+                "nationality": "US",
+                "vip_status": True
             }
             
             async with self.session.post(f"{BACKEND_URL}/pms/guests", 
@@ -136,18 +136,18 @@ class ApprovalExecutiveNotificationTester:
                     print(f"⚠️ Failed to get rooms: {response.status}")
                     return False
 
-            # Create test booking for F&B orders
+            # Create test booking for executive dashboard data
             booking_data = {
                 "guest_id": guest_id,
                 "room_id": room_id,
                 "check_in": (datetime.now(timezone.utc)).isoformat(),
-                "check_out": (datetime.now(timezone.utc) + timedelta(days=2)).isoformat(),
+                "check_out": (datetime.now(timezone.utc) + timedelta(days=3)).isoformat(),
                 "adults": 2,
-                "children": 0,
-                "children_ages": [],
-                "guests_count": 2,
-                "total_amount": 180.0,
-                "special_requests": "Room service available"
+                "children": 1,
+                "children_ages": [8],
+                "guests_count": 3,
+                "total_amount": 450.0,
+                "special_requests": "Executive suite preferred"
             }
             
             async with self.session.post(f"{BACKEND_URL}/pms/bookings", 
@@ -161,12 +161,6 @@ class ApprovalExecutiveNotificationTester:
                 else:
                     print(f"⚠️ Booking creation failed: {response.status}")
                     return False
-
-            # Create test POS orders for mobile tracking
-            await self.create_test_pos_orders(booking_id, guest_id, room_id)
-            
-            # Create test inventory items
-            await self.create_test_inventory_items()
 
             print(f"✅ Test data creation completed")
             return True
