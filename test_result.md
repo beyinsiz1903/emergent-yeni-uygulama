@@ -3233,7 +3233,7 @@ agent_communication:
       - This blocks access to ALL application features and modules
       
       🔍 TECHNICAL FINDINGS:
-      - Frontend URL working: https://clean-mobile-btns.preview.emergentagent.com
+      - Frontend URL working: https://inventory-mobile-5.preview.emergentagent.com
       - Auth page renders correctly with proper form fields and styling
       - Backend error detected: ValueError in daily flash report endpoint (Invalid isoformat string: 'invalid-date')
       - Frontend shows no visible error messages to users

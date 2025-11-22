@@ -9,7 +9,7 @@ import json
 from datetime import datetime, timezone
 
 # Use external URL as configured
-BACKEND_URL = "https://clean-mobile-btns.preview.emergentagent.com/api"
+BACKEND_URL = "https://inventory-mobile-5.preview.emergentagent.com/api"
 
 async def test_backend():
     async with aiohttp.ClientSession() as session:
