@@ -144,6 +144,189 @@ const MobileMaintenance = ({ user }) => {
     }
   };
 
+
+  // New helper functions for enhanced features
+  const handleTaskStatusUpdate = async (taskId, newStatus, reason = null) => {
+    try {
+      await axios.post(`/api/maintenance/mobile/task/${taskId}/status`, null, {
+        params: { new_status: newStatus, reason }
+      });
+      toast.success(`Görev durumu "${newStatus}" olarak güncellendi`);
+      loadData();
+      if (selectedTask && selectedTask.id === taskId) {
+        setSelectedTask({ ...selectedTask, status: newStatus });
+      }
+    } catch (error) {
+      toast.error('Durum güncellenemedi: ' + (error.response?.data?.detail || 'Hata'));
+    }
+  };
+
+  const handlePhotoUpload = async () => {
+    if (!photoFile || !selectedTask) {
+      toast.error('Lütfen bir fotoğraf seçin');
+      return;
+    }
+
+    try {
+      const reader = new FileReader();
+      reader.onloadend = async () => {
+        const base64Data = reader.result;
+        
+        await axios.post(`/api/maintenance/mobile/task/${selectedTask.id}/photo`, null, {
+          params: {
+            photo_data: base64Data,
+            photo_type: photoType,
+            description: `${photoType} photo`
+          }
+        });
+        
+        toast.success('Fotoğraf yüklendi!');
+        setPhotoUploadModalOpen(false);
+        setPhotoFile(null);
+        await loadTaskPhotos(selectedTask.id);
+      };
+      reader.readAsDataURL(photoFile);
+    } catch (error) {
+      toast.error('Fotoğraf yüklenemedi: ' + (error.response?.data?.detail || 'Hata'));
+    }
+  };
+
+  const loadTaskPhotos = async (taskId) => {
+    try {
+      const res = await axios.get(`/api/maintenance/mobile/task/${taskId}/photos`);
+      setTaskPhotos(res.data.photos || []);
+    } catch (error) {
+      console.error('Failed to load photos:', error);
+    }
+  };
+
+  const handlePartUsage = async () => {
+    if (!selectedPart || !selectedTask || usageQuantity < 1) {
+      toast.error('Lütfen parça ve miktar seçin');
+      return;
+    }
+
+    try {
+      await axios.post(`/api/maintenance/mobile/spare-parts/use`, null, {
+        params: {
+          task_id: selectedTask.id,
+          spare_part_id: selectedPart.id,
+          quantity: usageQuantity,
+          notes: `${selectedTask.title} görevi için kullanıldı`
+        }
+      });
+      
+      toast.success(`${selectedPart.part_name} parçası kullanıldı (${usageQuantity} adet)`);
+      setPartsUsageModalOpen(false);
+      setUsageQuantity(1);
+      setSelectedPart(null);
+      loadData();
+    } catch (error) {
+      toast.error('Parça kullanımı kaydedilemedi: ' + (error.response?.data?.detail || 'Hata'));
+    }
+  };
+
+  const loadTaskDetail = async (task) => {
+    try {
+      setSelectedTask(task);
+      await loadTaskPhotos(task.id);
+      setTaskDetailModalOpen(true);
+    } catch (error) {
+      toast.error('Görev detayı yüklenemedi');
+    }
+  };
+
+  const loadPlannedMaintenanceDetail = async () => {
+    try {
+      const res = await axios.get('/api/maintenance/mobile/planned-maintenance', {
+        params: { upcoming_days: 30 }
+      });
+      setPlannedMaintenance(res.data.planned_maintenance || []);
+      setPlannedMaintenanceModalOpen(true);
+    } catch (error) {
+      toast.error('Planlı bakım yüklenemedi');
+    }
+  };
+
+  const loadSlaConfigurations = async () => {
+    try {
+      const res = await axios.get('/api/maintenance/mobile/sla-configurations');
+      setSlaConfigurations(res.data.sla_configurations || []);
+      setSlaConfigModalOpen(true);
+    } catch (error) {
+      toast.error('SLA ayarları yüklenemedi');
+    }
+  };
+
+  const handleSlaUpdate = async (priority, responseTime, resolutionTime) => {
+    try {
+      await axios.post('/api/maintenance/mobile/sla-configurations', null, {
+        params: {
+          priority,
+          response_time_minutes: parseInt(responseTime),
+          resolution_time_minutes: parseInt(resolutionTime)
+        }
+      });
+      toast.success('SLA ayarları güncellendi');
+      loadData();
+    } catch (error) {
+      toast.error('SLA güncellenemedi: ' + (error.response?.data?.detail || 'Hata'));
+    }
+  };
+
+  const applyFilters = async () => {
+    try {
+      const params = new URLSearchParams();
+      if (filters.status) params.append('status', filters.status);
+      if (filters.priority) params.append('priority', filters.priority);
+      if (filters.assigned_to) params.append('assigned_to', filters.assigned_to);
+      if (filters.start_date) params.append('start_date', filters.start_date);
+      if (filters.end_date) params.append('end_date', filters.end_date);
+
+      const res = await axios.get(`/api/maintenance/mobile/tasks/filtered?${params.toString()}`);
+      setTasks(res.data.tasks || []);
+      setFilterModalOpen(false);
+      toast.success(`${res.data.count} görev bulundu`);
+    } catch (error) {
+      toast.error('Filtreleme yapılamadı');
+    }
+  };
+
+  const clearFilters = () => {
+    setFilters({
+      status: '',
+      priority: '',
+      assigned_to: '',
+      start_date: '',
+      end_date: ''
+    });
+    loadData();
+  };
+
+  const getPriorityColor = (priority) => {
+    const colors = {
+      emergency: 'bg-red-100 text-red-800 border-red-300',
+      urgent: 'bg-orange-100 text-orange-800 border-orange-300',
+      high: 'bg-yellow-100 text-yellow-800 border-yellow-300',
+      normal: 'bg-blue-100 text-blue-800 border-blue-300',
+      low: 'bg-gray-100 text-gray-800 border-gray-300'
+    };
+    return colors[priority] || colors.normal;
+  };
+
+  const getStatusColor = (status) => {
+    const colors = {
+      open: 'bg-blue-100 text-blue-800',
+      in_progress: 'bg-yellow-100 text-yellow-800',
+      on_hold: 'bg-orange-100 text-orange-800',
+      waiting_parts: 'bg-purple-100 text-purple-800',
+      completed: 'bg-green-100 text-green-800',
+      cancelled: 'bg-gray-100 text-gray-800'
+    };
+    return colors[status] || colors.open;
+  };
+
+
   const loadAssetHistory = async (assetId, assetName) => {
     try {
       const res = await axios.get(`/maintenance/asset-history/${assetId}`);
