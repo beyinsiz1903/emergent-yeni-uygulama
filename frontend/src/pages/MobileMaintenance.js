@@ -1235,7 +1235,7 @@ const MobileMaintenance = ({ user }) => {
                 <CardHeader className="pb-2">
                   <CardTitle className="text-base flex items-center justify-between">
                     <div className="flex items-center space-x-2">
-                      <Tool className="w-4 h-4" />
+                      <Wrench className="w-4 h-4" />
                       <span>Kullanılan Parçalar</span>
                     </div>
                     <Button
