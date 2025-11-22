@@ -531,42 +531,54 @@ const MobileFrontDesk = ({ user }) => {
           )}
         </Card>
 
-        {/* Today's Departures */}
+        {/* Today's Departures - Collapsible */}
         <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-lg flex items-center">
-              <XCircle className="w-5 h-5 mr-2 text-orange-600" />
-              Bugün Çıkış Yapacaklar ({todayDepartures.length})
+          <CardHeader 
+            className="pb-3 cursor-pointer hover:bg-gray-50 transition-colors"
+            onClick={() => setDeparturesExpanded(!departuresExpanded)}
+          >
+            <CardTitle className="text-lg flex items-center justify-between">
+              <div className="flex items-center">
+                <XCircle className="w-5 h-5 mr-2 text-orange-600" />
+                Bugün Çıkış Yapacaklar ({todayDepartures.length})
+              </div>
+              {departuresExpanded ? (
+                <ChevronUp className="w-5 h-5 text-gray-400" />
+              ) : (
+                <ChevronDown className="w-5 h-5 text-gray-400" />
+              )}
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-2">
-            {todayDepartures.length === 0 ? (
-              <p className="text-gray-500 text-center py-4">Bugün çıkış yok</p>
-            ) : (
-              todayDepartures.slice(0, 5).map((booking) => (
-                <div key={booking.id} className="flex items-center justify-between p-3 bg-orange-50 rounded-lg border border-orange-200">
-                  <div className="flex-1">
-                    <p className="font-bold text-gray-900">{booking.guest_name || 'Misafir'}</p>
-                    <p className="text-sm text-gray-600">Oda {booking.room_number || 'N/A'}</p>
-                    <p className="text-xs text-gray-500">
-                      {booking.guests_count || 1} kişi • Toplam: ₺{booking.total_amount || 0}
-                    </p>
+          {departuresExpanded && (
+            <CardContent className="space-y-2">
+              {todayDepartures.length === 0 ? (
+                <p className="text-gray-500 text-center py-4">Bugün çıkış yok</p>
+              ) : (
+                todayDepartures.map((booking) => (
+                  <div key={booking.id} className="flex items-center justify-between p-3 bg-orange-50 rounded-lg border border-orange-200">
+                    <div className="flex-1">
+                      <p className="font-bold text-gray-900">{booking.guest_name || 'Misafir'}</p>
+                      <p className="text-sm text-gray-600">Oda {booking.room_number || 'N/A'}</p>
+                      <p className="text-xs text-gray-500">
+                        {booking.guests_count || 1} kişi • ₺{booking.total_amount || 0}
+                      </p>
+                    </div>
+                    <div className="flex flex-col items-end space-y-2">
+                      <Badge className="bg-orange-500 text-xs">Konaklıyor</Badge>
+                      <Button
+                        size="sm"
+                        onClick={() => handleCheckOut(booking.id)}
+                        className="bg-red-600 hover:bg-red-700 text-xs px-2 py-1"
+                      >
+                        <CheckCircle className="w-3 h-3 mr-1" />
+                        Check-Out
+                      </Button>
+                    </div>
                   </div>
-                  <div className="flex flex-col items-end space-y-2">
-                    <Badge className="bg-orange-500">Konaklıyor</Badge>
-                    <Button
-                      size="sm"
-                      onClick={() => handleCheckOut(booking.id)}
-                      className="bg-red-600 hover:bg-red-700"
-                    >
-                      <CheckCircle className="w-4 h-4 mr-1" />
-                      Check-Out
-                    </Button>
-                  </div>
-                </div>
-              ))
-            )}
-          </CardContent>
+                ))
+              )}
+            </CardContent>
+          )}
         </Card>
 
         {/* Quick Actions */}
