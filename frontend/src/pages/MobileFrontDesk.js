@@ -25,7 +25,9 @@ import {
   Camera,
   CreditCard,
   QrCode,
-  Key
+  Key,
+  ChevronDown,
+  ChevronUp
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
