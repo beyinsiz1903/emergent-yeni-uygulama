@@ -86,21 +86,49 @@ const MobileHousekeeping = ({ user }) => {
   const loadData = async () => {
     try {
       setLoading(true);
-      const [statusRes, dueOutRes, stayoverRes, arrivalRes, perfRes, cleaningReqRes] = await Promise.all([
+      const [statusRes, departuresRes, stayoverRes, arrivalsRes, perfRes, cleaningReqRes] = await Promise.all([
         axios.get('/housekeeping/room-status'),
-        axios.get('/housekeeping/due-out'),
+        axios.get('/unified/today-departures'),
         axios.get('/housekeeping/stayovers'),
-        axios.get('/housekeeping/arrivals'),
+        axios.get('/unified/today-arrivals'),
         axios.get('/housekeeping/staff-performance-table'),
         axios.get('/housekeeping/cleaning-requests?status=pending').catch(() => ({ data: { requests: [] } }))
       ]);
 
       setRoomStatus(statusRes.data);
-      setDueOut(dueOutRes.data.due_out_rooms || []);
+      
+      // Convert unified departures to housekeeping format
+      const dueOutRooms = (departuresRes.data.departures || []).map(booking => ({
+        booking_id: booking.id,
+        room_number: booking.room_number,
+        guest_name: booking.guest_name,
+        checkout_date: booking.check_out,
+        is_today: true,
+        status: booking.room_status || 'occupied'
+      }));
+      setDueOut(dueOutRooms);
+      
       setStayovers(stayoverRes.data.stayover_rooms || []);
-      setArrivals(arrivalRes.data.arrival_rooms || []);
+      
+      // Convert unified arrivals to housekeeping format
+      const arrivalRooms = (arrivalsRes.data.arrivals || []).map(booking => ({
+        booking_id: booking.id,
+        room_number: booking.room_number,
+        guest_name: booking.guest_name,
+        checkin_date: booking.check_in,
+        ready: booking.room_status === 'available',
+        status: booking.room_status || 'dirty'
+      }));
+      setArrivals(arrivalRooms);
+      
       setStaffPerformance(perfRes.data);
       setCleaningRequests(cleaningReqRes.data.categories?.pending || []);
+      
+      console.log('🔍 Housekeeping Data Loaded:', {
+        departures: dueOutRooms.length,
+        arrivals: arrivalRooms.length,
+        cleaningRequests: cleaningReqRes.data.categories?.pending?.length || 0
+      });
       
       // Get all rooms for filtering
       const roomsRes = await axios.get('/pms/rooms');
