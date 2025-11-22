@@ -309,14 +309,18 @@ class NewEndpointsTester:
         )
         
         # Verify complaint structure if we got data
-        if response and 'active_complaints' in response and len(response['active_complaints']) > 0:
-            complaint = response['active_complaints'][0]
-            expected_complaint_fields = ['id', 'guest_name', 'rating', 'category', 'comment', 'created_at', 'days_open']
-            missing_complaint_fields = [f for f in expected_complaint_fields if f not in complaint]
-            if missing_complaint_fields:
-                print(f"⚠️  Complaint structure missing fields: {missing_complaint_fields}")
+        if response and 'active_complaints' in response:
+            print(f"📊 Active complaints response: {response['active_complaints']}")
+            if isinstance(response['active_complaints'], list) and len(response['active_complaints']) > 0:
+                complaint = response['active_complaints'][0]
+                expected_complaint_fields = ['id', 'guest_name', 'rating', 'category', 'comment', 'created_at', 'days_open']
+                missing_complaint_fields = [f for f in expected_complaint_fields if f not in complaint]
+                if missing_complaint_fields:
+                    print(f"⚠️  Complaint structure missing fields: {missing_complaint_fields}")
+                else:
+                    print(f"✅ Complaint structure complete with all fields")
             else:
-                print(f"✅ Complaint structure complete with all fields")
+                print(f"📊 Active complaints is empty or not a list: {type(response['active_complaints'])}")
         
         # Check Turkish translations in category_breakdown
         if response and 'category_breakdown' in response:
