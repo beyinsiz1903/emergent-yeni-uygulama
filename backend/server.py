@@ -36374,8 +36374,8 @@ async def guest_request_cleaning(
             'message': 'Temizlik talebiniz alındı',
             'request_id': cleaning_request_id,
             'room_number': cleaning_request['room_number'],
-            'request_type': request.request_type,
-            'estimated_time': '30-60 dakika' if request.request_type == 'urgent' else '2-3 saat',
+            'request_type': request.type,
+            'estimated_time': 30 if request.type == 'urgent' else 120,
             'status': 'pending'
         }
         
