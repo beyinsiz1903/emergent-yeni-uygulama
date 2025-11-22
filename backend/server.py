@@ -29517,11 +29517,25 @@ async def get_pending_receivables_mobile(
         })
         
         is_overdue = False
+        checkout_date_str = None
+        
         if booking:
             checkout = booking.get('check_out')
-            if checkout and checkout < today:
-                is_overdue = True
-                overdue_amount += balance
+            if checkout:
+                try:
+                    # Convert string to datetime for comparison
+                    if isinstance(checkout, str):
+                        checkout_dt = datetime.fromisoformat(checkout).replace(tzinfo=timezone.utc)
+                        checkout_date_str = checkout
+                    else:
+                        checkout_dt = checkout if checkout.tzinfo else checkout.replace(tzinfo=timezone.utc)
+                        checkout_date_str = checkout.isoformat()
+                    
+                    if checkout_dt < today:
+                        is_overdue = True
+                        overdue_amount += balance
+                except (ValueError, AttributeError):
+                    pass
         
         receivables.append({
             'folio_id': folio.get('id'),
@@ -29529,8 +29543,8 @@ async def get_pending_receivables_mobile(
             'guest_name': booking.get('guest_name') if booking else 'Unknown',
             'balance': balance,
             'is_overdue': is_overdue,
-            'checkout_date': booking.get('check_out').isoformat() if booking and booking.get('check_out') else None,
-            'created_at': folio.get('created_at').isoformat()
+            'checkout_date': checkout_date_str,
+            'created_at': folio.get('created_at').isoformat() if isinstance(folio.get('created_at'), datetime) else folio.get('created_at')
         })
     
     # Sort by amount (highest first)
