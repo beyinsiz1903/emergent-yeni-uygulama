@@ -123,10 +123,13 @@ class HotelSeeder:
             email = f"{first_name.lower()}.{last_name.lower()}@email.com"
             guests.append({
                 'id': str(uuid.uuid4()),
+                'tenant_id': self.tenant_id,
+                'name': f"{first_name} {last_name}",
                 'first_name': first_name,
                 'last_name': last_name,
                 'email': email,
                 'phone': f"+90 5{random.randint(10, 99)} {random.randint(100, 999)} {random.randint(10, 99)} {random.randint(10, 99)}",
+                'id_number': f'TR{random.randint(100000, 999999)}',
                 'nationality': 'TR',
                 'passport_number': f'TR{random.randint(100000, 999999)}',
                 'date_of_birth': (datetime.now() - timedelta(days=random.randint(8000, 20000))).date().isoformat(),
