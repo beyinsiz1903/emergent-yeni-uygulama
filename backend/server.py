@@ -948,6 +948,85 @@ class StockConsumption(BaseModel):
     ingredient_id: str
     ingredient_name: str
     consumed_quantity: float
+
+
+# Front Office Mobile Models
+class GuestRequest(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    tenant_id: str
+    booking_id: Optional[str] = None
+    guest_id: Optional[str] = None
+    room_number: Optional[str] = None
+    request_type: GuestRequestType
+    status: GuestRequestStatus = GuestRequestStatus.PENDING
+    priority: str = "normal"  # low, normal, high, urgent
+    description: str
+    assigned_to: Optional[str] = None
+    requested_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    assigned_at: Optional[datetime] = None
+    completed_at: Optional[datetime] = None
+    notes: Optional[str] = None
+    created_by: str
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+class IDScanResult(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    tenant_id: str
+    scan_type: str  # passport, id_card, driving_license
+    first_name: str
+    last_name: str
+    nationality: str
+    id_number: str
+    date_of_birth: Optional[str] = None
+    issue_date: Optional[str] = None
+    expiry_date: Optional[str] = None
+    scan_image: Optional[str] = None  # Base64 image
+    scanned_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    scanned_by: str
+
+class MobileCheckIn(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    tenant_id: str
+    booking_id: str
+    guest_id: str
+    room_id: str
+    room_number: str
+    check_in_status: CheckInStatus
+    id_scan_id: Optional[str] = None
+    signature: Optional[str] = None  # Base64 signature image
+    registration_card_signed: bool = False
+    keys_issued: bool = False
+    welcome_package_given: bool = False
+    check_in_time: Optional[datetime] = None
+    checked_in_by: str
+    notes: Optional[str] = None
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+class FolioCharge(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    tenant_id: str
+    folio_id: str
+    category: str  # Room, F&B, Minibar, Laundry, Telephone, etc.
+    description: str
+    quantity: float = 1.0
+    unit_price: float
+    amount: float
+    tax_rate: float = 0.0
+    tax_amount: float = 0.0
+    total: float
+    posted_by: str
+    posted_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    voided: bool = False
+    voided_by: Optional[str] = None
+    voided_at: Optional[datetime] = None
+    void_reason: Optional[str] = None
+    department: Optional[str] = None
+
     unit: MeasurementUnit
     order_id: Optional[str] = None
     recipe_id: Optional[str] = None
