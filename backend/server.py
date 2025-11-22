@@ -581,6 +581,75 @@ class Company(BaseModel):
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
+
+# Finance Mobile Models - Bank Accounts & Credit Limits
+class BankAccount(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    tenant_id: str
+    bank_name: str  # Garanti BBVA, İş Bankası, etc.
+    account_number: str
+    iban: str
+    currency: str = "TRY"
+    current_balance: float = 0.0
+    available_balance: float = 0.0
+    account_type: str = "checking"  # checking, savings, etc.
+    is_active: bool = True
+    api_enabled: bool = False  # Future: Open Banking API integration
+    api_credentials: Optional[Dict[str, Any]] = None  # API keys/tokens
+    last_sync: Optional[datetime] = None
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+class CreditLimit(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    tenant_id: str
+    company_id: str  # Link to Company model
+    company_name: Optional[str] = None
+    credit_limit: float = 0.0
+    monthly_limit: Optional[float] = None
+    current_debt: float = 0.0
+    available_credit: float = 0.0
+    payment_terms_days: int = 30  # Net 30, Net 60, etc.
+    risk_level: RiskLevel = RiskLevel.NORMAL
+    notes: Optional[str] = None
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+class Expense(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    tenant_id: str
+    expense_number: str
+    date: datetime
+    amount: float
+    category: str  # Personnel, Utilities, Maintenance, etc.
+    department: DepartmentType
+    vendor: Optional[str] = None
+    description: str
+    payment_method: PaymentMethod
+    paid: bool = False
+    approved_by: Optional[str] = None
+    notes: Optional[str] = None
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+class CashFlow(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    tenant_id: str
+    transaction_type: str  # inflow, outflow
+    amount: float
+    currency: str = "TRY"
+    date: datetime
+    category: str
+    reference_id: Optional[str] = None  # Link to payment, expense, etc.
+    reference_type: Optional[str] = None  # payment, expense, invoice, etc.
+    bank_account_id: Optional[str] = None
+    description: str
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
 # Guest & Booking Models
 class GuestCreate(BaseModel):
     name: str
