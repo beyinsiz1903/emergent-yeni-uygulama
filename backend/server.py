@@ -25805,7 +25805,11 @@ async def get_room_assignments(
         # Calculate duration if in progress
         duration_minutes = None
         if task.get('started_at') and task['status'] == 'in_progress':
-            duration_minutes = (datetime.now(timezone.utc) - task['started_at']).total_seconds() / 60
+            started_at = task['started_at']
+            # Parse string to datetime if needed
+            if isinstance(started_at, str):
+                started_at = datetime.fromisoformat(started_at.replace('Z', '+00:00'))
+            duration_minutes = (datetime.now(timezone.utc) - started_at).total_seconds() / 60
         
         assignments.append({
             'task_id': task['id'],
