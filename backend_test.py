@@ -228,12 +228,19 @@ class ApprovalSystemRetester:
                             # Store approval ID for later tests
                             if "approval_id" in data:
                                 self.created_test_data['approval_requests'].append(data["approval_id"])
-                            print(f"  ✅ {test_case['name']}: PASSED")
+                            # Verify requested_by field contains user name (not username)
+                            if "requested_by" in data:
+                                print(f"  ✅ {test_case['name']}: PASSED - requested_by: {data['requested_by']}")
+                            else:
+                                print(f"  ✅ {test_case['name']}: PASSED")
                             passed += 1
                         else:
                             print(f"  ❌ {test_case['name']}: Missing fields {missing_fields}")
                     else:
+                        error_text = await response.text()
                         print(f"  ❌ {test_case['name']}: Expected {test_case['expected_status']}, got {response.status}")
+                        if response.status == 500:
+                            print(f"      🔍 500 Error Details: {error_text[:200]}...")
                         
             except Exception as e:
                 print(f"  ❌ {test_case['name']}: Error {e}")
