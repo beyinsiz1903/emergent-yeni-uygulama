@@ -70,10 +70,11 @@ const GuestPortal = ({ user, onLogout }) => {
 
   const loadData = async () => {
     try {
-      const [bookingsRes, loyaltyRes, prefsRes] = await Promise.all([
+      const [bookingsRes, loyaltyRes, prefsRes, cleaningRes] = await Promise.all([
         axios.get('/guest/bookings'),
         axios.get('/guest/loyalty'),
-        axios.get('/guest/notification-preferences')
+        axios.get('/guest/notification-preferences'),
+        axios.get('/guest/my-cleaning-requests').catch(() => ({ data: { requests: [] } }))
       ]);
 
       setActiveBookings(bookingsRes.data.active_bookings);
@@ -81,10 +82,36 @@ const GuestPortal = ({ user, onLogout }) => {
       setLoyaltyPrograms(loyaltyRes.data.loyalty_programs);
       setTotalPoints(loyaltyRes.data.total_points);
       setNotificationPrefs(prefsRes.data);
+      setCleaningRequests(cleaningRes.data.requests || []);
     } catch (error) {
       toast.error('Failed to load data');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleCleaningRequest = async () => {
+    try {
+      if (activeBookings.length === 0) {
+        toast.error('Aktif rezervasyonunuz bulunmuyor');
+        return;
+      }
+
+      const response = await axios.post('/guest/request-cleaning', {
+        room_number: activeBookings[0].room_number,
+        request_type: cleaningRequestType,
+        notes: cleaningNotes
+      });
+
+      toast.success(response.data.message);
+      setCleaningRequestModalOpen(false);
+      setCleaningNotes('');
+      
+      // Reload cleaning requests
+      const cleaningRes = await axios.get('/guest/my-cleaning-requests');
+      setCleaningRequests(cleaningRes.data.requests || []);
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Temizlik talebi gönderilemedi');
     }
   };
 
