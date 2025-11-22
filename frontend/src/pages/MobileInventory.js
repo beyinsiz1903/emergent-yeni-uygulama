@@ -554,6 +554,9 @@ const MobileInventory = ({ user }) => {
           <History className="h-6 w-6" />
         </Button>
       </div>
+
+      {/* Property Switcher */}
+      <PropertySwitcher onPropertyChange={() => loadData()} />
     </div>
   );
 };
