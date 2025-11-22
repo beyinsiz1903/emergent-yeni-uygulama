@@ -863,6 +863,251 @@ const MobileFrontDesk = ({ user }) => {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* NEW FEATURE 1: SEARCH MODAL */}
+      <Dialog open={searchModalOpen} onOpenChange={setSearchModalOpen}>
+        <DialogContent className="max-w-full w-[95vw] max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>🔍 Rezervasyon Ara</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="flex gap-2">
+              <Input
+                placeholder="Ad, Soyad, Tel, Email veya Rezervasyon No"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
+              />
+              <Button onClick={handleSearch} className="bg-purple-600">
+                <Search className="w-4 h-4" />
+              </Button>
+            </div>
+            
+            <div className="space-y-2">
+              {searchResults.length === 0 ? (
+                <p className="text-center text-gray-500 py-4">Arama yapın veya sonuç bulunamadı</p>
+              ) : (
+                searchResults.map(booking => (
+                  <Card key={booking.id} className="border-l-4 border-purple-500">
+                    <CardContent className="p-3">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <p className="font-bold">{booking.guest_name}</p>
+                          <p className="text-sm text-gray-600">
+                            {booking.check_in} - {booking.check_out}
+                          </p>
+                          <p className="text-xs text-gray-500">
+                            {booking.guest_phone} • {booking.guest_email}
+                          </p>
+                        </div>
+                        <Badge className={
+                          booking.status === 'checked_in' ? 'bg-green-500' :
+                          booking.status === 'confirmed' ? 'bg-blue-500' :
+                          'bg-gray-500'
+                        }>
+                          {booking.status}
+                        </Badge>
+                      </div>
+                      <div className="flex gap-2 mt-2">
+                        {booking.status === 'confirmed' && (
+                          <>
+                            <Button size="sm" onClick={() => {openRoomAssignment(booking); setSearchModalOpen(false);}}>
+                              Oda Ata
+                            </Button>
+                            <Button size="sm" onClick={() => {openPassportScan(booking); setSearchModalOpen(false);}}>
+                              Kimlik Oku
+                            </Button>
+                          </>
+                        )}
+                        {booking.status === 'checked_in' && (
+                          <Button size="sm" onClick={() => {openKeycardModal(booking); setSearchModalOpen(false);}}>
+                            Kart Bas
+                          </Button>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))
+              )}
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* NEW FEATURE 2: ROOM ASSIGNMENT MODAL */}
+      <Dialog open={roomAssignModalOpen} onOpenChange={setRoomAssignModalOpen}>
+        <DialogContent className="max-w-full w-[95vw] max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>🏠 Oda Atama</DialogTitle>
+          </DialogHeader>
+          {selectedBookingForRoom && (
+            <div className="space-y-4">
+              <Card className="bg-blue-50">
+                <CardContent className="p-3">
+                  <p className="font-bold">{selectedBookingForRoom.guest_name}</p>
+                  <p className="text-sm text-gray-600">
+                    {selectedBookingForRoom.check_in} - {selectedBookingForRoom.check_out}
+                  </p>
+                </CardContent>
+              </Card>
+              
+              <div className="space-y-2">
+                <p className="font-semibold">Müsait Odalar:</p>
+                {availableRooms.length === 0 ? (
+                  <p className="text-center text-gray-500 py-4">Müsait oda bulunamadı</p>
+                ) : (
+                  availableRooms.map(room => (
+                    <Card key={room.id} className="border hover:border-indigo-500 cursor-pointer" onClick={() => assignRoom(room.id)}>
+                      <CardContent className="p-3">
+                        <div className="flex justify-between items-center">
+                          <div>
+                            <p className="font-bold text-lg">{room.room_number}</p>
+                            <p className="text-sm text-gray-600">{room.room_type}</p>
+                            <p className="text-xs text-gray-500">{room.bed_type} • {room.floor}. Kat</p>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-xl font-bold text-green-600">₺{room.base_rate}</p>
+                            <Badge className="bg-green-500">Müsait</Badge>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))
+                )}
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* NEW FEATURE 3: PASSPORT SCAN MODAL */}
+      <Dialog open={passportScanModalOpen} onOpenChange={setPassportScanModalOpen}>
+        <DialogContent className="max-w-full w-[95vw] max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>📷 Kimlik Okuma</DialogTitle>
+          </DialogHeader>
+          {selectedBookingForPassport && (
+            <div className="space-y-4">
+              <Card className="bg-teal-50">
+                <CardContent className="p-3">
+                  <p className="font-bold">{selectedBookingForPassport.guest_name}</p>
+                  <p className="text-sm text-gray-600">
+                    {selectedBookingForPassport.check_in}
+                  </p>
+                </CardContent>
+              </Card>
+              
+              <div className="space-y-3">
+                <Label>Kimlik/Pasaport Fotoğrafı</Label>
+                <Input 
+                  type="file" 
+                  accept="image/*" 
+                  capture="environment"
+                  onChange={handleImageUpload}
+                  className="cursor-pointer"
+                />
+                
+                {passportImage && (
+                  <div className="relative">
+                    <img 
+                      src={`data:image/jpeg;base64,${passportImage}`} 
+                      alt="Passport" 
+                      className="w-full rounded border"
+                    />
+                  </div>
+                )}
+                
+                <Button 
+                  className="w-full bg-teal-600 hover:bg-teal-700"
+                  disabled={!passportImage}
+                  onClick={() => handlePassportScan(passportImage)}
+                >
+                  <Camera className="w-4 h-4 mr-2" />
+                  Kimlik Oku
+                </Button>
+                
+                <p className="text-xs text-gray-500 text-center">
+                  * OCR teknolojisi ile otomatik bilgi çıkarma
+                </p>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* NEW FEATURE 4: KEYCARD MODAL */}
+      <Dialog open={keycardModalOpen} onOpenChange={setKeycardModalOpen}>
+        <DialogContent className="max-w-full w-[95vw] max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>🔑 Kart Basma</DialogTitle>
+          </DialogHeader>
+          {selectedBookingForKeycard && (
+            <div className="space-y-4">
+              <Card className="bg-cyan-50">
+                <CardContent className="p-3">
+                  <p className="font-bold">{selectedBookingForKeycard.guest_name}</p>
+                  <p className="text-sm text-gray-600">
+                    Oda: {selectedBookingForKeycard.room_number || 'Atanmadı'}
+                  </p>
+                </CardContent>
+              </Card>
+              
+              <div className="space-y-3">
+                <Label>Kart Tipi Seçin</Label>
+                <div className="grid grid-cols-3 gap-2">
+                  <Card 
+                    className={`cursor-pointer border-2 ${keycardType === 'physical' ? 'border-cyan-600 bg-cyan-50' : 'border-gray-200'}`}
+                    onClick={() => setKeycardType('physical')}
+                  >
+                    <CardContent className="p-4 text-center">
+                      <CreditCard className="w-8 h-8 mx-auto mb-2 text-cyan-600" />
+                      <p className="text-sm font-semibold">Fiziksel Kart</p>
+                      <p className="text-xs text-gray-500">RFID</p>
+                    </CardContent>
+                  </Card>
+                  
+                  <Card 
+                    className={`cursor-pointer border-2 ${keycardType === 'mobile' ? 'border-cyan-600 bg-cyan-50' : 'border-gray-200'}`}
+                    onClick={() => setKeycardType('mobile')}
+                  >
+                    <CardContent className="p-4 text-center">
+                      <Key className="w-8 h-8 mx-auto mb-2 text-cyan-600" />
+                      <p className="text-sm font-semibold">Mobil Anahtar</p>
+                      <p className="text-xs text-gray-500">Bluetooth</p>
+                    </CardContent>
+                  </Card>
+                  
+                  <Card 
+                    className={`cursor-pointer border-2 ${keycardType === 'qr' ? 'border-cyan-600 bg-cyan-50' : 'border-gray-200'}`}
+                    onClick={() => setKeycardType('qr')}
+                  >
+                    <CardContent className="p-4 text-center">
+                      <QrCode className="w-8 h-8 mx-auto mb-2 text-cyan-600" />
+                      <p className="text-sm font-semibold">QR Kod</p>
+                      <p className="text-xs text-gray-500">Geçici</p>
+                    </CardContent>
+                  </Card>
+                </div>
+                
+                <Button 
+                  className="w-full bg-cyan-600 hover:bg-cyan-700"
+                  onClick={issueKeycard}
+                >
+                  <Key className="w-4 h-4 mr-2" />
+                  Kart Bas (48 saat geçerli)
+                </Button>
+                
+                <div className="bg-yellow-50 border border-yellow-200 rounded p-3">
+                  <p className="text-xs text-yellow-800">
+                    <strong>Not:</strong> Kartlar otomatik olarak check-out zamanına kadar geçerlidir. 
+                    Erken çıkış durumunda kart manuel olarak iptal edilmelidir.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
