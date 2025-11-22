@@ -202,13 +202,13 @@ const MobileHousekeeping = ({ user }) => {
     
     try {
       await axios.put(`/housekeeping/room/${pendingStatusChange.roomId}/status?new_status=${pendingStatusChange.newStatus}`);
-      toast.success('Oda durumu güncellendi!');
+      toast.success(`✓ Oda ${pendingStatusChange.roomNumber}`);
       loadData(); // Reload data
       setConfirmDialogOpen(false);
       setPendingStatusChange(null);
     } catch (error) {
       console.error('Status update error:', error);
-      toast.error('Durum güncellenemedi');
+      toast.error('✗ Hata');
       setConfirmDialogOpen(false);
     }
   };
