@@ -67,6 +67,15 @@ const MobileDashboard = ({ user, onLogout }) => {
       path: '/mobile/finance'
     },
     {
+      id: 'revenue',
+      name: 'Gelir Yönetimi',
+      nameEn: 'Revenue Management',
+      icon: BarChart3,
+      color: 'bg-indigo-600',
+      roles: ['ADMIN', 'SUPERVISOR', 'FINANCE'],
+      path: '/mobile/revenue'
+    },
+    {
       id: 'gm',
       name: 'Genel Müdür',
       nameEn: 'General Manager',
