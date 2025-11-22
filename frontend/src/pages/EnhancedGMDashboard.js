@@ -74,7 +74,7 @@ const EnhancedGMDashboard = ({ user, tenant, onLogout }) => {
 
   const loadForecast = async () => {
     try {
-      const response = await axios.get('/dashboard/gm-forecast');
+      const response = await axios.get('/dashboard/gm-forecast', { timeout: 15000 });
       setForecastData(response.data);
     } catch (error) {
       console.error('Failed to load forecast:', error);
