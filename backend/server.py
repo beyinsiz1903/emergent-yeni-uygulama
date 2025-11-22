@@ -9191,6 +9191,29 @@ async def apply_rms_suggestion(
 
 logger = logging.getLogger(__name__)
 
+@app.on_event("startup")
+async def startup_db_seed():
+    """Automatically seed database on startup if empty"""
+    try:
+        # Check if users collection is empty
+        user_count = await db.users.count_documents({})
+        if user_count == 0:
+            print("🌱 Database is empty, starting automatic seeding...")
+            import subprocess
+            result = subprocess.run(
+                ['python3', '/app/backend/seed_data.py'],
+                capture_output=True,
+                text=True
+            )
+            if result.returncode == 0:
+                print(result.stdout)
+            else:
+                print(f"⚠️ Seeding failed: {result.stderr}")
+        else:
+            print(f"✓ Database already contains {user_count} users, skipping seed")
+    except Exception as e:
+        print(f"⚠️ Startup seeding error: {str(e)}")
+
 @app.on_event("shutdown")
 async def shutdown_db_client():
     client.close()
