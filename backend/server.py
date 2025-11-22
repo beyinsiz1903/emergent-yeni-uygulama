@@ -36032,13 +36032,13 @@ async def issue_keycard(
         }
         
         # Generate card code based on type
-        if card_type == "physical":
+        if request.card_type == "physical":
             keycard_data['card_number'] = f"RFID-{room['room_number']}-{datetime.now().strftime('%Y%m%d%H%M')}"
             keycard_data['encoding_data'] = f"ENC:{keycard_id[:8]}:{room['room_number']}"
-        elif card_type == "mobile":
+        elif request.card_type == "mobile":
             keycard_data['mobile_key_token'] = f"MOB-{keycard_id[:16]}"
             keycard_data['bluetooth_uuid'] = f"BLE-{uuid.uuid4()}"
-        elif card_type == "qr":
+        elif request.card_type == "qr":
             keycard_data['qr_code'] = f"QR-{keycard_id}"
             keycard_data['qr_data'] = f"{room['room_number']}:{keycard_id}:{expiry_time.timestamp()}"
         
