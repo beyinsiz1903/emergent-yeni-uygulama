@@ -287,7 +287,8 @@ const PMSModule = ({ user, tenant, onLogout }) => {
 
   const loadAuditLogs = async () => {
     try {
-      const response = await axios.get('/audit-logs?limit=50');
+      // Reduce limit for faster load
+      const response = await axios.get('/audit-logs?limit=20');
       setAuditLogs(response.data.logs || []);
     } catch (error) {
       // Permission denied is okay
