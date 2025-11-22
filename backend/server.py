@@ -27092,6 +27092,188 @@ async def get_market_segment_breakdown(
         }
     }
 
+@api_router.get("/channel-manager/overview")
+async def get_channel_manager_overview(
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Get channel manager overview with all connected channels"""
+    current_user = await get_current_user(credentials)
+    
+    # Mock channel data (in production, get from actual channel manager API)
+    channels = {
+        'booking_com': {
+            'name': 'Booking.com',
+            'status': 'connected',
+            'last_sync': (datetime.now(timezone.utc) - timedelta(minutes=5)).isoformat(),
+            'active_listings': 24,
+            'bookings_today': 3,
+            'revenue_today': 1250.0,
+            'avg_rating': 8.7,
+            'commission_rate': 15.0
+        },
+        'expedia': {
+            'name': 'Expedia',
+            'status': 'connected',
+            'last_sync': (datetime.now(timezone.utc) - timedelta(minutes=8)).isoformat(),
+            'active_listings': 24,
+            'bookings_today': 2,
+            'revenue_today': 890.0,
+            'avg_rating': 4.3,
+            'commission_rate': 18.0
+        },
+        'airbnb': {
+            'name': 'Airbnb',
+            'status': 'connected',
+            'last_sync': (datetime.now(timezone.utc) - timedelta(minutes=12)).isoformat(),
+            'active_listings': 15,
+            'bookings_today': 1,
+            'revenue_today': 450.0,
+            'avg_rating': 4.8,
+            'commission_rate': 14.0
+        },
+        'direct': {
+            'name': 'Direct Website',
+            'status': 'active',
+            'last_sync': datetime.now(timezone.utc).isoformat(),
+            'active_listings': 24,
+            'bookings_today': 4,
+            'revenue_today': 1800.0,
+            'avg_rating': 4.9,
+            'commission_rate': 0.0
+        }
+    }
+    
+    total_bookings = sum(ch['bookings_today'] for ch in channels.values())
+    total_revenue = sum(ch['revenue_today'] for ch in channels.values())
+    
+    return {
+        'channels': channels,
+        'summary': {
+            'total_channels': len(channels),
+            'connected_channels': sum(1 for ch in channels.values() if ch['status'] == 'connected'),
+            'total_bookings_today': total_bookings,
+            'total_revenue_today': round(total_revenue, 2)
+        }
+    }
+
+@api_router.get("/channel-manager/rate-comparison")
+async def get_channel_rate_comparison(
+    date: Optional[str] = None,
+    room_type: Optional[str] = None,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Compare rates across all channels"""
+    current_user = await get_current_user(credentials)
+    
+    if not date:
+        date = datetime.now(timezone.utc).date().isoformat()
+    
+    # Mock rate comparison data
+    rate_comparison = {
+        'date': date,
+        'room_type': room_type or 'Standard',
+        'channels': {
+            'booking_com': {'rate': 150.0, 'available': True, 'rank': 3},
+            'expedia': {'rate': 155.0, 'available': True, 'rank': 2},
+            'airbnb': {'rate': 145.0, 'available': True, 'rank': 1},
+            'direct': {'rate': 140.0, 'available': True, 'rank': 4},
+            'agoda': {'rate': 158.0, 'available': True, 'rank': 5}
+        },
+        'your_rate': 140.0,
+        'competitor_avg': 152.0,
+        'recommendation': 'increase',
+        'suggested_rate': 148.0
+    }
+    
+    return rate_comparison
+
+@api_router.get("/channel-manager/revenue-by-channel")
+async def get_revenue_by_channel(
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Get revenue breakdown by channel"""
+    current_user = await get_current_user(credentials)
+    
+    today = datetime.now(timezone.utc)
+    if not start_date:
+        start_date = (today - timedelta(days=30)).date().isoformat()
+    if not end_date:
+        end_date = today.date().isoformat()
+    
+    # Aggregate actual bookings by source
+    channel_revenue = {}
+    
+    async for booking in db.bookings.find({
+        'tenant_id': current_user.tenant_id,
+        'check_in': {'$gte': start_date, '$lte': end_date}
+    }):
+        source = booking.get('source', 'Direct')
+        amount = booking.get('total_amount', 0)
+        
+        if source not in channel_revenue:
+            channel_revenue[source] = {
+                'revenue': 0,
+                'bookings': 0,
+                'avg_value': 0
+            }
+        
+        channel_revenue[source]['revenue'] += amount
+        channel_revenue[source]['bookings'] += 1
+    
+    # Calculate averages
+    for channel in channel_revenue:
+        if channel_revenue[channel]['bookings'] > 0:
+            channel_revenue[channel]['avg_value'] = round(
+                channel_revenue[channel]['revenue'] / channel_revenue[channel]['bookings'], 2
+            )
+        channel_revenue[channel]['revenue'] = round(channel_revenue[channel]['revenue'], 2)
+    
+    total_revenue = sum(ch['revenue'] for ch in channel_revenue.values())
+    
+    return {
+        'channels': channel_revenue,
+        'total_revenue': round(total_revenue, 2),
+        'period': {
+            'start': start_date,
+            'end': end_date
+        }
+    }
+
+@api_router.post("/channel-manager/update-rates")
+async def update_channel_rates(
+    rate_update: dict,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Update rates across channels"""
+    current_user = await get_current_user(credentials)
+    
+    # Only admins and revenue managers can update rates
+    if current_user.role not in ['admin', 'revenue_manager', 'gm']:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    # Log the rate update
+    rate_log = {
+        'id': str(uuid.uuid4()),
+        'tenant_id': current_user.tenant_id,
+        'channels': rate_update.get('channels', []),
+        'room_type': rate_update.get('room_type'),
+        'new_rate': rate_update.get('new_rate'),
+        'date_from': rate_update.get('date_from'),
+        'date_to': rate_update.get('date_to'),
+        'updated_by': current_user.name,
+        'created_at': datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.rate_updates.insert_one(rate_log)
+    
+    return {
+        'message': 'Rates updated successfully',
+        'channels_updated': len(rate_update.get('channels', [])),
+        'log_id': rate_log['id']
+    }
+
 @api_router.get("/pos/outlet-sales-breakdown")
 async def get_outlet_sales_breakdown(
     start_date: Optional[str] = None,
