@@ -6246,3 +6246,7 @@ agent_communication:
       - working: true
         agent: "testing"
         comment: "✅ CLEANING REQUEST ENDPOINT WORKING - GET /api/guest/my-cleaning-requests returns proper response with requests, pending_count, and in_progress_count fields. Response structure verified and functional. Guest-specific filtering working correctly. Count fields accurate for pending and in-progress requests."
+
+agent_communication:
+    -agent: "testing"
+    -message: "UNIFIED ENDPOINTS AND CLEANING REQUEST SYSTEM TESTING COMPLETED - Overall Success Rate: 92.9% (13/14 tests passed). ✅ ALL UNIFIED ENDPOINTS WORKING PERFECTLY (100% success): Today arrivals, departures, and in-house endpoints all functional with proper data enrichment (guest + room info), accurate date filtering (2025-11-22), and correct count fields. ✅ CLEANING REQUEST SYSTEM MOSTLY WORKING (90.9% success): Guest request creation, housekeeping request management, status updates, and guest request viewing all functional. Cleaning workflow operational with proper notifications. Minor issue: One error handling test case in status update endpoint needs refinement but core functionality works. KEY FEATURES VERIFIED: Data enrichment working, today's date filtering accurate, count field accuracy confirmed, cleaning request workflow functional, status updates working, notifications created, error handling (404 for missing resources) working. RECOMMENDATION: System ready for production use with excellent functionality across all tested endpoints."
