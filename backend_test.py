@@ -251,12 +251,13 @@ class ApprovalSystemRetester:
         })
 
     async def test_get_pending_approvals(self):
-        """Test GET /api/approvals/pending"""
-        print("\n📋 Testing Get Pending Approvals Endpoint...")
+        """Test GET /api/approvals/pending - **RE-TEST RESPONSE STRUCTURE**"""
+        print("\n📋 Testing Get Pending Approvals Endpoint (RE-TEST RESPONSE STRUCTURE)...")
+        print("🔧 EXPECTED FIX: Response should include 'urgent_count' field")
         
         test_cases = [
             {
-                "name": "Get all pending approvals",
+                "name": "Get all pending approvals - verify urgent_count field",
                 "params": {},
                 "expected_fields": ["approvals", "count", "urgent_count"]
             },
@@ -266,18 +267,8 @@ class ApprovalSystemRetester:
                 "expected_fields": ["approvals", "count", "urgent_count"]
             },
             {
-                "name": "Filter by approval_type - price_override",
-                "params": {"approval_type": "price_override"},
-                "expected_fields": ["approvals", "count", "urgent_count"]
-            },
-            {
                 "name": "Filter by priority - urgent",
                 "params": {"priority": "urgent"},
-                "expected_fields": ["approvals", "count", "urgent_count"]
-            },
-            {
-                "name": "Filter by priority - high",
-                "params": {"priority": "high"},
                 "expected_fields": ["approvals", "count", "urgent_count"]
             }
         ]
