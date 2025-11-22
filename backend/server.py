@@ -8073,9 +8073,11 @@ async def analyze_ota_insights(
 async def detect_rate_leakage(
     start_date: Optional[str] = None,
     end_date: Optional[str] = None,
-    current_user: User = Depends(get_current_user)
+    credentials: HTTPAuthorizationCredentials = Depends(security)
 ):
     """Detect rate leakage where OTA rates are lower than direct rates"""
+    current_user = await get_current_user(credentials)
+    
     # Default to next 30 days
     start = datetime.fromisoformat(start_date).date() if start_date else datetime.now(timezone.utc).date()
     end = datetime.fromisoformat(end_date).date() if end_date else (start + timedelta(days=30))
@@ -8089,7 +8091,7 @@ async def detect_rate_leakage(
     
     for rt in room_types:
         rt_rooms = [r for r in rooms if r['room_type'] == rt]
-        direct_rate = rt_rooms[0]['base_price'] if rt_rooms else 0
+        direct_rate = rt_rooms[0].get('base_rate', 0) if rt_rooms else 0
         
         # Get OTA bookings in date range
         ota_bookings = await db.bookings.find({
@@ -8103,7 +8105,7 @@ async def detect_rate_leakage(
         for booking in ota_bookings:
             nights = (datetime.fromisoformat(booking['check_out']) - datetime.fromisoformat(booking['check_in'])).days
             if nights > 0:
-                ota_rate = booking['total_amount'] / nights
+                ota_rate = booking.get('rate_per_night', 0)
                 
                 # Rate leakage = OTA rate < Direct rate
                 if ota_rate < direct_rate:
