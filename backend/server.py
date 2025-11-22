@@ -2970,6 +2970,9 @@ async def get_folio_dashboard_stats(
         }
     except Exception as e:
         print(f"Error in folio dashboard stats: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        # Return default values instead of raising
         return {
             'total_open_folios': 0,
             'total_outstanding_balance': 0.0,
