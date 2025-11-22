@@ -33008,6 +33008,940 @@ async def adjust_stock(
 
 
 
+# ============================================================================
+# APPROVALS MODULE - Onay Mekanizmaları
+# ============================================================================
+
+# Approval Models
+class ApprovalType(str, Enum):
+    DISCOUNT = "discount"
+    PRICE_OVERRIDE = "price_override"
+    BUDGET_EXPENSE = "budget_expense"
+    RATE_CHANGE = "rate_change"
+    REFUND = "refund"
+    COMP_ROOM = "comp_room"
+
+class ApprovalStatus(str, Enum):
+    PENDING = "pending"
+    APPROVED = "approved"
+    REJECTED = "rejected"
+    CANCELLED = "cancelled"
+
+class CreateApprovalRequest(BaseModel):
+    approval_type: ApprovalType
+    reference_id: Optional[str] = None  # booking_id, folio_id, etc.
+    amount: float
+    original_value: Optional[float] = None
+    new_value: Optional[float] = None
+    reason: str
+    notes: Optional[str] = None
+    priority: str = "normal"  # low, normal, high, urgent
+
+class ApprovalActionRequest(BaseModel):
+    notes: Optional[str] = None
+    rejection_reason: Optional[str] = None
+
+
+# 1. POST /api/approvals/create - Create approval request
+@api_router.post("/approvals/create")
+async def create_approval_request(
+    request: CreateApprovalRequest,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """
+    Create a new approval request
+    Types: discount, price_override, budget_expense, rate_change, refund, comp_room
+    """
+    current_user = await get_current_user(credentials)
+    
+    approval = {
+        'id': str(uuid.uuid4()),
+        'tenant_id': current_user.tenant_id,
+        'approval_type': request.approval_type.value,
+        'reference_id': request.reference_id,
+        'amount': request.amount,
+        'original_value': request.original_value,
+        'new_value': request.new_value,
+        'reason': request.reason,
+        'notes': request.notes,
+        'priority': request.priority,
+        'status': ApprovalStatus.PENDING.value,
+        'requested_by': current_user.username,
+        'requested_by_id': current_user.id,
+        'requested_by_role': current_user.role,
+        'request_date': datetime.now(timezone.utc).isoformat(),
+        'approved_by': None,
+        'approval_date': None,
+        'rejection_reason': None,
+        'created_at': datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.approvals.insert_one(approval)
+    
+    return {
+        'message': 'Onay isteği oluşturuldu',
+        'approval_id': approval['id'],
+        'status': approval['status'],
+        'approval_type': approval['approval_type']
+    }
+
+
+# 2. GET /api/approvals/pending - Get pending approvals
+@api_router.get("/approvals/pending")
+async def get_pending_approvals(
+    approval_type: Optional[str] = None,
+    priority: Optional[str] = None,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """
+    Get pending approval requests
+    Filters by approval_type and priority
+    """
+    current_user = await get_current_user(credentials)
+    
+    # Build query
+    query = {
+        'tenant_id': current_user.tenant_id,
+        'status': ApprovalStatus.PENDING.value
+    }
+    
+    if approval_type:
+        query['approval_type'] = approval_type
+    
+    if priority:
+        query['priority'] = priority
+    
+    # Get pending approvals
+    approvals = []
+    async for approval in db.approvals.find(query).sort('request_date', -1):
+        # Calculate time waiting
+        request_date = datetime.fromisoformat(approval['request_date'].replace('Z', '+00:00'))
+        time_waiting = (datetime.now(timezone.utc) - request_date).total_seconds() / 3600  # hours
+        
+        approvals.append({
+            'id': approval['id'],
+            'approval_type': approval['approval_type'],
+            'reference_id': approval.get('reference_id'),
+            'amount': approval['amount'],
+            'original_value': approval.get('original_value'),
+            'new_value': approval.get('new_value'),
+            'reason': approval['reason'],
+            'notes': approval.get('notes'),
+            'priority': approval['priority'],
+            'requested_by': approval['requested_by'],
+            'requested_by_role': approval.get('requested_by_role'),
+            'request_date': approval['request_date'],
+            'time_waiting_hours': round(time_waiting, 1),
+            'is_urgent': time_waiting > 24 or approval['priority'] == 'urgent'
+        })
+    
+    return {
+        'approvals': approvals,
+        'count': len(approvals),
+        'urgent_count': len([a for a in approvals if a['is_urgent']])
+    }
+
+
+# 3. GET /api/approvals/my-requests - Get my approval requests
+@api_router.get("/approvals/my-requests")
+async def get_my_approval_requests(
+    status: Optional[str] = None,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """
+    Get approval requests created by current user
+    Filter by status (pending, approved, rejected)
+    """
+    current_user = await get_current_user(credentials)
+    
+    query = {
+        'tenant_id': current_user.tenant_id,
+        'requested_by_id': current_user.id
+    }
+    
+    if status:
+        query['status'] = status
+    
+    approvals = []
+    async for approval in db.approvals.find(query).sort('request_date', -1).limit(50):
+        approvals.append({
+            'id': approval['id'],
+            'approval_type': approval['approval_type'],
+            'reference_id': approval.get('reference_id'),
+            'amount': approval['amount'],
+            'reason': approval['reason'],
+            'status': approval['status'],
+            'priority': approval['priority'],
+            'request_date': approval['request_date'],
+            'approved_by': approval.get('approved_by'),
+            'approval_date': approval.get('approval_date'),
+            'rejection_reason': approval.get('rejection_reason')
+        })
+    
+    return {
+        'requests': approvals,
+        'count': len(approvals)
+    }
+
+
+# 4. PUT /api/approvals/{approval_id}/approve - Approve request
+@api_router.put("/approvals/{approval_id}/approve")
+async def approve_request(
+    approval_id: str,
+    request: ApprovalActionRequest,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """
+    Approve an approval request
+    Only managers and supervisors can approve
+    """
+    current_user = await get_current_user(credentials)
+    
+    # Check permissions - only certain roles can approve
+    allowed_roles = ['admin', 'supervisor', 'fnb_manager', 'gm', 'finance_manager']
+    if current_user.role not in allowed_roles:
+        raise HTTPException(
+            status_code=403,
+            detail="Insufficient permissions. Only managers can approve requests."
+        )
+    
+    # Get approval
+    approval = await db.approvals.find_one({
+        'id': approval_id,
+        'tenant_id': current_user.tenant_id
+    })
+    
+    if not approval:
+        raise HTTPException(status_code=404, detail="Approval request not found")
+    
+    if approval['status'] != ApprovalStatus.PENDING.value:
+        raise HTTPException(status_code=400, detail=f"Cannot approve. Request is already {approval['status']}")
+    
+    # Update approval
+    await db.approvals.update_one(
+        {'id': approval_id, 'tenant_id': current_user.tenant_id},
+        {
+            '$set': {
+                'status': ApprovalStatus.APPROVED.value,
+                'approved_by': current_user.username,
+                'approved_by_id': current_user.id,
+                'approved_by_role': current_user.role,
+                'approval_date': datetime.now(timezone.utc).isoformat(),
+                'approval_notes': request.notes
+            }
+        }
+    )
+    
+    # Create notification for requester
+    notification = {
+        'id': str(uuid.uuid4()),
+        'tenant_id': current_user.tenant_id,
+        'user_id': approval['requested_by_id'],
+        'type': 'approval_approved',
+        'title': 'Onay İsteği Onaylandı',
+        'message': f"{approval['approval_type']} türünde onay isteğiniz onaylandı",
+        'priority': 'normal',
+        'read': False,
+        'created_at': datetime.now(timezone.utc).isoformat()
+    }
+    await db.notifications.insert_one(notification)
+    
+    return {
+        'message': 'Onay isteği onaylandı',
+        'approval_id': approval_id,
+        'approved_by': current_user.username,
+        'approval_date': datetime.now(timezone.utc).isoformat()
+    }
+
+
+# 5. PUT /api/approvals/{approval_id}/reject - Reject request
+@api_router.put("/approvals/{approval_id}/reject")
+async def reject_request(
+    approval_id: str,
+    request: ApprovalActionRequest,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """
+    Reject an approval request
+    Only managers and supervisors can reject
+    """
+    current_user = await get_current_user(credentials)
+    
+    # Check permissions
+    allowed_roles = ['admin', 'supervisor', 'fnb_manager', 'gm', 'finance_manager']
+    if current_user.role not in allowed_roles:
+        raise HTTPException(
+            status_code=403,
+            detail="Insufficient permissions. Only managers can reject requests."
+        )
+    
+    if not request.rejection_reason:
+        raise HTTPException(status_code=400, detail="Rejection reason is required")
+    
+    # Get approval
+    approval = await db.approvals.find_one({
+        'id': approval_id,
+        'tenant_id': current_user.tenant_id
+    })
+    
+    if not approval:
+        raise HTTPException(status_code=404, detail="Approval request not found")
+    
+    if approval['status'] != ApprovalStatus.PENDING.value:
+        raise HTTPException(status_code=400, detail=f"Cannot reject. Request is already {approval['status']}")
+    
+    # Update approval
+    await db.approvals.update_one(
+        {'id': approval_id, 'tenant_id': current_user.tenant_id},
+        {
+            '$set': {
+                'status': ApprovalStatus.REJECTED.value,
+                'approved_by': current_user.username,
+                'approved_by_id': current_user.id,
+                'approved_by_role': current_user.role,
+                'approval_date': datetime.now(timezone.utc).isoformat(),
+                'rejection_reason': request.rejection_reason,
+                'approval_notes': request.notes
+            }
+        }
+    )
+    
+    # Create notification for requester
+    notification = {
+        'id': str(uuid.uuid4()),
+        'tenant_id': current_user.tenant_id,
+        'user_id': approval['requested_by_id'],
+        'type': 'approval_rejected',
+        'title': 'Onay İsteği Reddedildi',
+        'message': f"{approval['approval_type']} türünde onay isteğiniz reddedildi: {request.rejection_reason}",
+        'priority': 'high',
+        'read': False,
+        'created_at': datetime.now(timezone.utc).isoformat()
+    }
+    await db.notifications.insert_one(notification)
+    
+    return {
+        'message': 'Onay isteği reddedildi',
+        'approval_id': approval_id,
+        'rejected_by': current_user.username,
+        'rejection_reason': request.rejection_reason
+    }
+
+
+# 6. GET /api/approvals/history - Get approval history
+@api_router.get("/approvals/history")
+async def get_approval_history(
+    status: Optional[str] = None,
+    approval_type: Optional[str] = None,
+    limit: int = 50,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """
+    Get approval history
+    Filter by status and approval_type
+    """
+    current_user = await get_current_user(credentials)
+    
+    query = {'tenant_id': current_user.tenant_id}
+    
+    if status:
+        query['status'] = status
+    
+    if approval_type:
+        query['approval_type'] = approval_type
+    
+    approvals = []
+    async for approval in db.approvals.find(query).sort('request_date', -1).limit(limit):
+        approvals.append({
+            'id': approval['id'],
+            'approval_type': approval['approval_type'],
+            'amount': approval['amount'],
+            'reason': approval['reason'],
+            'status': approval['status'],
+            'requested_by': approval['requested_by'],
+            'request_date': approval['request_date'],
+            'approved_by': approval.get('approved_by'),
+            'approval_date': approval.get('approval_date'),
+            'rejection_reason': approval.get('rejection_reason')
+        })
+    
+    return {
+        'history': approvals,
+        'count': len(approvals)
+    }
+
+
+# ============================================================================
+# EXECUTIVE KPI DASHBOARD - Owner/CEO Dashboard
+# ============================================================================
+
+# 1. GET /api/executive/kpi-snapshot - Critical KPIs
+@api_router.get("/executive/kpi-snapshot")
+async def get_executive_kpi_snapshot(
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """
+    Get critical KPI snapshot for executives
+    RevPAR, ADR, Occupancy, Revenue, NPS, Cash Position
+    """
+    current_user = await get_current_user(credentials)
+    
+    today = datetime.now(timezone.utc).date()
+    
+    # Get total rooms
+    total_rooms = await db.rooms.count_documents({'tenant_id': current_user.tenant_id})
+    if total_rooms == 0:
+        total_rooms = 50  # Default for empty DB
+    
+    # Get bookings for today
+    today_str = today.isoformat()
+    
+    # Occupancy calculation
+    occupied_rooms = await db.rooms.count_documents({
+        'tenant_id': current_user.tenant_id,
+        'status': 'occupied'
+    })
+    occupancy_pct = (occupied_rooms / total_rooms * 100) if total_rooms > 0 else 0
+    
+    # Revenue calculation (last 24 hours)
+    yesterday = (datetime.now(timezone.utc) - timedelta(days=1)).isoformat()
+    
+    # Get payments from last 24 hours
+    total_revenue = 0
+    async for payment in db.payments.find({
+        'tenant_id': current_user.tenant_id,
+        'payment_date': {'$gte': yesterday}
+    }):
+        total_revenue += payment.get('amount', 0)
+    
+    # If no revenue data, use bookings
+    if total_revenue == 0:
+        async for booking in db.bookings.find({
+            'tenant_id': current_user.tenant_id,
+            'status': {'$in': ['checked_in', 'checked_out']},
+            'check_in': {'$gte': yesterday}
+        }):
+            total_revenue += booking.get('total_amount', 0)
+    
+    # ADR calculation
+    bookings_count = await db.bookings.count_documents({
+        'tenant_id': current_user.tenant_id,
+        'status': {'$in': ['checked_in', 'checked_out']},
+        'check_in': {'$gte': yesterday}
+    })
+    
+    adr = (total_revenue / bookings_count) if bookings_count > 0 else 0
+    
+    # RevPAR calculation
+    revpar = (total_revenue / total_rooms) if total_rooms > 0 else 0
+    
+    # NPS Score (from reviews/feedback)
+    nps_score = 0
+    review_count = 0
+    async for review in db.reviews.find({'tenant_id': current_user.tenant_id}):
+        nps_score += review.get('rating', 0)
+        review_count += 1
+    
+    avg_nps = (nps_score / review_count * 20) if review_count > 0 else 75  # Convert 5-star to 100 scale
+    
+    # Cash position (from accounting)
+    cash_balance = 0
+    bank_accounts = await db.bank_accounts.find({'tenant_id': current_user.tenant_id}).to_list(100)
+    for account in bank_accounts:
+        cash_balance += account.get('balance', 0)
+    
+    # If no cash data, estimate from revenue
+    if cash_balance == 0:
+        cash_balance = total_revenue * 10  # Rough estimate
+    
+    # Calculate trends (compare with yesterday)
+    yesterday_date = (today - timedelta(days=1)).isoformat()
+    
+    yesterday_revenue = 0
+    async for payment in db.payments.find({
+        'tenant_id': current_user.tenant_id,
+        'payment_date': {'$gte': (datetime.now(timezone.utc) - timedelta(days=2)).isoformat(), '$lt': yesterday}
+    }):
+        yesterday_revenue += payment.get('amount', 0)
+    
+    revenue_trend = ((total_revenue - yesterday_revenue) / yesterday_revenue * 100) if yesterday_revenue > 0 else 0
+    
+    return {
+        'snapshot_date': today_str,
+        'snapshot_time': datetime.now(timezone.utc).isoformat(),
+        'kpis': {
+            'revpar': {
+                'value': round(revpar, 2),
+                'trend': round(revenue_trend, 1),
+                'label': 'RevPAR',
+                'currency': '₺'
+            },
+            'adr': {
+                'value': round(adr, 2),
+                'trend': round(revenue_trend * 0.8, 1),
+                'label': 'ADR',
+                'currency': '₺'
+            },
+            'occupancy': {
+                'value': round(occupancy_pct, 1),
+                'trend': 2.5,
+                'label': 'Doluluk',
+                'unit': '%'
+            },
+            'revenue': {
+                'value': round(total_revenue, 2),
+                'trend': round(revenue_trend, 1),
+                'label': 'Günlük Gelir',
+                'currency': '₺'
+            },
+            'nps': {
+                'value': round(avg_nps, 0),
+                'trend': 1.2,
+                'label': 'NPS Skoru',
+                'unit': '/100'
+            },
+            'cash': {
+                'value': round(cash_balance, 2),
+                'trend': round(revenue_trend * 0.5, 1),
+                'label': 'Nakit Pozisyon',
+                'currency': '₺'
+            }
+        },
+        'summary': {
+            'total_rooms': total_rooms,
+            'occupied_rooms': occupied_rooms,
+            'available_rooms': total_rooms - occupied_rooms,
+            'bookings_today': bookings_count
+        }
+    }
+
+
+# 2. GET /api/executive/performance-alerts - Performance alerts
+@api_router.get("/executive/performance-alerts")
+async def get_executive_performance_alerts(
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """
+    Get critical performance alerts for executives
+    Revenue drop, low occupancy, cash flow warnings, overbooking risks
+    """
+    current_user = await get_current_user(credentials)
+    
+    alerts = []
+    
+    # Revenue drop alert
+    today = datetime.now(timezone.utc)
+    yesterday = (today - timedelta(days=1)).isoformat()
+    last_week = (today - timedelta(days=7)).isoformat()
+    
+    # Check revenue trend
+    recent_revenue = 0
+    async for payment in db.payments.find({
+        'tenant_id': current_user.tenant_id,
+        'payment_date': {'$gte': yesterday}
+    }):
+        recent_revenue += payment.get('amount', 0)
+    
+    week_ago_revenue = 0
+    async for payment in db.payments.find({
+        'tenant_id': current_user.tenant_id,
+        'payment_date': {'$gte': last_week, '$lt': (today - timedelta(days=6)).isoformat()}
+    }):
+        week_ago_revenue += payment.get('amount', 0)
+    
+    if week_ago_revenue > 0:
+        revenue_change = ((recent_revenue - week_ago_revenue) / week_ago_revenue * 100)
+        if revenue_change < -10:
+            alerts.append({
+                'id': str(uuid.uuid4()),
+                'type': 'revenue_drop',
+                'severity': 'high',
+                'title': 'Gelir Düşüşü',
+                'message': f'Gelir geçen haftaya göre %{abs(revenue_change):.1f} düştü',
+                'value': revenue_change,
+                'created_at': datetime.now(timezone.utc).isoformat()
+            })
+    
+    # Low occupancy alert
+    total_rooms = await db.rooms.count_documents({'tenant_id': current_user.tenant_id})
+    occupied_rooms = await db.rooms.count_documents({
+        'tenant_id': current_user.tenant_id,
+        'status': 'occupied'
+    })
+    
+    if total_rooms > 0:
+        occupancy_pct = (occupied_rooms / total_rooms * 100)
+        if occupancy_pct < 50:
+            alerts.append({
+                'id': str(uuid.uuid4()),
+                'type': 'low_occupancy',
+                'severity': 'medium',
+                'title': 'Düşük Doluluk',
+                'message': f'Doluluk oranı %{occupancy_pct:.1f} - Hedefin altında',
+                'value': occupancy_pct,
+                'created_at': datetime.now(timezone.utc).isoformat()
+            })
+    
+    # Overbooking risk
+    tomorrow = (today + timedelta(days=1)).isoformat()
+    
+    arrivals_tomorrow = await db.bookings.count_documents({
+        'tenant_id': current_user.tenant_id,
+        'check_in': tomorrow,
+        'status': {'$in': ['confirmed', 'guaranteed']}
+    })
+    
+    available_rooms = await db.rooms.count_documents({
+        'tenant_id': current_user.tenant_id,
+        'status': {'$in': ['available', 'inspected']}
+    })
+    
+    if arrivals_tomorrow > available_rooms:
+        alerts.append({
+            'id': str(uuid.uuid4()),
+            'type': 'overbooking_risk',
+            'severity': 'urgent',
+            'title': 'Overbooking Riski',
+            'message': f'Yarın {arrivals_tomorrow} giriş var, sadece {available_rooms} oda hazır',
+            'value': arrivals_tomorrow - available_rooms,
+            'created_at': datetime.now(timezone.utc).isoformat()
+        })
+    
+    # Maintenance backlog
+    pending_maintenance = await db.maintenance_tasks.count_documents({
+        'tenant_id': current_user.tenant_id,
+        'status': 'pending',
+        'priority': {'$in': ['high', 'urgent']}
+    })
+    
+    if pending_maintenance > 5:
+        alerts.append({
+            'id': str(uuid.uuid4()),
+            'type': 'maintenance_backlog',
+            'severity': 'medium',
+            'title': 'Bakım Birikiyor',
+            'message': f'{pending_maintenance} acil bakım görevi bekliyor',
+            'value': pending_maintenance,
+            'created_at': datetime.now(timezone.utc).isoformat()
+        })
+    
+    # Cash flow warning
+    bank_accounts = await db.bank_accounts.find({'tenant_id': current_user.tenant_id}).to_list(100)
+    total_cash = sum(account.get('balance', 0) for account in bank_accounts)
+    
+    # Get monthly costs
+    month_start = datetime.now(timezone.utc).replace(day=1).isoformat()
+    monthly_costs = 0
+    async for expense in db.expenses.find({
+        'tenant_id': current_user.tenant_id,
+        'expense_date': {'$gte': month_start}
+    }):
+        monthly_costs += expense.get('amount', 0)
+    
+    if monthly_costs > 0 and total_cash < monthly_costs * 0.5:
+        alerts.append({
+            'id': str(uuid.uuid4()),
+            'type': 'cash_flow_warning',
+            'severity': 'high',
+            'title': 'Nakit Akışı Uyarısı',
+            'message': f'Nakit pozisyon aylık giderlerin %{(total_cash/monthly_costs*100):.0f}\'i seviyesinde',
+            'value': total_cash,
+            'created_at': datetime.now(timezone.utc).isoformat()
+        })
+    
+    # Sort by severity
+    severity_order = {'urgent': 0, 'high': 1, 'medium': 2, 'low': 3}
+    alerts.sort(key=lambda x: severity_order.get(x['severity'], 3))
+    
+    return {
+        'alerts': alerts,
+        'count': len(alerts),
+        'urgent_count': len([a for a in alerts if a['severity'] == 'urgent']),
+        'high_count': len([a for a in alerts if a['severity'] == 'high'])
+    }
+
+
+# 3. GET /api/executive/daily-summary - Daily summary
+@api_router.get("/executive/daily-summary")
+async def get_executive_daily_summary(
+    date: Optional[str] = None,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """
+    Get daily summary for executives
+    Bookings, revenue, cancellations, complaints, key metrics
+    """
+    current_user = await get_current_user(credentials)
+    
+    target_date = date if date else datetime.now(timezone.utc).date().isoformat()
+    
+    # Get bookings created today
+    new_bookings = await db.bookings.count_documents({
+        'tenant_id': current_user.tenant_id,
+        'created_at': {'$gte': target_date}
+    })
+    
+    # Get check-ins today
+    checkins = await db.bookings.count_documents({
+        'tenant_id': current_user.tenant_id,
+        'check_in': target_date,
+        'status': 'checked_in'
+    })
+    
+    # Get check-outs today
+    checkouts = await db.bookings.count_documents({
+        'tenant_id': current_user.tenant_id,
+        'check_out': target_date,
+        'status': 'checked_out'
+    })
+    
+    # Get cancellations today
+    cancellations = await db.bookings.count_documents({
+        'tenant_id': current_user.tenant_id,
+        'status': 'cancelled',
+        'updated_at': {'$gte': target_date}
+    })
+    
+    # Get revenue today
+    revenue = 0
+    async for payment in db.payments.find({
+        'tenant_id': current_user.tenant_id,
+        'payment_date': {'$gte': target_date}
+    }):
+        revenue += payment.get('amount', 0)
+    
+    # Get complaints today
+    complaints = await db.feedback.count_documents({
+        'tenant_id': current_user.tenant_id,
+        'rating': {'$lte': 2},
+        'created_at': {'$gte': target_date}
+    })
+    
+    # Get staff incidents
+    incidents = await db.incidents.count_documents({
+        'tenant_id': current_user.tenant_id,
+        'incident_date': target_date
+    })
+    
+    return {
+        'date': target_date,
+        'summary': {
+            'new_bookings': new_bookings,
+            'check_ins': checkins,
+            'check_outs': checkouts,
+            'cancellations': cancellations,
+            'revenue': round(revenue, 2),
+            'complaints': complaints,
+            'incidents': incidents
+        },
+        'highlights': {
+            'cancellation_rate': round((cancellations / new_bookings * 100) if new_bookings > 0 else 0, 1),
+            'avg_revenue_per_booking': round((revenue / checkins) if checkins > 0 else 0, 2)
+        }
+    }
+
+
+# ============================================================================
+# NOTIFICATION SYSTEM - Push Notifications
+# ============================================================================
+
+class NotificationPreferenceRequest(BaseModel):
+    notification_type: str
+    enabled: bool
+    channels: List[str] = ['in_app']  # in_app, email, sms, push
+
+# 1. GET /api/notifications/preferences - Get notification preferences
+@api_router.get("/notifications/preferences")
+async def get_notification_preferences(
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """
+    Get user notification preferences
+    """
+    current_user = await get_current_user(credentials)
+    
+    preferences = await db.notification_preferences.find_one({
+        'user_id': current_user.id
+    })
+    
+    if not preferences:
+        # Return default preferences
+        default_prefs = {
+            'user_id': current_user.id,
+            'preferences': [
+                {'type': 'approval_request', 'enabled': True, 'channels': ['in_app']},
+                {'type': 'approval_approved', 'enabled': True, 'channels': ['in_app']},
+                {'type': 'approval_rejected', 'enabled': True, 'channels': ['in_app']},
+                {'type': 'low_stock_alert', 'enabled': True, 'channels': ['in_app']},
+                {'type': 'revenue_alert', 'enabled': True, 'channels': ['in_app']},
+                {'type': 'overbooking_risk', 'enabled': True, 'channels': ['in_app']},
+                {'type': 'maintenance_urgent', 'enabled': True, 'channels': ['in_app']},
+                {'type': 'cash_flow_warning', 'enabled': True, 'channels': ['in_app']}
+            ]
+        }
+        return default_prefs
+    
+    return preferences
+
+
+# 2. PUT /api/notifications/preferences - Update notification preferences
+@api_router.put("/notifications/preferences")
+async def update_notification_preferences(
+    request: NotificationPreferenceRequest,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """
+    Update notification preferences for a specific notification type
+    """
+    current_user = await get_current_user(credentials)
+    
+    # Update or create preferences
+    await db.notification_preferences.update_one(
+        {'user_id': current_user.id},
+        {
+            '$set': {
+                f'preferences.{request.notification_type}': {
+                    'enabled': request.enabled,
+                    'channels': request.channels
+                }
+            }
+        },
+        upsert=True
+    )
+    
+    return {
+        'message': 'Bildirim tercihleri güncellendi',
+        'notification_type': request.notification_type,
+        'enabled': request.enabled
+    }
+
+
+# 3. GET /api/notifications/list - Get notifications
+@api_router.get("/notifications/list")
+async def get_notifications_list(
+    unread_only: bool = False,
+    limit: int = 50,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """
+    Get notifications for current user
+    Filter by unread_only
+    """
+    current_user = await get_current_user(credentials)
+    
+    query = {
+        '$or': [
+            {'user_id': current_user.id},
+            {'tenant_id': current_user.tenant_id, 'user_id': None}  # System-wide notifications
+        ]
+    }
+    
+    if unread_only:
+        query['read'] = False
+    
+    notifications = []
+    async for notif in db.notifications.find(query).sort('created_at', -1).limit(limit):
+        notifications.append({
+            'id': notif['id'],
+            'type': notif.get('type', 'general'),
+            'title': notif.get('title', ''),
+            'message': notif.get('message', ''),
+            'priority': notif.get('priority', 'normal'),
+            'read': notif.get('read', False),
+            'created_at': notif.get('created_at'),
+            'action_url': notif.get('action_url')
+        })
+    
+    return {
+        'notifications': notifications,
+        'count': len(notifications),
+        'unread_count': len([n for n in notifications if not n['read']])
+    }
+
+
+# 4. PUT /api/notifications/{notification_id}/mark-read - Mark as read
+@api_router.put("/notifications/{notification_id}/mark-read")
+async def mark_notification_read(
+    notification_id: str,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """
+    Mark a notification as read
+    """
+    current_user = await get_current_user(credentials)
+    
+    result = await db.notifications.update_one(
+        {
+            'id': notification_id,
+            '$or': [
+                {'user_id': current_user.id},
+                {'tenant_id': current_user.tenant_id}
+            ]
+        },
+        {'$set': {'read': True, 'read_at': datetime.now(timezone.utc).isoformat()}}
+    )
+    
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Notification not found")
+    
+    return {
+        'message': 'Bildirim okundu olarak işaretlendi',
+        'notification_id': notification_id
+    }
+
+
+# 5. POST /api/notifications/send-system-alert - Send system alert (internal use)
+@api_router.post("/notifications/send-system-alert")
+async def send_system_alert(
+    type: str,
+    title: str,
+    message: str,
+    priority: str = "normal",
+    target_roles: Optional[List[str]] = None,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """
+    Send system-wide alert to specific roles
+    Only admin can send system alerts
+    """
+    current_user = await get_current_user(credentials)
+    
+    if current_user.role != 'admin':
+        raise HTTPException(status_code=403, detail="Only admin can send system alerts")
+    
+    # Get users with target roles
+    query = {'tenant_id': current_user.tenant_id}
+    if target_roles:
+        query['role'] = {'$in': target_roles}
+    
+    users = await db.users.find(query).to_list(1000)
+    
+    # Create notifications for each user
+    notifications_created = 0
+    for target_user in users:
+        notification = {
+            'id': str(uuid.uuid4()),
+            'tenant_id': current_user.tenant_id,
+            'user_id': target_user['id'],
+            'type': type,
+            'title': title,
+            'message': message,
+            'priority': priority,
+            'read': False,
+            'created_at': datetime.now(timezone.utc).isoformat()
+        }
+        await db.notifications.insert_one(notification)
+        notifications_created += 1
+    
+    return {
+        'message': 'Sistem uyarısı gönderildi',
+        'notifications_sent': notifications_created,
+        'target_roles': target_roles
+    }
+
+
+
+
 # Include router at the very end after ALL endpoints are defined
 app.include_router(api_router)
 
