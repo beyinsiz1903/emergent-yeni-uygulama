@@ -687,19 +687,19 @@ class MaintenanceEndpointTester:
                 "name": "Filter tasks by status - open",
                 "params": {"status": "open"},
                 "expected_status": 200,
-                "expected_fields": ["tasks", "count", "filters_applied"]
+                "expected_fields": ["tasks", "summary", "filters_applied"]
             },
             {
                 "name": "Filter tasks by priority - urgent",
                 "params": {"priority": "urgent"},
                 "expected_status": 200,
-                "expected_fields": ["tasks", "count", "filters_applied"]
+                "expected_fields": ["tasks", "summary", "filters_applied"]
             },
             {
                 "name": "Filter tasks by status and priority combination",
                 "params": {"status": "open", "priority": "urgent"},
                 "expected_status": 200,
-                "expected_fields": ["tasks", "count", "filters_applied"]
+                "expected_fields": ["tasks", "summary", "filters_applied"]
             }
         ]
         
