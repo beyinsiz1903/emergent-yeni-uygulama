@@ -358,17 +358,6 @@ const MobileMaintenance = ({ user }) => {
     }
   };
 
-  const getStatusColor = (status) => {
-    const colors = {
-      new: 'bg-blue-100 text-blue-700',
-      assigned: 'bg-purple-100 text-purple-700',
-      in_progress: 'bg-yellow-100 text-yellow-700',
-      completed: 'bg-green-100 text-green-700',
-      on_hold: 'bg-gray-100 text-gray-700'
-    };
-    return colors[status] || 'bg-gray-100 text-gray-700';
-  };
-
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
