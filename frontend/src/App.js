@@ -616,6 +616,46 @@ function App() {
             }
           />
           <Route
+            path="/mobile/sales"
+            element={
+              isAuthenticated ? (
+                <SalesCRMMobile user={user} />
+              ) : (
+                <Navigate to="/auth" replace />
+              )
+            }
+          />
+          <Route
+            path="/mobile/rates"
+            element={
+              isAuthenticated ? (
+                <RateManagementMobile user={user} />
+              ) : (
+                <Navigate to="/auth" replace />
+              )
+            }
+          />
+          <Route
+            path="/mobile/channels"
+            element={
+              isAuthenticated ? (
+                <ChannelManagerMobile user={user} />
+              ) : (
+                <Navigate to="/auth" replace />
+              )
+            }
+          />
+          <Route
+            path="/mobile/corporate"
+            element={
+              isAuthenticated ? (
+                <CorporateContractsMobile user={user} />
+              ) : (
+                <Navigate to="/auth" replace />
+              )
+            }
+          />
+          <Route
             path="/cost-management"
             element={
               isAuthenticated ? (
