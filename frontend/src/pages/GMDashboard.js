@@ -36,6 +36,9 @@ import {
   Plus
 } from 'lucide-react';
 import FloatingActionButton from '@/components/FloatingActionButton';
+import ExpenseSummaryCard from '@/components/ExpenseSummaryCard';
+import TrendChart from '@/components/TrendChart';
+import SLAConfigCard from '@/components/SLAConfigCard';
 
 const GMDashboard = ({ user, tenant, onLogout }) => {
   const navigate = useNavigate();
