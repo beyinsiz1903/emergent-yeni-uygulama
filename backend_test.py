@@ -1129,7 +1129,7 @@ class ApprovalSystemRetester:
 
 async def main():
     """Main test execution"""
-    tester = ApprovalExecutiveNotificationTester()
+    tester = ApprovalSystemRetester()
     await tester.run_all_tests()
 
 if __name__ == "__main__":
