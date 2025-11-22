@@ -50,6 +50,20 @@ const MobileFrontDesk = ({ user }) => {
   const [calculatedFees, setCalculatedFees] = useState(null);
   const [roomFilters, setRoomFilters] = useState({ bed_type: '', floor: '', status: '' });
   const [filteredRooms, setFilteredRooms] = useState([]);
+  
+  // NEW FEATURES STATE
+  const [searchModalOpen, setSearchModalOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState([]);
+  const [roomAssignModalOpen, setRoomAssignModalOpen] = useState(false);
+  const [selectedBookingForRoom, setSelectedBookingForRoom] = useState(null);
+  const [availableRooms, setAvailableRooms] = useState([]);
+  const [passportScanModalOpen, setPassportScanModalOpen] = useState(false);
+  const [selectedBookingForPassport, setSelectedBookingForPassport] = useState(null);
+  const [passportImage, setPassportImage] = useState(null);
+  const [keycardModalOpen, setKeycardModalOpen] = useState(false);
+  const [selectedBookingForKeycard, setSelectedBookingForKeycard] = useState(null);
+  const [keycardType, setKeycardType] = useState('physical');
 
   useEffect(() => {
     loadData();
