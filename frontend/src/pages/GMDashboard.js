@@ -122,7 +122,7 @@ const GMDashboard = ({ user, tenant, onLogout }) => {
 
   const handleEmailReport = async () => {
     try {
-      await axios.post('/reports/email-daily-flash', {
+      await axios.post('/api/reports/email-daily-flash', {
         recipients: ['owner@hotel.com', 'family@hotel.com']
       });
       alert('Daily report sent successfully!');
