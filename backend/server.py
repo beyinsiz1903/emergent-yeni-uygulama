@@ -35900,7 +35900,6 @@ async def search_reservations(
     Search by: guest name, booking ID, phone, email, date range, status
     """
     try:
-        db = await get_database()
         filter_dict = {'tenant_id': current_user.tenant_id}
         
         # Search conditions
