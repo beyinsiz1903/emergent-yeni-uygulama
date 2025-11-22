@@ -560,6 +560,69 @@ const MobileHousekeeping = ({ user }) => {
           </Collapsible>
         )}
 
+        {/* Cleaning Requests - New Feature */}
+        {cleaningRequests.length > 0 && (
+          <Collapsible open={cleaningRequestsExpanded} onOpenChange={() => setCleaningRequestsExpanded(!cleaningRequestsExpanded)}>
+            <Card className="border-2 border-teal-200 bg-teal-50">
+              <CollapsibleTrigger className="w-full">
+                <CardHeader className="pb-3 cursor-pointer hover:bg-teal-100 transition-colors">
+                  <CardTitle className="text-lg flex items-center justify-between">
+                    <div className="flex items-center">
+                      <Sparkles className="w-5 h-5 mr-2 text-teal-600" />
+                      Misafir Temizlik Talepleri ({cleaningRequests.length})
+                    </div>
+                    {cleaningRequestsExpanded ? (
+                      <ChevronDown className="w-5 h-5 text-gray-400" />
+                    ) : (
+                      <ChevronRight className="w-5 h-5 text-gray-400" />
+                    )}
+                  </CardTitle>
+                </CardHeader>
+              </CollapsibleTrigger>
+              <CollapsibleContent>
+                <CardContent className="space-y-2">
+                  {cleaningRequests.map((request) => (
+                    <div key={request.id} className="p-3 bg-white rounded-lg border border-teal-200">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          <Bed className="w-4 h-4 text-teal-600" />
+                          <span className="font-bold text-gray-900">Oda {request.room_number}</span>
+                          {request.priority === 'urgent' && (
+                            <span className="text-xs px-2 py-1 bg-red-100 text-red-700 rounded">ACİL</span>
+                          )}
+                        </div>
+                        <span className="text-xs text-gray-500">
+                          {new Date(request.requested_at).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}
+                        </span>
+                      </div>
+                      <p className="text-sm text-gray-600 mb-2">{request.guest_name}</p>
+                      {request.notes && (
+                        <p className="text-xs text-gray-500 italic mb-2">"{request.notes}"</p>
+                      )}
+                      <div className="flex gap-2">
+                        <Button 
+                          size="sm" 
+                          onClick={() => handleCleaningRequestStatus(request.id, 'in_progress')}
+                          className="flex-1 bg-blue-600 hover:bg-blue-700 text-xs"
+                        >
+                          Başlat
+                        </Button>
+                        <Button 
+                          size="sm" 
+                          onClick={() => handleCleaningRequestStatus(request.id, 'completed')}
+                          className="flex-1 bg-green-600 hover:bg-green-700 text-xs"
+                        >
+                          Tamamla
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </CardContent>
+              </CollapsibleContent>
+            </Card>
+          </Collapsible>
+        )}
+
         {/* All Rooms - Categorized with Collapsible */}
         <div className="space-y-3">
           {/* Dirty Rooms */}
