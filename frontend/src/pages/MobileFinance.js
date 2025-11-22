@@ -655,14 +655,30 @@ const MobileFinance = ({ user }) => {
           </Card>
         )}
 
-        {/* Quick Actions */}
+        {/* Quick Actions - Enhanced */}
         <div className="grid grid-cols-2 gap-3">
           <Button
-            className="h-20 flex flex-col items-center justify-center bg-indigo-600 hover:bg-indigo-700"
-            onClick={() => setReportsModalOpen(true)}
+            className="h-20 flex flex-col items-center justify-center bg-cyan-600 hover:bg-cyan-700"
+            onClick={loadCashFlowDetail}
           >
-            <TrendingUp className="w-6 h-6 mb-1" />
-            <span className="text-xs">Finansal Raporlar</span>
+            <Wallet className="w-6 h-6 mb-1" />
+            <span className="text-xs">Nakit Akışı</span>
+          </Button>
+          
+          <Button
+            className="h-20 flex flex-col items-center justify-center bg-red-600 hover:bg-red-700"
+            onClick={loadRiskDetails}
+          >
+            <AlertTriangle className="w-6 h-6 mb-1" />
+            <span className="text-xs">Risk Yönetimi</span>
+          </Button>
+          
+          <Button
+            className="h-20 flex flex-col items-center justify-center bg-orange-600 hover:bg-orange-700"
+            onClick={loadEnhancedInvoices}
+          >
+            <Receipt className="w-6 h-6 mb-1" />
+            <span className="text-xs">Faturalar</span>
           </Button>
           
           <Button
@@ -674,19 +690,19 @@ const MobileFinance = ({ user }) => {
           </Button>
           
           <Button
+            className="h-20 flex flex-col items-center justify-center bg-indigo-600 hover:bg-indigo-700"
+            onClick={() => setReportsModalOpen(true)}
+          >
+            <TrendingUp className="w-6 h-6 mb-1" />
+            <span className="text-xs">Raporlar</span>
+          </Button>
+          
+          <Button
             className="h-20 flex flex-col items-center justify-center bg-purple-600 hover:bg-purple-700"
             onClick={loadCashierShiftReport}
           >
             <User className="w-6 h-6 mb-1" />
-            <span className="text-xs">Vardiya Raporu</span>
-          </Button>
-          
-          <Button
-            className="h-20 flex flex-col items-center justify-center bg-orange-600 hover:bg-orange-700"
-            onClick={() => setInvoicesModalOpen(true)}
-          >
-            <Receipt className="w-6 h-6 mb-1" />
-            <span className="text-xs">Faturalar</span>
+            <span className="text-xs">Vardiya</span>
           </Button>
         </div>
       </div>
