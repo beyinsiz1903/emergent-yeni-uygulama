@@ -498,6 +498,63 @@ const GuestPortal = ({ user, onLogout }) => {
                   </CardContent>
                 </Card>
 
+                {/* Cleaning Request Section */}
+                {activeBookings.length > 0 && (
+                  <Card className="bg-gradient-to-r from-teal-50 to-cyan-50 border-teal-200">
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <Sparkles className="w-6 h-6 text-teal-600" />
+                        Oda Temizlik Hizmeti
+                      </CardTitle>
+                      <CardDescription>
+                        Otel odanızın temizlenmesini talep edin
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="font-semibold">Oda: {activeBookings[0]?.room_number}</p>
+                          <p className="text-sm text-gray-600">Aktif Konaklama</p>
+                        </div>
+                        <Button 
+                          onClick={() => setCleaningRequestModalOpen(true)}
+                          className="bg-teal-600 hover:bg-teal-700"
+                        >
+                          <Sparkles className="w-4 h-4 mr-2" />
+                          Temizlik Talep Et
+                        </Button>
+                      </div>
+
+                      {/* Recent Cleaning Requests */}
+                      {cleaningRequests.length > 0 && (
+                        <div className="border-t pt-4 space-y-2">
+                          <p className="text-sm font-semibold">Son Talepleriniz:</p>
+                          {cleaningRequests.slice(0, 3).map((req) => (
+                            <div key={req.id} className="flex items-center justify-between p-2 bg-white rounded border">
+                              <div className="flex items-center gap-2">
+                                {req.status === 'pending' && <Clock className="w-4 h-4 text-orange-500" />}
+                                {req.status === 'in_progress' && <AlertCircle className="w-4 h-4 text-blue-500" />}
+                                {req.status === 'completed' && <CheckCircle className="w-4 h-4 text-green-500" />}
+                                <span className="text-sm">
+                                  {req.request_type === 'urgent' ? 'Acil' : 'Normal'} Temizlik
+                                </span>
+                              </div>
+                              <span className={`text-xs px-2 py-1 rounded ${
+                                req.status === 'pending' ? 'bg-orange-100 text-orange-700' :
+                                req.status === 'in_progress' ? 'bg-blue-100 text-blue-700' :
+                                'bg-green-100 text-green-700'
+                              }`}>
+                                {req.status === 'pending' ? 'Bekliyor' :
+                                 req.status === 'in_progress' ? 'Yapılıyor' : 'Tamamlandı'}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                )}
+
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {loyaltyPrograms.map((program) => (
                     <Card key={program.id}>
@@ -534,6 +591,71 @@ const GuestPortal = ({ user, onLogout }) => {
                     </Card>
                   ))}
                 </div>
+
+                {/* Cleaning Request Modal */}
+                <Dialog open={cleaningRequestModalOpen} onOpenChange={setCleaningRequestModalOpen}>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle className="flex items-center gap-2">
+                        <Sparkles className="w-5 h-5 text-teal-600" />
+                        Oda Temizlik Talebi
+                      </DialogTitle>
+                      <DialogDescription>
+                        Otel odanızın temizlenmesini talep edin
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                      <div>
+                        <Label>Temizlik Türü</Label>
+                        <Select value={cleaningRequestType} onValueChange={setCleaningRequestType}>
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="regular">Normal Temizlik</SelectItem>
+                            <SelectItem value="urgent">Acil Temizlik</SelectItem>
+                            <SelectItem value="turndown">Akşam Servisi</SelectItem>
+                            <SelectItem value="do_not_disturb">Rahatsız Etmeyin</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div>
+                        <Label>Özel Notlar (Opsiyonel)</Label>
+                        <Textarea
+                          value={cleaningNotes}
+                          onChange={(e) => setCleaningNotes(e.target.value)}
+                          placeholder="Ek talepleriniz varsa buraya yazabilirsiniz..."
+                          rows={3}
+                        />
+                      </div>
+
+                      <div className="bg-teal-50 border border-teal-200 rounded p-3">
+                        <p className="text-sm text-teal-800">
+                          {cleaningRequestType === 'urgent' 
+                            ? '⚡ Acil temizlik: 30-60 dakika içinde'
+                            : '⏰ Normal temizlik: 2-3 saat içinde'}
+                        </p>
+                      </div>
+
+                      <div className="flex gap-2">
+                        <Button 
+                          variant="outline" 
+                          onClick={() => setCleaningRequestModalOpen(false)}
+                          className="flex-1"
+                        >
+                          İptal
+                        </Button>
+                        <Button 
+                          onClick={handleCleaningRequest}
+                          className="flex-1 bg-teal-600 hover:bg-teal-700"
+                        >
+                          Talep Gönder
+                        </Button>
+                      </div>
+                    </div>
+                  </DialogContent>
+                </Dialog>
               </div>
             }
           />
