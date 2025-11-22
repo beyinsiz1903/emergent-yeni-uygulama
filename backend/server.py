@@ -452,6 +452,22 @@ class CheckInStatus(str, Enum):
     IN_HOUSE = "in_house"
 
 
+# Housekeeping Enhanced Enums
+class InspectionStatus(str, Enum):
+    PENDING = "pending"
+    IN_PROGRESS = "in_progress"
+    COMPLETED = "completed"
+    FAILED = "failed"
+
+class LostFoundStatus(str, Enum):
+    FOUND = "found"
+    IN_STORAGE = "in_storage"
+    CLAIMED = "claimed"
+    DELIVERED = "delivered"
+    DISPOSED = "disposed"
+
+
+
 
 
 # Role-Permission Mapping
