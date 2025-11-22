@@ -27002,6 +27002,22 @@ async def get_pickup_analysis(
         'pickup_trends': pickup_trends
     }
 
+
+
+# ============= MAINTENANCE TASKS ENDPOINT =============
+
+@api_router.get("/maintenance/tasks")
+async def get_maintenance_tasks(current_user: User = Depends(get_current_user)):
+    """Get all maintenance tasks"""
+    try:
+        tasks = await db.maintenance_tasks.find({
+            'tenant_id': current_user.tenant_id
+        }, {'_id': 0}).to_list(1000)
+        return tasks
+    except Exception as e:
+        print(f"Maintenance tasks error: {str(e)}")
+        return []
+
 # ============= POS / F&B ENDPOINTS =============
 
 @api_router.get("/pos/outlets")
