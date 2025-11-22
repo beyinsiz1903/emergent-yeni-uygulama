@@ -351,6 +351,68 @@ const MobileHousekeeping = ({ user }) => {
       </div>
 
       <div className="p-4 space-y-4">
+        {/* Bulk Action Controls */}
+        {bulkUpdateMode ? (
+          <Card className="bg-purple-50 border-purple-200">
+            <CardContent className="p-3">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-bold text-purple-700">
+                  {selectedRooms.length} oda seçildi
+                </span>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => {
+                    setBulkUpdateMode(false);
+                    setSelectedRooms([]);
+                  }}
+                  className="h-7 text-xs"
+                >
+                  İptal
+                </Button>
+              </div>
+              <div className="grid grid-cols-4 gap-2">
+                <Button
+                  size="sm"
+                  className="h-8 text-xs bg-yellow-600 hover:bg-yellow-700"
+                  onClick={() => handleBulkStatusUpdate('cleaning')}
+                >
+                  🧹 Başla
+                </Button>
+                <Button
+                  size="sm"
+                  className="h-8 text-xs bg-blue-600 hover:bg-blue-700"
+                  onClick={() => handleBulkStatusUpdate('inspected')}
+                >
+                  ✓ Kontrol
+                </Button>
+                <Button
+                  size="sm"
+                  className="h-8 text-xs bg-green-600 hover:bg-green-700"
+                  onClick={() => handleBulkStatusUpdate('available')}
+                >
+                  ✓ Müsait
+                </Button>
+                <Button
+                  size="sm"
+                  className="h-8 text-xs bg-red-600 hover:bg-red-700"
+                  onClick={() => handleBulkStatusUpdate('dirty')}
+                >
+                  🔴 Kirli
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        ) : (
+          <Button
+            size="sm"
+            className="w-full h-10 bg-purple-600 hover:bg-purple-700"
+            onClick={() => setBulkUpdateMode(true)}
+          >
+            📋 Toplu İşlem Modu
+          </Button>
+        )}
+
         {/* Quick Stats */}
         <div className="grid grid-cols-2 gap-3">
           <Card className="bg-gradient-to-br from-red-50 to-red-100 border-red-200">
