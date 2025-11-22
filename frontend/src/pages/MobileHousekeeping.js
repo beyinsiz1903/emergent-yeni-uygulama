@@ -858,12 +858,18 @@ const MobileHousekeeping = ({ user }) => {
         </DialogContent>
       </Dialog>
 
-      {/* Confirmation Dialog */}
+      {/* Confirmation Dialog - Compact Mobile Design */}
       <AlertDialog open={confirmDialogOpen} onOpenChange={setConfirmDialogOpen}>
-        <AlertDialogContent className="max-w-[90vw]">
-          <AlertDialogHeader>
-            <AlertDialogTitle className="flex items-center space-x-2">
-              <AlertCircle className="w-5 h-5 text-orange-600" />
+        <AlertDialogContent className="max-w-[85vw] p-4">
+          <AlertDialogHeader className="space-y-2">
+            <AlertDialogTitle className="text-base font-bold flex items-center space-x-2">
+              <span className="text-2xl">
+                {pendingStatusChange && (
+                  pendingStatusChange.currentStatus === 'dirty' ? '🧹' :
+                  pendingStatusChange.currentStatus === 'cleaning' ? '✓' :
+                  pendingStatusChange.currentStatus === 'inspected' ? '🟢' : '🔴'
+                )}
+              </span>
               <span>
                 {pendingStatusChange && getActionText(
                   pendingStatusChange.currentStatus, 
@@ -871,7 +877,7 @@ const MobileHousekeeping = ({ user }) => {
                 )}
               </span>
             </AlertDialogTitle>
-            <AlertDialogDescription className="text-base">
+            <AlertDialogDescription className="text-sm font-medium text-gray-700">
               {pendingStatusChange && getActionDescription(
                 pendingStatusChange.roomNumber,
                 pendingStatusChange.currentStatus,
@@ -879,15 +885,18 @@ const MobileHousekeeping = ({ user }) => {
               )}
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter className="flex space-x-2">
-            <AlertDialogCancel onClick={cancelStatusChange} className="flex-1">
-              ✕ Hayır
+          <AlertDialogFooter className="flex flex-row space-x-2 mt-4">
+            <AlertDialogCancel 
+              onClick={cancelStatusChange} 
+              className="flex-1 h-10 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium"
+            >
+              İptal
             </AlertDialogCancel>
             <AlertDialogAction 
               onClick={confirmStatusChange}
-              className="flex-1 bg-green-600 hover:bg-green-700"
+              className="flex-1 h-10 bg-green-600 hover:bg-green-700 text-white font-medium"
             >
-              ✓ Evet
+              Onayla
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
