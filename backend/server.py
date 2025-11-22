@@ -36512,7 +36512,7 @@ async def get_my_cleaning_requests(
         requests = await db.cleaning_requests.find({
             'guest_id': current_user.id,
             'tenant_id': current_user.tenant_id
-        }).sort('requested_at', -1).limit(10).to_list(10)
+        }, {'_id': 0}).sort('requested_at', -1).limit(10).to_list(10)
         
         return {
             'requests': requests,
