@@ -35879,6 +35879,273 @@ async def get_corporate_alerts(
 
 
 
+# ============================================================================
+# MOBILE FRONTEND ENHANCEMENTS - NEW FEATURES
+# ============================================================================
+
+# 1. RESERVATION SEARCH - Geçmiş rezervasyon araması
+@api_router.get("/reservations/search")
+async def search_reservations(
+    query: str = None,
+    check_in: str = None,
+    check_out: str = None,
+    status: str = None,
+    booking_id: str = None,
+    phone: str = None,
+    email: str = None,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Comprehensive reservation search with multiple filters
+    Search by: guest name, booking ID, phone, email, date range, status
+    """
+    try:
+        db = await get_database()
+        filter_dict = {'tenant_id': current_user.tenant_id}
+        
+        # Search conditions
+        search_conditions = []
+        
+        if query:
+            # Search in guest name or booking ID
+            search_conditions.append({
+                '$or': [
+                    {'guest_name': {'$regex': query, '$options': 'i'}},
+                    {'id': {'$regex': query, '$options': 'i'}},
+                    {'booking_number': {'$regex': query, '$options': 'i'}}
+                ]
+            })
+        
+        if booking_id:
+            search_conditions.append({'id': booking_id})
+        
+        if phone:
+            # Find guest by phone first
+            guest = await db.guests.find_one({'phone': {'$regex': phone, '$options': 'i'}})
+            if guest:
+                search_conditions.append({'guest_id': guest['id']})
+        
+        if email:
+            # Find guest by email first
+            guest = await db.guests.find_one({'email': {'$regex': email, '$options': 'i'}})
+            if guest:
+                search_conditions.append({'guest_id': guest['id']})
+        
+        if check_in:
+            search_conditions.append({'check_in': {'$gte': check_in}})
+        
+        if check_out:
+            search_conditions.append({'check_out': {'$lte': check_out}})
+        
+        if status:
+            search_conditions.append({'status': status})
+        
+        # Combine all conditions
+        if search_conditions:
+            filter_dict['$and'] = search_conditions
+        
+        # Find bookings
+        bookings = await db.bookings.find(filter_dict).sort('check_in', -1).limit(50).to_list(50)
+        
+        # Enrich with guest and room data
+        for booking in bookings:
+            if booking.get('guest_id'):
+                guest = await db.guests.find_one({'id': booking['guest_id']})
+                if guest:
+                    booking['guest_phone'] = guest.get('phone')
+                    booking['guest_email'] = guest.get('email')
+            
+            if booking.get('room_id'):
+                room = await db.rooms.find_one({'id': booking['room_id']})
+                if room:
+                    booking['room_number'] = room.get('room_number')
+                    booking['room_type'] = room.get('room_type')
+        
+        return {
+            'bookings': bookings,
+            'count': len(bookings),
+            'search_query': query,
+            'filters_applied': {
+                'check_in': check_in,
+                'check_out': check_out,
+                'status': status,
+                'phone': phone,
+                'email': email
+            }
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Search failed: {str(e)}")
+
+
+# 2. KEYCARD MANAGEMENT - Oda kartı basma sistemi
+@api_router.post("/keycard/issue")
+async def issue_keycard(
+    booking_id: str,
+    card_type: str = "physical",  # physical, mobile, qr
+    validity_hours: int = 48,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Issue a new keycard for a booking
+    Supports: physical cards, mobile keys, QR codes
+    """
+    try:
+        db = await get_database()
+        
+        # Find booking
+        booking = await db.bookings.find_one({'id': booking_id, 'tenant_id': current_user.tenant_id})
+        if not booking:
+            raise HTTPException(status_code=404, detail="Booking not found")
+        
+        # Check if booking is checked in or confirmed
+        if booking['status'] not in ['confirmed', 'guaranteed', 'checked_in']:
+            raise HTTPException(status_code=400, detail="Booking must be confirmed or checked-in to issue keycard")
+        
+        # Get room info
+        room = await db.rooms.find_one({'id': booking.get('room_id')})
+        if not room:
+            raise HTTPException(status_code=400, detail="Room not assigned")
+        
+        # Generate keycard data
+        keycard_id = str(uuid.uuid4())
+        issue_time = datetime.now(timezone.utc)
+        expiry_time = issue_time + timedelta(hours=validity_hours)
+        
+        keycard_data = {
+            'id': keycard_id,
+            'booking_id': booking_id,
+            'room_id': booking['room_id'],
+            'room_number': room['room_number'],
+            'guest_id': booking['guest_id'],
+            'guest_name': booking['guest_name'],
+            'card_type': card_type,
+            'issued_at': issue_time.isoformat(),
+            'expires_at': expiry_time.isoformat(),
+            'issued_by': current_user.id,
+            'issued_by_name': current_user.name,
+            'status': 'active',
+            'access_areas': ['room', 'elevator', 'gym', 'pool'],  # Default access
+            'tenant_id': current_user.tenant_id
+        }
+        
+        # Generate card code based on type
+        if card_type == "physical":
+            keycard_data['card_number'] = f"RFID-{room['room_number']}-{datetime.now().strftime('%Y%m%d%H%M')}"
+            keycard_data['encoding_data'] = f"ENC:{keycard_id[:8]}:{room['room_number']}"
+        elif card_type == "mobile":
+            keycard_data['mobile_key_token'] = f"MOB-{keycard_id[:16]}"
+            keycard_data['bluetooth_uuid'] = f"BLE-{uuid.uuid4()}"
+        elif card_type == "qr":
+            keycard_data['qr_code'] = f"QR-{keycard_id}"
+            keycard_data['qr_data'] = f"{room['room_number']}:{keycard_id}:{expiry_time.timestamp()}"
+        
+        # Store keycard
+        await db.keycards.insert_one(keycard_data)
+        
+        # Log the action
+        await db.audit_logs.insert_one({
+            'id': str(uuid.uuid4()),
+            'tenant_id': current_user.tenant_id,
+            'user_id': current_user.id,
+            'user_name': current_user.name,
+            'user_role': current_user.role,
+            'action': 'ISSUE_KEYCARD',
+            'entity_type': 'keycard',
+            'entity_id': keycard_id,
+            'changes': {'card_type': card_type, 'room_number': room['room_number']},
+            'timestamp': datetime.now(timezone.utc).isoformat()
+        })
+        
+        return {
+            'message': f'{card_type.capitalize()} keycard issued successfully',
+            'keycard_id': keycard_id,
+            'card_type': card_type,
+            'room_number': room['room_number'],
+            'guest_name': booking['guest_name'],
+            'issued_at': issue_time.isoformat(),
+            'expires_at': expiry_time.isoformat(),
+            'validity_hours': validity_hours,
+            'card_data': keycard_data.get('card_number') or keycard_data.get('mobile_key_token') or keycard_data.get('qr_code'),
+            'access_areas': keycard_data['access_areas']
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to issue keycard: {str(e)}")
+
+
+@api_router.put("/keycard/{keycard_id}/deactivate")
+async def deactivate_keycard(
+    keycard_id: str,
+    reason: str = "checkout",
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Deactivate/cancel a keycard
+    Reasons: checkout, lost, stolen, replaced
+    """
+    try:
+        db = await get_database()
+        
+        keycard = await db.keycards.find_one({'id': keycard_id, 'tenant_id': current_user.tenant_id})
+        if not keycard:
+            raise HTTPException(status_code=404, detail="Keycard not found")
+        
+        # Update keycard status
+        await db.keycards.update_one(
+            {'id': keycard_id},
+            {
+                '$set': {
+                    'status': 'deactivated',
+                    'deactivated_at': datetime.now(timezone.utc).isoformat(),
+                    'deactivated_by': current_user.id,
+                    'deactivation_reason': reason
+                }
+            }
+        )
+        
+        return {
+            'message': 'Keycard deactivated successfully',
+            'keycard_id': keycard_id,
+            'reason': reason,
+            'deactivated_at': datetime.now(timezone.utc).isoformat()
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to deactivate keycard: {str(e)}")
+
+
+@api_router.get("/keycard/booking/{booking_id}")
+async def get_booking_keycards(
+    booking_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Get all keycards for a booking
+    """
+    try:
+        db = await get_database()
+        
+        keycards = await db.keycards.find({
+            'booking_id': booking_id,
+            'tenant_id': current_user.tenant_id
+        }).sort('issued_at', -1).to_list(20)
+        
+        return {
+            'keycards': keycards,
+            'count': len(keycards),
+            'active_count': len([k for k in keycards if k['status'] == 'active'])
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to retrieve keycards: {str(e)}")
+
+
+
 # Include router at the very end after ALL endpoints are defined
 app.include_router(api_router)
 
