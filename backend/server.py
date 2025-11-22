@@ -400,6 +400,32 @@ class MaintenanceType(str, Enum):
     EMERGENCY = "emergency"  # Acil müdahale
 
 
+# F&B Management Enums
+class OrderStatus(str, Enum):
+    PENDING = "pending"
+    PREPARING = "preparing"
+    READY = "ready"
+    SERVED = "served"
+    CANCELLED = "cancelled"
+
+class OutletType(str, Enum):
+    RESTAURANT = "restaurant"
+    BAR = "bar"
+    ROOM_SERVICE = "room_service"
+    CAFE = "cafe"
+    POOLSIDE = "poolside"
+    BANQUET = "banquet"
+
+class MeasurementUnit(str, Enum):
+    KG = "kg"
+    GRAM = "gram"
+    LITER = "liter"
+    ML = "ml"
+    PIECE = "piece"
+    PORTION = "portion"
+
+
+
 # Role-Permission Mapping
 ROLE_PERMISSIONS = {
     UserRole.ADMIN: [p.value for p in Permission],  # All permissions
