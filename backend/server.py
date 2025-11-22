@@ -27227,6 +27227,183 @@ async def add_guest_note(
     await db.crm_notes.insert_one(note)
     return {'message': 'Note added successfully', 'note_id': note['id']}
 
+@api_router.post("/approvals/request")
+async def create_approval_request(
+    request_data: dict,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Create a new approval request"""
+    current_user = await get_current_user(credentials)
+    
+    approval_types = ['discount', 'rate_override', 'budget', 'refund', 'complimentary']
+    
+    if request_data.get('type') not in approval_types:
+        raise HTTPException(status_code=400, detail="Invalid approval type")
+    
+    approval = {
+        'id': str(uuid.uuid4()),
+        'tenant_id': current_user.tenant_id,
+        'type': request_data.get('type'),
+        'amount': request_data.get('amount', 0),
+        'reason': request_data.get('reason', ''),
+        'booking_id': request_data.get('booking_id'),
+        'requested_by': current_user.id,
+        'requested_by_name': current_user.name,
+        'requested_by_email': current_user.email,
+        'status': 'pending',
+        'priority': request_data.get('priority', 'normal'),
+        'metadata': request_data.get('metadata', {}),
+        'created_at': datetime.now(timezone.utc).isoformat(),
+        'approved_at': None,
+        'approved_by': None,
+        'approved_by_name': None,
+        'rejection_reason': None
+    }
+    
+    await db.approval_requests.insert_one(approval)
+    
+    return {
+        'message': 'Approval request created',
+        'approval_id': approval['id'],
+        'status': 'pending'
+    }
+
+@api_router.get("/approvals/pending")
+async def get_pending_approvals(
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Get all pending approval requests"""
+    current_user = await get_current_user(credentials)
+    
+    # Only managers and admins can see approvals
+    if current_user.role not in ['admin', 'manager', 'gm']:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    approvals = []
+    async for approval in db.approval_requests.find({
+        'tenant_id': current_user.tenant_id,
+        'status': 'pending'
+    }).sort('created_at', -1):
+        approval.pop('_id', None)
+        approvals.append(approval)
+    
+    return {
+        'approvals': approvals,
+        'count': len(approvals)
+    }
+
+@api_router.get("/approvals/my-requests")
+async def get_my_approval_requests(
+    status: Optional[str] = None,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Get approval requests created by current user"""
+    current_user = await get_current_user(credentials)
+    
+    query = {
+        'tenant_id': current_user.tenant_id,
+        'requested_by': current_user.id
+    }
+    
+    if status:
+        query['status'] = status
+    
+    approvals = []
+    async for approval in db.approval_requests.find(query).sort('created_at', -1):
+        approval.pop('_id', None)
+        approvals.append(approval)
+    
+    return {
+        'approvals': approvals,
+        'count': len(approvals)
+    }
+
+@api_router.post("/approvals/{approval_id}/approve")
+async def approve_request(
+    approval_id: str,
+    approval_note: dict,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Approve an approval request"""
+    current_user = await get_current_user(credentials)
+    
+    # Only managers and admins can approve
+    if current_user.role not in ['admin', 'manager', 'gm']:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    approval = await db.approval_requests.find_one({
+        'id': approval_id,
+        'tenant_id': current_user.tenant_id
+    })
+    
+    if not approval:
+        raise HTTPException(status_code=404, detail="Approval request not found")
+    
+    if approval['status'] != 'pending':
+        raise HTTPException(status_code=400, detail="Request already processed")
+    
+    await db.approval_requests.update_one(
+        {'id': approval_id},
+        {
+            '$set': {
+                'status': 'approved',
+                'approved_at': datetime.now(timezone.utc).isoformat(),
+                'approved_by': current_user.id,
+                'approved_by_name': current_user.name,
+                'approval_note': approval_note.get('note', '')
+            }
+        }
+    )
+    
+    return {
+        'message': 'Request approved',
+        'approval_id': approval_id,
+        'status': 'approved'
+    }
+
+@api_router.post("/approvals/{approval_id}/reject")
+async def reject_request(
+    approval_id: str,
+    rejection_data: dict,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Reject an approval request"""
+    current_user = await get_current_user(credentials)
+    
+    # Only managers and admins can reject
+    if current_user.role not in ['admin', 'manager', 'gm']:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    approval = await db.approval_requests.find_one({
+        'id': approval_id,
+        'tenant_id': current_user.tenant_id
+    })
+    
+    if not approval:
+        raise HTTPException(status_code=404, detail="Approval request not found")
+    
+    if approval['status'] != 'pending':
+        raise HTTPException(status_code=400, detail="Request already processed")
+    
+    await db.approval_requests.update_one(
+        {'id': approval_id},
+        {
+            '$set': {
+                'status': 'rejected',
+                'approved_at': datetime.now(timezone.utc).isoformat(),
+                'approved_by': current_user.id,
+                'approved_by_name': current_user.name,
+                'rejection_reason': rejection_data.get('reason', 'No reason provided')
+            }
+        }
+    )
+    
+    return {
+        'message': 'Request rejected',
+        'approval_id': approval_id,
+        'status': 'rejected'
+    }
+
 @api_router.get("/reports/weekly-management-summary")
 async def get_weekly_management_summary(
     credentials: HTTPAuthorizationCredentials = Depends(security)
