@@ -5444,6 +5444,30 @@ frontend:
         agent: "main"
         comment: "Added routes to App.js: /mobile/order-tracking (MobileOrderTracking), /mobile/inventory (MobileInventory), both protected with authentication"
 
+  - task: "Mobile Approvals UI - MobileApprovals.js"
+    implemented: true
+    working: "NA"
+    file: "/app/frontend/src/pages/MobileApprovals.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Created MobileApprovals.js - Full-featured mobile approvals page with: Pending approvals tab with role-based approve/reject buttons, My requests tab showing user's approval history, Urgent approval alerts with priority badges, Approval detail modals with confirmation dialogs, Turkish language UI with proper status badges and time tracking"
+
+  - task: "Executive Dashboard UI - ExecutiveDashboard.js"
+    implemented: true
+    working: "NA"
+    file: "/app/frontend/src/pages/ExecutiveDashboard.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Created ExecutiveDashboard.js - Executive-level dashboard with: 6 KPI cards (RevPAR, ADR, Occupancy, Revenue, NPS, Cash) with trend indicators, Critical alerts display with severity-based styling, Daily summary with key metrics, Room status overview, Auto-refresh every 60 seconds, Dark gradient theme optimized for executive viewing"
+
 backend:
   - task: "Approvals Module - Create Approval Request"
     implemented: true
