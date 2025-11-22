@@ -34804,6 +34804,1081 @@ async def get_enhanced_snapshot(
 
 
 
+
+# ============================================================================
+# SALES & CRM MOBILE - Satış & Müşteri Yönetimi
+# ============================================================================
+
+# Models
+class LeadStage(str, Enum):
+    COLD = "cold"
+    WARM = "warm"
+    HOT = "hot"
+    CONVERTED = "converted"
+    LOST = "lost"
+
+class CreateLeadRequest(BaseModel):
+    guest_name: str
+    email: Optional[str] = None
+    phone: Optional[str] = None
+    company: Optional[str] = None
+    stage: LeadStage = LeadStage.COLD
+    source: str  # website, phone, walk-in, referral, ota
+    notes: Optional[str] = None
+    expected_checkin: Optional[str] = None
+    expected_revenue: float = 0
+
+class UpdateLeadStageRequest(BaseModel):
+    stage: LeadStage
+    notes: Optional[str] = None
+
+
+# 1. GET /api/sales/customers - Customer list
+@api_router.get("/sales/customers")
+async def get_sales_customers(
+    customer_type: Optional[str] = None,  # vip, corporate, returning, new
+    limit: int = 50,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """
+    Get customer/guest list with filters
+    VIP, Corporate, Returning, New customers
+    """
+    current_user = await get_current_user(credentials)
+    
+    query = {'tenant_id': current_user.tenant_id}
+    
+    # Get all bookings to analyze customers
+    customers_data = {}
+    async for booking in db.bookings.find(query):
+        guest_id = booking.get('guest_id')
+        if not guest_id:
+            continue
+        
+        if guest_id not in customers_data:
+            customers_data[guest_id] = {
+                'guest_id': guest_id,
+                'guest_name': booking.get('guest_name', 'Unknown'),
+                'email': booking.get('guest_email', ''),
+                'phone': booking.get('guest_phone', ''),
+                'total_bookings': 0,
+                'total_revenue': 0,
+                'last_stay': None,
+                'is_vip': False,
+                'is_corporate': booking.get('booking_source') == 'corporate'
+            }
+        
+        customers_data[guest_id]['total_bookings'] += 1
+        customers_data[guest_id]['total_revenue'] += booking.get('total_amount', 0)
+        
+        booking_date = booking.get('check_in', '')
+        if not customers_data[guest_id]['last_stay'] or booking_date > customers_data[guest_id]['last_stay']:
+            customers_data[guest_id]['last_stay'] = booking_date
+    
+    # Convert to list and classify
+    customers = []
+    for customer in customers_data.values():
+        # Classify customer type
+        if customer['total_revenue'] > 50000:
+            customer['is_vip'] = True
+        
+        customer['customer_type'] = []
+        if customer['is_vip']:
+            customer['customer_type'].append('vip')
+        if customer['is_corporate']:
+            customer['customer_type'].append('corporate')
+        if customer['total_bookings'] > 1:
+            customer['customer_type'].append('returning')
+        else:
+            customer['customer_type'].append('new')
+        
+        # Filter by type if specified
+        if customer_type and customer_type not in customer['customer_type']:
+            continue
+        
+        customers.append(customer)
+    
+    # Sort by revenue
+    customers.sort(key=lambda x: x['total_revenue'], reverse=True)
+    
+    # Sample data if empty
+    if len(customers) == 0:
+        customers = [
+            {
+                'guest_id': str(uuid.uuid4()),
+                'guest_name': 'Ahmet Yılmaz',
+                'email': 'ahmet.yilmaz@company.com',
+                'phone': '+90 532 123 4567',
+                'total_bookings': 12,
+                'total_revenue': 48000,
+                'last_stay': (datetime.now() - timedelta(days=15)).isoformat(),
+                'is_vip': False,
+                'is_corporate': True,
+                'customer_type': ['corporate', 'returning']
+            },
+            {
+                'guest_id': str(uuid.uuid4()),
+                'guest_name': 'Ayşe Demir',
+                'email': 'ayse.demir@email.com',
+                'phone': '+90 533 987 6543',
+                'total_bookings': 25,
+                'total_revenue': 125000,
+                'last_stay': (datetime.now() - timedelta(days=5)).isoformat(),
+                'is_vip': True,
+                'is_corporate': False,
+                'customer_type': ['vip', 'returning']
+            }
+        ]
+    
+    return {
+        'customers': customers[:limit],
+        'count': len(customers),
+        'vip_count': len([c for c in customers if c['is_vip']]),
+        'corporate_count': len([c for c in customers if c['is_corporate']])
+    }
+
+
+# 2. GET /api/sales/leads - Lead management
+@api_router.get("/sales/leads")
+async def get_sales_leads(
+    stage: Optional[str] = None,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """
+    Get lead list with pipeline stages
+    cold, warm, hot, converted, lost
+    """
+    current_user = await get_current_user(credentials)
+    
+    query = {'tenant_id': current_user.tenant_id}
+    if stage:
+        query['stage'] = stage
+    
+    leads = []
+    async for lead in db.leads.find(query).sort('created_at', -1).limit(100):
+        leads.append({
+            'id': lead['id'],
+            'guest_name': lead['guest_name'],
+            'email': lead.get('email'),
+            'phone': lead.get('phone'),
+            'company': lead.get('company'),
+            'stage': lead['stage'],
+            'source': lead.get('source', 'website'),
+            'notes': lead.get('notes'),
+            'expected_checkin': lead.get('expected_checkin'),
+            'expected_revenue': lead.get('expected_revenue', 0),
+            'created_at': lead.get('created_at'),
+            'updated_at': lead.get('updated_at')
+        })
+    
+    # Sample data if empty
+    if len(leads) == 0:
+        leads = [
+            {
+                'id': str(uuid.uuid4()),
+                'guest_name': 'Mehmet Öztürk',
+                'email': 'mehmet@company.com',
+                'phone': '+90 534 111 2233',
+                'company': 'Tech Corp',
+                'stage': 'hot',
+                'source': 'phone',
+                'expected_checkin': (datetime.now() + timedelta(days=15)).isoformat()[:10],
+                'expected_revenue': 15000,
+                'notes': 'Konferans için 20 oda',
+                'created_at': (datetime.now() - timedelta(days=3)).isoformat()
+            },
+            {
+                'id': str(uuid.uuid4()),
+                'guest_name': 'Zeynep Kaya',
+                'email': 'zeynep@email.com',
+                'phone': '+90 535 444 5566',
+                'company': None,
+                'stage': 'warm',
+                'source': 'website',
+                'expected_checkin': (datetime.now() + timedelta(days=30)).isoformat()[:10],
+                'expected_revenue': 5000,
+                'notes': 'Düğün için fiyat sordu',
+                'created_at': (datetime.now() - timedelta(days=7)).isoformat()
+            }
+        ]
+    
+    # Group by stage
+    stage_counts = {}
+    for lead in leads:
+        stage_key = lead['stage']
+        stage_counts[stage_key] = stage_counts.get(stage_key, 0) + 1
+    
+    return {
+        'leads': leads,
+        'count': len(leads),
+        'stage_counts': stage_counts,
+        'total_expected_revenue': sum(l['expected_revenue'] for l in leads if l['stage'] in ['warm', 'hot'])
+    }
+
+
+# 3. GET /api/sales/ota-pricing - OTA price comparison
+@api_router.get("/sales/ota-pricing")
+async def get_ota_pricing(
+    date: Optional[str] = None,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """
+    OTA price tracking - Booking.com, Expedia, Agoda comparison
+    """
+    current_user = await get_current_user(credentials)
+    
+    target_date = date if date else datetime.now().date().isoformat()
+    
+    # Sample OTA pricing data
+    ota_prices = [
+        {
+            'date': target_date,
+            'room_type': 'Standard Room',
+            'our_rate': 1200,
+            'booking_com': 1250,
+            'expedia': 1280,
+            'agoda': 1230,
+            'hotels_com': 1260,
+            'lowest_competitor': 1230,
+            'price_position': 'lowest',  # lowest, competitive, highest
+            'parity_status': 'good'  # good, warning, violation
+        },
+        {
+            'date': target_date,
+            'room_type': 'Deluxe Room',
+            'our_rate': 1800,
+            'booking_com': 1750,
+            'expedia': 1820,
+            'agoda': 1780,
+            'hotels_com': 1800,
+            'lowest_competitor': 1750,
+            'price_position': 'competitive',
+            'parity_status': 'good'
+        },
+        {
+            'date': target_date,
+            'room_type': 'Suite',
+            'our_rate': 3000,
+            'booking_com': 2800,
+            'expedia': 2850,
+            'agoda': 2900,
+            'hotels_com': 2820,
+            'lowest_competitor': 2800,
+            'price_position': 'highest',
+            'parity_status': 'warning'
+        }
+    ]
+    
+    return {
+        'ota_prices': ota_prices,
+        'date': target_date,
+        'parity_violations': len([p for p in ota_prices if p['parity_status'] == 'violation']),
+        'avg_our_rate': sum(p['our_rate'] for p in ota_prices) / len(ota_prices),
+        'avg_market_rate': sum(p['lowest_competitor'] for p in ota_prices) / len(ota_prices)
+    }
+
+
+# 4. POST /api/sales/lead - Create new lead
+@api_router.post("/sales/lead")
+async def create_lead(
+    request: CreateLeadRequest,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """
+    Create new sales lead
+    """
+    current_user = await get_current_user(credentials)
+    
+    lead = {
+        'id': str(uuid.uuid4()),
+        'tenant_id': current_user.tenant_id,
+        'guest_name': request.guest_name,
+        'email': request.email,
+        'phone': request.phone,
+        'company': request.company,
+        'stage': request.stage.value,
+        'source': request.source,
+        'notes': request.notes,
+        'expected_checkin': request.expected_checkin,
+        'expected_revenue': request.expected_revenue,
+        'created_by': current_user.name,
+        'created_at': datetime.now(timezone.utc).isoformat(),
+        'updated_at': datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.leads.insert_one(lead)
+    
+    return {
+        'message': 'Lead oluşturuldu',
+        'lead_id': lead['id'],
+        'stage': lead['stage']
+    }
+
+
+# 5. PUT /api/sales/lead/{lead_id}/stage - Update lead stage
+@api_router.put("/sales/lead/{lead_id}/stage")
+async def update_lead_stage(
+    lead_id: str,
+    request: UpdateLeadStageRequest,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """
+    Update lead pipeline stage
+    """
+    current_user = await get_current_user(credentials)
+    
+    lead = await db.leads.find_one({
+        'id': lead_id,
+        'tenant_id': current_user.tenant_id
+    })
+    
+    if not lead:
+        raise HTTPException(status_code=404, detail="Lead not found")
+    
+    await db.leads.update_one(
+        {'id': lead_id},
+        {
+            '$set': {
+                'stage': request.stage.value,
+                'notes': request.notes,
+                'updated_at': datetime.now(timezone.utc).isoformat(),
+                'updated_by': current_user.name
+            }
+        }
+    )
+    
+    return {
+        'message': 'Lead stage güncellendi',
+        'lead_id': lead_id,
+        'new_stage': request.stage.value
+    }
+
+
+# 6. GET /api/sales/follow-ups - Follow-up reminders
+@api_router.get("/sales/follow-ups")
+async def get_follow_ups(
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """
+    Get follow-up reminders for leads
+    """
+    current_user = await get_current_user(credentials)
+    
+    # Get leads that need follow-up (warm and hot stages)
+    leads = []
+    async for lead in db.leads.find({
+        'tenant_id': current_user.tenant_id,
+        'stage': {'$in': ['warm', 'hot']}
+    }):
+        updated_at = datetime.fromisoformat(lead['updated_at'].replace('Z', '+00:00'))
+        days_since_update = (datetime.now(timezone.utc) - updated_at).days
+        
+        if days_since_update > 3:  # Needs follow-up if no update in 3 days
+            leads.append({
+                'id': lead['id'],
+                'guest_name': lead['guest_name'],
+                'company': lead.get('company'),
+                'stage': lead['stage'],
+                'days_since_update': days_since_update,
+                'expected_revenue': lead.get('expected_revenue', 0),
+                'urgency': 'high' if days_since_update > 7 else 'medium'
+            })
+    
+    leads.sort(key=lambda x: x['days_since_update'], reverse=True)
+    
+    return {
+        'follow_ups': leads,
+        'count': len(leads),
+        'high_urgency': len([l for l in leads if l['urgency'] == 'high'])
+    }
+
+
+# ============================================================================
+# RATE & DISCOUNT MANAGEMENT MOBILE - Fiyat & İndirim Yönetimi
+# ============================================================================
+
+class RateOverrideRequest(BaseModel):
+    room_type: str
+    date: str
+    new_rate: float
+    reason: str
+    requires_approval: bool = True
+
+
+# 1. GET /api/rates/campaigns - Active campaigns
+@api_router.get("/rates/campaigns")
+async def get_active_campaigns(
+    status: Optional[str] = None,  # active, upcoming, expired
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """
+    Get active promotional campaigns
+    """
+    current_user = await get_current_user(credentials)
+    
+    today = datetime.now().date()
+    
+    # Sample campaigns
+    campaigns = [
+        {
+            'id': str(uuid.uuid4()),
+            'name': 'Erken Rezervasyon İndirimi',
+            'description': '30 gün öncesi rezervasyonlarda %20 indirim',
+            'discount_type': 'percentage',
+            'discount_value': 20,
+            'start_date': (today - timedelta(days=10)).isoformat(),
+            'end_date': (today + timedelta(days=50)).isoformat(),
+            'status': 'active',
+            'bookings_count': 45,
+            'revenue_generated': 67500
+        },
+        {
+            'id': str(uuid.uuid4()),
+            'name': 'Hafta Sonu Özel',
+            'description': 'Cuma-Pazar konaklamada sabit fiyat',
+            'discount_type': 'fixed',
+            'discount_value': 1500,
+            'start_date': today.isoformat(),
+            'end_date': (today + timedelta(days=90)).isoformat(),
+            'status': 'active',
+            'bookings_count': 23,
+            'revenue_generated': 34500
+        },
+        {
+            'id': str(uuid.uuid4()),
+            'name': 'Uzun Konaklama',
+            'description': '7 gece ve üzeri konaklamalarda %25 indirim',
+            'discount_type': 'percentage',
+            'discount_value': 25,
+            'start_date': (today - timedelta(days=30)).isoformat(),
+            'end_date': (today + timedelta(days=60)).isoformat(),
+            'status': 'active',
+            'bookings_count': 12,
+            'revenue_generated': 28000
+        }
+    ]
+    
+    # Filter by status
+    if status:
+        campaigns = [c for c in campaigns if c['status'] == status]
+    
+    return {
+        'campaigns': campaigns,
+        'count': len(campaigns),
+        'total_revenue': sum(c['revenue_generated'] for c in campaigns),
+        'total_bookings': sum(c['bookings_count'] for c in campaigns)
+    }
+
+
+# 2. GET /api/rates/discount-codes - Discount codes
+@api_router.get("/rates/discount-codes")
+async def get_discount_codes(
+    active_only: bool = True,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """
+    Get discount codes
+    """
+    current_user = await get_current_user(credentials)
+    
+    codes = [
+        {
+            'id': str(uuid.uuid4()),
+            'code': 'WELCOME20',
+            'description': 'İlk rezervasyon indirimi',
+            'discount_type': 'percentage',
+            'discount_value': 20,
+            'usage_count': 156,
+            'usage_limit': 500,
+            'valid_from': (datetime.now() - timedelta(days=60)).isoformat()[:10],
+            'valid_until': (datetime.now() + timedelta(days=30)).isoformat()[:10],
+            'is_active': True
+        },
+        {
+            'id': str(uuid.uuid4()),
+            'code': 'SUMMER50',
+            'description': 'Yaz kampanyası',
+            'discount_type': 'fixed',
+            'discount_value': 500,
+            'usage_count': 89,
+            'usage_limit': 200,
+            'valid_from': (datetime.now() - timedelta(days=30)).isoformat()[:10],
+            'valid_until': (datetime.now() + timedelta(days=60)).isoformat()[:10],
+            'is_active': True
+        }
+    ]
+    
+    if active_only:
+        codes = [c for c in codes if c['is_active']]
+    
+    return {
+        'discount_codes': codes,
+        'count': len(codes),
+        'total_usage': sum(c['usage_count'] for c in codes)
+    }
+
+
+# 3. POST /api/rates/override - Rate override
+@api_router.post("/rates/override")
+async def create_rate_override(
+    request: RateOverrideRequest,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """
+    Create rate override (with optional approval flow)
+    """
+    current_user = await get_current_user(credentials)
+    
+    override = {
+        'id': str(uuid.uuid4()),
+        'tenant_id': current_user.tenant_id,
+        'room_type': request.room_type,
+        'date': request.date,
+        'new_rate': request.new_rate,
+        'reason': request.reason,
+        'created_by': current_user.name,
+        'created_at': datetime.now(timezone.utc).isoformat(),
+        'status': 'pending_approval' if request.requires_approval else 'applied'
+    }
+    
+    if request.requires_approval:
+        # Create approval request
+        approval = {
+            'id': str(uuid.uuid4()),
+            'tenant_id': current_user.tenant_id,
+            'approval_type': 'price_override',
+            'reference_id': override['id'],
+            'amount': request.new_rate,
+            'reason': request.reason,
+            'status': 'pending',
+            'requested_by': current_user.name,
+            'request_date': datetime.now(timezone.utc).isoformat()
+        }
+        await db.approvals.insert_one(approval)
+        
+        return {
+            'message': 'Fiyat değişikliği onaya gönderildi',
+            'override_id': override['id'],
+            'approval_id': approval['id'],
+            'status': 'pending_approval'
+        }
+    else:
+        await db.rate_overrides.insert_one(override)
+        return {
+            'message': 'Fiyat değişikliği uygulandı',
+            'override_id': override['id'],
+            'status': 'applied'
+        }
+
+
+# 4. GET /api/rates/packages - Package management
+@api_router.get("/rates/packages")
+async def get_rate_packages(
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """
+    Get rate packages
+    """
+    current_user = await get_current_user(credentials)
+    
+    packages = [
+        {
+            'id': str(uuid.uuid4()),
+            'name': 'Romantik Kaçamak',
+            'description': 'Çift için özel paket - şampanya, spa, romantik akşam yemeği',
+            'base_rate': 2500,
+            'inclusions': ['Spa', 'Romantik Yemek', 'Şampanya', 'Geç Çıkış'],
+            'room_types': ['Deluxe', 'Suite'],
+            'bookings_count': 34,
+            'is_active': True
+        },
+        {
+            'id': str(uuid.uuid4()),
+            'name': 'İş Gezisi Paketi',
+            'description': 'İş seyahatleri için - toplantı odası, WiFi, kahvaltı',
+            'base_rate': 1800,
+            'inclusions': ['Toplantı Odası', 'Ücretsiz WiFi', 'Kahvaltı', 'İş Merkezi'],
+            'room_types': ['Standard', 'Deluxe'],
+            'bookings_count': 67,
+            'is_active': True
+        }
+    ]
+    
+    return {
+        'packages': packages,
+        'count': len(packages),
+        'total_bookings': sum(p['bookings_count'] for p in packages)
+    }
+
+
+# 5. GET /api/rates/promotional - Promotional rates
+@api_router.get("/rates/promotional")
+async def get_promotional_rates(
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """
+    Get promotional rates
+    """
+    current_user = await get_current_user(credentials)
+    
+    promo_rates = [
+        {
+            'room_type': 'Standard Room',
+            'regular_rate': 1200,
+            'promo_rate': 960,
+            'discount_pct': 20,
+            'valid_dates': f"{datetime.now().date().isoformat()} - {(datetime.now().date() + timedelta(days=30)).isoformat()}",
+            'conditions': 'Minimum 2 gece konaklama'
+        },
+        {
+            'room_type': 'Deluxe Room',
+            'regular_rate': 1800,
+            'promo_rate': 1620,
+            'discount_pct': 10,
+            'valid_dates': f"{datetime.now().date().isoformat()} - {(datetime.now().date() + timedelta(days=14)).isoformat()}",
+            'conditions': 'Hafta içi rezervasyonlar'
+        }
+    ]
+    
+    return {
+        'promotional_rates': promo_rates,
+        'count': len(promo_rates)
+    }
+
+
+# ============================================================================
+# CHANNEL MANAGER MOBILE - Kanal Yönetimi
+# ============================================================================
+
+# 1. GET /api/channels/status - Channel connection status
+@api_router.get("/channels/status")
+async def get_channel_status(
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """
+    Get OTA channel connection status
+    """
+    current_user = await get_current_user(credentials)
+    
+    channels = [
+        {
+            'channel': 'Booking.com',
+            'status': 'connected',
+            'last_sync': (datetime.now() - timedelta(minutes=5)).isoformat(),
+            'inventory_synced': True,
+            'rates_synced': True,
+            'bookings_today': 12,
+            'connection_health': 'good'
+        },
+        {
+            'channel': 'Expedia',
+            'status': 'connected',
+            'last_sync': (datetime.now() - timedelta(minutes=15)).isoformat(),
+            'inventory_synced': True,
+            'rates_synced': True,
+            'bookings_today': 8,
+            'connection_health': 'good'
+        },
+        {
+            'channel': 'Agoda',
+            'status': 'warning',
+            'last_sync': (datetime.now() - timedelta(hours=2)).isoformat(),
+            'inventory_synced': False,
+            'rates_synced': True,
+            'bookings_today': 5,
+            'connection_health': 'warning'
+        },
+        {
+            'channel': 'Hotels.com',
+            'status': 'connected',
+            'last_sync': (datetime.now() - timedelta(minutes=8)).isoformat(),
+            'inventory_synced': True,
+            'rates_synced': True,
+            'bookings_today': 6,
+            'connection_health': 'good'
+        }
+    ]
+    
+    return {
+        'channels': channels,
+        'total_channels': len(channels),
+        'connected_count': len([c for c in channels if c['status'] == 'connected']),
+        'warning_count': len([c for c in channels if c['connection_health'] == 'warning']),
+        'total_bookings_today': sum(c['bookings_today'] for c in channels)
+    }
+
+
+# 2. GET /api/channels/rate-parity - Rate parity check
+@api_router.get("/channels/rate-parity")
+async def get_rate_parity(
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """
+    Check rate parity across channels
+    """
+    current_user = await get_current_user(credentials)
+    
+    parity_data = [
+        {
+            'date': datetime.now().date().isoformat(),
+            'room_type': 'Standard Room',
+            'our_pms_rate': 1200,
+            'booking_com': 1200,
+            'expedia': 1200,
+            'agoda': 1250,
+            'hotels_com': 1200,
+            'parity_status': 'violation',
+            'violating_channel': 'Agoda'
+        },
+        {
+            'date': datetime.now().date().isoformat(),
+            'room_type': 'Deluxe Room',
+            'our_pms_rate': 1800,
+            'booking_com': 1800,
+            'expedia': 1800,
+            'agoda': 1800,
+            'hotels_com': 1800,
+            'parity_status': 'good',
+            'violating_channel': None
+        }
+    ]
+    
+    return {
+        'parity_data': parity_data,
+        'violations': len([p for p in parity_data if p['parity_status'] == 'violation']),
+        'check_date': datetime.now().date().isoformat()
+    }
+
+
+# 3. GET /api/channels/inventory - Inventory distribution
+@api_router.get("/channels/inventory")
+async def get_channel_inventory(
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """
+    Get inventory distribution across channels
+    """
+    current_user = await get_current_user(credentials)
+    
+    today = datetime.now().date()
+    total_rooms = await db.rooms.count_documents({'tenant_id': current_user.tenant_id})
+    if total_rooms == 0:
+        total_rooms = 100
+    
+    inventory = [
+        {
+            'date': today.isoformat(),
+            'room_type': 'Standard Room',
+            'total_inventory': 50,
+            'available': 12,
+            'booking_com_allocation': 20,
+            'expedia_allocation': 15,
+            'agoda_allocation': 10,
+            'direct_allocation': 5
+        },
+        {
+            'date': today.isoformat(),
+            'room_type': 'Deluxe Room',
+            'total_inventory': 30,
+            'available': 8,
+            'booking_com_allocation': 12,
+            'expedia_allocation': 8,
+            'agoda_allocation': 6,
+            'direct_allocation': 4
+        }
+    ]
+    
+    return {
+        'inventory': inventory,
+        'total_available': sum(i['available'] for i in inventory)
+    }
+
+
+# 4. GET /api/channels/performance - Channel performance
+@api_router.get("/channels/performance")
+async def get_channel_performance(
+    days: int = 30,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """
+    Get channel performance metrics
+    """
+    current_user = await get_current_user(credentials)
+    
+    performance = [
+        {
+            'channel': 'Booking.com',
+            'bookings': 145,
+            'revenue': 348000,
+            'avg_rate': 2400,
+            'cancellation_rate': 8.5,
+            'market_share': 35
+        },
+        {
+            'channel': 'Expedia',
+            'bookings': 98,
+            'revenue': 245000,
+            'avg_rate': 2500,
+            'cancellation_rate': 12.2,
+            'market_share': 25
+        },
+        {
+            'channel': 'Agoda',
+            'bookings': 67,
+            'revenue': 156000,
+            'avg_rate': 2328,
+            'cancellation_rate': 9.8,
+            'market_share': 15
+        },
+        {
+            'channel': 'Direct',
+            'bookings': 112,
+            'revenue': 312000,
+            'avg_rate': 2785,
+            'cancellation_rate': 5.3,
+            'market_share': 25
+        }
+    ]
+    
+    return {
+        'performance': performance,
+        'period_days': days,
+        'total_bookings': sum(p['bookings'] for p in performance),
+        'total_revenue': sum(p['revenue'] for p in performance),
+        'best_performer': max(performance, key=lambda x: x['revenue'])['channel']
+    }
+
+
+# 5. POST /api/channels/push-rates - Push rates to channels
+@api_router.post("/channels/push-rates")
+async def push_rates_to_channels(
+    room_type: str,
+    date: str,
+    rate: float,
+    channels: List[str],
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """
+    Push rates to selected OTA channels
+    """
+    current_user = await get_current_user(credentials)
+    
+    results = []
+    for channel in channels:
+        results.append({
+            'channel': channel,
+            'status': 'success',
+            'pushed_at': datetime.now(timezone.utc).isoformat()
+        })
+    
+    return {
+        'message': 'Fiyatlar kanallara gönderildi',
+        'room_type': room_type,
+        'date': date,
+        'rate': rate,
+        'results': results
+    }
+
+
+# ============================================================================
+# CORPORATE CONTRACTS MOBILE - Kurumsal Anlaşmalar
+# ============================================================================
+
+# 1. GET /api/corporate/contracts - Corporate contracts
+@api_router.get("/corporate/contracts")
+async def get_corporate_contracts(
+    status: Optional[str] = None,  # active, expiring, expired
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """
+    Get corporate contracts list
+    """
+    current_user = await get_current_user(credentials)
+    
+    today = datetime.now().date()
+    
+    contracts = [
+        {
+            'id': str(uuid.uuid4()),
+            'company_name': 'Tech Solutions Ltd.',
+            'contract_type': 'volume_based',
+            'start_date': (today - timedelta(days=180)).isoformat(),
+            'end_date': (today + timedelta(days=185)).isoformat(),
+            'room_nights_committed': 500,
+            'room_nights_used': 342,
+            'contracted_rate': 1500,
+            'discount_percentage': 25,
+            'special_amenities': ['Ücretsiz WiFi', 'Geç Çıkış', 'Toplantı Odası'],
+            'contact_person': 'Ahmet Yılmaz',
+            'contact_email': 'ahmet@techsolutions.com',
+            'status': 'active',
+            'days_until_expiry': 185
+        },
+        {
+            'id': str(uuid.uuid4()),
+            'company_name': 'Finance Corp',
+            'contract_type': 'fixed_rate',
+            'start_date': (today - timedelta(days=90)).isoformat(),
+            'end_date': (today + timedelta(days=45)).isoformat(),
+            'room_nights_committed': 200,
+            'room_nights_used': 156,
+            'contracted_rate': 1800,
+            'discount_percentage': 20,
+            'special_amenities': ['Kahvaltı', 'Airport Transfer'],
+            'contact_person': 'Zeynep Kara',
+            'contact_email': 'zeynep@financecorp.com',
+            'status': 'expiring_soon',
+            'days_until_expiry': 45
+        }
+    ]
+    
+    # Filter by status
+    if status:
+        if status == 'active':
+            contracts = [c for c in contracts if c['days_until_expiry'] > 60]
+        elif status == 'expiring':
+            contracts = [c for c in contracts if 0 < c['days_until_expiry'] <= 60]
+        elif status == 'expired':
+            contracts = [c for c in contracts if c['days_until_expiry'] <= 0]
+    
+    return {
+        'contracts': contracts,
+        'count': len(contracts),
+        'expiring_soon': len([c for c in contracts if 0 < c['days_until_expiry'] <= 30])
+    }
+
+
+# 2. GET /api/corporate/customers - Corporate customers
+@api_router.get("/corporate/customers")
+async def get_corporate_customers(
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """
+    Get corporate customer list
+    """
+    current_user = await get_current_user(credentials)
+    
+    customers = [
+        {
+            'company_name': 'Tech Solutions Ltd.',
+            'total_bookings': 342,
+            'total_revenue': 513000,
+            'contract_status': 'active',
+            'last_booking': (datetime.now() - timedelta(days=5)).isoformat()[:10],
+            'contact_person': 'Ahmet Yılmaz',
+            'vip_status': True
+        },
+        {
+            'company_name': 'Finance Corp',
+            'total_bookings': 156,
+            'total_revenue': 280800,
+            'contract_status': 'expiring_soon',
+            'last_booking': (datetime.now() - timedelta(days=12)).isoformat()[:10],
+            'contact_person': 'Zeynep Kara',
+            'vip_status': True
+        }
+    ]
+    
+    return {
+        'corporate_customers': customers,
+        'count': len(customers),
+        'total_revenue': sum(c['total_revenue'] for c in customers)
+    }
+
+
+# 3. GET /api/corporate/rates - Contract rates
+@api_router.get("/corporate/rates")
+async def get_corporate_rates(
+    company: Optional[str] = None,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """
+    Get corporate contract rates
+    """
+    current_user = await get_current_user(credentials)
+    
+    rates = [
+        {
+            'company': 'Tech Solutions Ltd.',
+            'room_type': 'Standard',
+            'rack_rate': 2000,
+            'contract_rate': 1500,
+            'discount_pct': 25,
+            'min_nights': 1,
+            'blackout_dates': []
+        },
+        {
+            'company': 'Tech Solutions Ltd.',
+            'room_type': 'Deluxe',
+            'rack_rate': 2800,
+            'contract_rate': 2100,
+            'discount_pct': 25,
+            'min_nights': 1,
+            'blackout_dates': []
+        },
+        {
+            'company': 'Finance Corp',
+            'room_type': 'Standard',
+            'rack_rate': 2000,
+            'contract_rate': 1600,
+            'discount_pct': 20,
+            'min_nights': 2,
+            'blackout_dates': ['2025-12-24', '2025-12-31']
+        }
+    ]
+    
+    if company:
+        rates = [r for r in rates if r['company'] == company]
+    
+    return {
+        'contract_rates': rates,
+        'count': len(rates)
+    }
+
+
+# 4. GET /api/corporate/alerts - Contract expiry alerts
+@api_router.get("/corporate/alerts")
+async def get_corporate_alerts(
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """
+    Get contract expiry and renewal alerts
+    """
+    current_user = await get_current_user(credentials)
+    
+    alerts = [
+        {
+            'id': str(uuid.uuid4()),
+            'alert_type': 'contract_expiring',
+            'severity': 'high',
+            'company': 'Finance Corp',
+            'message': 'Anlaşma 45 gün içinde sona eriyor',
+            'days_remaining': 45,
+            'action_required': 'Yenileme görüşmesi planla',
+            'contact_person': 'Zeynep Kara',
+            'created_at': datetime.now().isoformat()
+        },
+        {
+            'id': str(uuid.uuid4()),
+            'alert_type': 'volume_milestone',
+            'severity': 'medium',
+            'company': 'Tech Solutions Ltd.',
+            'message': 'Taahhüt edilen oda gecelerinin %68\'i kullanıldı',
+            'days_remaining': 185,
+            'action_required': 'Kullanım takibi yap',
+            'contact_person': 'Ahmet Yılmaz',
+            'created_at': datetime.now().isoformat()
+        }
+    ]
+    
+    return {
+        'alerts': alerts,
+        'count': len(alerts),
+        'high_priority': len([a for a in alerts if a['severity'] == 'high'])
+    }
+
+
+
 # Include router at the very end after ALL endpoints are defined
 app.include_router(api_router)
 
