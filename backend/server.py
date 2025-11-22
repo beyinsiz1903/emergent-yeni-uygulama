@@ -33066,7 +33066,7 @@ async def create_approval_request(
         'notes': request.notes,
         'priority': request.priority,
         'status': ApprovalStatus.PENDING.value,
-        'requested_by': current_user.username,
+        'requested_by': current_user.name,
         'requested_by_id': current_user.id,
         'requested_by_role': current_user.role,
         'request_date': datetime.now(timezone.utc).isoformat(),
