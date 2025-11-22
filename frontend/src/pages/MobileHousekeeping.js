@@ -472,7 +472,12 @@ const MobileHousekeeping = ({ user }) => {
                           room.status === 'cleaning' ? 'bg-blue-600 hover:bg-blue-700' :
                           'bg-red-600 hover:bg-red-700'
                         }`}
-                        onClick={() => handleStatusChange(room.id, getNextStatus(room.status))}
+                        onClick={() => handleStatusChangeRequest(
+                          room.id, 
+                          room.room_number, 
+                          room.status, 
+                          getNextStatus(room.status)
+                        )}
                       >
                         {room.status === 'dirty' && '🧹 Başla'}
                         {room.status === 'cleaning' && '✓ Hazır'}
