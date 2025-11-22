@@ -2362,6 +2362,41 @@ test_plan:
 agent_communication:
   - agent: "testing"
     message: |
+      🔍 NEW APPROVAL, EXECUTIVE DASHBOARD & NOTIFICATION SYSTEM TESTING COMPLETED
+      
+      📊 OVERALL SUCCESS RATE: 15/42 (35.7%) - CRITICAL ISSUES FOUND
+      
+      ❌ CRITICAL ISSUES IDENTIFIED:
+      
+      1. APPROVAL SYSTEM (6 endpoints) - 28.0% success rate:
+         - POST /api/approvals/create: FAILING (500 error) - AttributeError: 'User' object has no attribute 'username'
+         - GET /api/approvals/pending: Missing 'urgent_count' field in response
+         - GET /api/approvals/my-requests: Missing 'requests' field in response (returns 'approvals' instead)
+         - PUT /api/approvals/{id}/approve: Working for 404 cases, but test logic needs fixing
+         - PUT /api/approvals/{id}/reject: Working for 404 cases, but test logic needs fixing
+         - GET /api/approvals/history: ✅ WORKING CORRECTLY
+      
+      2. EXECUTIVE DASHBOARD (3 endpoints) - 75.0% success rate:
+         - GET /api/executive/kpi-snapshot: Response structure mismatch - returns lowercase field names (revpar, adr) but test expects uppercase (RevPAR, ADR)
+         - GET /api/executive/performance-alerts: ✅ WORKING CORRECTLY
+         - GET /api/executive/daily-summary: ✅ WORKING CORRECTLY
+      
+      3. NOTIFICATION SYSTEM (5 endpoints) - 38.5% success rate:
+         - GET /api/notifications/preferences: Response structure issue - returns array instead of expected object
+         - PUT /api/notifications/preferences: Missing 'updated_preference' field in response
+         - GET /api/notifications/list: ✅ WORKING CORRECTLY
+         - PUT /api/notifications/{id}/mark-read: Working for 404 cases, but test logic needs fixing
+         - POST /api/notifications/send-system-alert: 422 validation error - request body validation failing
+      
+      🔧 ROOT CAUSE ANALYSIS:
+      - Main issue: Code uses 'current_user.username' but User model has 'name' field
+      - Response structure mismatches between implementation and expected format
+      - Request validation issues for some endpoints
+      
+      ⚠️ REQUIRES IMMEDIATE MAIN AGENT ATTENTION FOR FIXES
+      
+  - agent: "testing"
+    message: |
       🎉 CRITICAL BUG FIXES TESTING COMPLETED - 100% SUCCESS RATE (7/7 tests passed)
       
       ✅ ALL 5 CRITICAL ISSUES FIXED AND VERIFIED:
