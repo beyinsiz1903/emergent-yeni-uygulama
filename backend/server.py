@@ -2929,8 +2929,12 @@ async def close_folio(
     return {"message": "Folio closed successfully"}
 
 @api_router.get("/folio/dashboard-stats")
-async def get_folio_dashboard_stats(current_user: User = Depends(get_current_user)):
+async def get_folio_dashboard_stats(
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
     """Get folio statistics for dashboard"""
+    current_user = await get_current_user(credentials)
+    
     try:
         # Get all open folios
         open_folios = await db.folios.find({
@@ -2938,16 +2942,11 @@ async def get_folio_dashboard_stats(current_user: User = Depends(get_current_use
             'status': 'open'
         }, {'_id': 0}).to_list(1000)
         
-        # Calculate total outstanding balance
+        # Calculate total outstanding balance from folio balance field
         total_outstanding = 0.0
         for folio in open_folios:
-            folio_id = folio.get('folio_id') or folio.get('id')
-            if folio_id:
-                try:
-                    balance = await calculate_folio_balance(folio_id, current_user.tenant_id)
-                    total_outstanding += balance
-                except:
-                    pass
+            # Use the balance field directly instead of calculating
+            total_outstanding += folio.get('balance', 0)
         
         # Get recent charges (last 24 hours)
         yesterday = datetime.now(timezone.utc) - timedelta(days=1)
