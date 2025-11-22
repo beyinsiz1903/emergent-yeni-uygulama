@@ -33941,6 +33941,138 @@ async def send_system_alert(
 
 
 
+# ============================================================================
+# MULTI-PROPERTY QUICK SWITCH - Çoklu Tesis Hızlı Geçişi
+# ============================================================================
+
+# 1. GET /api/properties/quick-list - Get quick property list
+@api_router.get("/properties/quick-list")
+async def get_quick_property_list(
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """
+    Get quick property list for fast switching
+    Returns only essential information for performance
+    """
+    current_user = await get_current_user(credentials)
+    
+    # Get all properties for this tenant
+    properties = []
+    async for prop in db.properties.find({'tenant_id': current_user.tenant_id}):
+        properties.append({
+            'id': prop.get('id', str(uuid.uuid4())),
+            'property_id': prop.get('property_id', prop.get('id')),
+            'name': prop.get('name', prop.get('property_name', 'Unnamed Property')),
+            'location': prop.get('location', prop.get('city', 'Unknown')),
+            'type': prop.get('type', prop.get('property_type', 'hotel')),
+            'logo': prop.get('logo', ''),
+            'is_active': prop.get('is_active', True),
+            'room_count': prop.get('room_count', 0)
+        })
+    
+    # If no properties in DB, return sample data
+    if len(properties) == 0:
+        properties = [
+            {
+                'id': str(uuid.uuid4()),
+                'property_id': 'property_1',
+                'name': 'Grand Hotel Istanbul',
+                'location': 'İstanbul, Türkiye',
+                'type': 'hotel',
+                'logo': '',
+                'is_active': True,
+                'room_count': 120
+            },
+            {
+                'id': str(uuid.uuid4()),
+                'property_id': 'property_2',
+                'name': 'Seaside Resort Antalya',
+                'location': 'Antalya, Türkiye',
+                'type': 'resort',
+                'logo': '',
+                'is_active': True,
+                'room_count': 250
+            },
+            {
+                'id': str(uuid.uuid4()),
+                'property_id': 'property_3',
+                'name': 'City Boutique Ankara',
+                'location': 'Ankara, Türkiye',
+                'type': 'boutique',
+                'logo': '',
+                'is_active': True,
+                'room_count': 45
+            }
+        ]
+    
+    # Get user's current property
+    current_property_id = current_user.property_id if hasattr(current_user, 'property_id') else None
+    
+    return {
+        'properties': properties,
+        'count': len(properties),
+        'current_property_id': current_property_id
+    }
+
+
+# 2. PUT /api/user/switch-property/{property_id} - Switch active property
+@api_router.put("/user/switch-property/{property_id}")
+async def switch_property(
+    property_id: str,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """
+    Switch user's active property
+    Updates user's current property selection
+    """
+    current_user = await get_current_user(credentials)
+    
+    # Verify property exists and belongs to tenant
+    property_doc = await db.properties.find_one({
+        '$or': [
+            {'id': property_id, 'tenant_id': current_user.tenant_id},
+            {'property_id': property_id, 'tenant_id': current_user.tenant_id}
+        ]
+    })
+    
+    if not property_doc:
+        raise HTTPException(status_code=404, detail="Property not found or access denied")
+    
+    # Update user's current property
+    await db.users.update_one(
+        {'id': current_user.id},
+        {
+            '$set': {
+                'property_id': property_id,
+                'current_property': property_doc.get('name', 'Unknown'),
+                'last_property_switch': datetime.now(timezone.utc).isoformat()
+            }
+        }
+    )
+    
+    # Log the switch
+    activity_log = {
+        'id': str(uuid.uuid4()),
+        'tenant_id': current_user.tenant_id,
+        'user_id': current_user.id,
+        'user_name': current_user.name,
+        'action': 'property_switch',
+        'property_id': property_id,
+        'property_name': property_doc.get('name', 'Unknown'),
+        'timestamp': datetime.now(timezone.utc).isoformat()
+    }
+    await db.activity_logs.insert_one(activity_log)
+    
+    return {
+        'message': 'Tesis başarıyla değiştirildi',
+        'property_id': property_id,
+        'property_name': property_doc.get('name', 'Unknown'),
+        'switched_at': datetime.now(timezone.utc).isoformat()
+    }
+
+
+
+
 
 # Include router at the very end after ALL endpoints are defined
 app.include_router(api_router)
