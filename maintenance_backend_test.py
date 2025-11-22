@@ -621,7 +621,7 @@ class MaintenanceEndpointTester:
                 "name": "Get planned maintenance for next 30 days",
                 "params": {"upcoming_days": "30"},
                 "expected_status": 200,
-                "expected_fields": ["planned_maintenance", "count", "overdue_count", "this_week_count", "this_month_count"],
+                "expected_fields": ["planned_maintenance", "summary"],
                 "expected_overdue": 1  # Should have at least 1 overdue maintenance
             }
         ]
