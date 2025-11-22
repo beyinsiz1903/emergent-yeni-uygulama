@@ -28241,7 +28241,25 @@ async def get_monthly_collections_mobile(
     
     # Get payments for the month
     total_collected = 0.0
-
+    payments_by_method = {}
+    
+    async for payment in db.payments.find({
+        'tenant_id': current_user.tenant_id,
+        'created_at': {'$gte': start_of_month.isoformat(), '$lt': end_of_month.isoformat()}
+    }):
+        amount = payment.get('amount', 0)
+        total_collected += amount
+        
+        method = payment.get('payment_method', 'unknown')
+        payments_by_method[method] = payments_by_method.get(method, 0) + amount
+    
+    return {
+        'total_collected': round(total_collected, 2),
+        'month': target_month,
+        'year': target_year,
+        'payments_by_method': {k: round(v, 2) for k, v in payments_by_method.items()},
+        'currency': 'TRY'
+    }
 
 
 # --------------------------------------------------------------------------
