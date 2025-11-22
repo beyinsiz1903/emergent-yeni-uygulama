@@ -36055,19 +36055,19 @@ async def issue_keycard(
             'action': 'ISSUE_KEYCARD',
             'entity_type': 'keycard',
             'entity_id': keycard_id,
-            'changes': {'card_type': card_type, 'room_number': room['room_number']},
+            'changes': {'card_type': request.card_type, 'room_number': room['room_number']},
             'timestamp': datetime.now(timezone.utc).isoformat()
         })
         
         return {
-            'message': f'{card_type.capitalize()} keycard issued successfully',
+            'message': f'{request.card_type.capitalize()} keycard issued successfully',
             'keycard_id': keycard_id,
-            'card_type': card_type,
+            'card_type': request.card_type,
             'room_number': room['room_number'],
             'guest_name': booking['guest_name'],
             'issued_at': issue_time.isoformat(),
             'expires_at': expiry_time.isoformat(),
-            'validity_hours': validity_hours,
+            'validity_hours': request.validity_hours,
             'card_data': keycard_data.get('card_number') or keycard_data.get('mobile_key_token') or keycard_data.get('qr_code'),
             'access_areas': keycard_data['access_areas']
         }
