@@ -12,7 +12,7 @@ const POSDashboard = ({ user, tenant, onLogout }) => {
   const navigate = useNavigate();
 
   return (
-    <Layout user={user} tenant={tenant} onLogout={onLogout}>
+    <Layout user={user} tenant={tenant} onLogout={onLogout} currentModule="pos">
       <div className="p-6 space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
