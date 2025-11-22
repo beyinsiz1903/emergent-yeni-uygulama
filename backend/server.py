@@ -27241,6 +27241,126 @@ async def get_revenue_by_channel(
         }
     }
 
+@api_router.post("/frontdesk/assign-room")
+async def assign_room_to_booking(
+    assignment_data: dict,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Assign a specific room to a booking"""
+    current_user = await get_current_user(credentials)
+    
+    booking_id = assignment_data.get('booking_id')
+    room_id = assignment_data.get('room_id')
+    
+    # Check if room is available
+    room = await db.rooms.find_one({'id': room_id, 'tenant_id': current_user.tenant_id})
+    if not room:
+        raise HTTPException(status_code=404, detail="Room not found")
+    
+    if room.get('status') not in ['available', 'inspected']:
+        raise HTTPException(status_code=400, detail="Room not available")
+    
+    # Update booking with room
+    await db.bookings.update_one(
+        {'id': booking_id, 'tenant_id': current_user.tenant_id},
+        {'$set': {
+            'room_id': room_id,
+            'room_number': room['room_number'],
+            'room_assigned_at': datetime.now(timezone.utc).isoformat(),
+            'room_assigned_by': current_user.name
+        }}
+    )
+    
+    # Update room status
+    await db.rooms.update_one(
+        {'id': room_id},
+        {'$set': {
+            'current_booking_id': booking_id,
+            'status': 'reserved'
+        }}
+    )
+    
+    return {
+        'message': 'Room assigned successfully',
+        'booking_id': booking_id,
+        'room_number': room['room_number']
+    }
+
+@api_router.get("/frontdesk/search-bookings")
+async def search_bookings(
+    query: Optional[str] = None,
+    date_from: Optional[str] = None,
+    date_to: Optional[str] = None,
+    status: Optional[str] = None,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Search bookings by various criteria"""
+    current_user = await get_current_user(credentials)
+    
+    search_query = {'tenant_id': current_user.tenant_id}
+    
+    # Text search on booking number or guest name
+    if query:
+        search_query['$or'] = [
+            {'booking_number': {'$regex': query, '$options': 'i'}},
+            {'guest_name': {'$regex': query, '$options': 'i'}}
+        ]
+    
+    # Date range filter
+    if date_from or date_to:
+        date_filter = {}
+        if date_from:
+            date_filter['$gte'] = date_from
+        if date_to:
+            date_filter['$lte'] = date_to
+        if date_filter:
+            search_query['check_in'] = date_filter
+    
+    # Status filter
+    if status:
+        search_query['status'] = status
+    
+    bookings = []
+    async for booking in db.bookings.find(search_query).sort('created_at', -1).limit(50):
+        booking.pop('_id', None)
+        bookings.append(booking)
+    
+    return {
+        'bookings': bookings,
+        'count': len(bookings)
+    }
+
+@api_router.get("/frontdesk/available-rooms")
+async def get_available_rooms_for_assignment(
+    check_in: str,
+    check_out: str,
+    room_type: Optional[str] = None,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Get available rooms for a specific date range"""
+    current_user = await get_current_user(credentials)
+    
+    query = {
+        'tenant_id': current_user.tenant_id,
+        'status': {'$in': ['available', 'inspected']},
+        'is_active': True
+    }
+    
+    if room_type:
+        query['room_type'] = room_type
+    
+    available_rooms = []
+    async for room in db.rooms.find(query).sort('room_number', 1):
+        room.pop('_id', None)
+        available_rooms.append(room)
+    
+    return {
+        'rooms': available_rooms,
+        'count': len(available_rooms),
+        'check_in': check_in,
+        'check_out': check_out
+    }
+
 @api_router.post("/channel-manager/update-rates")
 async def update_channel_rates(
     rate_update: dict,
