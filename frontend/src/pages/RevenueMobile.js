@@ -55,12 +55,12 @@ const RevenueMobile = ({ user }) => {
 
       // Load all data in parallel
       const [adr, revpar, revenue, segment, channel, cancellation] = await Promise.all([
-        axios.get('/revenue-mobile/adr', { params }),
-        axios.get('/revenue-mobile/revpar', { params }),
-        axios.get('/revenue-mobile/total-revenue', { params }),
-        axios.get('/revenue-mobile/segment-distribution', { params }),
-        axios.get('/revenue-mobile/channel-distribution', { params }),
-        axios.get('/revenue-mobile/cancellation-report', { params })
+        axios.get('/api/revenue-mobile/adr', { params }),
+        axios.get('/api/revenue-mobile/revpar', { params }),
+        axios.get('/api/revenue-mobile/total-revenue', { params }),
+        axios.get('/api/revenue-mobile/segment-distribution', { params }),
+        axios.get('/api/revenue-mobile/channel-distribution', { params }),
+        axios.get('/api/revenue-mobile/cancellation-report', { params })
       ]);
 
       setAdrData(adr.data);
