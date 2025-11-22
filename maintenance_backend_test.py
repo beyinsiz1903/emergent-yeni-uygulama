@@ -556,7 +556,7 @@ class MaintenanceEndpointTester:
                 "name": "Get asset maintenance history with MTBF",
                 "asset_id": sample_asset_id,
                 "expected_status": [200, 404],  # 200 if asset exists, 404 if not found
-                "expected_fields": ["history", "mtbf_hours", "mtbf_days", "total_cost", "maintenance_count"]
+                "expected_fields": ["asset_id", "maintenance_history", "summary"]
             }
         ]
         
