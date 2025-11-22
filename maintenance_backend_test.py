@@ -420,13 +420,13 @@ class MaintenanceEndpointTester:
                 "name": "Get all spare parts",
                 "params": {},
                 "expected_status": 200,
-                "expected_fields": ["spare_parts", "count", "low_stock_count"]
+                "expected_fields": ["spare_parts", "summary"]
             },
             {
                 "name": "Get low stock parts only",
                 "params": {"low_stock_only": "true"},
                 "expected_status": 200,
-                "expected_fields": ["spare_parts", "count", "low_stock_count"],
+                "expected_fields": ["spare_parts", "summary"],
                 "expected_low_stock": 2  # Should have 2 low stock parts
             }
         ]
