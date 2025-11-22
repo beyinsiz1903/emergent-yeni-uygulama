@@ -245,6 +245,7 @@ class ContractedRateType(str, Enum):
     TOU = "tou"  # Tour Operator/Series Group Rate
 
 class RateType(str, Enum):
+    STANDARD = "standard"  # Standard Rate
     BAR = "bar"  # Best Available Rate / Rack Rate
     CORPORATE = "corporate"
     GOVERNMENT = "government"
