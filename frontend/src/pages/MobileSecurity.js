@@ -160,6 +160,41 @@ const MobileSecurity = ({ user }) => {
       </div>
 
       <div className="p-4 space-y-4">
+        {/* Quick Access Tools */}
+        <div className="grid grid-cols-2 gap-3">
+          <Button 
+            className="h-20 flex flex-col items-center justify-center bg-gradient-to-br from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white"
+            onClick={() => navigate('/system/performance')}
+          >
+            <Activity className="w-6 h-6 mb-1" />
+            <span className="text-xs font-semibold">Performans</span>
+          </Button>
+          
+          <Button 
+            className="h-20 flex flex-col items-center justify-center bg-gradient-to-br from-gray-700 to-gray-900 hover:from-gray-800 hover:to-black text-white"
+            onClick={() => navigate('/mobile/logs')}
+          >
+            <Server className="w-6 h-6 mb-1" />
+            <span className="text-xs font-semibold">Loglar</span>
+          </Button>
+          
+          <Button 
+            className="h-20 flex flex-col items-center justify-center bg-gradient-to-br from-teal-600 to-cyan-600 hover:from-teal-700 hover:to-cyan-700 text-white"
+            onClick={() => navigate('/network/test')}
+          >
+            <Wifi className="w-6 h-6 mb-1" />
+            <span className="text-xs font-semibold">Ağ Testi</span>
+          </Button>
+          
+          <Button 
+            className="h-20 flex flex-col items-center justify-center bg-gradient-to-br from-yellow-600 to-orange-600 hover:from-yellow-700 hover:to-orange-700 text-white"
+            onClick={() => window.location.reload()}
+          >
+            <RefreshCw className="w-6 h-6 mb-1" />
+            <span className="text-xs font-semibold">Yenile</span>
+          </Button>
+        </div>
+
         {/* Overall Health Score */}
         {systemStatus && (
           <Card className={`border-2 ${
