@@ -48,6 +48,10 @@ const GuestPortal = ({ user, onLogout }) => {
   const [loading, setLoading] = useState(true);
   const [openDialog, setOpenDialog] = useState(null);
   const [selectedBooking, setSelectedBooking] = useState(null);
+  const [cleaningRequests, setCleaningRequests] = useState([]);
+  const [cleaningRequestModalOpen, setCleaningRequestModalOpen] = useState(false);
+  const [cleaningRequestType, setCleaningRequestType] = useState('regular');
+  const [cleaningNotes, setCleaningNotes] = useState('');
   const [roomServices, setRoomServices] = useState({});
 
   const [roomServiceRequest, setRoomServiceRequest] = useState({
