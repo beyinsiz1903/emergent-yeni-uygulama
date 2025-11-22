@@ -50,10 +50,8 @@ class ApprovalExecutiveNotificationTester:
             'bookings': [],
             'rooms': [],
             'folios': [],
-            'menu_items': [],
-            'orders': [],
-            'pos_orders': [],
-            'inventory_items': []
+            'approval_requests': [],
+            'notifications': []
         }
 
     async def setup_session(self):
