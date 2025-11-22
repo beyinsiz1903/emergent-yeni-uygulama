@@ -83,7 +83,7 @@ const MobileFnB = ({ user }) => {
       setTopItems((menuRes.data.menu_items || []).slice(0, 5));
     } catch (error) {
       console.error('Failed to load F&B data:', error);
-      toast.error('Veri yüklenemedi');
+      toast.error('✗ Yükleme');
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -124,11 +124,11 @@ const MobileFnB = ({ user }) => {
   const handleSubmitOrder = async () => {
     try {
       if (!selectedOutlet) {
-        toast.error('Lütfen outlet seçin');
+        toast.error('⚠️ Outlet seçin');
         return;
       }
       if (orderItems.length === 0) {
-        toast.error('Lütfen ürün ekleyin');
+        toast.error('⚠️ Ürün ekleyin');
         return;
       }
 
@@ -139,13 +139,13 @@ const MobileFnB = ({ user }) => {
         notes: ''
       });
 
-      toast.success('Sipariş başarıyla oluşturuldu!');
+      toast.success('✓ Sipariş');
       setOrderModalOpen(false);
       setOrderItems([]);
       setTableNumber('');
       loadData();
     } catch (error) {
-      toast.error('Sipariş oluşturulamadı: ' + (error.response?.data?.detail || 'Hata'));
+      toast.error('✗ Sipariş');
     }
   };
 
