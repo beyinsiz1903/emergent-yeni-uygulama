@@ -463,6 +463,23 @@ class LostFoundStatus(str, Enum):
     FOUND = "found"
     IN_STORAGE = "in_storage"
     CLAIMED = "claimed"
+
+
+# Revenue Management Enums
+class MarketSegment(str, Enum):
+    CORPORATE = "corporate"
+    LEISURE = "leisure"
+    GROUP = "group"
+    GOVERNMENT = "government"
+    WHOLESALE = "wholesale"
+    NEGOTIATED = "negotiated"
+
+class PricingStrategy(str, Enum):
+    DYNAMIC = "dynamic"
+    FIXED = "fixed"
+    LAST_MINUTE = "last_minute"
+    EARLY_BIRD = "early_bird"
+
     DELIVERED = "delivered"
     DISPOSED = "disposed"
 
