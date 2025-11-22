@@ -33323,7 +33323,7 @@ async def reject_request(
     return {
         'message': 'Onay isteği reddedildi',
         'approval_id': approval_id,
-        'rejected_by': current_user.username,
+        'rejected_by': current_user.name,
         'rejection_reason': request.rejection_reason
     }
 
