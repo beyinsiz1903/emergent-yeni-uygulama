@@ -20592,6 +20592,59 @@ async def set_minimum_stock_alert(
 
 # ============= CONTRACTED RATES & ALLOTMENT =============
 
+
+@api_router.get("/contracted-rates")
+async def get_contracted_rates(
+    company_id: Optional[str] = None,
+    status: Optional[str] = None,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Get contracted rates list
+    """
+    today = datetime.now().date()
+    
+    # Sample contracted rates data
+    rates = [
+        {
+            'id': str(uuid.uuid4()),
+            'company_name': 'Tech Solutions Ltd.',
+            'contract_type': 'volume_based',
+            'start_date': (today - timedelta(days=180)).isoformat(),
+            'end_date': (today + timedelta(days=185)).isoformat(),
+            'room_nights_committed': 500,
+            'room_nights_used': 342,
+            'contracted_rate': 1500,
+            'discount_percentage': 25,
+            'status': 'active'
+        },
+        {
+            'id': str(uuid.uuid4()),
+            'company_name': 'Finance Corp',
+            'contract_type': 'fixed_rate',
+            'start_date': (today - timedelta(days=90)).isoformat(),
+            'end_date': (today + timedelta(days=45)).isoformat(),
+            'room_nights_committed': 200,
+            'room_nights_used': 156,
+            'contracted_rate': 1800,
+            'discount_percentage': 20,
+            'status': 'active'
+        }
+    ]
+    
+    # Filter by status
+    if status:
+        rates = [r for r in rates if r['status'] == status]
+    
+    # Filter by company
+    if company_id:
+        rates = [r for r in rates if r.get('company_id') == company_id]
+    
+    return {
+        'contracted_rates': rates,
+        'count': len(rates)
+    }
+
 @api_router.get("/contracted-rates/allotment-utilization")
 async def get_allotment_utilization(
     company_id: Optional[str] = None,
