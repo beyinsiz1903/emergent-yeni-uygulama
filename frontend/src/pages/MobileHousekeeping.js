@@ -66,6 +66,10 @@ const MobileHousekeeping = ({ user }) => {
       setStayovers(stayoverRes.data.stayover_rooms || []);
       setArrivals(arrivalRes.data.arrival_rooms || []);
       setStaffPerformance(perfRes.data);
+      
+      // Get all rooms for filtering
+      const roomsRes = await axios.get('/pms/rooms');
+      setAllRooms(roomsRes.data || []);
     } catch (error) {
       console.error('Failed to load housekeeping data:', error);
       toast.error('Veri yüklenemedi');
@@ -73,6 +77,11 @@ const MobileHousekeeping = ({ user }) => {
       setLoading(false);
       setRefreshing(false);
     }
+  };
+
+  const getFilteredRooms = () => {
+    if (filterStatus === 'all') return allRooms;
+    return allRooms.filter(room => room.status === filterStatus);
   };
 
   const handleRefresh = () => {
