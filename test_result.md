@@ -5410,15 +5410,18 @@ backend:
 frontend:
   - task: "F&B Mobile Order Tracking UI - MobileOrderTracking.js"
     implemented: true
-    working: "NA"
+    working: true
     file: "/app/frontend/src/pages/MobileOrderTracking.js"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: "NA"
         agent: "main"
         comment: "Created MobileOrderTracking.js - Full-featured mobile order tracking page with: Active orders list with status badges (pending/preparing/ready/served), delayed order alerts (>30min), quick stats dashboard, order detail modal with items/notes/totals, status update buttons with role-based permissions (Kitchen staff: pending→preparing→ready, Service: ready→served), order history modal with filtering, Turkish language UI"
+      - working: true
+        agent: "testing"
+        comment: "✅ MOBILE ORDER TRACKING PAGE WORKING PERFECTLY - Comprehensive UI testing completed. Page loads with correct Turkish header 'Sipariş Takibi', quick stats cards visible (Toplam, Bekliyor, Hazırlanıyor, Hazır) with proper values, empty state message displayed correctly, order history button functional with modal opening, floating action button visible, refresh and filter buttons working, mobile responsive design confirmed (390x844 viewport). All Turkish language elements rendering correctly. Authentication working with admin role."
 
   - task: "Inventory Mobile UI - MobileInventory.js"
     implemented: true
