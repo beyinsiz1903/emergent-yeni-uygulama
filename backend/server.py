@@ -36123,8 +36123,6 @@ async def get_booking_keycards(
     Get all keycards for a booking
     """
     try:
-        db = await get_database()
-        
         keycards = await db.keycards.find({
             'booking_id': booking_id,
             'tenant_id': current_user.tenant_id
