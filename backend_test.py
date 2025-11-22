@@ -29,7 +29,7 @@ import aiohttp
 import json
 import sys
 import os
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timezone, timedelta, date
 from typing import Dict, List, Any, Optional
 import uuid
 
@@ -171,37 +171,76 @@ class ApprovalExecutiveNotificationTester:
 
     # ============= APPROVALS MODULE TESTS (6 endpoints) =============
 
-    # ============= F&B MOBILE ORDER TRACKING TESTS (4 endpoints) =============
-
-    async def test_mobile_active_orders(self):
-        """Test GET /api/pos/mobile/active-orders"""
-        print("\n📋 Testing F&B Mobile Active Orders Endpoint...")
+    async def test_create_approval_request(self):
+        """Test POST /api/approvals/create"""
+        print("\n📋 Testing Create Approval Request Endpoint...")
         
         test_cases = [
             {
-                "name": "Get all active orders",
-                "params": {},
-                "expected_fields": ["orders", "count", "delayed_count"]
+                "name": "Create discount approval request",
+                "data": {
+                    "approval_type": "discount",
+                    "amount": 50.0,
+                    "reason": "VIP guest discount request",
+                    "priority": "normal"
+                },
+                "expected_status": 200,
+                "expected_fields": ["message", "approval_id", "status", "approval_type"]
             },
             {
-                "name": "Filter by status - pending",
-                "params": {"status": "pending"},
-                "expected_fields": ["orders", "count", "delayed_count"]
+                "name": "Create price override approval request",
+                "data": {
+                    "approval_type": "price_override",
+                    "amount": 120.0,
+                    "reason": "Corporate rate adjustment",
+                    "priority": "high"
+                },
+                "expected_status": 200,
+                "expected_fields": ["message", "approval_id", "status", "approval_type"]
             },
             {
-                "name": "Filter by status - preparing",
-                "params": {"status": "preparing"},
-                "expected_fields": ["orders", "count", "delayed_count"]
+                "name": "Create budget expense approval request",
+                "data": {
+                    "approval_type": "budget_expense",
+                    "amount": 2500.0,
+                    "reason": "Emergency maintenance equipment",
+                    "priority": "urgent"
+                },
+                "expected_status": 200,
+                "expected_fields": ["message", "approval_id", "status", "approval_type"]
             },
             {
-                "name": "Filter by status - ready",
-                "params": {"status": "ready"},
-                "expected_fields": ["orders", "count", "delayed_count"]
+                "name": "Create rate change approval request",
+                "data": {
+                    "approval_type": "rate_change",
+                    "amount": 180.0,
+                    "reason": "Seasonal rate adjustment",
+                    "priority": "normal"
+                },
+                "expected_status": 200,
+                "expected_fields": ["message", "approval_id", "status", "approval_type"]
             },
             {
-                "name": "Filter by outlet_id",
-                "params": {"outlet_id": "main_restaurant"},
-                "expected_fields": ["orders", "count", "delayed_count"]
+                "name": "Create refund approval request",
+                "data": {
+                    "approval_type": "refund",
+                    "amount": 300.0,
+                    "reason": "Guest complaint resolution",
+                    "priority": "high"
+                },
+                "expected_status": 200,
+                "expected_fields": ["message", "approval_id", "status", "approval_type"]
+            },
+            {
+                "name": "Create comp room approval request",
+                "data": {
+                    "approval_type": "comp_room",
+                    "amount": 0.0,
+                    "reason": "Loyalty program reward",
+                    "priority": "normal"
+                },
+                "expected_status": 200,
+                "expected_fields": ["message", "approval_id", "status", "approval_type"]
             }
         ]
         
@@ -210,7 +249,69 @@ class ApprovalExecutiveNotificationTester:
         
         for test_case in test_cases:
             try:
-                url = f"{BACKEND_URL}/pos/mobile/active-orders"
+                url = f"{BACKEND_URL}/approvals/create"
+                
+                async with self.session.post(url, json=test_case["data"], headers=self.get_headers()) as response:
+                    if response.status == test_case["expected_status"]:
+                        data = await response.json()
+                        missing_fields = [field for field in test_case["expected_fields"] if field not in data]
+                        if not missing_fields:
+                            # Store approval ID for later tests
+                            if "approval_id" in data:
+                                self.created_test_data['approval_requests'].append(data["approval_id"])
+                            print(f"  ✅ {test_case['name']}: PASSED")
+                            passed += 1
+                        else:
+                            print(f"  ❌ {test_case['name']}: Missing fields {missing_fields}")
+                    else:
+                        print(f"  ❌ {test_case['name']}: Expected {test_case['expected_status']}, got {response.status}")
+                        
+            except Exception as e:
+                print(f"  ❌ {test_case['name']}: Error {e}")
+        
+        self.test_results.append({
+            "endpoint": "POST /api/approvals/create",
+            "passed": passed, "total": total, "success_rate": f"{passed/total*100:.1f}%"
+        })
+
+    async def test_get_pending_approvals(self):
+        """Test GET /api/approvals/pending"""
+        print("\n📋 Testing Get Pending Approvals Endpoint...")
+        
+        test_cases = [
+            {
+                "name": "Get all pending approvals",
+                "params": {},
+                "expected_fields": ["approvals", "count", "urgent_count"]
+            },
+            {
+                "name": "Filter by approval_type - discount",
+                "params": {"approval_type": "discount"},
+                "expected_fields": ["approvals", "count", "urgent_count"]
+            },
+            {
+                "name": "Filter by approval_type - price_override",
+                "params": {"approval_type": "price_override"},
+                "expected_fields": ["approvals", "count", "urgent_count"]
+            },
+            {
+                "name": "Filter by priority - urgent",
+                "params": {"priority": "urgent"},
+                "expected_fields": ["approvals", "count", "urgent_count"]
+            },
+            {
+                "name": "Filter by priority - high",
+                "params": {"priority": "high"},
+                "expected_fields": ["approvals", "count", "urgent_count"]
+            }
+        ]
+        
+        passed = 0
+        total = len(test_cases)
+        
+        for test_case in test_cases:
+            try:
+                url = f"{BACKEND_URL}/approvals/pending"
                 if test_case["params"]:
                     params = "&".join([f"{k}={v}" for k, v in test_case["params"].items()])
                     url += f"?{params}"
@@ -220,18 +321,18 @@ class ApprovalExecutiveNotificationTester:
                         data = await response.json()
                         missing_fields = [field for field in test_case["expected_fields"] if field not in data]
                         if not missing_fields:
-                            # Verify order structure if orders exist
-                            if data.get("orders"):
-                                order = data["orders"][0]
-                                required_order_fields = ["id", "order_number", "status", "outlet_name", "guest_name", "items_count", "total_amount", "time_elapsed_minutes", "is_delayed"]
-                                missing_order_fields = [field for field in required_order_fields if field not in order]
-                                if not missing_order_fields:
+                            # Verify approval structure if approvals exist
+                            if data.get("approvals"):
+                                approval = data["approvals"][0]
+                                required_approval_fields = ["id", "approval_type", "amount", "reason", "priority", "requester_info", "time_waiting_hours", "is_urgent"]
+                                missing_approval_fields = [field for field in required_approval_fields if field not in approval]
+                                if not missing_approval_fields:
                                     print(f"  ✅ {test_case['name']}: PASSED")
                                     passed += 1
                                 else:
-                                    print(f"  ❌ {test_case['name']}: Missing order fields {missing_order_fields}")
+                                    print(f"  ❌ {test_case['name']}: Missing approval fields {missing_approval_fields}")
                             else:
-                                print(f"  ✅ {test_case['name']}: PASSED (no orders)")
+                                print(f"  ✅ {test_case['name']}: PASSED (no pending approvals)")
                                 passed += 1
                         else:
                             print(f"  ❌ {test_case['name']}: Missing fields {missing_fields}")
@@ -242,26 +343,91 @@ class ApprovalExecutiveNotificationTester:
                 print(f"  ❌ {test_case['name']}: Error {e}")
         
         self.test_results.append({
-            "endpoint": "GET /api/pos/mobile/active-orders",
+            "endpoint": "GET /api/approvals/pending",
             "passed": passed, "total": total, "success_rate": f"{passed/total*100:.1f}%"
         })
 
-    async def test_mobile_order_details(self):
-        """Test GET /api/pos/mobile/order/{order_id}"""
-        print("\n📋 Testing F&B Mobile Order Details Endpoint...")
-        
-        # Use a sample order ID since we can't create real orders in database
-        sample_order_id = str(uuid.uuid4())
+    async def test_get_my_requests(self):
+        """Test GET /api/approvals/my-requests"""
+        print("\n📋 Testing Get My Requests Endpoint...")
         
         test_cases = [
             {
-                "name": "Get order details with valid ID",
-                "order_id": sample_order_id,
-                "expected_status": [200, 404]  # 200 if exists, 404 if not found
+                "name": "Get all my requests",
+                "params": {},
+                "expected_fields": ["requests", "count"]
             },
             {
-                "name": "Get order details with invalid ID",
-                "order_id": "invalid-order-id",
+                "name": "Filter by status - pending",
+                "params": {"status": "pending"},
+                "expected_fields": ["requests", "count"]
+            },
+            {
+                "name": "Filter by status - approved",
+                "params": {"status": "approved"},
+                "expected_fields": ["requests", "count"]
+            },
+            {
+                "name": "Filter by status - rejected",
+                "params": {"status": "rejected"},
+                "expected_fields": ["requests", "count"]
+            }
+        ]
+        
+        passed = 0
+        total = len(test_cases)
+        
+        for test_case in test_cases:
+            try:
+                url = f"{BACKEND_URL}/approvals/my-requests"
+                if test_case["params"]:
+                    params = "&".join([f"{k}={v}" for k, v in test_case["params"].items()])
+                    url += f"?{params}"
+                
+                async with self.session.get(url, headers=self.get_headers()) as response:
+                    if response.status == 200:
+                        data = await response.json()
+                        missing_fields = [field for field in test_case["expected_fields"] if field not in data]
+                        if not missing_fields:
+                            print(f"  ✅ {test_case['name']}: PASSED")
+                            passed += 1
+                        else:
+                            print(f"  ❌ {test_case['name']}: Missing fields {missing_fields}")
+                    else:
+                        print(f"  ❌ {test_case['name']}: HTTP {response.status}")
+                        
+            except Exception as e:
+                print(f"  ❌ {test_case['name']}: Error {e}")
+        
+        self.test_results.append({
+            "endpoint": "GET /api/approvals/my-requests",
+            "passed": passed, "total": total, "success_rate": f"{passed/total*100:.1f}%"
+        })
+
+    async def test_approve_request(self):
+        """Test PUT /api/approvals/{id}/approve"""
+        print("\n📋 Testing Approve Request Endpoint...")
+        
+        # Use sample approval ID since we may not have created real approvals
+        sample_approval_id = str(uuid.uuid4())
+        if self.created_test_data['approval_requests']:
+            sample_approval_id = self.created_test_data['approval_requests'][0]
+        
+        test_cases = [
+            {
+                "name": "Approve request with admin role",
+                "approval_id": sample_approval_id,
+                "data": {
+                    "notes": "Approved by management"
+                },
+                "expected_status": [200, 404, 403]  # 200 if exists and authorized, 404 if not found, 403 if unauthorized
+            },
+            {
+                "name": "Approve non-existent request",
+                "approval_id": "non-existent-id",
+                "data": {
+                    "notes": "Test approval"
+                },
                 "expected_status": 404
             }
         ]
@@ -271,13 +437,563 @@ class ApprovalExecutiveNotificationTester:
         
         for test_case in test_cases:
             try:
-                url = f"{BACKEND_URL}/pos/mobile/order/{test_case['order_id']}"
+                url = f"{BACKEND_URL}/approvals/{test_case['approval_id']}/approve"
                 
-                async with self.session.get(url, headers=self.get_headers()) as response:
+                async with self.session.put(url, json=test_case["data"], headers=self.get_headers()) as response:
                     if response.status in test_case["expected_status"]:
                         if response.status == 200:
                             data = await response.json()
-                            required_fields = ["id", "order_number", "status", "outlet_name", "guest_name", "order_items", "subtotal", "tax_amount", "total_amount", "time_elapsed_minutes", "status_history"]
+                            required_fields = ["message", "approval_id", "status", "approved_by", "approved_at"]
+                            missing_fields = [field for field in required_fields if field not in data]
+                            if not missing_fields:
+                                print(f"  ✅ {test_case['name']}: PASSED")
+                                passed += 1
+                            else:
+                                print(f"  ❌ {test_case['name']}: Missing fields {missing_fields}")
+                        else:  # 404 or 403
+                            print(f"  ✅ {test_case['name']}: PASSED ({response.status} as expected)")
+                            passed += 1
+                    else:
+                        print(f"  ❌ {test_case['name']}: Expected {test_case['expected_status']}, got {response.status}")
+                        
+            except Exception as e:
+                print(f"  ❌ {test_case['name']}: Error {e}")
+        
+        self.test_results.append({
+            "endpoint": "PUT /api/approvals/{id}/approve",
+            "passed": passed, "total": total, "success_rate": f"{passed/total*100:.1f}%"
+        })
+
+    async def test_reject_request(self):
+        """Test PUT /api/approvals/{id}/reject"""
+        print("\n📋 Testing Reject Request Endpoint...")
+        
+        # Use sample approval ID
+        sample_approval_id = str(uuid.uuid4())
+        if self.created_test_data['approval_requests']:
+            sample_approval_id = self.created_test_data['approval_requests'][0]
+        
+        test_cases = [
+            {
+                "name": "Reject request with reason",
+                "approval_id": sample_approval_id,
+                "data": {
+                    "rejection_reason": "Budget constraints",
+                    "notes": "Please resubmit with lower amount"
+                },
+                "expected_status": [200, 404, 403]
+            },
+            {
+                "name": "Reject without rejection_reason (should fail)",
+                "approval_id": sample_approval_id,
+                "data": {
+                    "notes": "Test rejection"
+                },
+                "expected_status": 400
+            },
+            {
+                "name": "Reject non-existent request",
+                "approval_id": "non-existent-id",
+                "data": {
+                    "rejection_reason": "Test rejection"
+                },
+                "expected_status": 404
+            }
+        ]
+        
+        passed = 0
+        total = len(test_cases)
+        
+        for test_case in test_cases:
+            try:
+                url = f"{BACKEND_URL}/approvals/{test_case['approval_id']}/reject"
+                
+                async with self.session.put(url, json=test_case["data"], headers=self.get_headers()) as response:
+                    if response.status in test_case["expected_status"]:
+                        if response.status == 200:
+                            data = await response.json()
+                            required_fields = ["message", "approval_id", "status", "rejected_by", "rejected_at", "rejection_reason"]
+                            missing_fields = [field for field in required_fields if field not in data]
+                            if not missing_fields:
+                                print(f"  ✅ {test_case['name']}: PASSED")
+                                passed += 1
+                            else:
+                                print(f"  ❌ {test_case['name']}: Missing fields {missing_fields}")
+                        else:  # 400, 404, or 403
+                            print(f"  ✅ {test_case['name']}: PASSED ({response.status} as expected)")
+                            passed += 1
+                    else:
+                        print(f"  ❌ {test_case['name']}: Expected {test_case['expected_status']}, got {response.status}")
+                        
+            except Exception as e:
+                print(f"  ❌ {test_case['name']}: Error {e}")
+        
+        self.test_results.append({
+            "endpoint": "PUT /api/approvals/{id}/reject",
+            "passed": passed, "total": total, "success_rate": f"{passed/total*100:.1f}%"
+        })
+
+    async def test_get_approval_history(self):
+        """Test GET /api/approvals/history"""
+        print("\n📋 Testing Get Approval History Endpoint...")
+        
+        test_cases = [
+            {
+                "name": "Get all approval history",
+                "params": {},
+                "expected_fields": ["history", "count"]
+            },
+            {
+                "name": "Filter by status - approved",
+                "params": {"status": "approved"},
+                "expected_fields": ["history", "count"]
+            },
+            {
+                "name": "Filter by status - rejected",
+                "params": {"status": "rejected"},
+                "expected_fields": ["history", "count"]
+            },
+            {
+                "name": "Filter by approval_type - discount",
+                "params": {"approval_type": "discount"},
+                "expected_fields": ["history", "count"]
+            },
+            {
+                "name": "Limit results",
+                "params": {"limit": 10},
+                "expected_fields": ["history", "count"]
+            }
+        ]
+        
+        passed = 0
+        total = len(test_cases)
+        
+        for test_case in test_cases:
+            try:
+                url = f"{BACKEND_URL}/approvals/history"
+                if test_case["params"]:
+                    params = "&".join([f"{k}={v}" for k, v in test_case["params"].items()])
+                    url += f"?{params}"
+                
+                async with self.session.get(url, headers=self.get_headers()) as response:
+                    if response.status == 200:
+                        data = await response.json()
+                        missing_fields = [field for field in test_case["expected_fields"] if field not in data]
+                        if not missing_fields:
+                            print(f"  ✅ {test_case['name']}: PASSED")
+                            passed += 1
+                        else:
+                            print(f"  ❌ {test_case['name']}: Missing fields {missing_fields}")
+                    else:
+                        print(f"  ❌ {test_case['name']}: HTTP {response.status}")
+                        
+            except Exception as e:
+                print(f"  ❌ {test_case['name']}: Error {e}")
+        
+        self.test_results.append({
+            "endpoint": "GET /api/approvals/history",
+            "passed": passed, "total": total, "success_rate": f"{passed/total*100:.1f}%"
+        })
+
+    # ============= EXECUTIVE DASHBOARD TESTS (3 endpoints) =============
+
+    async def test_executive_kpi_snapshot(self):
+        """Test GET /api/executive/kpi-snapshot"""
+        print("\n📊 Testing Executive KPI Snapshot Endpoint...")
+        
+        test_cases = [
+            {
+                "name": "Get KPI snapshot",
+                "expected_fields": ["kpis", "summary"]
+            }
+        ]
+        
+        passed = 0
+        total = len(test_cases)
+        
+        for test_case in test_cases:
+            try:
+                url = f"{BACKEND_URL}/executive/kpi-snapshot"
+                
+                async with self.session.get(url, headers=self.get_headers()) as response:
+                    if response.status == 200:
+                        data = await response.json()
+                        missing_fields = [field for field in test_case["expected_fields"] if field not in data]
+                        if not missing_fields:
+                            # Verify KPI structure
+                            kpis = data.get("kpis", {})
+                            required_kpis = ["RevPAR", "ADR", "Occupancy", "Revenue", "NPS", "Cash"]
+                            missing_kpis = [kpi for kpi in required_kpis if kpi not in kpis]
+                            
+                            if not missing_kpis:
+                                # Verify each KPI has required fields
+                                kpi_valid = True
+                                for kpi_name, kpi_data in kpis.items():
+                                    if kpi_name in required_kpis:
+                                        required_kpi_fields = ["value", "trend", "label"]
+                                        missing_kpi_fields = [field for field in required_kpi_fields if field not in kpi_data]
+                                        if missing_kpi_fields:
+                                            print(f"  ❌ {test_case['name']}: KPI {kpi_name} missing fields {missing_kpi_fields}")
+                                            kpi_valid = False
+                                            break
+                                
+                                if kpi_valid:
+                                    # Verify summary structure
+                                    summary = data.get("summary", {})
+                                    required_summary_fields = ["total_rooms", "occupied_rooms", "available_rooms", "bookings_today"]
+                                    missing_summary_fields = [field for field in required_summary_fields if field not in summary]
+                                    
+                                    if not missing_summary_fields:
+                                        print(f"  ✅ {test_case['name']}: PASSED")
+                                        passed += 1
+                                    else:
+                                        print(f"  ❌ {test_case['name']}: Missing summary fields {missing_summary_fields}")
+                            else:
+                                print(f"  ❌ {test_case['name']}: Missing KPIs {missing_kpis}")
+                        else:
+                            print(f"  ❌ {test_case['name']}: Missing fields {missing_fields}")
+                    else:
+                        print(f"  ❌ {test_case['name']}: HTTP {response.status}")
+                        
+            except Exception as e:
+                print(f"  ❌ {test_case['name']}: Error {e}")
+        
+        self.test_results.append({
+            "endpoint": "GET /api/executive/kpi-snapshot",
+            "passed": passed, "total": total, "success_rate": f"{passed/total*100:.1f}%"
+        })
+
+    async def test_executive_performance_alerts(self):
+        """Test GET /api/executive/performance-alerts"""
+        print("\n📊 Testing Executive Performance Alerts Endpoint...")
+        
+        test_cases = [
+            {
+                "name": "Get performance alerts",
+                "expected_fields": ["alerts", "count", "urgent_count", "high_count"]
+            }
+        ]
+        
+        passed = 0
+        total = len(test_cases)
+        
+        for test_case in test_cases:
+            try:
+                url = f"{BACKEND_URL}/executive/performance-alerts"
+                
+                async with self.session.get(url, headers=self.get_headers()) as response:
+                    if response.status == 200:
+                        data = await response.json()
+                        missing_fields = [field for field in test_case["expected_fields"] if field not in data]
+                        if not missing_fields:
+                            # Verify alert structure if alerts exist
+                            if data.get("alerts"):
+                                alert = data["alerts"][0]
+                                required_alert_fields = ["id", "type", "severity", "title", "message", "value", "created_at"]
+                                missing_alert_fields = [field for field in required_alert_fields if field not in alert]
+                                if not missing_alert_fields:
+                                    # Verify alerts are sorted by severity (urgent first)
+                                    alerts = data["alerts"]
+                                    severity_order = {"urgent": 3, "high": 2, "medium": 1, "low": 0}
+                                    is_sorted = all(
+                                        severity_order.get(alerts[i]["severity"], 0) >= severity_order.get(alerts[i+1]["severity"], 0)
+                                        for i in range(len(alerts)-1)
+                                    )
+                                    if is_sorted:
+                                        print(f"  ✅ {test_case['name']}: PASSED")
+                                        passed += 1
+                                    else:
+                                        print(f"  ❌ {test_case['name']}: Alerts not sorted by severity")
+                                else:
+                                    print(f"  ❌ {test_case['name']}: Missing alert fields {missing_alert_fields}")
+                            else:
+                                print(f"  ✅ {test_case['name']}: PASSED (no alerts)")
+                                passed += 1
+                        else:
+                            print(f"  ❌ {test_case['name']}: Missing fields {missing_fields}")
+                    else:
+                        print(f"  ❌ {test_case['name']}: HTTP {response.status}")
+                        
+            except Exception as e:
+                print(f"  ❌ {test_case['name']}: Error {e}")
+        
+        self.test_results.append({
+            "endpoint": "GET /api/executive/performance-alerts",
+            "passed": passed, "total": total, "success_rate": f"{passed/total*100:.1f}%"
+        })
+
+    async def test_executive_daily_summary(self):
+        """Test GET /api/executive/daily-summary"""
+        print("\n📊 Testing Executive Daily Summary Endpoint...")
+        
+        test_cases = [
+            {
+                "name": "Get daily summary for today",
+                "params": {},
+                "expected_fields": ["summary", "highlights"]
+            },
+            {
+                "name": "Get daily summary for specific date",
+                "params": {"date": datetime.now(timezone.utc).date().isoformat()},
+                "expected_fields": ["summary", "highlights"]
+            }
+        ]
+        
+        passed = 0
+        total = len(test_cases)
+        
+        for test_case in test_cases:
+            try:
+                url = f"{BACKEND_URL}/executive/daily-summary"
+                if test_case["params"]:
+                    params = "&".join([f"{k}={v}" for k, v in test_case["params"].items()])
+                    url += f"?{params}"
+                
+                async with self.session.get(url, headers=self.get_headers()) as response:
+                    if response.status == 200:
+                        data = await response.json()
+                        missing_fields = [field for field in test_case["expected_fields"] if field not in data]
+                        if not missing_fields:
+                            # Verify summary structure
+                            summary = data.get("summary", {})
+                            required_summary_fields = ["new_bookings", "check_ins", "check_outs", "cancellations", "revenue", "complaints", "incidents"]
+                            missing_summary_fields = [field for field in required_summary_fields if field not in summary]
+                            
+                            if not missing_summary_fields:
+                                # Verify highlights structure
+                                highlights = data.get("highlights", {})
+                                required_highlight_fields = ["cancellation_rate", "avg_revenue_per_booking"]
+                                missing_highlight_fields = [field for field in required_highlight_fields if field not in highlights]
+                                
+                                if not missing_highlight_fields:
+                                    print(f"  ✅ {test_case['name']}: PASSED")
+                                    passed += 1
+                                else:
+                                    print(f"  ❌ {test_case['name']}: Missing highlight fields {missing_highlight_fields}")
+                            else:
+                                print(f"  ❌ {test_case['name']}: Missing summary fields {missing_summary_fields}")
+                        else:
+                            print(f"  ❌ {test_case['name']}: Missing fields {missing_fields}")
+                    else:
+                        print(f"  ❌ {test_case['name']}: HTTP {response.status}")
+                        
+            except Exception as e:
+                print(f"  ❌ {test_case['name']}: Error {e}")
+        
+        self.test_results.append({
+            "endpoint": "GET /api/executive/daily-summary",
+            "passed": passed, "total": total, "success_rate": f"{passed/total*100:.1f}%"
+        })
+
+    # ============= NOTIFICATION SYSTEM TESTS (5 endpoints) =============
+
+    async def test_get_notification_preferences(self):
+        """Test GET /api/notifications/preferences"""
+        print("\n🔔 Testing Get Notification Preferences Endpoint...")
+        
+        test_cases = [
+            {
+                "name": "Get notification preferences",
+                "expected_fields": ["preferences"]
+            }
+        ]
+        
+        passed = 0
+        total = len(test_cases)
+        
+        for test_case in test_cases:
+            try:
+                url = f"{BACKEND_URL}/notifications/preferences"
+                
+                async with self.session.get(url, headers=self.get_headers()) as response:
+                    if response.status == 200:
+                        data = await response.json()
+                        missing_fields = [field for field in test_case["expected_fields"] if field not in data]
+                        if not missing_fields:
+                            # Verify preferences structure
+                            preferences = data.get("preferences", {})
+                            if isinstance(preferences, dict):
+                                print(f"  ✅ {test_case['name']}: PASSED")
+                                passed += 1
+                            else:
+                                print(f"  ❌ {test_case['name']}: Invalid preferences structure")
+                        else:
+                            print(f"  ❌ {test_case['name']}: Missing fields {missing_fields}")
+                    else:
+                        print(f"  ❌ {test_case['name']}: HTTP {response.status}")
+                        
+            except Exception as e:
+                print(f"  ❌ {test_case['name']}: Error {e}")
+        
+        self.test_results.append({
+            "endpoint": "GET /api/notifications/preferences",
+            "passed": passed, "total": total, "success_rate": f"{passed/total*100:.1f}%"
+        })
+
+    async def test_update_notification_preferences(self):
+        """Test PUT /api/notifications/preferences"""
+        print("\n🔔 Testing Update Notification Preferences Endpoint...")
+        
+        test_cases = [
+            {
+                "name": "Update notification preference - enable email",
+                "data": {
+                    "notification_type": "booking_updates",
+                    "enabled": True,
+                    "channels": ["in_app", "email"]
+                },
+                "expected_status": 200,
+                "expected_fields": ["message", "updated_preference"]
+            },
+            {
+                "name": "Update notification preference - disable SMS",
+                "data": {
+                    "notification_type": "maintenance_alerts",
+                    "enabled": False,
+                    "channels": ["in_app"]
+                },
+                "expected_status": 200,
+                "expected_fields": ["message", "updated_preference"]
+            },
+            {
+                "name": "Update notification preference - enable push",
+                "data": {
+                    "notification_type": "guest_requests",
+                    "enabled": True,
+                    "channels": ["in_app", "push"]
+                },
+                "expected_status": 200,
+                "expected_fields": ["message", "updated_preference"]
+            }
+        ]
+        
+        passed = 0
+        total = len(test_cases)
+        
+        for test_case in test_cases:
+            try:
+                url = f"{BACKEND_URL}/notifications/preferences"
+                
+                async with self.session.put(url, json=test_case["data"], headers=self.get_headers()) as response:
+                    if response.status == test_case["expected_status"]:
+                        data = await response.json()
+                        missing_fields = [field for field in test_case["expected_fields"] if field not in data]
+                        if not missing_fields:
+                            print(f"  ✅ {test_case['name']}: PASSED")
+                            passed += 1
+                        else:
+                            print(f"  ❌ {test_case['name']}: Missing fields {missing_fields}")
+                    else:
+                        print(f"  ❌ {test_case['name']}: Expected {test_case['expected_status']}, got {response.status}")
+                        
+            except Exception as e:
+                print(f"  ❌ {test_case['name']}: Error {e}")
+        
+        self.test_results.append({
+            "endpoint": "PUT /api/notifications/preferences",
+            "passed": passed, "total": total, "success_rate": f"{passed/total*100:.1f}%"
+        })
+
+    async def test_get_notifications_list(self):
+        """Test GET /api/notifications/list"""
+        print("\n🔔 Testing Get Notifications List Endpoint...")
+        
+        test_cases = [
+            {
+                "name": "Get all notifications",
+                "params": {},
+                "expected_fields": ["notifications", "count"]
+            },
+            {
+                "name": "Get unread notifications only",
+                "params": {"unread_only": "true"},
+                "expected_fields": ["notifications", "count"]
+            },
+            {
+                "name": "Get all notifications (unread_only=false)",
+                "params": {"unread_only": "false"},
+                "expected_fields": ["notifications", "count"]
+            },
+            {
+                "name": "Limit notifications",
+                "params": {"limit": 10},
+                "expected_fields": ["notifications", "count"]
+            }
+        ]
+        
+        passed = 0
+        total = len(test_cases)
+        
+        for test_case in test_cases:
+            try:
+                url = f"{BACKEND_URL}/notifications/list"
+                if test_case["params"]:
+                    params = "&".join([f"{k}={v}" for k, v in test_case["params"].items()])
+                    url += f"?{params}"
+                
+                async with self.session.get(url, headers=self.get_headers()) as response:
+                    if response.status == 200:
+                        data = await response.json()
+                        missing_fields = [field for field in test_case["expected_fields"] if field not in data]
+                        if not missing_fields:
+                            # Verify notification structure if notifications exist
+                            if data.get("notifications"):
+                                notification = data["notifications"][0]
+                                required_notification_fields = ["id", "type", "title", "message", "priority", "read", "created_at"]
+                                missing_notification_fields = [field for field in required_notification_fields if field not in notification]
+                                if not missing_notification_fields:
+                                    print(f"  ✅ {test_case['name']}: PASSED")
+                                    passed += 1
+                                else:
+                                    print(f"  ❌ {test_case['name']}: Missing notification fields {missing_notification_fields}")
+                            else:
+                                print(f"  ✅ {test_case['name']}: PASSED (no notifications)")
+                                passed += 1
+                        else:
+                            print(f"  ❌ {test_case['name']}: Missing fields {missing_fields}")
+                    else:
+                        print(f"  ❌ {test_case['name']}: HTTP {response.status}")
+                        
+            except Exception as e:
+                print(f"  ❌ {test_case['name']}: Error {e}")
+        
+        self.test_results.append({
+            "endpoint": "GET /api/notifications/list",
+            "passed": passed, "total": total, "success_rate": f"{passed/total*100:.1f}%"
+        })
+
+    async def test_mark_notification_read(self):
+        """Test PUT /api/notifications/{id}/mark-read"""
+        print("\n🔔 Testing Mark Notification Read Endpoint...")
+        
+        # Use sample notification ID
+        sample_notification_id = str(uuid.uuid4())
+        
+        test_cases = [
+            {
+                "name": "Mark notification as read",
+                "notification_id": sample_notification_id,
+                "expected_status": [200, 404]  # 200 if exists, 404 if not found
+            },
+            {
+                "name": "Mark non-existent notification as read",
+                "notification_id": "non-existent-id",
+                "expected_status": 404
+            }
+        ]
+        
+        passed = 0
+        total = len(test_cases)
+        
+        for test_case in test_cases:
+            try:
+                url = f"{BACKEND_URL}/notifications/{test_case['notification_id']}/mark-read"
+                
+                async with self.session.put(url, headers=self.get_headers()) as response:
+                    if response.status in test_case["expected_status"]:
+                        if response.status == 200:
+                            data = await response.json()
+                            required_fields = ["message", "notification_id", "read"]
                             missing_fields = [field for field in required_fields if field not in data]
                             if not missing_fields:
                                 print(f"  ✅ {test_case['name']}: PASSED")
@@ -294,51 +1010,44 @@ class ApprovalExecutiveNotificationTester:
                 print(f"  ❌ {test_case['name']}: Error {e}")
         
         self.test_results.append({
-            "endpoint": "GET /api/pos/mobile/order/{order_id}",
+            "endpoint": "PUT /api/notifications/{id}/mark-read",
             "passed": passed, "total": total, "success_rate": f"{passed/total*100:.1f}%"
         })
 
-    async def test_mobile_order_status_update(self):
-        """Test PUT /api/pos/mobile/order/{order_id}/status"""
-        print("\n📋 Testing F&B Mobile Order Status Update Endpoint...")
-        
-        sample_order_id = str(uuid.uuid4())
+    async def test_send_system_alert(self):
+        """Test POST /api/notifications/send-system-alert"""
+        print("\n🔔 Testing Send System Alert Endpoint...")
         
         test_cases = [
             {
-                "name": "Update order status to preparing",
-                "order_id": sample_order_id,
+                "name": "Send system alert to admin roles",
                 "data": {
-                    "status": "preparing",
-                    "notes": "Started cooking"
+                    "title": "System Maintenance Alert",
+                    "message": "Scheduled maintenance will begin at 2 AM",
+                    "priority": "high",
+                    "target_roles": ["admin", "supervisor"]
                 },
-                "expected_status": [200, 404]  # 200 if exists, 404 if not found
+                "expected_status": [200, 403]  # 200 if admin, 403 if not admin
             },
             {
-                "name": "Update order status to ready",
-                "order_id": sample_order_id,
+                "name": "Send system alert to all staff",
                 "data": {
-                    "status": "ready",
-                    "notes": "Order ready for pickup"
+                    "title": "Emergency Procedure Update",
+                    "message": "New emergency procedures are now in effect",
+                    "priority": "urgent",
+                    "target_roles": ["admin", "supervisor", "front_desk", "housekeeping"]
                 },
-                "expected_status": [200, 404]
+                "expected_status": [200, 403]
             },
             {
-                "name": "Update order status to served",
-                "order_id": sample_order_id,
+                "name": "Send system alert to specific department",
                 "data": {
-                    "status": "served",
-                    "notes": "Order delivered to guest"
+                    "title": "Housekeeping Schedule Change",
+                    "message": "Room cleaning schedule has been updated",
+                    "priority": "normal",
+                    "target_roles": ["housekeeping", "supervisor"]
                 },
-                "expected_status": [200, 404]
-            },
-            {
-                "name": "Update with invalid status",
-                "order_id": sample_order_id,
-                "data": {
-                    "status": "invalid_status"
-                },
-                "expected_status": 400
+                "expected_status": [200, 403]
             }
         ]
         
@@ -347,21 +1056,21 @@ class ApprovalExecutiveNotificationTester:
         
         for test_case in test_cases:
             try:
-                url = f"{BACKEND_URL}/pos/mobile/order/{test_case['order_id']}/status"
+                url = f"{BACKEND_URL}/notifications/send-system-alert"
                 
-                async with self.session.put(url, json=test_case["data"], headers=self.get_headers()) as response:
+                async with self.session.post(url, json=test_case["data"], headers=self.get_headers()) as response:
                     if response.status in test_case["expected_status"]:
                         if response.status == 200:
                             data = await response.json()
-                            required_fields = ["message", "order_id", "new_status", "updated_at"]
+                            required_fields = ["message", "notifications_sent", "target_roles"]
                             missing_fields = [field for field in required_fields if field not in data]
                             if not missing_fields:
                                 print(f"  ✅ {test_case['name']}: PASSED")
                                 passed += 1
                             else:
                                 print(f"  ❌ {test_case['name']}: Missing fields {missing_fields}")
-                        else:  # 404 or 400
-                            print(f"  ✅ {test_case['name']}: PASSED ({response.status} as expected)")
+                        else:  # 403
+                            print(f"  ✅ {test_case['name']}: PASSED (403 - non-admin role, access control working)")
                             passed += 1
                     else:
                         print(f"  ❌ {test_case['name']}: Expected {test_case['expected_status']}, got {response.status}")
@@ -370,415 +1079,16 @@ class ApprovalExecutiveNotificationTester:
                 print(f"  ❌ {test_case['name']}: Error {e}")
         
         self.test_results.append({
-            "endpoint": "PUT /api/pos/mobile/order/{order_id}/status",
-            "passed": passed, "total": total, "success_rate": f"{passed/total*100:.1f}%"
-        })
-
-    async def test_mobile_order_history(self):
-        """Test GET /api/pos/mobile/order-history"""
-        print("\n📋 Testing F&B Mobile Order History Endpoint...")
-        
-        test_cases = [
-            {
-                "name": "Get all order history",
-                "params": {},
-                "expected_fields": ["orders", "count", "filters_applied"]
-            },
-            {
-                "name": "Filter by date range",
-                "params": {
-                    "start_date": (datetime.now(timezone.utc) - timedelta(days=7)).date().isoformat(),
-                    "end_date": datetime.now(timezone.utc).date().isoformat()
-                },
-                "expected_fields": ["orders", "count", "filters_applied"]
-            },
-            {
-                "name": "Filter by outlet_id",
-                "params": {"outlet_id": "main_restaurant"},
-                "expected_fields": ["orders", "count", "filters_applied"]
-            },
-            {
-                "name": "Filter by server_name",
-                "params": {"server_name": "John Smith"},
-                "expected_fields": ["orders", "count", "filters_applied"]
-            },
-            {
-                "name": "Filter by status",
-                "params": {"status": "served"},
-                "expected_fields": ["orders", "count", "filters_applied"]
-            },
-            {
-                "name": "Limit results",
-                "params": {"limit": 10},
-                "expected_fields": ["orders", "count", "filters_applied"]
-            }
-        ]
-        
-        passed = 0
-        total = len(test_cases)
-        
-        for test_case in test_cases:
-            try:
-                url = f"{BACKEND_URL}/pos/mobile/order-history"
-                if test_case["params"]:
-                    params = "&".join([f"{k}={v}" for k, v in test_case["params"].items()])
-                    url += f"?{params}"
-                
-                async with self.session.get(url, headers=self.get_headers()) as response:
-                    if response.status == 200:
-                        data = await response.json()
-                        missing_fields = [field for field in test_case["expected_fields"] if field not in data]
-                        if not missing_fields:
-                            # Verify filters_applied structure
-                            filters = data.get("filters_applied", {})
-                            if isinstance(filters, dict):
-                                print(f"  ✅ {test_case['name']}: PASSED")
-                                passed += 1
-                            else:
-                                print(f"  ❌ {test_case['name']}: Invalid filters_applied structure")
-                        else:
-                            print(f"  ❌ {test_case['name']}: Missing fields {missing_fields}")
-                    else:
-                        print(f"  ❌ {test_case['name']}: HTTP {response.status}")
-                        
-            except Exception as e:
-                print(f"  ❌ {test_case['name']}: Error {e}")
-        
-        self.test_results.append({
-            "endpoint": "GET /api/pos/mobile/order-history",
-            "passed": passed, "total": total, "success_rate": f"{passed/total*100:.1f}%"
-        })
-
-    # ============= INVENTORY MOBILE TESTS (4 endpoints) =============
-
-    async def test_mobile_inventory_movements(self):
-        """Test GET /api/pos/mobile/inventory-movements"""
-        print("\n📋 Testing Inventory Mobile Movements Endpoint...")
-        
-        test_cases = [
-            {
-                "name": "Get all inventory movements",
-                "params": {},
-                "expected_fields": ["movements", "count"]
-            },
-            {
-                "name": "Filter by date range",
-                "params": {
-                    "start_date": (datetime.now(timezone.utc) - timedelta(days=7)).date().isoformat(),
-                    "end_date": datetime.now(timezone.utc).date().isoformat()
-                },
-                "expected_fields": ["movements", "count"]
-            },
-            {
-                "name": "Filter by product_id",
-                "params": {"product_id": "coca_cola_33cl"},
-                "expected_fields": ["movements", "count"]
-            },
-            {
-                "name": "Filter by movement_type - in",
-                "params": {"movement_type": "in"},
-                "expected_fields": ["movements", "count"]
-            },
-            {
-                "name": "Filter by movement_type - out",
-                "params": {"movement_type": "out"},
-                "expected_fields": ["movements", "count"]
-            },
-            {
-                "name": "Filter by movement_type - adjustment",
-                "params": {"movement_type": "adjustment"},
-                "expected_fields": ["movements", "count"]
-            },
-            {
-                "name": "Limit results",
-                "params": {"limit": 20},
-                "expected_fields": ["movements", "count"]
-            }
-        ]
-        
-        passed = 0
-        total = len(test_cases)
-        
-        for test_case in test_cases:
-            try:
-                url = f"{BACKEND_URL}/pos/mobile/inventory-movements"
-                if test_case["params"]:
-                    params = "&".join([f"{k}={v}" for k, v in test_case["params"].items()])
-                    url += f"?{params}"
-                
-                async with self.session.get(url, headers=self.get_headers()) as response:
-                    if response.status == 200:
-                        data = await response.json()
-                        missing_fields = [field for field in test_case["expected_fields"] if field not in data]
-                        if not missing_fields:
-                            # Verify movement structure if movements exist
-                            if data.get("movements"):
-                                movement = data["movements"][0]
-                                required_movement_fields = ["product_name", "movement_type", "quantity", "reason", "timestamp"]
-                                missing_movement_fields = [field for field in required_movement_fields if field not in movement]
-                                if not missing_movement_fields:
-                                    print(f"  ✅ {test_case['name']}: PASSED")
-                                    passed += 1
-                                else:
-                                    print(f"  ❌ {test_case['name']}: Missing movement fields {missing_movement_fields}")
-                            else:
-                                print(f"  ✅ {test_case['name']}: PASSED (no movements)")
-                                passed += 1
-                        else:
-                            print(f"  ❌ {test_case['name']}: Missing fields {missing_fields}")
-                    else:
-                        print(f"  ❌ {test_case['name']}: HTTP {response.status}")
-                        
-            except Exception as e:
-                print(f"  ❌ {test_case['name']}: Error {e}")
-        
-        self.test_results.append({
-            "endpoint": "GET /api/pos/mobile/inventory-movements",
-            "passed": passed, "total": total, "success_rate": f"{passed/total*100:.1f}%"
-        })
-
-    async def test_mobile_stock_levels(self):
-        """Test GET /api/pos/mobile/stock-levels"""
-        print("\n📋 Testing Inventory Mobile Stock Levels Endpoint...")
-        
-        test_cases = [
-            {
-                "name": "Get all stock levels",
-                "params": {},
-                "expected_fields": ["stock_items", "count"]
-            },
-            {
-                "name": "Filter by category",
-                "params": {"category": "beverage"},
-                "expected_fields": ["stock_items", "count"]
-            },
-            {
-                "name": "Get only low stock items",
-                "params": {"low_stock_only": "true"},
-                "expected_fields": ["stock_items", "count"]
-            },
-            {
-                "name": "Get all stock items (low_stock_only=false)",
-                "params": {"low_stock_only": "false"},
-                "expected_fields": ["stock_items", "count"]
-            }
-        ]
-        
-        passed = 0
-        total = len(test_cases)
-        
-        for test_case in test_cases:
-            try:
-                url = f"{BACKEND_URL}/pos/mobile/stock-levels"
-                if test_case["params"]:
-                    params = "&".join([f"{k}={v}" for k, v in test_case["params"].items()])
-                    url += f"?{params}"
-                
-                async with self.session.get(url, headers=self.get_headers()) as response:
-                    if response.status == 200:
-                        data = await response.json()
-                        missing_fields = [field for field in test_case["expected_fields"] if field not in data]
-                        if not missing_fields:
-                            # Verify stock item structure if items exist
-                            if data.get("stock_items"):
-                                stock_item = data["stock_items"][0]
-                                required_stock_fields = ["product_name", "current_quantity", "minimum_quantity", "stock_status", "status_color", "is_low_stock"]
-                                missing_stock_fields = [field for field in required_stock_fields if field not in stock_item]
-                                if not missing_stock_fields:
-                                    print(f"  ✅ {test_case['name']}: PASSED")
-                                    passed += 1
-                                else:
-                                    print(f"  ❌ {test_case['name']}: Missing stock fields {missing_stock_fields}")
-                            else:
-                                print(f"  ✅ {test_case['name']}: PASSED (no stock items)")
-                                passed += 1
-                        else:
-                            print(f"  ❌ {test_case['name']}: Missing fields {missing_fields}")
-                    else:
-                        print(f"  ❌ {test_case['name']}: HTTP {response.status}")
-                        
-            except Exception as e:
-                print(f"  ❌ {test_case['name']}: Error {e}")
-        
-        self.test_results.append({
-            "endpoint": "GET /api/pos/mobile/stock-levels",
-            "passed": passed, "total": total, "success_rate": f"{passed/total*100:.1f}%"
-        })
-
-    async def test_mobile_low_stock_alerts(self):
-        """Test GET /api/pos/mobile/low-stock-alerts"""
-        print("\n📋 Testing Inventory Mobile Low Stock Alerts Endpoint...")
-        
-        test_cases = [
-            {
-                "name": "Get low stock alerts",
-                "params": {},
-                "expected_fields": ["alerts", "count"]
-            }
-        ]
-        
-        passed = 0
-        total = len(test_cases)
-        
-        for test_case in test_cases:
-            try:
-                url = f"{BACKEND_URL}/pos/mobile/low-stock-alerts"
-                if test_case["params"]:
-                    params = "&".join([f"{k}={v}" for k, v in test_case["params"].items()])
-                    url += f"?{params}"
-                
-                async with self.session.get(url, headers=self.get_headers()) as response:
-                    if response.status == 200:
-                        data = await response.json()
-                        missing_fields = [field for field in test_case["expected_fields"] if field not in data]
-                        if not missing_fields:
-                            # Verify alert structure if alerts exist
-                            if data.get("alerts"):
-                                alert = data["alerts"][0]
-                                required_alert_fields = ["product_name", "current_quantity", "minimum_quantity", "shortage", "urgency", "urgency_level", "recommended_order"]
-                                missing_alert_fields = [field for field in required_alert_fields if field not in alert]
-                                if not missing_alert_fields:
-                                    # Verify alerts are sorted by urgency_level (highest first)
-                                    alerts = data["alerts"]
-                                    is_sorted = all(alerts[i]["urgency_level"] >= alerts[i+1]["urgency_level"] for i in range(len(alerts)-1))
-                                    if is_sorted:
-                                        print(f"  ✅ {test_case['name']}: PASSED")
-                                        passed += 1
-                                    else:
-                                        print(f"  ❌ {test_case['name']}: Alerts not sorted by urgency_level")
-                                else:
-                                    print(f"  ❌ {test_case['name']}: Missing alert fields {missing_alert_fields}")
-                            else:
-                                print(f"  ✅ {test_case['name']}: PASSED (no alerts)")
-                                passed += 1
-                        else:
-                            print(f"  ❌ {test_case['name']}: Missing fields {missing_fields}")
-                    else:
-                        print(f"  ❌ {test_case['name']}: HTTP {response.status}")
-                        
-            except Exception as e:
-                print(f"  ❌ {test_case['name']}: Error {e}")
-        
-        self.test_results.append({
-            "endpoint": "GET /api/pos/mobile/low-stock-alerts",
-            "passed": passed, "total": total, "success_rate": f"{passed/total*100:.1f}%"
-        })
-
-    async def test_mobile_stock_adjust(self):
-        """Test POST /api/pos/mobile/stock-adjust"""
-        print("\n📋 Testing Inventory Mobile Stock Adjust Endpoint...")
-        
-        sample_product_id = "coca_cola_33cl"
-        
-        test_cases = [
-            {
-                "name": "Stock adjustment - increase (in)",
-                "data": {
-                    "product_id": sample_product_id,
-                    "adjustment_type": "in",
-                    "quantity": 50,
-                    "reason": "New delivery received",
-                    "notes": "Supplier delivery - Invoice #12345"
-                },
-                "expected_status": [200, 404]  # 200 if product exists, 404 if not found
-            },
-            {
-                "name": "Stock adjustment - decrease (out)",
-                "data": {
-                    "product_id": sample_product_id,
-                    "adjustment_type": "out",
-                    "quantity": 10,
-                    "reason": "F&B consumption",
-                    "notes": "Restaurant usage"
-                },
-                "expected_status": [200, 400, 404]  # 200 if success, 400 if insufficient stock, 404 if not found
-            },
-            {
-                "name": "Stock adjustment - set quantity (adjustment)",
-                "data": {
-                    "product_id": sample_product_id,
-                    "adjustment_type": "adjustment",
-                    "quantity": 25,
-                    "reason": "Physical count correction",
-                    "notes": "Monthly inventory count"
-                },
-                "expected_status": [200, 404]
-            },
-            {
-                "name": "Invalid adjustment type",
-                "data": {
-                    "product_id": sample_product_id,
-                    "adjustment_type": "invalid_type",
-                    "quantity": 10,
-                    "reason": "Test"
-                },
-                "expected_status": 400
-            },
-            {
-                "name": "Non-existent product",
-                "data": {
-                    "product_id": "non_existent_product",
-                    "adjustment_type": "in",
-                    "quantity": 10,
-                    "reason": "Test"
-                },
-                "expected_status": 404
-            },
-            {
-                "name": "Negative stock validation (out more than available)",
-                "data": {
-                    "product_id": sample_product_id,
-                    "adjustment_type": "out",
-                    "quantity": 1000,  # Large quantity to test validation
-                    "reason": "Test negative stock validation"
-                },
-                "expected_status": [400, 404]  # 400 if insufficient stock, 404 if product not found
-            }
-        ]
-        
-        passed = 0
-        total = len(test_cases)
-        
-        for test_case in test_cases:
-            try:
-                url = f"{BACKEND_URL}/pos/mobile/stock-adjust"
-                
-                async with self.session.post(url, json=test_case["data"], headers=self.get_headers()) as response:
-                    if response.status in test_case["expected_status"]:
-                        if response.status == 200:
-                            data = await response.json()
-                            required_fields = ["message", "product_id", "adjustment_type", "quantity_changed", "previous_quantity", "new_quantity", "adjusted_by", "timestamp"]
-                            missing_fields = [field for field in required_fields if field not in data]
-                            if not missing_fields:
-                                print(f"  ✅ {test_case['name']}: PASSED")
-                                passed += 1
-                            else:
-                                print(f"  ❌ {test_case['name']}: Missing fields {missing_fields}")
-                        else:  # Error status codes (400, 403, 404)
-                            print(f"  ✅ {test_case['name']}: PASSED ({response.status} as expected)")
-                            passed += 1
-                    else:
-                        # Check for authorization error (403) - this is also acceptable for role-based access
-                        if response.status == 403:
-                            print(f"  ✅ {test_case['name']}: PASSED (403 - insufficient permissions, role-based access working)")
-                            passed += 1
-                        else:
-                            print(f"  ❌ {test_case['name']}: Expected {test_case['expected_status']}, got {response.status}")
-                        
-            except Exception as e:
-                print(f"  ❌ {test_case['name']}: Error {e}")
-        
-        self.test_results.append({
-            "endpoint": "POST /api/pos/mobile/stock-adjust",
+            "endpoint": "POST /api/notifications/send-system-alert",
             "passed": passed, "total": total, "success_rate": f"{passed/total*100:.1f}%"
         })
 
     # ============= MAIN TEST EXECUTION =============
 
     async def run_all_tests(self):
-        """Run all F&B Mobile endpoint tests"""
-        print("🚀 Starting F&B Mobile Order Tracking and Inventory Mobile Endpoints Testing")
-        print("Testing 8 NEW F&B MOBILE ENDPOINTS")
+        """Run all Approval, Executive Dashboard, and Notification endpoint tests"""
+        print("🚀 Starting Approval System, Executive Dashboard, and Notification System Testing")
+        print("Testing 14 NEW ENDPOINTS")
         print("=" * 80)
         
         # Setup
@@ -792,23 +1102,34 @@ class ApprovalExecutiveNotificationTester:
         if not await self.create_test_data():
             print("⚠️ Test data creation failed. Some tests may not work properly.")
         
-        # Phase 1: F&B Mobile Order Tracking (4 endpoints)
+        # Phase 1: Approvals Module (6 endpoints)
         print("\n" + "="*50)
-        print("🍽️ PHASE 1: F&B MOBILE ORDER TRACKING (4 endpoints)")
+        print("📋 PHASE 1: APPROVALS MODULE (6 endpoints)")
         print("="*50)
-        await self.test_mobile_active_orders()
-        await self.test_mobile_order_details()
-        await self.test_mobile_order_status_update()
-        await self.test_mobile_order_history()
+        await self.test_create_approval_request()
+        await self.test_get_pending_approvals()
+        await self.test_get_my_requests()
+        await self.test_approve_request()
+        await self.test_reject_request()
+        await self.test_get_approval_history()
         
-        # Phase 2: Inventory Mobile (4 endpoints)
+        # Phase 2: Executive Dashboard (3 endpoints)
         print("\n" + "="*50)
-        print("📦 PHASE 2: INVENTORY MOBILE (4 endpoints)")
+        print("📊 PHASE 2: EXECUTIVE DASHBOARD (3 endpoints)")
         print("="*50)
-        await self.test_mobile_inventory_movements()
-        await self.test_mobile_stock_levels()
-        await self.test_mobile_low_stock_alerts()
-        await self.test_mobile_stock_adjust()
+        await self.test_executive_kpi_snapshot()
+        await self.test_executive_performance_alerts()
+        await self.test_executive_daily_summary()
+        
+        # Phase 3: Notification System (5 endpoints)
+        print("\n" + "="*50)
+        print("🔔 PHASE 3: NOTIFICATION SYSTEM (5 endpoints)")
+        print("="*50)
+        await self.test_get_notification_preferences()
+        await self.test_update_notification_preferences()
+        await self.test_get_notifications_list()
+        await self.test_mark_notification_read()
+        await self.test_send_system_alert()
         
         # Cleanup
         await self.cleanup_session()
@@ -819,7 +1140,7 @@ class ApprovalExecutiveNotificationTester:
     def print_test_summary(self):
         """Print comprehensive test summary"""
         print("\n" + "=" * 80)
-        print("📊 F&B MOBILE ENDPOINTS TEST RESULTS")
+        print("📊 APPROVAL, EXECUTIVE DASHBOARD & NOTIFICATION SYSTEM TEST RESULTS")
         print("=" * 80)
         
         total_passed = 0
@@ -827,16 +1148,19 @@ class ApprovalExecutiveNotificationTester:
         
         # Group results by category
         categories = {
-            "F&B Mobile Order Tracking": [],
-            "Inventory Mobile": []
+            "Approvals Module": [],
+            "Executive Dashboard": [],
+            "Notification System": []
         }
         
         for result in self.test_results:
             endpoint = result["endpoint"]
-            if "order" in endpoint:
-                categories["F&B Mobile Order Tracking"].append(result)
-            elif "inventory" in endpoint or "stock" in endpoint:
-                categories["Inventory Mobile"].append(result)
+            if "approvals" in endpoint:
+                categories["Approvals Module"].append(result)
+            elif "executive" in endpoint:
+                categories["Executive Dashboard"].append(result)
+            elif "notifications" in endpoint:
+                categories["Notification System"].append(result)
         
         print("\n📋 RESULTS BY CATEGORY:")
         print("-" * 60)
@@ -862,25 +1186,26 @@ class ApprovalExecutiveNotificationTester:
         print(f"📈 OVERALL SUCCESS RATE: {total_passed}/{total_tests} ({overall_success_rate:.1f}%)")
         
         if overall_success_rate >= 90:
-            print("🎉 EXCELLENT: F&B Mobile endpoints are working perfectly!")
+            print("🎉 EXCELLENT: Approval, Executive Dashboard & Notification systems are working perfectly!")
         elif overall_success_rate >= 75:
-            print("✅ GOOD: Most F&B Mobile features are working correctly")
+            print("✅ GOOD: Most features are working correctly")
         elif overall_success_rate >= 50:
-            print("⚠️ PARTIAL: Some F&B Mobile features need attention")
+            print("⚠️ PARTIAL: Some features need attention")
         else:
-            print("❌ CRITICAL: Major issues with F&B Mobile endpoints")
+            print("❌ CRITICAL: Major issues with the new systems")
         
-        print("\n🔍 KEY F&B MOBILE FEATURES TESTED:")
-        print("• Order Tracking: Active orders, order details, status updates, order history")
-        print("• Inventory Management: Stock movements, stock levels, low stock alerts, stock adjustments")
-        print("• Mobile Optimization: Real-time tracking, time calculations, role-based access control")
-        print("• Data Validation: Status validation, quantity validation, permission checks")
+        print("\n🔍 KEY FEATURES TESTED:")
+        print("• Approval Workflow: Create, approve, reject, history tracking")
+        print("• Executive Dashboard: KPI snapshots, performance alerts, daily summaries")
+        print("• Notification System: Preferences, notifications list, system alerts")
+        print("• Role-based Access Control: Permission validation, authorization checks")
+        print("• Data Validation: Request validation, response structure verification")
         
         print("\n" + "=" * 80)
 
 async def main():
     """Main test execution"""
-    tester = FnBMobileEndpointsTester()
+    tester = ApprovalExecutiveNotificationTester()
     await tester.run_all_tests()
 
 if __name__ == "__main__":
