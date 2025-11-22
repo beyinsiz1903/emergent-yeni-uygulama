@@ -660,6 +660,46 @@ function App() {
             }
           />
           <Route
+            path="/system/performance"
+            element={
+              isAuthenticated ? (
+                <SystemPerformanceMonitor user={user} />
+              ) : (
+                <Navigate to="/auth" replace />
+              )
+            }
+          />
+          <Route
+            path="/system/logs"
+            element={
+              isAuthenticated ? (
+                <LogViewer user={user} />
+              ) : (
+                <Navigate to="/auth" replace />
+              )
+            }
+          />
+          <Route
+            path="/mobile/logs"
+            element={
+              isAuthenticated ? (
+                <MobileLogViewer user={user} />
+              ) : (
+                <Navigate to="/auth" replace />
+              )
+            }
+          />
+          <Route
+            path="/network/test"
+            element={
+              isAuthenticated ? (
+                <NetworkTestTools user={user} />
+              ) : (
+                <Navigate to="/auth" replace />
+              )
+            }
+          />
+          <Route
             path="/cost-management"
             element={
               isAuthenticated ? (
