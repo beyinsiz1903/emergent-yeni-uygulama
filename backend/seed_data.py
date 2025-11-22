@@ -320,14 +320,15 @@ class HotelSeeder:
             if random.random() > 0.6:
                 folio_charges.append({
                     'id': str(uuid.uuid4()),
+                    'tenant_id': self.tenant_id,
                     'folio_id': folio_id,
+                    'booking_id': booking['id'],
                     'charge_date': datetime.now().date().isoformat(),
                     'charge_category': 'minibar',
                     'description': 'Minibar - Beverages',
                     'quantity': 1,
                     'unit_price': 35.0,
                     'amount': 35.0,
-                    'tax_percentage': 18.0,
                     'tax_amount': 6.3,
                     'total': 41.3,
                     'voided': False,
