@@ -204,9 +204,8 @@ class MaintenanceEndpointTester:
                         missing_fields = [field for field in test_case["expected_fields"] if field not in data]
                         if not missing_fields:
                             # Verify the updated SLA configuration
-                            sla_config = data.get("sla_configuration", {})
-                            if (sla_config.get("response_time_minutes") == test_case["data"]["response_time_minutes"] and
-                                sla_config.get("resolution_time_minutes") == test_case["data"]["resolution_time_minutes"]):
+                            if (data.get("response_time_minutes") == test_case["params"]["response_time_minutes"] and
+                                data.get("resolution_time_minutes") == test_case["params"]["resolution_time_minutes"]):
                                 print(f"  ✅ {test_case['name']}: PASSED - SLA updated successfully")
                                 passed += 1
                             else:
