@@ -641,6 +641,16 @@ function App() {
             }
           />
           <Route
+            path="/mobile/revenue"
+            element={
+              isAuthenticated ? (
+                <RevenueMobile user={user} />
+              ) : (
+                <Navigate to="/auth" replace />
+              )
+            }
+          />
+          <Route
             path="/mobile/channels"
             element={
               isAuthenticated ? (
