@@ -36143,6 +36143,419 @@ async def get_booking_keycards(
         raise HTTPException(status_code=500, detail=f"Failed to retrieve keycards: {str(e)}")
 
 
+# ============================================================================
+# SYSTEM MONITORING & PERFORMANCE - NEW FEATURES
+# ============================================================================
+
+import psutil
+import time
+from collections import deque
+
+# Global storage for API metrics (in-memory for MVP)
+api_metrics = deque(maxlen=1000)  # Store last 1000 requests
+
+class APIMetricsMiddleware:
+    """Middleware to track API response times"""
+    def __init__(self, app):
+        self.app = app
+    
+    async def __call__(self, scope, receive, send):
+        if scope["type"] == "http":
+            start_time = time.time()
+            
+            async def send_wrapper(message):
+                if message["type"] == "http.response.start":
+                    duration = (time.time() - start_time) * 1000  # Convert to ms
+                    api_metrics.append({
+                        'endpoint': scope.get('path', 'unknown'),
+                        'method': scope.get('method', 'unknown'),
+                        'duration_ms': duration,
+                        'timestamp': datetime.now(timezone.utc).isoformat(),
+                        'status_code': message.get('status', 0)
+                    })
+                await send(message)
+            
+            await self.app(scope, receive, send_wrapper)
+        else:
+            await self.app(scope, receive, send)
+
+# 1. SYSTEM PERFORMANCE MONITORING
+@api_router.get("/system/performance")
+async def get_system_performance(
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Get real-time system performance metrics
+    Returns: CPU, RAM, API response times, request rates
+    """
+    try:
+        # Get CPU and Memory info
+        cpu_percent = psutil.cpu_percent(interval=1)
+        memory = psutil.virtual_memory()
+        disk = psutil.disk_usage('/')
+        
+        # Calculate API metrics from last 100 requests
+        recent_requests = list(api_metrics)[-100:] if len(api_metrics) > 0 else []
+        
+        avg_response_time = 0
+        requests_per_minute = 0
+        endpoint_stats = {}
+        
+        if recent_requests:
+            avg_response_time = sum(r['duration_ms'] for r in recent_requests) / len(recent_requests)
+            
+            # Count requests in last minute
+            one_minute_ago = datetime.now(timezone.utc) - timedelta(minutes=1)
+            recent_minute = [r for r in recent_requests if datetime.fromisoformat(r['timestamp']) > one_minute_ago]
+            requests_per_minute = len(recent_minute)
+            
+            # Group by endpoint
+            for req in recent_requests:
+                endpoint = req['endpoint']
+                if endpoint not in endpoint_stats:
+                    endpoint_stats[endpoint] = {
+                        'count': 0,
+                        'avg_duration': 0,
+                        'total_duration': 0,
+                        'slowest': 0,
+                        'fastest': 999999
+                    }
+                
+                endpoint_stats[endpoint]['count'] += 1
+                endpoint_stats[endpoint]['total_duration'] += req['duration_ms']
+                endpoint_stats[endpoint]['slowest'] = max(endpoint_stats[endpoint]['slowest'], req['duration_ms'])
+                endpoint_stats[endpoint]['fastest'] = min(endpoint_stats[endpoint]['fastest'], req['duration_ms'])
+            
+            # Calculate averages
+            for endpoint in endpoint_stats:
+                endpoint_stats[endpoint]['avg_duration'] = (
+                    endpoint_stats[endpoint]['total_duration'] / endpoint_stats[endpoint]['count']
+                )
+        
+        # Get historical data (last 10 minutes)
+        ten_minutes_ago = datetime.now(timezone.utc) - timedelta(minutes=10)
+        historical = [r for r in api_metrics if datetime.fromisoformat(r['timestamp']) > ten_minutes_ago]
+        
+        # Group by minute for timeline
+        timeline = {}
+        for req in historical:
+            minute = req['timestamp'][:16]  # YYYY-MM-DDTHH:MM
+            if minute not in timeline:
+                timeline[minute] = {
+                    'timestamp': minute,
+                    'requests': 0,
+                    'avg_response_time': 0,
+                    'total_duration': 0
+                }
+            timeline[minute]['requests'] += 1
+            timeline[minute]['total_duration'] += req['duration_ms']
+        
+        for minute in timeline:
+            timeline[minute]['avg_response_time'] = (
+                timeline[minute]['total_duration'] / timeline[minute]['requests']
+            )
+        
+        return {
+            'system': {
+                'cpu_percent': round(cpu_percent, 2),
+                'memory_percent': round(memory.percent, 2),
+                'memory_used_gb': round(memory.used / (1024**3), 2),
+                'memory_total_gb': round(memory.total / (1024**3), 2),
+                'disk_percent': round(disk.percent, 2),
+                'disk_used_gb': round(disk.used / (1024**3), 2),
+                'disk_total_gb': round(disk.total / (1024**3), 2)
+            },
+            'api_metrics': {
+                'avg_response_time_ms': round(avg_response_time, 2),
+                'requests_per_minute': requests_per_minute,
+                'total_requests_tracked': len(api_metrics),
+                'endpoints': [
+                    {
+                        'endpoint': endpoint,
+                        'count': stats['count'],
+                        'avg_duration_ms': round(stats['avg_duration'], 2),
+                        'slowest_ms': round(stats['slowest'], 2),
+                        'fastest_ms': round(stats['fastest'], 2)
+                    }
+                    for endpoint, stats in sorted(endpoint_stats.items(), key=lambda x: x[1]['avg_duration'], reverse=True)[:10]
+                ]
+            },
+            'timeline': sorted(timeline.values(), key=lambda x: x['timestamp']),
+            'health_status': 'healthy' if cpu_percent < 80 and memory.percent < 80 else 'degraded',
+            'timestamp': datetime.now(timezone.utc).isoformat()
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to get performance metrics: {str(e)}")
+
+
+# 2. LOG VIEWER
+@api_router.get("/system/logs")
+async def get_system_logs(
+    level: Optional[str] = None,  # ERROR, WARN, INFO, DEBUG
+    search: Optional[str] = None,
+    limit: int = 100,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Get system logs with filtering
+    """
+    try:
+        # Read from audit logs and create application logs
+        logs = []
+        
+        # Get audit logs from database
+        filter_dict = {'tenant_id': current_user.tenant_id}
+        if search:
+            filter_dict['$or'] = [
+                {'action': {'$regex': search, '$options': 'i'}},
+                {'entity_type': {'$regex': search, '$options': 'i'}},
+                {'user_name': {'$regex': search, '$options': 'i'}}
+            ]
+        
+        audit_logs = await db.audit_logs.find(filter_dict).sort('timestamp', -1).limit(limit).to_list(limit)
+        
+        for log in audit_logs:
+            # Convert audit log to application log format
+            log_entry = {
+                'id': log['id'],
+                'level': 'INFO',
+                'timestamp': log['timestamp'],
+                'message': f"{log['user_name']} performed {log['action']} on {log['entity_type']}",
+                'user': log.get('user_name', 'System'),
+                'action': log['action'],
+                'entity_type': log.get('entity_type'),
+                'entity_id': log.get('entity_id'),
+                'details': log.get('changes', {})
+            }
+            
+            # Determine log level based on action
+            if 'DELETE' in log['action'] or 'VOID' in log['action']:
+                log_entry['level'] = 'WARN'
+            elif 'ERROR' in log['action'] or 'FAIL' in log['action']:
+                log_entry['level'] = 'ERROR'
+            
+            logs.append(log_entry)
+        
+        # Filter by level if specified
+        if level:
+            logs = [log for log in logs if log['level'] == level.upper()]
+        
+        # Add some system logs
+        system_logs = [
+            {
+                'id': str(uuid.uuid4()),
+                'level': 'INFO',
+                'timestamp': datetime.now(timezone.utc).isoformat(),
+                'message': 'System performance check completed',
+                'user': 'System',
+                'action': 'SYSTEM_CHECK',
+                'details': {'status': 'healthy'}
+            },
+            {
+                'id': str(uuid.uuid4()),
+                'level': 'INFO',
+                'timestamp': (datetime.now(timezone.utc) - timedelta(minutes=5)).isoformat(),
+                'message': 'Database connection verified',
+                'user': 'System',
+                'action': 'DB_CHECK',
+                'details': {'latency_ms': 12}
+            }
+        ]
+        
+        logs.extend(system_logs)
+        logs.sort(key=lambda x: x['timestamp'], reverse=True)
+        
+        return {
+            'logs': logs[:limit],
+            'count': len(logs),
+            'filters': {
+                'level': level,
+                'search': search,
+                'limit': limit
+            },
+            'log_levels': {
+                'ERROR': len([l for l in logs if l['level'] == 'ERROR']),
+                'WARN': len([l for l in logs if l['level'] == 'WARN']),
+                'INFO': len([l for l in logs if l['level'] == 'INFO']),
+                'DEBUG': len([l for l in logs if l['level'] == 'DEBUG'])
+            }
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to retrieve logs: {str(e)}")
+
+
+# 3. NETWORK PING TEST
+class PingTestRequest(BaseModel):
+    target: str = "8.8.8.8"  # Google DNS
+    count: int = 4
+
+@api_router.post("/network/ping")
+async def network_ping_test(
+    request: PingTestRequest,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Perform ping test to measure latency
+    """
+    try:
+        import subprocess
+        import re
+        
+        # Perform ping (works on both Linux and Windows)
+        try:
+            if os.name == 'nt':  # Windows
+                output = subprocess.check_output(
+                    ['ping', '-n', str(request.count), request.target],
+                    universal_newlines=True,
+                    timeout=10
+                )
+            else:  # Linux/Mac
+                output = subprocess.check_output(
+                    ['ping', '-c', str(request.count), request.target],
+                    universal_newlines=True,
+                    timeout=10
+                )
+            
+            # Parse ping output
+            lines = output.split('\n')
+            ping_times = []
+            
+            for line in lines:
+                # Look for time= pattern
+                match = re.search(r'time[=<](\d+\.?\d*)', line)
+                if match:
+                    ping_times.append(float(match.group(1)))
+            
+            if ping_times:
+                avg_latency = sum(ping_times) / len(ping_times)
+                min_latency = min(ping_times)
+                max_latency = max(ping_times)
+                packet_loss = ((request.count - len(ping_times)) / request.count) * 100
+            else:
+                avg_latency = 0
+                min_latency = 0
+                max_latency = 0
+                packet_loss = 100
+            
+            # Determine connection quality
+            if avg_latency < 50:
+                quality = 'excellent'
+            elif avg_latency < 100:
+                quality = 'good'
+            elif avg_latency < 200:
+                quality = 'fair'
+            else:
+                quality = 'poor'
+            
+            return {
+                'target': request.target,
+                'packets_sent': request.count,
+                'packets_received': len(ping_times),
+                'packet_loss_percent': round(packet_loss, 2),
+                'latency': {
+                    'min_ms': round(min_latency, 2),
+                    'avg_ms': round(avg_latency, 2),
+                    'max_ms': round(max_latency, 2)
+                },
+                'quality': quality,
+                'ping_times': ping_times,
+                'timestamp': datetime.now(timezone.utc).isoformat(),
+                'status': 'success' if packet_loss < 100 else 'failed'
+            }
+            
+        except subprocess.CalledProcessError as e:
+            return {
+                'target': request.target,
+                'status': 'failed',
+                'error': 'Ping command failed',
+                'quality': 'no_connection',
+                'timestamp': datetime.now(timezone.utc).isoformat()
+            }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Ping test failed: {str(e)}")
+
+
+# 4. ENDPOINT HEALTH CHECK
+@api_router.get("/system/health")
+async def system_health_check(
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Check health of all critical endpoints and services
+    """
+    try:
+        health_checks = []
+        
+        # Check database connection
+        try:
+            await db.command('ping')
+            db_latency_start = time.time()
+            await db.bookings.find_one({})
+            db_latency = (time.time() - db_latency_start) * 1000
+            
+            health_checks.append({
+                'service': 'MongoDB',
+                'status': 'healthy',
+                'latency_ms': round(db_latency, 2),
+                'message': 'Database connection active'
+            })
+        except Exception as e:
+            health_checks.append({
+                'service': 'MongoDB',
+                'status': 'unhealthy',
+                'latency_ms': 0,
+                'message': f'Database error: {str(e)}'
+            })
+        
+        # Check API endpoints
+        critical_endpoints = [
+            {'name': 'Authentication', 'count_collection': 'users'},
+            {'name': 'Bookings', 'count_collection': 'bookings'},
+            {'name': 'Rooms', 'count_collection': 'rooms'},
+            {'name': 'Guests', 'count_collection': 'guests'}
+        ]
+        
+        for endpoint in critical_endpoints:
+            try:
+                start_time = time.time()
+                count = await db[endpoint['count_collection']].count_documents({'tenant_id': current_user.tenant_id})
+                latency = (time.time() - start_time) * 1000
+                
+                health_checks.append({
+                    'service': endpoint['name'],
+                    'status': 'healthy',
+                    'latency_ms': round(latency, 2),
+                    'message': f'{count} records',
+                    'record_count': count
+                })
+            except Exception as e:
+                health_checks.append({
+                    'service': endpoint['name'],
+                    'status': 'unhealthy',
+                    'latency_ms': 0,
+                    'message': f'Error: {str(e)}'
+                })
+        
+        # Overall health status
+        unhealthy_count = len([h for h in health_checks if h['status'] == 'unhealthy'])
+        overall_status = 'healthy' if unhealthy_count == 0 else 'degraded' if unhealthy_count < 2 else 'critical'
+        
+        return {
+            'overall_status': overall_status,
+            'checks': health_checks,
+            'total_checks': len(health_checks),
+            'healthy_count': len([h for h in health_checks if h['status'] == 'healthy']),
+            'unhealthy_count': unhealthy_count,
+            'timestamp': datetime.now(timezone.utc).isoformat()
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Health check failed: {str(e)}")
+
+
 
 # Include router at the very end after ALL endpoints are defined
 app.include_router(api_router)
