@@ -45,6 +45,7 @@ import RevenueManagementMobile from "@/pages/RevenueManagementMobile";
 import GMEnhancedDashboard from "@/pages/GMEnhancedDashboard";
 import SalesCRMMobile from "@/pages/SalesCRMMobile";
 import RateManagementMobile from "@/pages/RateManagementMobile";
+import RevenueMobile from "@/pages/RevenueMobile";
 import ChannelManagerMobile from "@/pages/ChannelManagerMobile";
 import CorporateContractsMobile from "@/pages/CorporateContractsMobile";
 import SystemPerformanceMonitor from "@/pages/SystemPerformanceMonitor";
