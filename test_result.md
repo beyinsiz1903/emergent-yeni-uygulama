@@ -7076,15 +7076,18 @@ backend:
 
   - task: "Dashboard - Monthly Profitability"
     implemented: true
-    working: "NA"
+    working: true
     file: "/app/backend/server.py"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: "NA"
         agent: "main"
         comment: "Added GET /api/dashboard/monthly-profitability - Returns last N months profitability with revenue, expense, profit, profit margin for each month. Includes averages and current month highlight."
+      - working: true
+        agent: "testing"
+        comment: "✅ ENDPOINT WORKING - GET /api/dashboard/monthly-profitability returns proper response with months_data, current_month, and averages. Month data includes all required fields: month, month_name, revenue, expense, profit, profit_margin. Averages calculation working with avg_revenue, avg_expense, avg_profit, avg_profit_margin. Default months parameter (6) and custom months parameter (12) both functional."
 
   - task: "Dashboard - Trend KPIs"
     implemented: true
