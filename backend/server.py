@@ -36405,7 +36405,7 @@ async def get_cleaning_requests(
             filter_dict['priority'] = priority
         
         # Get cleaning requests
-        requests = await db.cleaning_requests.find(filter_dict).sort('requested_at', -1).to_list(100)
+        requests = await db.cleaning_requests.find(filter_dict, {'_id': 0}).sort('requested_at', -1).to_list(100)
         
         # Categorize by status
         pending = [r for r in requests if r['status'] == 'pending']
