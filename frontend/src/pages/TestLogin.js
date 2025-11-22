@@ -130,11 +130,42 @@ function TestLogin() {
         <p style={{ 
           textAlign: 'center', 
           color: '#666', 
-          marginBottom: '30px',
+          marginBottom: '20px',
           fontSize: '14px'
         }}>
           Debug Login Page
         </p>
+
+        {/* Quick Test Users */}
+        <div style={{ marginBottom: '20px' }}>
+          <p style={{ fontSize: '12px', color: '#666', marginBottom: '10px', textAlign: 'center' }}>
+            🚀 Hızlı Giriş:
+          </p>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+            {testUsers.map((user, idx) => (
+              <button
+                key={idx}
+                type="button"
+                onClick={() => {
+                  setEmail(user.email);
+                  setPassword(user.password);
+                }}
+                style={{
+                  padding: '8px 12px',
+                  fontSize: '12px',
+                  border: '1px solid #667eea',
+                  borderRadius: '6px',
+                  background: email === user.email ? '#667eea' : 'white',
+                  color: email === user.email ? 'white' : '#667eea',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s'
+                }}
+              >
+                {user.name}
+              </button>
+            ))}
+          </div>
+        </div>
 
         <form onSubmit={handleLogin}>
           <div style={{ marginBottom: '20px' }}>
