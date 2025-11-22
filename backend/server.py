@@ -27037,7 +27037,7 @@ async def get_cancellation_report_mobile(
             channel_analysis[source]['no_shows'] += 1
         
         channel_analysis[source]['total'] += 1
-        channel_analysis[source]['lost_revenue'] += booking.get('total_amount', 0)
+        channel_analysis[source]['lost_revenue'] += calculate_booking_revenue(booking)
     
     # Format channel data
     channels = []
