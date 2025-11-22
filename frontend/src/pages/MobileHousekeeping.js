@@ -494,7 +494,7 @@ const MobileHousekeeping = ({ user }) => {
                           </div>
                           <Button
                             size="sm"
-                            className="h-7 text-xs px-3 bg-blue-600 hover:bg-blue-700"
+                            className="h-7 text-xs px-3 bg-green-600 hover:bg-green-700"
                             onClick={() => handleStatusChangeRequest(room.id, room.room_number, room.status, getNextStatus(room.status))}
                           >
                             ✓ Temizlendi
