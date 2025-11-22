@@ -52,6 +52,8 @@ const PMSModule = ({ user, tenant, onLogout }) => {
   const [openDialog, setOpenDialog] = useState(null);
   const [selectedBooking, setSelectedBooking] = useState(null);
   const [selectedCompany, setSelectedCompany] = useState(null);
+  const [selectedGuest, setSelectedGuest] = useState(null);
+
   const [folio, setFolio] = useState(null);
   const [folios, setFolios] = useState([]);
   const [selectedFolio, setSelectedFolio] = useState(null);
