@@ -2427,6 +2427,29 @@ async def get_companies(
     # Remove response_model validation to allow flexible contracted_rate types
     return companies
 
+# Alias for PMS module compatibility
+@api_router.get("/pms/companies")
+async def get_pms_companies(
+    search: Optional[str] = None,
+    status: Optional[CompanyStatus] = None,
+    current_user: User = Depends(get_current_user)
+):
+    """Get all companies - PMS module alias."""
+    query = {'tenant_id': current_user.tenant_id}
+    
+    if status:
+        query['status'] = status
+    
+    if search:
+        query['$or'] = [
+            {'name': {'$regex': search, '$options': 'i'}},
+            {'corporate_code': {'$regex': search, '$options': 'i'}}
+        ]
+    
+    companies = await db.companies.find(query, {'_id': 0}).to_list(1000)
+    return companies
+
+
 @api_router.get("/companies/{company_id}", response_model=Company)
 async def get_company(company_id: str, current_user: User = Depends(get_current_user)):
     """Get a specific company by ID."""
