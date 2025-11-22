@@ -1043,6 +1043,94 @@ class FolioCharge(BaseModel):
     void_reason: Optional[str] = None
     department: Optional[str] = None
 
+
+
+# Housekeeping Enhanced Models
+class InspectionChecklistItem(BaseModel):
+    area: str  # bathroom, bedroom, minibar, amenities, etc.
+    item: str  # towels, soap, remote, etc.
+    status: str  # ok, missing, damaged, dirty
+    notes: Optional[str] = None
+
+class RoomInspection(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    tenant_id: str
+    room_id: str
+    room_number: str
+    inspection_type: str  # checkout, maintenance, quality, routine
+    inspector: str
+    inspection_status: InspectionStatus = InspectionStatus.PENDING
+    checklist: List[InspectionChecklistItem] = []
+    photos: List[str] = []  # Photo URLs or base64
+    notes: Optional[str] = None
+    issues_found: List[str] = []
+    maintenance_required: bool = False
+    maintenance_task_id: Optional[str] = None
+    started_at: Optional[datetime] = None
+    completed_at: Optional[datetime] = None
+    duration_minutes: Optional[int] = None
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+class LostFoundItem(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    tenant_id: str
+    item_number: str  # LF-001, LF-002, etc.
+    item_description: str
+    category: str  # Electronics, Jewelry, Clothing, Documents, etc.
+    room_number: str
+    found_location: str  # bed, bathroom, closet, etc.
+    found_date: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    found_by: str
+    photos: List[str] = []
+    storage_location: str  # Storage room, Safe, etc.
+    storage_number: Optional[str] = None
+    status: LostFoundStatus = LostFoundStatus.FOUND
+    guest_id: Optional[str] = None
+    guest_name: Optional[str] = None
+    claimed_by: Optional[str] = None
+    claimed_date: Optional[datetime] = None
+    delivered_to: Optional[str] = None
+    delivered_date: Optional[datetime] = None
+    delivery_notes: Optional[str] = None
+    disposal_date: Optional[datetime] = None
+    disposal_reason: Optional[str] = None
+    notes: Optional[str] = None
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+class HKTaskAssignment(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    tenant_id: str
+    assignment_date: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    staff_id: str
+    staff_name: str
+    assigned_rooms: List[str] = []  # Room IDs
+    room_count: int = 0
+    status: str = "assigned"  # assigned, in_progress, completed
+    assigned_by: str
+    notes: Optional[str] = None
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+class CleaningTimer(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    tenant_id: str
+    room_id: str
+    room_number: str
+    staff_id: str
+    staff_name: str
+    task_type: str  # checkout, stayover, deep_clean, turndown
+    started_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    completed_at: Optional[datetime] = None
+    duration_minutes: Optional[int] = None
+    status: str = "in_progress"  # in_progress, completed, paused
+    notes: Optional[str] = None
+
     unit: MeasurementUnit
     order_id: Optional[str] = None
     recipe_id: Optional[str] = None
