@@ -226,6 +226,9 @@ user_problem_statement: |
       - working: true
         agent: "testing"
         comment: "✅ ENDPOINT WORKING - GET /api/housekeeping/mobile/room-assignments returns proper response with assignments array and total_count. Staff filtering with staff_name parameter functional. Response structure verified. Minor: Expected staff_summary field not present but core functionality works with assignments and total_count."
+      - working: true
+        agent: "testing"
+        comment: "✅ DATETIME PARSING BUG FIXED - Fixed timezone-aware/naive datetime comparison issue that was causing HTTP 500 error. Endpoint now works perfectly with HTTP 200 response (12ms). Duration calculation for in-progress tasks working correctly. All functionality verified including staff filtering."
 
   - task: "Housekeeping Mobile - Cleaning Time Statistics"
     implemented: true
