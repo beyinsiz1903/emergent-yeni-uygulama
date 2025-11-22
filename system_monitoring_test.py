@@ -214,7 +214,7 @@ class SystemMonitoringTester:
                 
                 if all_warn:
                     self.test_results['log_viewer']['passed'] += 1
-                    self.test_results['log_viewer']['details'].append(f"✅ WARN level filter working - {len(logs)} logs")
+                    self.test_results['log_viewer']['details'].append(f"✅ WARN level filter working - {len(logs)} logs (empty is valid)")
                 else:
                     self.test_results['log_viewer']['failed'] += 1
                     self.test_results['log_viewer']['details'].append("❌ WARN level filter not working properly")
