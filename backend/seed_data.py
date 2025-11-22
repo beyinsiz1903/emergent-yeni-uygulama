@@ -150,26 +150,230 @@ class HotelSeeder:
         return guests
     
     async def create_bookings(self, rooms, guests):
-        """Create bookings (past, current, future)"""
+        """Create bookings (past, current, future) with realistic test data"""
         bookings = []
         now = datetime.now(timezone.utc)
+        today = now.date()
         
-        # Past bookings (checked out)
-        for i in range(10):
-            guest = random.choice(guests)
-            room = random.choice(rooms)
-            check_in = now - timedelta(days=random.randint(10, 60))
-            check_out = check_in + timedelta(days=random.randint(1, 7))
+        print(f"📅 Bugünün tarihi: {today.isoformat()}")
+        
+        # 1. BUGÜN GİRİŞ YAPACAK REZERVASYONLAR (6 adet)
+        print("  → Bugün giriş yapacak rezervasyonlar oluşturuluyor...")
+        available_rooms = [r for r in rooms if r['status'] == 'available'][:6]
+        for i, room in enumerate(available_rooms):
+            guest = guests[i]
+            check_out = today + timedelta(days=random.randint(2, 7))
+            nights = (check_out - today).days
+            
+            bookings.append({
+                'id': str(uuid.uuid4()),
+                'tenant_id': self.tenant_id,
+                'booking_number': f'BK{now.year}{7000 + i}',
+                'guest_id': guest['id'],
+                'guest_name': guest['name'],
+                'room_id': room['id'],
+                'room_number': room['room_number'],
+                'check_in': today.isoformat(),
+                'check_out': check_out.isoformat(),
+                'status': 'confirmed',  # Giriş bekliyor
+                'adults': random.randint(1, 2),
+                'children': random.randint(0, 1),
+                'guests_count': random.randint(1, 3),
+                'total_amount': room['base_price'] * nights,
+                'paid_amount': 0.0,
+                'rate_code': random.choice(['BAR', 'ADVANCE', 'CORPORATE']),
+                'source': random.choice(['Direct', 'Booking.com', 'Expedia']),
+                'special_requests': random.choice(['Erken giriş talep edildi', 'Sessiz oda', 'Yüksek kat', '']),
+                'created_at': (now - timedelta(days=random.randint(7, 30))).isoformat()
+            })
+        
+        # 2. BUGÜN ÇIKIŞ YAPACAK REZERVASYONLAR (5 adet)
+        print("  → Bugün çıkış yapacak rezervasyonlar oluşturuluyor...")
+        occupied_rooms = [r for r in rooms if r['status'] == 'occupied'][:5]
+        for i, room in enumerate(occupied_rooms):
+            guest = guests[6 + i]
+            check_in = today - timedelta(days=random.randint(2, 7))
+            nights = (today - check_in).days
+            
+            booking_id = str(uuid.uuid4())
+            bookings.append({
+                'id': booking_id,
+                'tenant_id': self.tenant_id,
+                'booking_number': f'BK{now.year}{8000 + i}',
+                'guest_id': guest['id'],
+                'guest_name': guest['name'],
+                'room_id': room['id'],
+                'room_number': room['room_number'],
+                'check_in': check_in.isoformat(),
+                'check_out': today.isoformat(),
+                'status': 'checked_in',  # Çıkış bekliyor
+                'adults': random.randint(1, 2),
+                'children': random.randint(0, 2),
+                'guests_count': random.randint(1, 3),
+                'total_amount': room['base_price'] * nights,
+                'paid_amount': round(room['base_price'] * nights * 0.8, 2),
+                'rate_code': 'BAR',
+                'source': random.choice(['Direct', 'Booking.com', 'Expedia']),
+                'special_requests': random.choice(['Geç çıkış talep edildi', 'Taksi rezervasyonu', '']),
+                'created_at': (check_in - timedelta(days=random.randint(10, 40))).isoformat()
+            })
+            
+            # Update room with current booking
+            await self.db.rooms.update_one(
+                {'id': room['id']},
+                {'$set': {'current_booking_id': booking_id, 'status': 'occupied'}}
+            )
+        
+        # 3. YARIN GİRİŞ YAPACAK REZERVASYONLAR (4 adet)
+        print("  → Yarın giriş yapacak rezervasyonlar oluşturuluyor...")
+        tomorrow = today + timedelta(days=1)
+        for i in range(4):
+            guest = guests[11 + i]
+            room = rooms[11 + i]
+            check_out = tomorrow + timedelta(days=random.randint(2, 5))
+            nights = (check_out - tomorrow).days
+            
+            bookings.append({
+                'id': str(uuid.uuid4()),
+                'tenant_id': self.tenant_id,
+                'booking_number': f'BK{now.year}{8100 + i}',
+                'guest_id': guest['id'],
+                'guest_name': guest['name'],
+                'room_id': room['id'],
+                'room_number': room['room_number'],
+                'check_in': tomorrow.isoformat(),
+                'check_out': check_out.isoformat(),
+                'status': 'confirmed',
+                'adults': random.randint(1, 2),
+                'children': random.randint(0, 1),
+                'guests_count': random.randint(1, 3),
+                'total_amount': room['base_price'] * nights,
+                'paid_amount': round(room['base_price'] * nights * 0.3, 2),
+                'rate_code': random.choice(['BAR', 'ADVANCE']),
+                'source': random.choice(['Direct', 'Booking.com']),
+                'special_requests': '',
+                'created_at': (now - timedelta(days=random.randint(5, 20))).isoformat()
+            })
+        
+        # 4. 2-3 GÜN SONRA GİRİŞ YAPACAK REZERVASYONLAR (5 adet)
+        print("  → 2-3 gün sonra giriş yapacak rezervasyonlar oluşturuluyor...")
+        for i in range(5):
+            guest = guests[15 + i]
+            room = rooms[15 + i]
+            check_in = today + timedelta(days=random.randint(2, 3))
+            check_out = check_in + timedelta(days=random.randint(2, 5))
             nights = (check_out - check_in).days
             
             bookings.append({
                 'id': str(uuid.uuid4()),
                 'tenant_id': self.tenant_id,
-                'booking_number': f'BK{now.year}{random.randint(1000, 9999)}',
+                'booking_number': f'BK{now.year}{8200 + i}',
                 'guest_id': guest['id'],
+                'guest_name': guest['name'],
                 'room_id': room['id'],
-                'check_in': check_in.date().isoformat(),
-                'check_out': check_out.date().isoformat(),
+                'room_number': room['room_number'],
+                'check_in': check_in.isoformat(),
+                'check_out': check_out.isoformat(),
+                'status': 'guaranteed',
+                'adults': random.randint(1, 2),
+                'children': random.randint(0, 2),
+                'guests_count': random.randint(1, 3),
+                'total_amount': room['base_price'] * nights,
+                'paid_amount': room['base_price'] * nights * 0.5,
+                'rate_code': random.choice(['ADVANCE', 'CORPORATE']),
+                'source': random.choice(['Direct', 'Expedia', 'Phone']),
+                'special_requests': random.choice(['', 'İş seyahati', 'Toplantı odası gerekli']),
+                'created_at': (now - timedelta(days=random.randint(10, 30))).isoformat()
+            })
+        
+        # 5. GELECEKTEKİ REZERVASYONLAR (1 hafta - 1 ay arası, 8 adet)
+        print("  → Gelecekteki rezervasyonlar oluşturuluyor...")
+        for i in range(8):
+            guest = guests[20 + i] if 20 + i < len(guests) else random.choice(guests)
+            room = rooms[20 + i] if 20 + i < len(rooms) else random.choice(rooms)
+            check_in = today + timedelta(days=random.randint(7, 30))
+            check_out = check_in + timedelta(days=random.randint(2, 7))
+            nights = (check_out - check_in).days
+            
+            bookings.append({
+                'id': str(uuid.uuid4()),
+                'tenant_id': self.tenant_id,
+                'booking_number': f'BK{now.year}{8300 + i}',
+                'guest_id': guest['id'],
+                'guest_name': guest['name'],
+                'room_id': room['id'],
+                'room_number': room['room_number'],
+                'check_in': check_in.isoformat(),
+                'check_out': check_out.isoformat(),
+                'status': random.choice(['confirmed', 'guaranteed']),
+                'adults': random.randint(1, 2),
+                'children': random.randint(0, 2),
+                'guests_count': random.randint(1, 3),
+                'total_amount': room['base_price'] * nights,
+                'paid_amount': 0.0 if random.random() < 0.5 else round(room['base_price'] * nights * 0.3, 2),
+                'rate_code': random.choice(['BAR', 'ADVANCE', 'CORPORATE']),
+                'source': random.choice(['Direct', 'Booking.com', 'Expedia', 'Phone']),
+                'special_requests': random.choice(['', 'Balayı paketi', 'Yıl dönümü', 'Doğum günü']),
+                'created_at': (now - timedelta(days=random.randint(1, 15))).isoformat()
+            })
+        
+        # 6. ŞU AN KONAKLAYAN MİSAFİRLER (BUGÜN ÇIKMAYANLAR, 3 adet)
+        print("  → Şu an konaklayan misafirler oluşturululuyor...")
+        remaining_occupied = [r for r in rooms if r['status'] == 'occupied'][5:8]
+        for i, room in enumerate(remaining_occupied):
+            guest = guests[28 + i] if 28 + i < len(guests) else random.choice(guests)
+            check_in = today - timedelta(days=random.randint(1, 3))
+            check_out = today + timedelta(days=random.randint(2, 7))
+            nights = (check_out - check_in).days
+            
+            booking_id = str(uuid.uuid4())
+            bookings.append({
+                'id': booking_id,
+                'tenant_id': self.tenant_id,
+                'booking_number': f'BK{now.year}{8400 + i}',
+                'guest_id': guest['id'],
+                'guest_name': guest['name'],
+                'room_id': room['id'],
+                'room_number': room['room_number'],
+                'check_in': check_in.isoformat(),
+                'check_out': check_out.isoformat(),
+                'status': 'checked_in',
+                'adults': random.randint(1, 2),
+                'children': random.randint(0, 2),
+                'guests_count': random.randint(1, 3),
+                'total_amount': room['base_price'] * nights,
+                'paid_amount': round(room['base_price'] * nights * 0.5, 2),
+                'rate_code': 'BAR',
+                'source': random.choice(['Direct', 'Booking.com']),
+                'special_requests': '',
+                'created_at': (check_in - timedelta(days=random.randint(10, 40))).isoformat()
+            })
+            
+            # Update room with current booking
+            await self.db.rooms.update_one(
+                {'id': room['id']},
+                {'$set': {'current_booking_id': booking_id, 'status': 'occupied'}}
+            )
+        
+        # 7. GEÇMİŞ REZERVASYONLAR (5 adet)
+        print("  → Geçmiş rezervasyonlar oluşturuluyor...")
+        for i in range(5):
+            guest = random.choice(guests)
+            room = random.choice(rooms)
+            check_in = today - timedelta(days=random.randint(10, 60))
+            check_out = check_in + timedelta(days=random.randint(2, 7))
+            nights = (check_out - check_in).days
+            
+            bookings.append({
+                'id': str(uuid.uuid4()),
+                'tenant_id': self.tenant_id,
+                'booking_number': f'BK{now.year}{6000 + i}',
+                'guest_id': guest['id'],
+                'guest_name': guest['name'],
+                'room_id': room['id'],
+                'room_number': room['room_number'],
+                'check_in': check_in.isoformat(),
+                'check_out': check_out.isoformat(),
                 'status': 'checked_out',
                 'adults': random.randint(1, 2),
                 'children': random.randint(0, 2),
@@ -182,71 +386,18 @@ class HotelSeeder:
                 'created_at': (check_in - timedelta(days=random.randint(5, 30))).isoformat()
             })
         
-        # Current bookings (checked in)
-        for i in range(8):
-            guest = random.choice(guests)
-            room = random.choice([r for r in rooms if r['status'] == 'occupied'])
-            check_in = now - timedelta(days=random.randint(0, 3))
-            check_out = now + timedelta(days=random.randint(1, 5))
-            nights = (check_out - check_in).days
-            
-            booking_id = str(uuid.uuid4())
-            bookings.append({
-                'id': booking_id,
-                'tenant_id': self.tenant_id,
-                'booking_number': f'BK{now.year}{random.randint(1000, 9999)}',
-                'guest_id': guest['id'],
-                'room_id': room['id'],
-                'check_in': check_in.date().isoformat(),
-                'check_out': check_out.date().isoformat(),
-                'status': 'checked_in',
-                'adults': random.randint(1, 2),
-                'children': random.randint(0, 2),
-                'guests_count': random.randint(1, 3),
-                'total_amount': room['base_price'] * nights,
-                'paid_amount': round(room['base_price'] * nights * random.uniform(0, 0.5), 2),
-                'rate_code': 'BAR',
-                'source': random.choice(['Direct', 'Booking.com', 'Expedia']),
-                'special_requests': random.choice(['', 'High floor', 'Late check-out', 'Extra pillows']),
-                'created_at': (check_in - timedelta(days=random.randint(5, 30))).isoformat()
-            })
-            
-            # Update room with current booking
-            await self.db.rooms.update_one(
-                {'id': room['id']},
-                {'$set': {'current_booking_id': booking_id, 'status': 'occupied'}}
-            )
-        
-        # Future bookings (confirmed)
-        for i in range(12):
-            guest = random.choice(guests)
-            room = random.choice(rooms)
-            check_in = now + timedelta(days=random.randint(1, 30))
-            check_out = check_in + timedelta(days=random.randint(1, 7))
-            nights = (check_out - check_in).days
-            
-            bookings.append({
-                'id': str(uuid.uuid4()),
-                'tenant_id': self.tenant_id,
-                'booking_number': f'BK{now.year}{random.randint(1000, 9999)}',
-                'guest_id': guest['id'],
-                'room_id': room['id'],
-                'check_in': check_in.date().isoformat(),
-                'check_out': check_out.date().isoformat(),
-                'status': random.choice(['confirmed', 'guaranteed']),
-                'adults': random.randint(1, 2),
-                'children': random.randint(0, 2),
-                'guests_count': random.randint(1, 3),
-                'total_amount': room['base_price'] * nights,
-                'paid_amount': 0.0,
-                'rate_code': random.choice(['BAR', 'ADVANCE', 'CORPORATE']),
-                'source': random.choice(['Direct', 'Booking.com', 'Expedia', 'Phone']),
-                'special_requests': random.choice(['', 'Honeymoon', 'Anniversary', 'Birthday']),
-                'created_at': (now - timedelta(days=random.randint(1, 10))).isoformat()
-            })
-        
         await self.db.bookings.insert_many(bookings)
-        print(f"✓ Created {len(bookings)} bookings")
+        
+        # Özet yazdır
+        print(f"\n✓ TOPLAM {len(bookings)} REZERVASYON OLUŞTURULDU:")
+        print(f"  📥 Bugün giriş: 6 adet")
+        print(f"  📤 Bugün çıkış: 5 adet")
+        print(f"  📅 Yarın giriş: 4 adet")
+        print(f"  📅 2-3 gün sonra: 5 adet")
+        print(f"  📆 Gelecek (1 hafta - 1 ay): 8 adet")
+        print(f"  🏨 Şu an konaklayan: 3 adet")
+        print(f"  ✅ Geçmiş: 5 adet")
+        
         return bookings
     
     async def create_folios(self, bookings):
