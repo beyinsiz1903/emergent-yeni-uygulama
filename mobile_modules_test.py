@@ -96,7 +96,7 @@ class MobileModulesTester:
             {
                 "name": "Get all customers",
                 "params": {},
-                "expected_fields": ["customers", "total_count", "summary"]
+                "expected_fields": ["customers", "count", "vip_count"]
             },
             {
                 "name": "Filter by customer_type - vip",
