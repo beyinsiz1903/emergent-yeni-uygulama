@@ -36431,10 +36431,16 @@ async def get_cleaning_requests(
 
 
 # 3. UPDATE CLEANING REQUEST STATUS
+class CleaningRequestStatusUpdate(BaseModel):
+    status: str  # in_progress, completed, cancelled
+    assigned_to: Optional[str] = None
+    completed_by: Optional[str] = None
+    notes: Optional[str] = None
+
 @api_router.put("/housekeeping/cleaning-request/{request_id}/status")
 async def update_cleaning_request_status(
     request_id: str,
-    status: str,  # in_progress, completed, cancelled
+    update_data: CleaningRequestStatusUpdate,
     current_user: User = Depends(get_current_user)
 ):
     """
