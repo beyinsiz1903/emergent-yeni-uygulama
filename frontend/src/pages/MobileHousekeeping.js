@@ -750,6 +750,41 @@ const MobileHousekeeping = ({ user }) => {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Confirmation Dialog */}
+      <AlertDialog open={confirmDialogOpen} onOpenChange={setConfirmDialogOpen}>
+        <AlertDialogContent className="max-w-[90vw]">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center space-x-2">
+              <AlertCircle className="w-5 h-5 text-orange-600" />
+              <span>
+                {pendingStatusChange && getActionText(
+                  pendingStatusChange.currentStatus, 
+                  pendingStatusChange.newStatus
+                )}
+              </span>
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-base">
+              {pendingStatusChange && getActionDescription(
+                pendingStatusChange.roomNumber,
+                pendingStatusChange.currentStatus,
+                pendingStatusChange.newStatus
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex-col space-y-2 sm:flex-row sm:space-y-0">
+            <AlertDialogCancel onClick={cancelStatusChange} className="w-full sm:w-auto">
+              İptal
+            </AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={confirmStatusChange}
+              className="w-full sm:w-auto bg-green-600 hover:bg-green-700"
+            >
+              ✓ Onaylıyorum
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
