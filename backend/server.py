@@ -36144,6 +36144,149 @@ async def get_booking_keycards(
 
 
 # ============================================================================
+# UNIFIED ARRIVALS/DEPARTURES - SHARED ACROSS ALL DEPARTMENTS
+# ============================================================================
+
+@api_router.get("/unified/today-arrivals")
+async def get_today_arrivals_unified(
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Unified endpoint for today's arrivals - used by Front Desk, Housekeeping, GM Dashboard
+    Returns enriched booking data with room and guest information
+    """
+    try:
+        today = datetime.now(timezone.utc).date().isoformat()
+        
+        # Get today's arrivals
+        bookings = await db.bookings.find({
+            'check_in': today,
+            'status': {'$in': ['confirmed', 'guaranteed']},
+            'tenant_id': current_user.tenant_id
+        }).to_list(100)
+        
+        # Enrich with guest and room data
+        enriched_bookings = []
+        for booking in bookings:
+            # Get guest info
+            if booking.get('guest_id'):
+                guest = await db.guests.find_one({'id': booking['guest_id']})
+                if guest:
+                    booking['guest_phone'] = guest.get('phone')
+                    booking['guest_email'] = guest.get('email')
+            
+            # Get room info
+            if booking.get('room_id'):
+                room = await db.rooms.find_one({'id': booking['room_id']})
+                if room:
+                    booking['room_number'] = room.get('room_number')
+                    booking['room_type'] = room.get('room_type')
+                    booking['room_status'] = room.get('status')
+            
+            enriched_bookings.append(booking)
+        
+        return {
+            'arrivals': enriched_bookings,
+            'count': len(enriched_bookings),
+            'date': today
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to get today's arrivals: {str(e)}")
+
+
+@api_router.get("/unified/today-departures")
+async def get_today_departures_unified(
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Unified endpoint for today's departures - used by Front Desk, Housekeeping, GM Dashboard
+    Returns enriched booking data with room and guest information
+    """
+    try:
+        today = datetime.now(timezone.utc).date().isoformat()
+        
+        # Get today's departures
+        bookings = await db.bookings.find({
+            'check_out': today,
+            'status': 'checked_in',
+            'tenant_id': current_user.tenant_id
+        }).to_list(100)
+        
+        # Enrich with guest and room data
+        enriched_bookings = []
+        for booking in bookings:
+            # Get guest info
+            if booking.get('guest_id'):
+                guest = await db.guests.find_one({'id': booking['guest_id']})
+                if guest:
+                    booking['guest_phone'] = guest.get('phone')
+                    booking['guest_email'] = guest.get('email')
+            
+            # Get room info
+            if booking.get('room_id'):
+                room = await db.rooms.find_one({'id': booking['room_id']})
+                if room:
+                    booking['room_number'] = room.get('room_number')
+                    booking['room_type'] = room.get('room_type')
+                    booking['room_status'] = room.get('status')
+            
+            enriched_bookings.append(booking)
+        
+        return {
+            'departures': enriched_bookings,
+            'count': len(enriched_bookings),
+            'date': today
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to get today's departures: {str(e)}")
+
+
+@api_router.get("/unified/in-house")
+async def get_in_house_unified(
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Unified endpoint for in-house guests - used by all departments
+    """
+    try:
+        # Get all checked-in bookings
+        bookings = await db.bookings.find({
+            'status': 'checked_in',
+            'tenant_id': current_user.tenant_id
+        }).to_list(500)
+        
+        # Enrich with guest and room data
+        enriched_bookings = []
+        for booking in bookings:
+            # Get guest info
+            if booking.get('guest_id'):
+                guest = await db.guests.find_one({'id': booking['guest_id']})
+                if guest:
+                    booking['guest_phone'] = guest.get('phone')
+                    booking['guest_email'] = guest.get('email')
+            
+            # Get room info
+            if booking.get('room_id'):
+                room = await db.rooms.find_one({'id': booking['room_id']})
+                if room:
+                    booking['room_number'] = room.get('room_number')
+                    booking['room_type'] = room.get('room_type')
+                    booking['room_status'] = room.get('status')
+            
+            enriched_bookings.append(booking)
+        
+        return {
+            'in_house': enriched_bookings,
+            'count': len(enriched_bookings)
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to get in-house guests: {str(e)}")
+
+
+# ============================================================================
 # CLEANING REQUESTS - GUEST TO HOUSEKEEPING INTEGRATION
 # ============================================================================
 
