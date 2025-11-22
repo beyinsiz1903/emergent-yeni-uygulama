@@ -403,30 +403,37 @@ const MobileHousekeeping = ({ user }) => {
           <CardContent className="space-y-3">
             {getFilteredRooms().map((room) => (
               <div key={room.id} className="p-3 bg-gray-50 rounded-lg border">
-                <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center justify-between">
                   <div className="flex-1">
                     <p className="font-bold text-gray-900 flex items-center">
                       <span className="text-xl mr-2">{getStatusIcon(room.status)}</span>
                       Oda {room.room_number}
                     </p>
-                    <p className="text-sm text-gray-600">{room.room_type}</p>
+                    <p className="text-xs text-gray-500">{room.room_type}</p>
                   </div>
-                  <Badge className={getStatusColor(room.status)}>
-                    {room.status}
-                  </Badge>
+                  <div className="flex flex-col items-end space-y-1">
+                    <Badge className={getStatusColor(room.status)}>
+                      {room.status}
+                    </Badge>
+                    {room.status !== 'occupied' && (
+                      <Button
+                        size="sm"
+                        className={`h-7 text-xs px-3 ${
+                          room.status === 'dirty' ? 'bg-yellow-600 hover:bg-yellow-700' :
+                          room.status === 'cleaning' ? 'bg-blue-600 hover:bg-blue-700' :
+                          room.status === 'inspected' ? 'bg-green-600 hover:bg-green-700' :
+                          'bg-red-600 hover:bg-red-700'
+                        }`}
+                        onClick={() => handleStatusChange(room.id, getNextStatus(room.status))}
+                      >
+                        {room.status === 'dirty' && '🧹 Başla'}
+                        {room.status === 'cleaning' && '✓ Hazır'}
+                        {room.status === 'inspected' && '✓ Aç'}
+                        {room.status === 'available' && '🧹 Kirli'}
+                      </Button>
+                    )}
+                  </div>
                 </div>
-                {room.status !== 'occupied' && (
-                  <Button
-                    size="sm"
-                    className="w-full mt-2"
-                    onClick={() => handleStatusChange(room.id, getNextStatus(room.status))}
-                  >
-                    {room.status === 'dirty' && '🧹 Temizliğe Başla'}
-                    {room.status === 'cleaning' && '✅ Kontrol için Hazır'}
-                    {room.status === 'inspected' && '✅ Müsaite Aç'}
-                    {room.status === 'available' && '🧹 Kirliye Çevir'}
-                  </Button>
-                )}
               </div>
             ))}
           </CardContent>
