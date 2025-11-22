@@ -602,7 +602,8 @@ class UnifiedCleaningTester:
                 url = f"{BACKEND_URL}/housekeeping/cleaning-request/{test_case['request_id']}/status"
                 
                 async with self.session.put(url, json=test_case["data"], headers=self.get_headers()) as response:
-                    if response.status in test_case["expected_status"]:
+                    expected_statuses = test_case["expected_status"] if isinstance(test_case["expected_status"], list) else [test_case["expected_status"]]
+                    if response.status in expected_statuses:
                         if response.status == 200:
                             data = await response.json()
                             required_fields = ["message", "request_id", "status"]
@@ -619,7 +620,7 @@ class UnifiedCleaningTester:
                             passed += 1
                     else:
                         error_text = await response.text()
-                        print(f"  ❌ {test_case['name']}: Expected {test_case['expected_status']}, got {response.status}")
+                        print(f"  ❌ {test_case['name']}: Expected {expected_statuses}, got {response.status}")
                         print(f"      Error: {error_text[:200]}")
                         
             except Exception as e:
