@@ -3199,8 +3199,12 @@ async def create_guest(guest_data: GuestCreate, current_user: User = Depends(get
     return guest
 
 @api_router.get("/pms/guests", response_model=List[Guest])
-async def get_guests(current_user: User = Depends(get_current_user)):
-    guests_raw = await db.guests.find({'tenant_id': current_user.tenant_id}, {'_id': 0}).to_list(1000)
+async def get_guests(
+    limit: int = 1000,
+    offset: int = 0,
+    current_user: User = Depends(get_current_user)
+):
+    guests_raw = await db.guests.find({'tenant_id': current_user.tenant_id}, {'_id': 0}).skip(offset).limit(limit).to_list(limit)
     
     # Map database fields to model fields
     guests = []
