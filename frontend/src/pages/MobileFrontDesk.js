@@ -173,6 +173,102 @@ const MobileFrontDesk = ({ user }) => {
     }
   };
 
+  // NEW FEATURE 1: RESERVATION SEARCH
+  const handleSearch = async () => {
+    try {
+      const params = new URLSearchParams();
+      if (searchQuery) params.append('query', searchQuery);
+      
+      const res = await axios.get(`/reservations/search?${params.toString()}`);
+      setSearchResults(res.data.bookings || []);
+      toast.success(`${res.data.count} rezervasyon bulundu`);
+    } catch (error) {
+      toast.error('✗ Arama başarısız');
+    }
+  };
+
+  // NEW FEATURE 2: ROOM ASSIGNMENT
+  const openRoomAssignment = async (booking) => {
+    try {
+      setSelectedBookingForRoom(booking);
+      // Load available rooms
+      const res = await axios.get(`/frontdesk/available-rooms-for-assignment?check_in=${booking.check_in}&check_out=${booking.check_out}`);
+      setAvailableRooms(res.data.rooms || []);
+      setRoomAssignModalOpen(true);
+    } catch (error) {
+      toast.error('✗ Müsait odalar yüklenemedi');
+    }
+  };
+
+  const assignRoom = async (roomId) => {
+    try {
+      await axios.post('/frontdesk/assign-room', {
+        booking_id: selectedBookingForRoom.id,
+        room_id: roomId
+      });
+      toast.success('✓ Oda atandı');
+      setRoomAssignModalOpen(false);
+      loadData();
+    } catch (error) {
+      toast.error('✗ Oda atanamadı');
+    }
+  };
+
+  // NEW FEATURE 3: PASSPORT SCAN
+  const openPassportScan = (booking) => {
+    setSelectedBookingForPassport(booking);
+    setPassportScanModalOpen(true);
+  };
+
+  const handlePassportScan = async (imageData) => {
+    try {
+      const res = await axios.post('/frontdesk/passport-scan', {
+        image_data: imageData
+      });
+      toast.success('✓ Kimlik okundu');
+      // Auto-fill guest data
+      if (res.data.extracted_data) {
+        toast.info(`${res.data.extracted_data.name} ${res.data.extracted_data.surname}`);
+      }
+      setPassportScanModalOpen(false);
+    } catch (error) {
+      toast.error('✗ Kimlik okunamadı');
+    }
+  };
+
+  const handleImageUpload = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const base64String = reader.result.split(',')[1];
+        setPassportImage(base64String);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  // NEW FEATURE 4: KEYCARD ISSUE
+  const openKeycardModal = (booking) => {
+    setSelectedBookingForKeycard(booking);
+    setKeycardModalOpen(true);
+  };
+
+  const issueKeycard = async () => {
+    try {
+      const res = await axios.post('/keycard/issue', {
+        booking_id: selectedBookingForKeycard.id,
+        card_type: keycardType,
+        validity_hours: 48
+      });
+      toast.success(`✓ ${keycardType === 'physical' ? 'Fiziksel' : keycardType === 'mobile' ? 'Mobil' : 'QR'} kart basıldı`);
+      toast.info(`Kart No: ${res.data.card_data}`);
+      setKeycardModalOpen(false);
+    } catch (error) {
+      toast.error('✗ Kart basılamadı');
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
