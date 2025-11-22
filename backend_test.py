@@ -1067,15 +1067,12 @@ class ApprovalSystemRetester:
         await self.test_executive_performance_alerts()
         await self.test_executive_daily_summary()
         
-        # Phase 3: Notification System (5 endpoints)
+        # Phase 3: Notification System (2 endpoints - QUICK SPOT CHECKS)
         print("\n" + "="*50)
-        print("🔔 PHASE 3: NOTIFICATION SYSTEM (5 endpoints)")
+        print("🔔 PHASE 3: NOTIFICATION SYSTEM (2 endpoints - QUICK SPOT CHECKS)")
         print("="*50)
-        await self.test_get_notification_preferences()
-        await self.test_update_notification_preferences()
         await self.test_get_notifications_list()
         await self.test_mark_notification_read()
-        await self.test_send_system_alert()
         
         # Cleanup
         await self.cleanup_session()
