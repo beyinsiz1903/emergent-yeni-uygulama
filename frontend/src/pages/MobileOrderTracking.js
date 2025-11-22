@@ -528,6 +528,9 @@ const MobileOrderTracking = ({ user }) => {
           <TrendingUp className="h-6 w-6" />
         </Button>
       </div>
+
+      {/* Property Switcher */}
+      <PropertySwitcher onPropertyChange={() => loadActiveOrders()} />
     </div>
   );
 };
