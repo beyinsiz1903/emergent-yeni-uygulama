@@ -481,42 +481,54 @@ const MobileFrontDesk = ({ user }) => {
           </Card>
         </div>
 
-        {/* Today's Arrivals */}
+        {/* Today's Arrivals - Collapsible */}
         <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-lg flex items-center">
-              <UserPlus className="w-5 h-5 mr-2 text-blue-600" />
-              Bugün Geliş Yapacaklar ({todayArrivals.length})
+          <CardHeader 
+            className="pb-3 cursor-pointer hover:bg-gray-50 transition-colors"
+            onClick={() => setArrivalsExpanded(!arrivalsExpanded)}
+          >
+            <CardTitle className="text-lg flex items-center justify-between">
+              <div className="flex items-center">
+                <UserPlus className="w-5 h-5 mr-2 text-blue-600" />
+                Bugün Geliş Yapacaklar ({todayArrivals.length})
+              </div>
+              {arrivalsExpanded ? (
+                <ChevronUp className="w-5 h-5 text-gray-400" />
+              ) : (
+                <ChevronDown className="w-5 h-5 text-gray-400" />
+              )}
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-2">
-            {todayArrivals.length === 0 ? (
-              <p className="text-gray-500 text-center py-4">Bugün geliş yok</p>
-            ) : (
-              todayArrivals.slice(0, 5).map((booking) => (
-                <div key={booking.id} className="flex items-center justify-between p-3 bg-blue-50 rounded-lg border border-blue-200">
-                  <div className="flex-1">
-                    <p className="font-bold text-gray-900">{booking.guest_name || 'Misafir'}</p>
-                    <p className="text-sm text-gray-600">Oda {booking.room_number || 'TBA'}</p>
-                    <p className="text-xs text-gray-500">
-                      {booking.guests_count || 1} kişi • {booking.nights || 0} gece
-                    </p>
+          {arrivalsExpanded && (
+            <CardContent className="space-y-2">
+              {todayArrivals.length === 0 ? (
+                <p className="text-gray-500 text-center py-4">Bugün geliş yok</p>
+              ) : (
+                todayArrivals.map((booking) => (
+                  <div key={booking.id} className="flex items-center justify-between p-3 bg-blue-50 rounded-lg border border-blue-200">
+                    <div className="flex-1">
+                      <p className="font-bold text-gray-900">{booking.guest_name || 'Misafir'}</p>
+                      <p className="text-sm text-gray-600">Oda {booking.room_number || 'TBA'}</p>
+                      <p className="text-xs text-gray-500">
+                        {booking.guests_count || 1} kişi • {booking.check_out}
+                      </p>
+                    </div>
+                    <div className="flex flex-col items-end space-y-2">
+                      <Badge className="bg-blue-500 text-xs">{booking.source}</Badge>
+                      <Button
+                        size="sm"
+                        onClick={() => handleCheckIn(booking.id)}
+                        className="bg-green-600 hover:bg-green-700 text-xs px-2 py-1"
+                      >
+                        <CheckCircle className="w-3 h-3 mr-1" />
+                        Check-In
+                      </Button>
+                    </div>
                   </div>
-                  <div className="flex flex-col items-end space-y-2">
-                    <Badge className="bg-blue-500">{booking.status}</Badge>
-                    <Button
-                      size="sm"
-                      onClick={() => handleCheckIn(booking.id)}
-                      className="bg-green-600 hover:bg-green-700"
-                    >
-                      <CheckCircle className="w-4 h-4 mr-1" />
-                      Check-In
-                    </Button>
-                  </div>
-                </div>
-              ))
-            )}
-          </CardContent>
+                ))
+              )}
+            </CardContent>
+          )}
         </Card>
 
         {/* Today's Departures */}
