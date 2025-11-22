@@ -356,6 +356,7 @@ class HotelSeeder:
         for room in dirty_rooms[:15]:
             tasks.append({
                 'id': str(uuid.uuid4()),
+                'tenant_id': self.tenant_id,
                 'room_id': room['id'],
                 'room_number': room['room_number'],
                 'task_type': 'cleaning',
