@@ -2,7 +2,7 @@
 import requests
 import json
 
-BACKEND_URL = 'https://lostfound-inventory.preview.emergentagent.com/api'
+BACKEND_URL = 'https://clean-mobile-btns.preview.emergentagent.com/api'
 
 # Login
 response = requests.post(f'{BACKEND_URL}/auth/login', json={

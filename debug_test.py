@@ -7,7 +7,7 @@ import requests
 import json
 
 # Configuration
-BACKEND_URL = "https://lostfound-inventory.preview.emergentagent.com/api"
+BACKEND_URL = "https://clean-mobile-btns.preview.emergentagent.com/api"
 TEST_EMAIL = "test@hotel.com"
 TEST_PASSWORD = "test123"
 
