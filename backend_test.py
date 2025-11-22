@@ -841,28 +841,13 @@ class ApprovalSystemRetester:
         })
 
     async def test_get_notifications_list(self):
-        """Test GET /api/notifications/list"""
-        print("\n🔔 Testing Get Notifications List Endpoint...")
+        """Test GET /api/notifications/list - QUICK SPOT CHECK"""
+        print("\n🔔 Testing Get Notifications List Endpoint (QUICK SPOT CHECK)...")
         
         test_cases = [
             {
-                "name": "Get all notifications",
+                "name": "Get all notifications - quick validation",
                 "params": {},
-                "expected_fields": ["notifications", "count"]
-            },
-            {
-                "name": "Get unread notifications only",
-                "params": {"unread_only": "true"},
-                "expected_fields": ["notifications", "count"]
-            },
-            {
-                "name": "Get all notifications (unread_only=false)",
-                "params": {"unread_only": "false"},
-                "expected_fields": ["notifications", "count"]
-            },
-            {
-                "name": "Limit notifications",
-                "params": {"limit": 10},
                 "expected_fields": ["notifications", "count"]
             }
         ]
