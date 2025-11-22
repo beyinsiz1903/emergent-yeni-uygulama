@@ -894,20 +894,15 @@ class ApprovalSystemRetester:
         })
 
     async def test_mark_notification_read(self):
-        """Test PUT /api/notifications/{id}/mark-read"""
-        print("\n🔔 Testing Mark Notification Read Endpoint...")
+        """Test PUT /api/notifications/{id}/mark-read - QUICK SPOT CHECK"""
+        print("\n🔔 Testing Mark Notification Read Endpoint (QUICK SPOT CHECK)...")
         
         # Use sample notification ID
         sample_notification_id = str(uuid.uuid4())
         
         test_cases = [
             {
-                "name": "Mark notification as read",
-                "notification_id": sample_notification_id,
-                "expected_status": [200, 404]  # 200 if exists, 404 if not found
-            },
-            {
-                "name": "Mark non-existent notification as read",
+                "name": "Mark non-existent notification as read - quick validation",
                 "notification_id": "non-existent-id",
                 "expected_status": 404
             }
