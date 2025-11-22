@@ -28,7 +28,7 @@ BACKEND_URL = "https://inventory-mobile-5.preview.emergentagent.com/api"
 TEST_EMAIL = "admin@hotel.com"
 TEST_PASSWORD = "admin123"
 
-class HotelPMSEnhancementsTester:
+class FnBMobileEndpointsTester:
     def __init__(self):
         self.session = None
         self.auth_token = None
@@ -41,7 +41,9 @@ class HotelPMSEnhancementsTester:
             'rooms': [],
             'folios': [],
             'menu_items': [],
-            'orders': []
+            'orders': [],
+            'pos_orders': [],
+            'inventory_items': []
         }
 
     async def setup_session(self):
