@@ -230,7 +230,7 @@ class SeededDataTester:
         print("\n👥 Testing Guests Data...")
         
         try:
-            async with self.session.get(f"{BACKEND_URL}/guests", headers=self.get_headers()) as response:
+            async with self.session.get(f"{BACKEND_URL}/pms/guests", headers=self.get_headers()) as response:
                 if response.status == 200:
                     guests = await response.json()
                     
