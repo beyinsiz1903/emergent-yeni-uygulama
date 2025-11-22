@@ -7061,15 +7061,18 @@ backend:
 
   - task: "Dashboard - Budget vs Actual"
     implemented: true
-    working: "NA"
+    working: true
     file: "/app/backend/server.py"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: "NA"
         agent: "main"
         comment: "Added GET /api/dashboard/budget-vs-actual - Compares budget vs actual for Revenue, Expense, Occupancy, ADR. Returns variance percentages and status (above/below/on_target) for each category."
+      - working: true
+        agent: "testing"
+        comment: "✅ ENDPOINT WORKING - GET /api/dashboard/budget-vs-actual returns proper response with month and categories array. All 4 expected categories present (Revenue, Expense, Occupancy (%), ADR) with required fields: name, budget, actual, variance, status. Default month parameter works (current month), custom month parameter functional (tested with 2025-01). Variance calculations and status determination working correctly."
 
   - task: "Dashboard - Monthly Profitability"
     implemented: true
