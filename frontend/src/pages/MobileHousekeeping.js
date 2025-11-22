@@ -55,6 +55,8 @@ const MobileHousekeeping = ({ user }) => {
   const [statusLogs, setStatusLogs] = useState([]);
   const [filterStatus, setFilterStatus] = useState('all');
   const [allRooms, setAllRooms] = useState([]);
+  const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
+  const [pendingStatusChange, setPendingStatusChange] = useState(null);
 
   useEffect(() => {
     loadData();
