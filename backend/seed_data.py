@@ -434,6 +434,7 @@ class HotelSeeder:
             
             feedback_list.append({
                 'id': str(uuid.uuid4()),
+                'tenant_id': self.tenant_id,
                 'guest_id': guest['id'],
                 'rating': rating,
                 'comment': random.choice(comments_positive if is_positive else comments_negative),
