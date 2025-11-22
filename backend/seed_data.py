@@ -263,6 +263,7 @@ class HotelSeeder:
             
             folios.append({
                 'id': folio_id,
+                'tenant_id': self.tenant_id,
                 'folio_number': folio_number,
                 'booking_id': booking['id'],
                 'guest_id': booking['guest_id'],
