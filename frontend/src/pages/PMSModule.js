@@ -900,7 +900,13 @@ const PMSModule = ({ user, tenant, onLogout }) => {
   if (loading) {
     return (
       <Layout user={user} tenant={tenant} onLogout={onLogout} currentModule="pms">
-        <div className="p-6 text-center">Loading...</div>
+        <div className="flex items-center justify-center h-screen">
+          <div className="text-center">
+            <RefreshCw className="w-12 h-12 animate-spin text-blue-600 mx-auto mb-4" />
+            <p className="text-lg font-medium text-gray-700">Loading PMS Data...</p>
+            <p className="text-sm text-gray-500 mt-2">Please wait while we load your data</p>
+          </div>
+        </div>
       </Layout>
     );
   }
