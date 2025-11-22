@@ -438,6 +438,9 @@ backend:
       - working: false
         agent: "testing"
         comment: "❌ ENDPOINT FAILING - GET /api/approvals/my-requests returns HTTP 200 but missing 'requests' field in response. Endpoint likely returns 'approvals' field instead of expected 'requests' field. All status filter tests failing with same issue."
+      - working: false
+        agent: "testing"
+        comment: "❌ RE-TEST CONFIRMS ISSUE - GET /api/approvals/my-requests returns 'approvals' field instead of expected 'requests' field. Response structure: {approvals: [], count: 0}. Field name mismatch persists after the username bug fix. Should return 'requests' not 'approvals'."
 
   - task: "Approval System - Approve Request"
     implemented: true
