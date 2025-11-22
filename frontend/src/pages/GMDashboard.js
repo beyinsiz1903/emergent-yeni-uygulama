@@ -1382,6 +1382,16 @@ const GMDashboard = ({ user, tenant, onLogout }) => {
           </Card>
         </div>
 
+        {/* NEW FEATURES - Expense Summary, Trend Chart, SLA Config */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+          <ExpenseSummaryCard expenseData={expenseSummary} />
+          <SLAConfigCard slaConfigs={slaConfigs} delayedTasks={delayedTasks} />
+        </div>
+
+        <div className="mt-6">
+          <TrendChart trendData={trendData} />
+        </div>
+
         {/* Floating Action Button - GM Quick Actions */}
         <FloatingActionButton
           actions={[
