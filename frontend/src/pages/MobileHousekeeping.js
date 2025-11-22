@@ -109,6 +109,17 @@ const MobileHousekeeping = ({ user }) => {
     return allRooms.filter(room => room.status === filterStatus);
   };
 
+  const toggleCategory = (category) => {
+    setOpenCategories(prev => ({
+      ...prev,
+      [category]: !prev[category]
+    }));
+  };
+
+  const getRoomsByStatus = (status) => {
+    return allRooms.filter(room => room.status === status);
+  };
+
   const handleRefresh = () => {
     setRefreshing(true);
     loadData();
