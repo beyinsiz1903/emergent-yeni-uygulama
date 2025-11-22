@@ -350,13 +350,58 @@ const MobileHousekeeping = ({ user }) => {
         {/* All Rooms List with Quick Status Change */}
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-lg flex items-center">
-              <BarChart3 className="w-5 h-5 mr-2 text-gray-600" />
-              Tüm Odalar - Durum Değiştir ({roomStatus?.total_rooms || 0})
+            <CardTitle className="text-lg flex items-center justify-between">
+              <div className="flex items-center">
+                <BarChart3 className="w-5 h-5 mr-2 text-gray-600" />
+                Tüm Odalar ({getFilteredRooms().length})
+              </div>
             </CardTitle>
+            
+            {/* Filter Buttons */}
+            <div className="flex flex-wrap gap-2 mt-3">
+              <Button
+                size="sm"
+                variant={filterStatus === 'all' ? 'default' : 'outline'}
+                onClick={() => setFilterStatus('all')}
+              >
+                Tümü
+              </Button>
+              <Button
+                size="sm"
+                variant={filterStatus === 'dirty' ? 'default' : 'outline'}
+                onClick={() => setFilterStatus('dirty')}
+                className={filterStatus === 'dirty' ? 'bg-red-600' : ''}
+              >
+                🟥 Kirli
+              </Button>
+              <Button
+                size="sm"
+                variant={filterStatus === 'cleaning' ? 'default' : 'outline'}
+                onClick={() => setFilterStatus('cleaning')}
+                className={filterStatus === 'cleaning' ? 'bg-yellow-600' : ''}
+              >
+                🟨 Temizleniyor
+              </Button>
+              <Button
+                size="sm"
+                variant={filterStatus === 'inspected' ? 'default' : 'outline'}
+                onClick={() => setFilterStatus('inspected')}
+                className={filterStatus === 'inspected' ? 'bg-blue-600' : ''}
+              >
+                🟦 Kontrol Edildi
+              </Button>
+              <Button
+                size="sm"
+                variant={filterStatus === 'available' ? 'default' : 'outline'}
+                onClick={() => setFilterStatus('available')}
+                className={filterStatus === 'available' ? 'bg-green-600' : ''}
+              >
+                🟩 Müsait
+              </Button>
+            </div>
           </CardHeader>
           <CardContent className="space-y-3">
-            {roomStatus?.rooms?.map((room) => (
+            {getFilteredRooms().map((room) => (
               <div key={room.id} className="p-3 bg-gray-50 rounded-lg border">
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex-1">
