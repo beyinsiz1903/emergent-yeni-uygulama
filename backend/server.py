@@ -474,14 +474,7 @@ class MarketSegment(str, Enum):
     WHOLESALE = "wholesale"
     NEGOTIATED = "negotiated"
 
-class PricingStrategy(str, Enum):
-    DYNAMIC = "dynamic"
-    FIXED = "fixed"
-    LAST_MINUTE = "last_minute"
-    EARLY_BIRD = "early_bird"
-
-    DELIVERED = "delivered"
-    DISPOSED = "disposed"
+# Duplicate PricingStrategy enum removed - using the first one
 
 
 
