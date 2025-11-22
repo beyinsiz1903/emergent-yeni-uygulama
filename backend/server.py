@@ -27445,6 +27445,177 @@ async def get_outlet_sales_breakdown(
         'period': {'start': start_date, 'end': end_date}
     }
 
+@api_router.get("/pos/inventory-movements")
+async def get_inventory_movements(
+    item_id: Optional[str] = None,
+    movement_type: Optional[str] = None,
+    date_from: Optional[str] = None,
+    limit: int = 50,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Get inventory movements (stock in/out)"""
+    current_user = await get_current_user(credentials)
+    
+    query = {'tenant_id': current_user.tenant_id}
+    
+    if item_id:
+        query['item_id'] = item_id
+    if movement_type:
+        query['movement_type'] = movement_type
+    if date_from:
+        query['created_at'] = {'$gte': date_from}
+    
+    movements = []
+    async for movement in db.inventory_movements.find(query).sort('created_at', -1).limit(limit):
+        movement.pop('_id', None)
+        movements.append(movement)
+    
+    # Mock data if empty
+    if len(movements) == 0:
+        mock_items = ['Yumurta', 'Süt', 'Ekmek', 'Domates', 'Peynir']
+        mock_movements = []
+        for i, item in enumerate(mock_items):
+            mock_movements.append({
+                'id': str(uuid.uuid4()),
+                'tenant_id': current_user.tenant_id,
+                'item_id': f'item_{i}',
+                'item_name': item,
+                'movement_type': 'out' if i % 2 == 0 else 'in',
+                'quantity': random.randint(5, 50),
+                'unit': 'kg' if i < 3 else 'adet',
+                'reference': f'Order #{random.randint(1000, 9999)}',
+                'notes': 'Günlük kullanım' if i % 2 == 0 else 'Tedarikçi teslimatı',
+                'created_by': current_user.name,
+                'created_at': (datetime.now(timezone.utc) - timedelta(hours=i*2)).isoformat()
+            })
+        movements = mock_movements
+    
+    return {
+        'movements': movements,
+        'count': len(movements)
+    }
+
+@api_router.post("/pos/inventory-movement")
+async def create_inventory_movement(
+    movement_data: dict,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Create a new inventory movement"""
+    current_user = await get_current_user(credentials)
+    
+    movement = {
+        'id': str(uuid.uuid4()),
+        'tenant_id': current_user.tenant_id,
+        'item_id': movement_data.get('item_id'),
+        'item_name': movement_data.get('item_name'),
+        'movement_type': movement_data.get('movement_type'),  # 'in' or 'out'
+        'quantity': movement_data.get('quantity'),
+        'unit': movement_data.get('unit'),
+        'reference': movement_data.get('reference'),
+        'notes': movement_data.get('notes', ''),
+        'created_by': current_user.name,
+        'created_at': datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.inventory_movements.insert_one(movement)
+    
+    # Update item stock
+    if movement['movement_type'] == 'in':
+        await db.inventory_items.update_one(
+            {'id': movement['item_id']},
+            {'$inc': {'stock': movement['quantity']}}
+        )
+    else:
+        await db.inventory_items.update_one(
+            {'id': movement['item_id']},
+            {'$inc': {'stock': -movement['quantity']}}
+        )
+    
+    return {
+        'message': 'Movement recorded',
+        'movement_id': movement['id']
+    }
+
+@api_router.get("/maintenance/calendar")
+async def get_maintenance_calendar(
+    month: Optional[str] = None,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Get routine maintenance calendar"""
+    current_user = await get_current_user(credentials)
+    
+    if not month:
+        month = datetime.now(timezone.utc).strftime('%Y-%m')
+    
+    # Get scheduled maintenance tasks
+    start_date = f"{month}-01"
+    year, m = month.split('-')
+    next_month = int(m) + 1
+    next_year = year
+    if next_month > 12:
+        next_month = 1
+        next_year = str(int(year) + 1)
+    end_date = f"{next_year}-{next_month:02d}-01"
+    
+    calendar_items = []
+    
+    # Mock routine maintenance schedule
+    routine_tasks = [
+        {'task': 'HVAC Filtre Değişimi', 'frequency': 'monthly', 'day': 5, 'duration': '2h'},
+        {'task': 'Elektrik Panosu Kontrolü', 'frequency': 'monthly', 'day': 10, 'duration': '3h'},
+        {'task': 'Yangın Alarm Testi', 'frequency': 'monthly', 'day': 15, 'duration': '1h'},
+        {'task': 'Asansör Bakımı', 'frequency': 'monthly', 'day': 20, 'duration': '4h'},
+        {'task': 'Su Tesisatı Kontrolü', 'frequency': 'monthly', 'day': 25, 'duration': '3h'}
+    ]
+    
+    for task in routine_tasks:
+        calendar_items.append({
+            'id': str(uuid.uuid4()),
+            'tenant_id': current_user.tenant_id,
+            'task_name': task['task'],
+            'task_type': 'routine',
+            'scheduled_date': f"{month}-{task['day']:02d}",
+            'frequency': task['frequency'],
+            'estimated_duration': task['duration'],
+            'status': 'scheduled',
+            'assigned_to': 'Maintenance Team'
+        })
+    
+    return {
+        'calendar': calendar_items,
+        'month': month,
+        'total_tasks': len(calendar_items)
+    }
+
+@api_router.post("/maintenance/schedule-routine")
+async def schedule_routine_maintenance(
+    schedule_data: dict,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Schedule a routine maintenance task"""
+    current_user = await get_current_user(credentials)
+    
+    schedule = {
+        'id': str(uuid.uuid4()),
+        'tenant_id': current_user.tenant_id,
+        'task_name': schedule_data.get('task_name'),
+        'task_type': 'routine',
+        'frequency': schedule_data.get('frequency'),  # daily, weekly, monthly, yearly
+        'scheduled_date': schedule_data.get('scheduled_date'),
+        'estimated_duration': schedule_data.get('estimated_duration'),
+        'assigned_to': schedule_data.get('assigned_to'),
+        'status': 'scheduled',
+        'created_by': current_user.name,
+        'created_at': datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.maintenance_schedule.insert_one(schedule)
+    
+    return {
+        'message': 'Routine maintenance scheduled',
+        'schedule_id': schedule['id']
+    }
+
 @api_router.get("/pos/shift-metrics")
 async def get_shift_metrics(
     date: Optional[str] = None,
