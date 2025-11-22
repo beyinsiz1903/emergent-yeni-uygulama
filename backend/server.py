@@ -32998,6 +32998,568 @@ async def calculate_early_late_fees(
     early_checkin_time: Optional[str] = None,
     late_checkout_time: Optional[str] = None,
     credentials: HTTPAuthorizationCredentials = Depends(security)
+
+
+
+# --------------------------------------------------------------------------
+# Revenue Management - ADR, RevPAR, Forecasting, Rate Override, Analytics
+# --------------------------------------------------------------------------
+
+@api_router.get("/revenue/mobile/dashboard")
+async def get_revenue_dashboard_mobile(
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Get comprehensive revenue dashboard"""
+    current_user = await get_current_user(credentials)
+    
+    # Default to current month
+    if not start_date or not end_date:
+        today = datetime.now(timezone.utc).date()
+        start_date = today.replace(day=1).isoformat()
+        last_day = (today.replace(day=28) + timedelta(days=4)).replace(day=1) - timedelta(days=1)
+        end_date = last_day.isoformat()
+    
+    start_dt = datetime.fromisoformat(start_date).replace(tzinfo=timezone.utc)
+    end_dt = datetime.fromisoformat(end_date).replace(tzinfo=timezone.utc)
+    
+    # Total rooms
+    total_rooms = await db.rooms.count_documents({'tenant_id': current_user.tenant_id})
+    
+    # Bookings in period
+    bookings_query = {
+        'tenant_id': current_user.tenant_id,
+        'check_in': {'$lte': end_date},
+        'check_out': {'$gte': start_date},
+        'status': {'$in': ['confirmed', 'guaranteed', 'checked_in', 'checked_out']}
+    }
+    
+    total_revenue = 0.0
+    total_room_nights = 0
+    bookings_list = []
+    
+    async for booking in db.bookings.find(bookings_query):
+        revenue = booking.get('total_amount', 0)
+        nights = booking.get('nights', 1)
+        total_revenue += revenue
+        total_room_nights += nights
+        bookings_list.append(booking)
+    
+    # Calculate metrics
+    days_in_period = (end_dt - start_dt).days + 1
+    total_room_nights_available = total_rooms * days_in_period
+    
+    occupancy = (total_room_nights / total_room_nights_available * 100) if total_room_nights_available > 0 else 0
+    adr = (total_revenue / total_room_nights) if total_room_nights > 0 else 0
+    revpar = (total_revenue / total_room_nights_available) if total_room_nights_available > 0 else 0
+    
+    return {
+        'period': {
+            'start_date': start_date,
+            'end_date': end_date,
+            'days': days_in_period
+        },
+        'key_metrics': {
+            'total_revenue': total_revenue,
+            'adr': adr,  # Average Daily Rate
+            'revpar': revpar,  # Revenue Per Available Room
+            'occupancy_percentage': occupancy,
+            'total_bookings': len(bookings_list),
+            'room_nights_sold': total_room_nights,
+            'room_nights_available': total_room_nights_available
+        }
+    }
+
+
+@api_router.get("/revenue/mobile/segment-analysis")
+async def get_segment_analysis_mobile(
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Get revenue by market segment"""
+    current_user = await get_current_user(credentials)
+    
+    # Default to current month
+    if not start_date or not end_date:
+        today = datetime.now(timezone.utc).date()
+        start_date = today.replace(day=1).isoformat()
+        last_day = (today.replace(day=28) + timedelta(days=4)).replace(day=1) - timedelta(days=1)
+        end_date = last_day.isoformat()
+    
+    bookings_query = {
+        'tenant_id': current_user.tenant_id,
+        'check_in': {'$lte': end_date},
+        'check_out': {'$gte': start_date},
+        'status': {'$in': ['confirmed', 'guaranteed', 'checked_in', 'checked_out']}
+    }
+    
+    segments = {}
+    
+    async for booking in db.bookings.find(bookings_query):
+        segment = booking.get('market_segment', 'other')
+        revenue = booking.get('total_amount', 0)
+        nights = booking.get('nights', 1)
+        
+        if segment not in segments:
+            segments[segment] = {
+                'segment': segment,
+                'revenue': 0,
+                'bookings': 0,
+                'room_nights': 0,
+                'adr': 0
+            }
+        
+        segments[segment]['revenue'] += revenue
+        segments[segment]['bookings'] += 1
+        segments[segment]['room_nights'] += nights
+    
+    # Calculate ADR for each segment
+    for segment in segments.values():
+        if segment['room_nights'] > 0:
+            segment['adr'] = segment['revenue'] / segment['room_nights']
+    
+    # Sort by revenue
+    segments_list = sorted(segments.values(), key=lambda x: x['revenue'], reverse=True)
+    
+    total_revenue = sum(s['revenue'] for s in segments_list)
+    
+    # Add percentage
+    for segment in segments_list:
+        segment['percentage'] = (segment['revenue'] / total_revenue * 100) if total_revenue > 0 else 0
+    
+    return {
+        'period': {
+            'start_date': start_date,
+            'end_date': end_date
+        },
+        'segments': segments_list,
+        'total_revenue': total_revenue
+    }
+
+
+@api_router.get("/revenue/mobile/channel-distribution")
+async def get_channel_distribution_mobile(
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Get revenue by booking channel"""
+    current_user = await get_current_user(credentials)
+    
+    # Default to current month
+    if not start_date or not end_date:
+        today = datetime.now(timezone.utc).date()
+        start_date = today.replace(day=1).isoformat()
+        last_day = (today.replace(day=28) + timedelta(days=4)).replace(day=1) - timedelta(days=1)
+        end_date = last_day.isoformat()
+    
+    bookings_query = {
+        'tenant_id': current_user.tenant_id,
+        'check_in': {'$lte': end_date},
+        'check_out': {'$gte': start_date},
+        'status': {'$in': ['confirmed', 'guaranteed', 'checked_in', 'checked_out']}
+    }
+    
+    channels = {}
+    
+    async for booking in db.bookings.find(bookings_query):
+        channel = booking.get('channel', 'direct')
+        revenue = booking.get('total_amount', 0)
+        
+        if channel not in channels:
+            channels[channel] = {
+                'channel': channel,
+                'revenue': 0,
+                'bookings': 0,
+                'adr': 0
+            }
+        
+        channels[channel]['revenue'] += revenue
+        channels[channel]['bookings'] += 1
+    
+    # Calculate ADR
+    for channel in channels.values():
+        if channel['bookings'] > 0:
+            channel['adr'] = channel['revenue'] / channel['bookings']
+    
+    channels_list = sorted(channels.values(), key=lambda x: x['revenue'], reverse=True)
+    total_revenue = sum(c['revenue'] for c in channels_list)
+    
+    for channel in channels_list:
+        channel['percentage'] = (channel['revenue'] / total_revenue * 100) if total_revenue > 0 else 0
+    
+    return {
+        'period': {
+            'start_date': start_date,
+            'end_date': end_date
+        },
+        'channels': channels_list,
+        'total_revenue': total_revenue
+    }
+
+
+@api_router.get("/revenue/mobile/pickup-graph")
+async def get_pickup_graph_mobile(
+    arrival_date: str,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Get booking pickup graph for specific arrival date"""
+    current_user = await get_current_user(credentials)
+    
+    arrival_dt = datetime.fromisoformat(arrival_date).date()
+    
+    # Get bookings for this arrival date
+    bookings = []
+    async for booking in db.bookings.find({
+        'tenant_id': current_user.tenant_id,
+        'check_in': arrival_date,
+        'status': {'$in': ['confirmed', 'guaranteed', 'checked_in', 'checked_out']}
+    }).sort('created_at', 1):
+        bookings.append({
+            'created_at': booking.get('created_at'),
+            'room_nights': booking.get('nights', 1)
+        })
+    
+    # Generate pickup data points
+    pickup_points = []
+    cumulative_rooms = 0
+    
+    # Group by days before arrival
+    today = datetime.now(timezone.utc).date()
+    days_until_arrival = (arrival_dt - today).days
+    
+    for i in range(365, -1, -7):  # Weekly points going back 1 year
+        cutoff_date = arrival_dt - timedelta(days=i)
+        cutoff_dt = datetime.combine(cutoff_date, datetime.max.time()).replace(tzinfo=timezone.utc)
+        
+        rooms_at_cutoff = sum(
+            b['room_nights'] for b in bookings 
+            if b['created_at'] <= cutoff_dt
+        )
+        
+        pickup_points.append({
+            'days_before_arrival': i,
+            'date': cutoff_date.isoformat(),
+            'cumulative_rooms': rooms_at_cutoff
+        })
+    
+    return {
+        'arrival_date': arrival_date,
+        'days_until_arrival': days_until_arrival,
+        'current_bookings': len(bookings),
+        'pickup_data': pickup_points
+    }
+
+
+@api_router.get("/revenue/mobile/forecast")
+async def get_revenue_forecast_mobile(
+    forecast_days: int = 90,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Get revenue forecast"""
+    current_user = await get_current_user(credentials)
+    
+    today = datetime.now(timezone.utc).date()
+    total_rooms = await db.rooms.count_documents({'tenant_id': current_user.tenant_id})
+    
+    # Get historical data for forecasting
+    lookback_days = 30
+    start_historical = (today - timedelta(days=lookback_days)).isoformat()
+    end_historical = today.isoformat()
+    
+    historical_query = {
+        'tenant_id': current_user.tenant_id,
+        'check_in': {'$gte': start_historical, '$lte': end_historical},
+        'status': {'$in': ['confirmed', 'guaranteed', 'checked_in', 'checked_out']}
+    }
+    
+    historical_revenue = 0.0
+    historical_nights = 0
+    
+    async for booking in db.bookings.find(historical_query):
+        historical_revenue += booking.get('total_amount', 0)
+        historical_nights += booking.get('nights', 1)
+    
+    # Calculate historical averages
+    avg_daily_revenue = historical_revenue / lookback_days if lookback_days > 0 else 0
+    avg_occupancy = (historical_nights / (total_rooms * lookback_days) * 100) if lookback_days > 0 else 0
+    avg_adr = (historical_revenue / historical_nights) if historical_nights > 0 else 0
+    
+    # Generate forecast
+    forecast_data = []
+    
+    for i in range(forecast_days):
+        forecast_date = today + timedelta(days=i)
+        
+        # Get existing bookings
+        existing_bookings = await db.bookings.count_documents({
+            'tenant_id': current_user.tenant_id,
+            'check_in': forecast_date.isoformat(),
+            'status': {'$in': ['confirmed', 'guaranteed']}
+        })
+        
+        # Simple projection (can be enhanced with ML)
+        projected_occupancy = min((existing_bookings / total_rooms * 100) + (avg_occupancy * 0.3), 100)
+        projected_rooms = total_rooms * (projected_occupancy / 100)
+        projected_adr = avg_adr * (1 + (projected_occupancy - 70) * 0.002)  # Price elasticity
+        projected_revenue = projected_rooms * projected_adr
+        projected_revpar = projected_revenue / total_rooms
+        
+        forecast_data.append({
+            'date': forecast_date.isoformat(),
+            'day_of_week': forecast_date.strftime('%A'),
+            'current_bookings': existing_bookings,
+            'projected_occupancy': round(projected_occupancy, 1),
+            'projected_adr': round(projected_adr, 2),
+            'projected_revpar': round(projected_revpar, 2),
+            'projected_revenue': round(projected_revenue, 2)
+        })
+    
+    return {
+        'forecast_period': {
+            'start_date': today.isoformat(),
+            'end_date': (today + timedelta(days=forecast_days - 1)).isoformat(),
+            'days': forecast_days
+        },
+        'historical_reference': {
+            'avg_occupancy': round(avg_occupancy, 1),
+            'avg_adr': round(avg_adr, 2),
+            'avg_daily_revenue': round(avg_daily_revenue, 2)
+        },
+        'forecast_data': forecast_data
+    }
+
+
+@api_router.get("/revenue/mobile/demand-heatmap")
+async def get_demand_heatmap_mobile(
+    months_ahead: int = 3,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Get demand heatmap"""
+    current_user = await get_current_user(credentials)
+    
+    today = datetime.now(timezone.utc).date()
+    end_date = today + timedelta(days=months_ahead * 30)
+    total_rooms = await db.rooms.count_documents({'tenant_id': current_user.tenant_id})
+    
+    heatmap_data = []
+    
+    # Generate data for each day
+    current_date = today
+    while current_date <= end_date:
+        # Count bookings for this date
+        bookings_count = await db.bookings.count_documents({
+            'tenant_id': current_user.tenant_id,
+            'check_in': current_date.isoformat(),
+            'status': {'$in': ['confirmed', 'guaranteed', 'checked_in']}
+        })
+        
+        occupancy = (bookings_count / total_rooms * 100) if total_rooms > 0 else 0
+        
+        # Determine demand level
+        if occupancy >= 90:
+            demand_level = 'very_high'
+        elif occupancy >= 70:
+            demand_level = 'high'
+        elif occupancy >= 40:
+            demand_level = 'medium'
+        else:
+            demand_level = 'low'
+        
+        heatmap_data.append({
+            'date': current_date.isoformat(),
+            'day_of_week': current_date.strftime('%A'),
+            'bookings': bookings_count,
+            'occupancy': round(occupancy, 1),
+            'demand_level': demand_level,
+            'available_rooms': total_rooms - bookings_count
+        })
+        
+        current_date += timedelta(days=1)
+    
+    return {
+        'period': {
+            'start_date': today.isoformat(),
+            'end_date': end_date.isoformat()
+        },
+        'total_rooms': total_rooms,
+        'heatmap_data': heatmap_data
+    }
+
+
+@api_router.get("/revenue/mobile/cancellations-noshows")
+async def get_cancellations_noshows_mobile(
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Get cancellation and no-show analysis"""
+    current_user = await get_current_user(credentials)
+    
+    # Default to current month
+    if not start_date or not end_date:
+        today = datetime.now(timezone.utc).date()
+        start_date = today.replace(day=1).isoformat()
+        last_day = (today.replace(day=28) + timedelta(days=4)).replace(day=1) - timedelta(days=1)
+        end_date = last_day.isoformat()
+    
+    # Cancelled bookings
+    cancelled_bookings = []
+    cancelled_revenue = 0.0
+    
+    async for booking in db.bookings.find({
+        'tenant_id': current_user.tenant_id,
+        'status': 'cancelled',
+        'check_in': {'$gte': start_date, '$lte': end_date}
+    }):
+        revenue_lost = booking.get('total_amount', 0)
+        cancelled_revenue += revenue_lost
+        
+        cancelled_bookings.append({
+            'booking_id': booking.get('id'),
+            'confirmation_number': booking.get('confirmation_number'),
+            'check_in': booking.get('check_in'),
+            'nights': booking.get('nights', 0),
+            'revenue_lost': revenue_lost,
+            'cancelled_at': booking.get('cancelled_at').isoformat() if booking.get('cancelled_at') else None,
+            'channel': booking.get('channel', 'unknown')
+        })
+    
+    # No-show bookings
+    noshow_bookings = []
+    noshow_revenue = 0.0
+    
+    async for booking in db.bookings.find({
+        'tenant_id': current_user.tenant_id,
+        'status': 'no_show',
+        'check_in': {'$gte': start_date, '$lte': end_date}
+    }):
+        revenue_lost = booking.get('total_amount', 0)
+        noshow_revenue += revenue_lost
+        
+        noshow_bookings.append({
+            'booking_id': booking.get('id'),
+            'confirmation_number': booking.get('confirmation_number'),
+            'check_in': booking.get('check_in'),
+            'nights': booking.get('nights', 0),
+            'revenue_lost': revenue_lost,
+            'channel': booking.get('channel', 'unknown')
+        })
+    
+    # Total bookings in period for comparison
+    total_bookings = await db.bookings.count_documents({
+        'tenant_id': current_user.tenant_id,
+        'check_in': {'$gte': start_date, '$lte': end_date}
+    })
+    
+    cancellation_rate = (len(cancelled_bookings) / total_bookings * 100) if total_bookings > 0 else 0
+    noshow_rate = (len(noshow_bookings) / total_bookings * 100) if total_bookings > 0 else 0
+    
+    return {
+        'period': {
+            'start_date': start_date,
+            'end_date': end_date
+        },
+        'cancellations': {
+            'count': len(cancelled_bookings),
+            'rate_percentage': round(cancellation_rate, 2),
+            'revenue_lost': cancelled_revenue,
+            'bookings': cancelled_bookings
+        },
+        'noshows': {
+            'count': len(noshow_bookings),
+            'rate_percentage': round(noshow_rate, 2),
+            'revenue_lost': noshow_revenue,
+            'bookings': noshow_bookings
+        },
+        'total_bookings': total_bookings,
+        'combined_loss': cancelled_revenue + noshow_revenue
+    }
+
+
+@api_router.post("/revenue/mobile/rate-override")
+async def create_rate_override_mobile(
+    room_type: str,
+    date: str,
+    override_rate: float,
+    reason: str,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Create rate override for specific date"""
+    current_user = await get_current_user(credentials)
+    
+    # Get current rate (simplified - should fetch from rate table)
+    # For demo, using a default rate
+    original_rate = 1000.0  # This should come from rate management system
+    
+    override_id = str(uuid.uuid4())
+    override = {
+        'id': override_id,
+        'tenant_id': current_user.tenant_id,
+        'room_type': room_type,
+        'date': datetime.fromisoformat(date),
+        'original_rate': original_rate,
+        'override_rate': override_rate,
+        'reason': reason,
+        'approved_by': current_user.username,
+        'created_by': current_user.username,
+        'created_at': datetime.now(timezone.utc)
+    }
+    
+    await db.rate_overrides.insert_one(override)
+    
+    return {
+        'message': 'Rate override created',
+        'override_id': override_id,
+        'room_type': room_type,
+        'date': date,
+        'original_rate': original_rate,
+        'override_rate': override_rate,
+        'difference': override_rate - original_rate,
+        'percentage_change': ((override_rate - original_rate) / original_rate * 100) if original_rate > 0 else 0
+    }
+
+
+@api_router.get("/revenue/mobile/rate-overrides")
+async def get_rate_overrides_mobile(
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Get rate overrides"""
+    current_user = await get_current_user(credentials)
+    
+    query = {'tenant_id': current_user.tenant_id}
+    
+    if start_date or end_date:
+        date_filter = {}
+        if start_date:
+            date_filter['$gte'] = datetime.fromisoformat(start_date)
+        if end_date:
+            date_filter['$lte'] = datetime.fromisoformat(end_date)
+        query['date'] = date_filter
+    
+    overrides = []
+    async for override in db.rate_overrides.find(query).sort('date', 1):
+        overrides.append({
+            'id': override.get('id'),
+            'room_type': override.get('room_type'),
+            'date': override.get('date').isoformat() if override.get('date') else None,
+            'original_rate': override.get('original_rate'),
+            'override_rate': override.get('override_rate'),
+            'difference': override.get('override_rate', 0) - override.get('original_rate', 0),
+            'reason': override.get('reason'),
+            'approved_by': override.get('approved_by'),
+            'created_at': override.get('created_at').isoformat() if override.get('created_at') else None
+        })
+    
+    return {
+        'overrides': overrides,
+        'count': len(overrides)
+    }
+
 ):
     """Calculate fees for early check-in or late checkout"""
     current_user = await get_current_user(credentials)
