@@ -231,7 +231,7 @@ class NewEndpointsTester:
         )
         
         # Verify anomaly structure if we got data
-        if response and 'anomalies' in response and response['anomalies']:
+        if response and 'anomalies' in response and len(response['anomalies']) > 0:
             anomaly = response['anomalies'][0]
             expected_anomaly_fields = ['id', 'type', 'severity', 'title', 'message', 'metric', 
                                      'current_value', 'previous_value', 'variance', 'detected_at']
