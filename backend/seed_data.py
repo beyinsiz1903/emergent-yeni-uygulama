@@ -265,7 +265,8 @@ class HotelSeeder:
             })
             
             # Add room charges
-            nights_stayed = (datetime.now().date() - datetime.fromisoformat(booking['check_in'])).days
+            check_in_date = datetime.fromisoformat(booking['check_in']).date() if isinstance(booking['check_in'], str) else booking['check_in']
+            nights_stayed = (datetime.now().date() - check_in_date).days
             for night in range(max(1, nights_stayed)):
                 folio_charges.append({
                     'id': str(uuid.uuid4()),
