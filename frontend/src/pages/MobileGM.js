@@ -191,6 +191,33 @@ const MobileGM = ({ user }) => {
       </div>
 
       <div className="p-4 space-y-4">
+        {/* Property Switcher & Breadcrumb */}
+        <Card className="bg-white border-2 border-blue-200">
+          <CardContent className="p-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2 flex-1">
+                <Building2 className="w-5 h-5 text-blue-600" />
+                <div className="flex-1">
+                  <div className="text-xs text-gray-500">Aktif Tesis</div>
+                  <button
+                    onClick={() => setPropertyModalOpen(true)}
+                    className="text-sm font-bold text-blue-600 hover:text-blue-800"
+                  >
+                    {selectedProperty ? selectedProperty.name : 'Hilton Istanbul Bosphorus'} ▼
+                  </button>
+                </div>
+              </div>
+            </div>
+            <div className="mt-2 pt-2 border-t border-gray-200">
+              <div className="flex items-center space-x-2 text-xs text-gray-600">
+                <span>Dashboard</span>
+                <span>›</span>
+                <span className="font-medium text-blue-600">GM Panel</span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Date Badge */}
         <Card className="bg-gradient-to-r from-red-50 to-pink-50">
           <CardContent className="p-3">
