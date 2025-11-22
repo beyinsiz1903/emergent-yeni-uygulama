@@ -299,7 +299,7 @@ class MaintenanceEndpointTester:
             {
                 "name": "Upload task photo - before type",
                 "task_id": sample_task_id,
-                "data": {
+                "params": {
                     "photo_data": test_base64_data,
                     "photo_type": "before",
                     "description": "Test photo"
@@ -315,8 +315,10 @@ class MaintenanceEndpointTester:
         for test_case in test_cases:
             try:
                 url = f"{BACKEND_URL}/maintenance/mobile/task/{test_case['task_id']}/photo"
+                params = "&".join([f"{k}={v}" for k, v in test_case["params"].items()])
+                url += f"?{params}"
                 
-                async with self.session.post(url, json=test_case["data"], headers=self.get_headers()) as response:
+                async with self.session.post(url, headers=self.get_headers()) as response:
                     if response.status in test_case["expected_status"]:
                         if response.status == 200:
                             data = await response.json()
