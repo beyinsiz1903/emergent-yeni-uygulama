@@ -7151,15 +7151,18 @@ backend:
 
   - task: "F&B - Revenue Chart"
     implemented: true
-    working: "NA"
+    working: true
     file: "/app/backend/server.py"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: "NA"
         agent: "main"
         comment: "Added GET /api/fnb/revenue-chart - Returns daily F&B revenue chart data with food/beverage breakdown. Supports 7days, 30days, 90days periods."
+      - working: true
+        agent: "testing"
+        comment: "✅ ENDPOINT WORKING - GET /api/fnb/revenue-chart tested with all 3 periods (7days, 30days, 90days). Returns proper response with period, chart_data, and summary. Chart data includes date, food, beverage, total fields for each day. Summary includes total_food, total_beverage, total_revenue. All period parameters functional with correct data point counts (8, 31, 91 respectively)."
 
 metadata:
   created_by: "main_agent"
