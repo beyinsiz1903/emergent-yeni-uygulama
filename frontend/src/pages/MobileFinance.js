@@ -174,6 +174,80 @@ const MobileFinance = ({ user }) => {
     }
   };
 
+
+  const loadCashFlowDetail = async () => {
+    try {
+      const res = await axios.get('/api/finance/mobile/cash-flow-summary');
+      setCashFlowData(res.data);
+      setCashFlowModalOpen(true);
+    } catch (error) {
+      toast.error('✗ Nakit akışı yüklenemedi');
+    }
+  };
+
+  const loadRiskDetails = async () => {
+    try {
+      const [alertsRes, overdueRes, violationsRes, suspiciousRes] = await Promise.all([
+        axios.get('/api/finance/mobile/risk-alerts'),
+        axios.get('/api/finance/mobile/overdue-accounts?min_days=7'),
+        axios.get('/api/finance/mobile/credit-limit-violations'),
+        axios.get('/api/finance/mobile/suspicious-receivables')
+      ]);
+      
+      setRiskAlerts(alertsRes.data);
+      setOverdueAccounts(overdueRes.data);
+      setCreditViolations(violationsRes.data);
+      setSuspiciousReceivables(suspiciousRes.data);
+      setRiskModalOpen(true);
+    } catch (error) {
+      toast.error('✗ Risk verileri yüklenemedi');
+    }
+  };
+
+  const loadFolioExtract = async (folioId) => {
+    try {
+      const res = await axios.get(`/api/finance/mobile/folio-full-extract/${folioId}`);
+      setSelectedFolioExtract(res.data);
+      setFolioExtractModalOpen(true);
+    } catch (error) {
+      toast.error('✗ Folio ekstresi yüklenemedi');
+    }
+  };
+
+  const loadEnhancedInvoices = async () => {
+    try {
+      const params = new URLSearchParams();
+      if (invoiceFilters.startDate) params.append('start_date', invoiceFilters.startDate);
+      if (invoiceFilters.endDate) params.append('end_date', invoiceFilters.endDate);
+      if (invoiceFilters.unpaidOnly) params.append('unpaid_only', 'true');
+      if (invoiceFilters.department) params.append('department', invoiceFilters.department);
+      
+      const res = await axios.get(`/api/finance/mobile/invoices?${params.toString()}`);
+      setEnhancedInvoices(res.data.invoices || []);
+      setInvoicesModalOpen(true);
+    } catch (error) {
+      toast.error('✗ Faturalar yüklenemedi');
+    }
+  };
+
+  const getRiskColor = (riskLevel) => {
+    const colors = {
+      'normal': 'bg-green-100 text-green-800 border-green-200',
+      'warning': 'bg-yellow-100 text-yellow-800 border-yellow-200',
+      'critical': 'bg-red-100 text-red-800 border-red-200',
+      'suspicious': 'bg-gray-900 text-white border-gray-900'
+    };
+    return colors[riskLevel] || colors.normal;
+  };
+
+  const getRiskIcon = (severity) => {
+    if (severity === 'critical') return <XCircle className="w-5 h-5 text-red-600" />;
+    if (severity === 'high') return <AlertTriangle className="w-5 h-5 text-orange-600" />;
+    if (severity === 'medium') return <AlertCircle className="w-5 h-5 text-yellow-600" />;
+    return <AlertCircle className="w-5 h-5 text-blue-600" />;
+  };
+
+
   const downloadPLReport = async () => {
     try {
       const currentMonth = new Date().toISOString().slice(0, 7);
