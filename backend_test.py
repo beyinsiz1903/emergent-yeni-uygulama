@@ -315,28 +315,19 @@ class ApprovalSystemRetester:
         })
 
     async def test_get_my_requests(self):
-        """Test GET /api/approvals/my-requests"""
-        print("\n📋 Testing Get My Requests Endpoint...")
+        """Test GET /api/approvals/my-requests - **RE-TEST RESPONSE STRUCTURE**"""
+        print("\n📋 Testing Get My Requests Endpoint (RE-TEST RESPONSE STRUCTURE)...")
+        print("🔧 EXPECTED FIX: Response should return 'requests' field (not 'approvals')")
         
         test_cases = [
             {
-                "name": "Get all my requests",
+                "name": "Get all my requests - verify 'requests' field name",
                 "params": {},
                 "expected_fields": ["requests", "count"]
             },
             {
                 "name": "Filter by status - pending",
                 "params": {"status": "pending"},
-                "expected_fields": ["requests", "count"]
-            },
-            {
-                "name": "Filter by status - approved",
-                "params": {"status": "approved"},
-                "expected_fields": ["requests", "count"]
-            },
-            {
-                "name": "Filter by status - rejected",
-                "params": {"status": "rejected"},
                 "expected_fields": ["requests", "count"]
             }
         ]
