@@ -27429,6 +27429,597 @@ async def create_quick_task_mobile(
     }
 
 
+
+
+# --------------------------------------------------------------------------
+# Housekeeping Enhanced - Inspection, Lost & Found, Task Assignment, Timer
+# --------------------------------------------------------------------------
+
+@api_router.get("/housekeeping/mobile/inspection-checklist")
+async def get_inspection_checklist_template(
+    room_type: Optional[str] = None,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Get inspection checklist template"""
+    current_user = await get_current_user(credentials)
+    
+    # Default checklist template
+    checklist = [
+        # Bathroom
+        {'area': 'bathroom', 'item': 'Towels (bath, hand, face)', 'status': 'pending'},
+        {'area': 'bathroom', 'item': 'Toilet paper', 'status': 'pending'},
+        {'area': 'bathroom', 'item': 'Soap/Shampoo', 'status': 'pending'},
+        {'area': 'bathroom', 'item': 'Hair dryer', 'status': 'pending'},
+        {'area': 'bathroom', 'item': 'Cleanliness (sink, shower, toilet)', 'status': 'pending'},
+        
+        # Bedroom
+        {'area': 'bedroom', 'item': 'Bed linens fresh', 'status': 'pending'},
+        {'area': 'bedroom', 'item': 'Pillows (quantity)', 'status': 'pending'},
+        {'area': 'bedroom', 'item': 'Duvet/blanket', 'status': 'pending'},
+        {'area': 'bedroom', 'item': 'Curtains functional', 'status': 'pending'},
+        {'area': 'bedroom', 'item': 'Carpet/floor clean', 'status': 'pending'},
+        
+        # Minibar
+        {'area': 'minibar', 'item': 'Minibar stocked', 'status': 'pending'},
+        {'area': 'minibar', 'item': 'Minibar clean', 'status': 'pending'},
+        {'area': 'minibar', 'item': 'Glasses/cups clean', 'status': 'pending'},
+        
+        # Amenities
+        {'area': 'amenities', 'item': 'TV remote working', 'status': 'pending'},
+        {'area': 'amenities', 'item': 'AC working', 'status': 'pending'},
+        {'area': 'amenities', 'item': 'Safe working', 'status': 'pending'},
+        {'area': 'amenities', 'item': 'Phone working', 'status': 'pending'},
+        {'area': 'amenities', 'item': 'Light bulbs OK', 'status': 'pending'},
+        
+        # General
+        {'area': 'general', 'item': 'No damage visible', 'status': 'pending'},
+        {'area': 'general', 'item': 'No stains', 'status': 'pending'},
+        {'area': 'general', 'item': 'No odors', 'status': 'pending'},
+    ]
+    
+    return {
+        'checklist': checklist,
+        'template_name': 'Standard Room Inspection',
+        'total_items': len(checklist)
+    }
+
+
+@api_router.post("/housekeeping/mobile/inspection")
+async def create_room_inspection(
+    room_id: str,
+    room_number: str,
+    inspection_type: str,
+    checklist: List[Dict[str, Any]],
+    photos: Optional[List[str]] = None,
+    notes: Optional[str] = None,
+    maintenance_required: bool = False,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Create room inspection record"""
+    current_user = await get_current_user(credentials)
+    
+    inspection_id = str(uuid.uuid4())
+    
+    # Check for issues
+    issues_found = []
+    for item in checklist:
+        if item.get('status') in ['missing', 'damaged', 'dirty']:
+            issues_found.append(f"{item.get('area')}: {item.get('item')} - {item.get('status')}")
+    
+    # Create maintenance task if needed
+    maintenance_task_id = None
+    if maintenance_required and issues_found:
+        task_id = str(uuid.uuid4())
+        await db.tasks.insert_one({
+            'id': task_id,
+            'tenant_id': current_user.tenant_id,
+            'title': f'Maintenance Required - Room {room_number}',
+            'description': '\n'.join(issues_found),
+            'priority': 'high',
+            'status': 'new',
+            'room_id': room_id,
+            'room_number': room_number,
+            'department': 'maintenance',
+            'created_by': current_user.username,
+            'created_at': datetime.now(timezone.utc)
+        })
+        maintenance_task_id = task_id
+    
+    # Create inspection record
+    inspection = {
+        'id': inspection_id,
+        'tenant_id': current_user.tenant_id,
+        'room_id': room_id,
+        'room_number': room_number,
+        'inspection_type': inspection_type,
+        'inspector': current_user.username,
+        'inspection_status': 'completed' if not maintenance_required else 'failed',
+        'checklist': checklist,
+        'photos': photos or [],
+        'notes': notes,
+        'issues_found': issues_found,
+        'maintenance_required': maintenance_required,
+        'maintenance_task_id': maintenance_task_id,
+        'completed_at': datetime.now(timezone.utc),
+        'created_at': datetime.now(timezone.utc),
+        'updated_at': datetime.now(timezone.utc)
+    }
+    
+    await db.room_inspections.insert_one(inspection)
+    
+    return {
+        'message': 'Inspection completed',
+        'inspection_id': inspection_id,
+        'issues_count': len(issues_found),
+        'maintenance_required': maintenance_required,
+        'maintenance_task_id': maintenance_task_id,
+        'status': 'passed' if not issues_found else 'failed'
+    }
+
+
+@api_router.post("/housekeeping/mobile/lost-found")
+async def create_lost_found_item(
+    item_description: str,
+    category: str,
+    room_number: str,
+    found_location: str,
+    photos: Optional[List[str]] = None,
+    storage_location: str = "Lost & Found Office",
+    storage_number: Optional[str] = None,
+    notes: Optional[str] = None,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Register lost & found item"""
+    current_user = await get_current_user(credentials)
+    
+    # Generate item number
+    count = await db.lost_found_items.count_documents({'tenant_id': current_user.tenant_id})
+    item_number = f"LF-{count + 1:05d}"
+    
+    item_id = str(uuid.uuid4())
+    item = {
+        'id': item_id,
+        'tenant_id': current_user.tenant_id,
+        'item_number': item_number,
+        'item_description': item_description,
+        'category': category,
+        'room_number': room_number,
+        'found_location': found_location,
+        'found_date': datetime.now(timezone.utc),
+        'found_by': current_user.username,
+        'photos': photos or [],
+        'storage_location': storage_location,
+        'storage_number': storage_number or item_number,
+        'status': 'in_storage',
+        'notes': notes,
+        'created_at': datetime.now(timezone.utc),
+        'updated_at': datetime.now(timezone.utc)
+    }
+    
+    await db.lost_found_items.insert_one(item)
+    
+    return {
+        'message': 'Lost & Found item registered',
+        'item_id': item_id,
+        'item_number': item_number,
+        'storage_number': storage_number or item_number
+    }
+
+
+@api_router.get("/housekeeping/mobile/lost-found/items")
+async def get_lost_found_items(
+    status: Optional[str] = None,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Get lost & found items"""
+    current_user = await get_current_user(credentials)
+    
+    query = {'tenant_id': current_user.tenant_id}
+    if status:
+        query['status'] = status
+    
+    items = []
+    async for item in db.lost_found_items.find(query).sort('found_date', -1).limit(100):
+        items.append({
+            'id': item.get('id'),
+            'item_number': item.get('item_number'),
+            'item_description': item.get('item_description'),
+            'category': item.get('category'),
+            'room_number': item.get('room_number'),
+            'found_location': item.get('found_location'),
+            'found_date': item.get('found_date').isoformat() if item.get('found_date') else None,
+            'found_by': item.get('found_by'),
+            'storage_location': item.get('storage_location'),
+            'storage_number': item.get('storage_number'),
+            'status': item.get('status'),
+            'photos_count': len(item.get('photos', [])),
+            'claimed_by': item.get('claimed_by'),
+            'claimed_date': item.get('claimed_date').isoformat() if item.get('claimed_date') else None
+        })
+    
+    # Summary
+    summary = {
+        'total': len(items),
+        'in_storage': len([i for i in items if i['status'] == 'in_storage']),
+        'claimed': len([i for i in items if i['status'] == 'claimed']),
+        'delivered': len([i for i in items if i['status'] == 'delivered'])
+    }
+    
+    return {
+        'items': items,
+        'summary': summary
+    }
+
+
+@api_router.put("/housekeeping/mobile/lost-found/{item_id}/claim")
+async def claim_lost_found_item(
+    item_id: str,
+    claimed_by: str,
+    guest_id: Optional[str] = None,
+    notes: Optional[str] = None,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Mark item as claimed"""
+    current_user = await get_current_user(credentials)
+    
+    item = await db.lost_found_items.find_one({
+        'id': item_id,
+        'tenant_id': current_user.tenant_id
+    })
+    
+    if not item:
+        raise HTTPException(status_code=404, detail="Item not found")
+    
+    await db.lost_found_items.update_one(
+        {'id': item_id, 'tenant_id': current_user.tenant_id},
+        {'$set': {
+            'status': 'claimed',
+            'claimed_by': claimed_by,
+            'guest_id': guest_id,
+            'claimed_date': datetime.now(timezone.utc),
+            'delivery_notes': notes,
+            'updated_at': datetime.now(timezone.utc)
+        }}
+    )
+    
+    return {
+        'message': 'Item marked as claimed',
+        'item_id': item_id,
+        'item_number': item.get('item_number'),
+        'claimed_by': claimed_by
+    }
+
+
+@api_router.post("/housekeeping/mobile/assign-tasks")
+async def assign_hk_tasks(
+    staff_id: str,
+    staff_name: str,
+    room_ids: List[str],
+    notes: Optional[str] = None,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Assign rooms to housekeeping staff"""
+    current_user = await get_current_user(credentials)
+    
+    assignment_id = str(uuid.uuid4())
+    assignment = {
+        'id': assignment_id,
+        'tenant_id': current_user.tenant_id,
+        'assignment_date': datetime.now(timezone.utc),
+        'staff_id': staff_id,
+        'staff_name': staff_name,
+        'assigned_rooms': room_ids,
+        'room_count': len(room_ids),
+        'status': 'assigned',
+        'assigned_by': current_user.username,
+        'notes': notes,
+        'created_at': datetime.now(timezone.utc),
+        'updated_at': datetime.now(timezone.utc)
+    }
+    
+    await db.hk_task_assignments.insert_one(assignment)
+    
+    # Update rooms status
+    await db.rooms.update_many(
+        {
+            'id': {'$in': room_ids},
+            'tenant_id': current_user.tenant_id
+        },
+        {'$set': {
+            'assigned_to': staff_name,
+            'assigned_at': datetime.now(timezone.utc)
+        }}
+    )
+    
+    return {
+        'message': 'Tasks assigned successfully',
+        'assignment_id': assignment_id,
+        'staff_name': staff_name,
+        'room_count': len(room_ids)
+    }
+
+
+@api_router.get("/housekeeping/mobile/staff-assignments")
+async def get_staff_assignments(
+    assignment_date: Optional[str] = None,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Get staff task assignments"""
+    current_user = await get_current_user(credentials)
+    
+    query = {'tenant_id': current_user.tenant_id}
+    
+    if assignment_date:
+        date_obj = datetime.fromisoformat(assignment_date).date()
+        start_of_day = datetime.combine(date_obj, datetime.min.time()).replace(tzinfo=timezone.utc)
+        end_of_day = datetime.combine(date_obj, datetime.max.time()).replace(tzinfo=timezone.utc)
+        query['assignment_date'] = {'$gte': start_of_day, '$lte': end_of_day}
+    else:
+        # Today
+        today = datetime.now(timezone.utc).date()
+        start_of_day = datetime.combine(today, datetime.min.time()).replace(tzinfo=timezone.utc)
+        end_of_day = datetime.combine(today, datetime.max.time()).replace(tzinfo=timezone.utc)
+        query['assignment_date'] = {'$gte': start_of_day, '$lte': end_of_day}
+    
+    assignments = []
+    async for assignment in db.hk_task_assignments.find(query).sort('assignment_date', -1):
+        # Get room details
+        rooms = []
+        async for room in db.rooms.find({
+            'id': {'$in': assignment.get('assigned_rooms', [])},
+            'tenant_id': current_user.tenant_id
+        }):
+            rooms.append({
+                'room_id': room.get('id'),
+                'room_number': room.get('room_number'),
+                'status': room.get('status')
+            })
+        
+        assignments.append({
+            'assignment_id': assignment.get('id'),
+            'staff_id': assignment.get('staff_id'),
+            'staff_name': assignment.get('staff_name'),
+            'room_count': assignment.get('room_count'),
+            'rooms': rooms,
+            'status': assignment.get('status'),
+            'assigned_by': assignment.get('assigned_by'),
+            'assignment_date': assignment.get('assignment_date').isoformat() if assignment.get('assignment_date') else None
+        })
+    
+    return {
+        'assignments': assignments,
+        'total_staff': len(assignments),
+        'total_rooms': sum(a['room_count'] for a in assignments)
+    }
+
+
+@api_router.post("/housekeeping/mobile/cleaning/start")
+async def start_cleaning_timer(
+    room_id: str,
+    room_number: str,
+    task_type: str = "checkout",
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Start cleaning timer"""
+    current_user = await get_current_user(credentials)
+    
+    # Check if already started
+    existing = await db.cleaning_timers.find_one({
+        'tenant_id': current_user.tenant_id,
+        'room_id': room_id,
+        'status': 'in_progress'
+    })
+    
+    if existing:
+        return {
+            'message': 'Timer already running',
+            'timer_id': existing.get('id'),
+            'started_at': existing.get('started_at').isoformat()
+        }
+    
+    timer_id = str(uuid.uuid4())
+    timer = {
+        'id': timer_id,
+        'tenant_id': current_user.tenant_id,
+        'room_id': room_id,
+        'room_number': room_number,
+        'staff_id': current_user.id,
+        'staff_name': current_user.username,
+        'task_type': task_type,
+        'started_at': datetime.now(timezone.utc),
+        'status': 'in_progress'
+    }
+    
+    await db.cleaning_timers.insert_one(timer)
+    
+    # Update room status
+    await db.rooms.update_one(
+        {'id': room_id, 'tenant_id': current_user.tenant_id},
+        {'$set': {'status': 'cleaning'}}
+    )
+    
+    return {
+        'message': 'Cleaning started',
+        'timer_id': timer_id,
+        'room_number': room_number,
+        'started_at': timer['started_at'].isoformat()
+    }
+
+
+@api_router.post("/housekeeping/mobile/cleaning/stop")
+async def stop_cleaning_timer(
+    room_id: str,
+    notes: Optional[str] = None,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Stop cleaning timer"""
+    current_user = await get_current_user(credentials)
+    
+    timer = await db.cleaning_timers.find_one({
+        'tenant_id': current_user.tenant_id,
+        'room_id': room_id,
+        'status': 'in_progress'
+    })
+    
+    if not timer:
+        raise HTTPException(status_code=404, detail="No active timer found")
+    
+    completed_at = datetime.now(timezone.utc)
+    duration = (completed_at - timer['started_at']).total_seconds() / 60
+    
+    await db.cleaning_timers.update_one(
+        {'id': timer['id'], 'tenant_id': current_user.tenant_id},
+        {'$set': {
+            'completed_at': completed_at,
+            'duration_minutes': int(duration),
+            'status': 'completed',
+            'notes': notes
+        }}
+    )
+    
+    # Update room status
+    await db.rooms.update_one(
+        {'id': room_id, 'tenant_id': current_user.tenant_id},
+        {'$set': {'status': 'clean'}}
+    )
+    
+    return {
+        'message': 'Cleaning completed',
+        'room_number': timer.get('room_number'),
+        'duration_minutes': int(duration),
+        'started_at': timer['started_at'].isoformat(),
+        'completed_at': completed_at.isoformat()
+    }
+
+
+@api_router.post("/housekeeping/mobile/report-maintenance")
+async def report_maintenance_from_hk(
+    room_id: str,
+    room_number: str,
+    issue_type: str,
+    description: str,
+    priority: str = "normal",
+    photos: Optional[List[str]] = None,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Report maintenance issue from housekeeping"""
+    current_user = await get_current_user(credentials)
+    
+    task_id = str(uuid.uuid4())
+    task = {
+        'id': task_id,
+        'tenant_id': current_user.tenant_id,
+        'task_number': f'MAINT-HK-{task_id[:8]}',
+        'title': f'{issue_type} - Room {room_number}',
+        'description': description,
+        'priority': priority,
+        'status': 'new',
+        'room_id': room_id,
+        'room_number': room_number,
+        'department': 'maintenance',
+        'reported_by': current_user.username,
+        'source': 'housekeeping',
+        'photos': photos or [],
+        'created_at': datetime.now(timezone.utc)
+    }
+    
+    await db.tasks.insert_one(task)
+    
+    return {
+        'message': 'Maintenance task created',
+        'task_id': task_id,
+        'task_number': task['task_number'],
+        'priority': priority
+    }
+
+
+@api_router.get("/housekeeping/mobile/reports/daily")
+async def get_hk_daily_report(
+    report_date: Optional[str] = None,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Get housekeeping daily report"""
+    current_user = await get_current_user(credentials)
+    
+    if report_date:
+        target_date = datetime.fromisoformat(report_date).date()
+    else:
+        target_date = datetime.now(timezone.utc).date()
+    
+    start_of_day = datetime.combine(target_date, datetime.min.time()).replace(tzinfo=timezone.utc)
+    end_of_day = datetime.combine(target_date, datetime.max.time()).replace(tzinfo=timezone.utc)
+    
+    # Room statistics
+    total_rooms = await db.rooms.count_documents({'tenant_id': current_user.tenant_id})
+    clean_rooms = await db.rooms.count_documents({'tenant_id': current_user.tenant_id, 'status': 'clean'})
+    dirty_rooms = await db.rooms.count_documents({'tenant_id': current_user.tenant_id, 'status': 'dirty'})
+    occupied_rooms = await db.rooms.count_documents({'tenant_id': current_user.tenant_id, 'status': 'occupied'})
+    
+    # Cleaning timers today
+    timers = []
+    total_duration = 0
+    async for timer in db.cleaning_timers.find({
+        'tenant_id': current_user.tenant_id,
+        'started_at': {'$gte': start_of_day, '$lte': end_of_day},
+        'status': 'completed'
+    }):
+        duration = timer.get('duration_minutes', 0)
+        total_duration += duration
+        timers.append({
+            'room_number': timer.get('room_number'),
+            'staff_name': timer.get('staff_name'),
+            'task_type': timer.get('task_type'),
+            'duration_minutes': duration
+        })
+    
+    avg_cleaning_time = total_duration / len(timers) if timers else 0
+    
+    # Lost & Found today
+    lf_count = await db.lost_found_items.count_documents({
+        'tenant_id': current_user.tenant_id,
+        'found_date': {'$gte': start_of_day, '$lte': end_of_day}
+    })
+    
+    # Inspections today
+    inspection_count = await db.room_inspections.count_documents({
+        'tenant_id': current_user.tenant_id,
+        'created_at': {'$gte': start_of_day, '$lte': end_of_day}
+    })
+    
+    # Maintenance reports from HK
+    maintenance_count = await db.tasks.count_documents({
+        'tenant_id': current_user.tenant_id,
+        'source': 'housekeeping',
+        'created_at': {'$gte': start_of_day, '$lte': end_of_day}
+    })
+    
+    return {
+        'report_date': target_date.isoformat(),
+        'room_statistics': {
+            'total_rooms': total_rooms,
+            'clean_rooms': clean_rooms,
+            'dirty_rooms': dirty_rooms,
+            'occupied_rooms': occupied_rooms,
+            'cleaning_percentage': (clean_rooms / total_rooms * 100) if total_rooms > 0 else 0
+        },
+        'cleaning_performance': {
+            'rooms_cleaned_today': len(timers),
+            'total_cleaning_time_minutes': total_duration,
+            'average_cleaning_time_minutes': round(avg_cleaning_time, 1),
+            'details': timers
+        },
+        'lost_and_found': {
+            'items_found_today': lf_count
+        },
+        'quality_control': {
+            'inspections_completed': inspection_count
+        },
+        'maintenance_reports': {
+            'issues_reported_today': maintenance_count
+        }
+    }
+
+
 @api_router.get("/notifications/mobile/housekeeping")
 async def get_housekeeping_notifications_mobile(
     credentials: HTTPAuthorizationCredentials = Depends(security)
