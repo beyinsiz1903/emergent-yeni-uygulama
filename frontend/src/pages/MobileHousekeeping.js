@@ -220,15 +220,15 @@ const MobileHousekeeping = ({ user }) => {
 
   const getActionText = (currentStatus, newStatus) => {
     if (currentStatus === 'dirty' && newStatus === 'cleaning') {
-      return 'Temizliğe Başla';
+      return 'Başla';
     } else if (currentStatus === 'cleaning' && newStatus === 'inspected') {
-      return 'Temizlik Tamamlandı';
+      return 'Tamamla';
     } else if (currentStatus === 'inspected' && newStatus === 'available') {
-      return 'Müsait Yap';
+      return 'Müsait';
     } else if (currentStatus === 'available' && newStatus === 'dirty') {
-      return 'Kirliye Al';
+      return 'Kirli';
     }
-    return 'Durum Değiştir';
+    return 'Onayla';
   };
 
   const getActionDescription = (roomNumber, currentStatus, newStatus) => {
