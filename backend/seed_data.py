@@ -88,13 +88,15 @@ class HotelSeeder:
                 floor = int(str(room_counter)[0])
                 rooms.append({
                     'id': str(uuid.uuid4()),
+                    'tenant_id': self.tenant_id,
                     'room_number': str(room_counter),
                     'room_type': room_type_info['type'],
                     'status': random.choice(['available', 'occupied', 'dirty', 'cleaning', 'inspected']),
                     'floor': floor,
+                    'capacity': 2 if room_type_info['type'] in ['Standard', 'Deluxe'] else 4,
                     'bed_type': random.choice(['single', 'double', 'king', 'twin']),
                     'max_occupancy': 2 if room_type_info['type'] in ['Standard', 'Deluxe'] else 4,
-                    'base_rate': room_type_info['rate'],
+                    'base_price': room_type_info['rate'],
                     'current_booking_id': None,
                     'is_active': True,
                     'amenities': ['TV', 'WiFi', 'Air Conditioning', 'Mini Bar'],
