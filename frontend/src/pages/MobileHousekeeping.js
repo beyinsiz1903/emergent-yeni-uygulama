@@ -542,42 +542,41 @@ const MobileHousekeeping = ({ user }) => {
           </Card>
         )}
 
-        {/* Quick Actions */}
-        <Card className="bg-gradient-to-r from-blue-50 to-purple-50">
-          <CardContent className="p-4">
-            <div className="grid grid-cols-2 gap-3">
-              <Button
-                className="h-20 flex flex-col items-center justify-center bg-orange-600 hover:bg-orange-700"
-                onClick={loadLostFound}
-              >
-                <Search className="w-6 h-6 mb-1" />
-                <span className="text-xs">Kayıp Eşya</span>
-              </Button>
-              <Button
-                className="h-20 flex flex-col items-center justify-center bg-green-600 hover:bg-green-700"
-                onClick={loadInventory}
-              >
-                <Package className="w-6 h-6 mb-1" />
-                <span className="text-xs">Envanter</span>
-              </Button>
-              <Button
-                className="h-20 flex flex-col items-center justify-center bg-purple-600 hover:bg-purple-700"
-                onClick={loadTaskAssignments}
-              >
-                <MapPin className="w-6 h-6 mb-1" />
-                <span className="text-xs">Görev Dağılımı</span>
-              </Button>
-              <Button
-                className="h-20 flex flex-col items-center justify-center"
-                variant="outline"
-                onClick={loadStatusLogs}
-              >
-                <History className="w-6 h-6 mb-1" />
-                <span className="text-xs">Durum Kayıtları</span>
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+        {/* Quick Actions - Compact */}
+        <div className="grid grid-cols-4 gap-2">
+          <Button
+            size="sm"
+            className="h-16 flex flex-col items-center justify-center bg-orange-600 hover:bg-orange-700 p-1"
+            onClick={loadLostFound}
+          >
+            <Search className="w-4 h-4 mb-1" />
+            <span className="text-[10px]">Kayıp Eşya</span>
+          </Button>
+          <Button
+            size="sm"
+            className="h-16 flex flex-col items-center justify-center bg-green-600 hover:bg-green-700 p-1"
+            onClick={loadInventory}
+          >
+            <Package className="w-4 h-4 mb-1" />
+            <span className="text-[10px]">Envanter</span>
+          </Button>
+          <Button
+            size="sm"
+            className="h-16 flex flex-col items-center justify-center bg-purple-600 hover:bg-purple-700 p-1"
+            onClick={loadTaskAssignments}
+          >
+            <MapPin className="w-4 h-4 mb-1" />
+            <span className="text-[10px]">Görev</span>
+          </Button>
+          <Button
+            size="sm"
+            className="h-16 flex flex-col items-center justify-center bg-blue-600 hover:bg-blue-700 p-1"
+            onClick={loadStatusLogs}
+          >
+            <History className="w-4 h-4 mb-1" />
+            <span className="text-[10px]">Kayıt</span>
+          </Button>
+        </div>
       </div>
 
       {/* Lost & Found Modal */}
