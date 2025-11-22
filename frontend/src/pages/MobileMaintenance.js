@@ -358,16 +358,6 @@ const MobileMaintenance = ({ user }) => {
     }
   };
 
-  const getPriorityColor = (priority) => {
-    const colors = {
-      urgent: 'bg-red-500',
-      high: 'bg-orange-500',
-      normal: 'bg-blue-500',
-      low: 'bg-gray-500'
-    };
-    return colors[priority] || 'bg-gray-500';
-  };
-
   const getStatusColor = (status) => {
     const colors = {
       new: 'bg-blue-100 text-blue-700',
