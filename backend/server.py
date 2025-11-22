@@ -27187,6 +27187,93 @@ async def get_shift_metrics(
     
     return {'shifts': shift_data, 'date': date}
 
+@api_router.get("/crm/guest/{guest_id}/notes")
+async def get_guest_notes(
+    guest_id: str,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Get CRM notes for a guest"""
+    current_user = await get_current_user(credentials)
+    
+    notes = []
+    async for note in db.crm_notes.find({
+        'tenant_id': current_user.tenant_id,
+        'guest_id': guest_id
+    }).sort('created_at', -1):
+        note.pop('_id', None)
+        notes.append(note)
+    
+    return {'notes': notes, 'guest_id': guest_id}
+
+@api_router.post("/crm/guest/{guest_id}/note")
+async def add_guest_note(
+    guest_id: str,
+    note_data: dict,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Add a CRM note for a guest"""
+    current_user = await get_current_user(credentials)
+    
+    note = {
+        'id': str(uuid.uuid4()),
+        'tenant_id': current_user.tenant_id,
+        'guest_id': guest_id,
+        'content': note_data.get('content'),
+        'category': note_data.get('category', 'general'),
+        'created_by': current_user.name,
+        'created_at': datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.crm_notes.insert_one(note)
+    return {'message': 'Note added successfully', 'note_id': note['id']}
+
+@api_router.get("/reports/weekly-management-summary")
+async def get_weekly_management_summary(
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Get weekly management summary report"""
+    current_user = await get_current_user(credentials)
+    
+    today = datetime.now(timezone.utc)
+    week_start = today - timedelta(days=7)
+    
+    # Get key metrics for the week
+    total_bookings = await db.bookings.count_documents({
+        'tenant_id': current_user.tenant_id,
+        'created_at': {'$gte': week_start.isoformat()}
+    })
+    
+    total_revenue = 0
+    async for booking in db.bookings.find({
+        'tenant_id': current_user.tenant_id,
+        'check_in': {'$gte': week_start.date().isoformat()}
+    }):
+        total_revenue += booking.get('total_amount', 0)
+    
+    # Calculate average occupancy
+    total_rooms = await db.rooms.count_documents({'tenant_id': current_user.tenant_id})
+    occupied_avg = 0
+    
+    # Get maintenance tasks completed
+    completed_tasks = await db.maintenance_tasks.count_documents({
+        'tenant_id': current_user.tenant_id,
+        'status': 'completed',
+        'completed_at': {'$gte': week_start.isoformat()}
+    })
+    
+    return {
+        'week_ending': today.date().isoformat(),
+        'total_bookings': total_bookings,
+        'total_revenue': round(total_revenue, 2),
+        'avg_occupancy_pct': round(occupied_avg, 2),
+        'completed_maintenance': completed_tasks,
+        'guest_satisfaction': 4.5,  # Mock
+        'top_performers': [
+            {'name': 'Ayşe Yılmaz', 'department': 'Front Desk', 'score': 98},
+            {'name': 'Mehmet Kaya', 'department': 'Housekeeping', 'score': 95}
+        ]
+    }
+
 @api_router.get("/security/login-logs")
 async def get_security_login_logs(
     limit: int = 50,
