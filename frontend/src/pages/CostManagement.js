@@ -75,7 +75,7 @@ const CostManagement = ({ user, tenant, onLogout }) => {
   }));
 
   return (
-    <Layout user={user} tenant={tenant} onLogout={onLogout}>
+    <Layout user={user} tenant={tenant} onLogout={onLogout} currentModule="cost-management">
       <div className="p-6 space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
