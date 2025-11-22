@@ -556,12 +556,13 @@ class ApprovalSystemRetester:
     # ============= EXECUTIVE DASHBOARD TESTS (3 endpoints) =============
 
     async def test_executive_kpi_snapshot(self):
-        """Test GET /api/executive/kpi-snapshot"""
-        print("\n📊 Testing Executive KPI Snapshot Endpoint...")
+        """Test GET /api/executive/kpi-snapshot - QUICK SPOT CHECK"""
+        print("\n📊 Testing Executive KPI Snapshot Endpoint (QUICK SPOT CHECK)...")
+        print("🔧 KNOWN ISSUE: Returns lowercase field names (revpar, adr) instead of uppercase (RevPAR, ADR)")
         
         test_cases = [
             {
-                "name": "Get KPI snapshot",
+                "name": "Get KPI snapshot - verify lowercase field names",
                 "expected_fields": ["kpis", "summary"]
             }
         ]
