@@ -86,13 +86,28 @@ const MobileFinance = ({ user }) => {
     try {
       setLoading(true);
       
-      const [dailyRes, monthlyRes, receivablesRes, costsRes, notifRes, invoicesRes] = await Promise.all([
-        axios.get('/finance/mobile/daily-collections'),
-        axios.get('/finance/mobile/monthly-collections'),
-        axios.get('/finance/mobile/pending-receivables'),
-        axios.get('/finance/mobile/monthly-costs'),
-        axios.get('/notifications/mobile/finance'),
-        axios.get('/invoice/list').catch(() => ({ data: { invoices: [] } }))
+      const [
+        dailyRes, 
+        monthlyRes, 
+        receivablesRes, 
+        costsRes, 
+        notifRes, 
+        invoicesRes,
+        cashFlowRes,
+        riskAlertsRes,
+        dailyExpensesRes,
+        bankBalancesRes
+      ] = await Promise.all([
+        axios.get('/api/finance/mobile/daily-collections'),
+        axios.get('/api/finance/mobile/monthly-collections'),
+        axios.get('/api/finance/mobile/pending-receivables'),
+        axios.get('/api/finance/mobile/monthly-costs'),
+        axios.get('/api/notifications/mobile/finance'),
+        axios.get('/api/invoice/list').catch(() => ({ data: { invoices: [] } })),
+        axios.get('/api/finance/mobile/cash-flow-summary').catch(() => ({ data: null })),
+        axios.get('/api/finance/mobile/risk-alerts').catch(() => ({ data: null })),
+        axios.get('/api/finance/mobile/daily-expenses').catch(() => ({ data: null })),
+        axios.get('/api/finance/mobile/bank-balances').catch(() => ({ data: null }))
       ]);
 
       setDailyCollections(dailyRes.data);
@@ -101,9 +116,13 @@ const MobileFinance = ({ user }) => {
       setMonthlyCosts(costsRes.data);
       setNotifications(notifRes.data.notifications || []);
       setAllInvoices(invoicesRes.data.invoices || []);
+      setCashFlowData(cashFlowRes.data);
+      setRiskAlerts(riskAlertsRes.data);
+      setDailyExpenses(dailyExpensesRes.data);
+      setBankBalances(bankBalancesRes.data);
     } catch (error) {
       console.error('Failed to load finance data:', error);
-      toast.error('✗ Yükleme');
+      toast.error('✗ Veri yükleme hatası');
     } finally {
       setLoading(false);
       setRefreshing(false);
