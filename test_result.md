@@ -125,6 +125,7 @@ user_problem_statement: |
 
   NEW ENHANCEMENTS (Current Task):
   19. OTA Reservation Details - Special requests/remarks (expandable), Multi-room reservation, Extra charges, Source of booking
+  20. Finance Mobile Endpoints - Turkish Finance Mobile Development (Finans Mobil Geliştirmeler)
 
   - task: "OTA Reservation Details - Complete Endpoint"
     implemented: true
