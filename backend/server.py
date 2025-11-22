@@ -2410,9 +2410,11 @@ async def create_company(company_data: CompanyCreate, current_user: User = Depen
 async def get_companies(
     search: Optional[str] = None,
     status: Optional[CompanyStatus] = None,
+    limit: int = 1000,
+    offset: int = 0,
     current_user: User = Depends(get_current_user)
 ):
-    """Get all companies with optional search and status filter."""
+    """Get all companies with optional search, status filter, and pagination."""
     query = {'tenant_id': current_user.tenant_id}
     
     if status:
@@ -2424,7 +2426,7 @@ async def get_companies(
             {'corporate_code': {'$regex': search, '$options': 'i'}}
         ]
     
-    companies = await db.companies.find(query, {'_id': 0}).to_list(1000)
+    companies = await db.companies.find(query, {'_id': 0}).skip(offset).limit(limit).to_list(limit)
     # Remove response_model validation to allow flexible contracted_rate types
     return companies
 
