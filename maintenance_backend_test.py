@@ -493,7 +493,7 @@ class MaintenanceEndpointTester:
         test_cases = [
             {
                 "name": "Use spare part for task",
-                "data": {
+                "params": {
                     "spare_part_id": sample_part_id,
                     "task_id": sample_task_id,
                     "quantity": 1,
@@ -510,8 +510,10 @@ class MaintenanceEndpointTester:
         for test_case in test_cases:
             try:
                 url = f"{BACKEND_URL}/maintenance/mobile/spare-parts/use"
+                params = "&".join([f"{k}={v}" for k, v in test_case["params"].items()])
+                url += f"?{params}"
                 
-                async with self.session.post(url, json=test_case["data"], headers=self.get_headers()) as response:
+                async with self.session.post(url, headers=self.get_headers()) as response:
                     if response.status in test_case["expected_status"]:
                         if response.status == 200:
                             data = await response.json()
