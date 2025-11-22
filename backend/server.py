@@ -2928,58 +2928,6 @@ async def close_folio(
     
     return {"message": "Folio closed successfully"}
 
-@api_router.get("/folio/dashboard-stats")
-async def get_folio_dashboard_stats(
-    credentials: HTTPAuthorizationCredentials = Depends(security)
-):
-    """Get folio statistics for dashboard"""
-    current_user = await get_current_user(credentials)
-    
-    try:
-        # Get all open folios
-        open_folios = await db.folios.find({
-            'tenant_id': current_user.tenant_id,
-            'status': 'open'
-        }, {'_id': 0}).to_list(1000)
-        
-        # Calculate total outstanding balance from folio balance field
-        total_outstanding = 0.0
-        for folio in open_folios:
-            # Use the balance field directly instead of calculating
-            total_outstanding += folio.get('balance', 0)
-        
-        # Get recent charges (last 24 hours)
-        yesterday = (datetime.now(timezone.utc) - timedelta(days=1)).isoformat()
-        recent_charges = await db.folio_charges.count_documents({
-            'tenant_id': current_user.tenant_id,
-            'date': {'$gte': yesterday},
-            'voided': False
-        })
-        
-        # Get recent payments (last 24 hours)
-        recent_payments = await db.payments.count_documents({
-            'tenant_id': current_user.tenant_id,
-            'date': {'$gte': yesterday}
-        })
-        
-        return {
-            'total_open_folios': len(open_folios),
-            'total_outstanding_balance': round(total_outstanding, 2),
-            'recent_charges_24h': recent_charges,
-            'recent_payments_24h': recent_payments
-        }
-    except Exception as e:
-        print(f"Error in folio dashboard stats: {str(e)}")
-        import traceback
-        traceback.print_exc()
-        # Return default values instead of raising
-        return {
-            'total_open_folios': 0,
-            'total_outstanding_balance': 0.0,
-            'recent_charges_24h': 0,
-            'recent_payments_24h': 0
-        }
-
 @api_router.get("/folio/pending-ar")
 async def get_pending_ar(current_user: User = Depends(get_current_user)):
     """Get pending accounts receivable (company folios with outstanding balances)"""
