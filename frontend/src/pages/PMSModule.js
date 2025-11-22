@@ -177,6 +177,15 @@ const PMSModule = ({ user, tenant, onLogout }) => {
     notes: ''
   });
 
+  const [paymentForm, setPaymentForm] = useState({
+    amount: 0,
+    method: 'card',
+    payment_type: 'interim',
+    reference: '',
+    notes: ''
+  });
+
+
   const [newHKTask, setNewHKTask] = useState({
     room_id: '', task_type: 'cleaning', priority: 'normal', notes: ''
   });
