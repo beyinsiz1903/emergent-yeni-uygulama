@@ -13722,6 +13722,431 @@ async def get_z_reports(
     return {'reports': reports, 'count': len(reports)}
 
 
+
+# --------------------------------------------------------------------------
+# F&B Mobile Management - Orders, Recipes, Stock Consumption
+# --------------------------------------------------------------------------
+
+@api_router.get("/fnb/mobile/outlets")
+async def get_fnb_outlets_mobile(
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Get all F&B outlets with details"""
+    current_user = await get_current_user(credentials)
+    
+    outlets = []
+    async for outlet in db.outlets.find({
+        'tenant_id': current_user.tenant_id,
+        'is_active': True
+    }).sort('name', 1):
+        outlets.append({
+            'id': outlet.get('id'),
+            'name': outlet.get('name'),
+            'outlet_type': outlet.get('outlet_type'),
+            'department': outlet.get('department'),
+            'location': outlet.get('location'),
+            'capacity': outlet.get('capacity'),
+            'opening_time': outlet.get('opening_time'),
+            'closing_time': outlet.get('closing_time'),
+            'manager': outlet.get('manager'),
+            'is_active': outlet.get('is_active', True)
+        })
+    
+    return {
+        'outlets': outlets,
+        'count': len(outlets)
+    }
+
+
+@api_router.get("/fnb/mobile/orders/active")
+async def get_active_orders_mobile(
+    outlet_id: Optional[str] = None,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Get active POS orders (pending, preparing, ready)"""
+    current_user = await get_current_user(credentials)
+    
+    query = {
+        'tenant_id': current_user.tenant_id,
+        'status': {'$in': ['pending', 'preparing', 'ready']}
+    }
+    
+    if outlet_id:
+        query['outlet_id'] = outlet_id
+    
+    orders = []
+    total_value = 0.0
+    
+    async for order in db.pos_orders.find(query).sort('created_at', -1).limit(100):
+        order_data = {
+            'id': order.get('id'),
+            'order_number': order.get('order_number'),
+            'outlet_name': order.get('outlet_name'),
+            'table_number': order.get('table_number'),
+            'room_number': order.get('room_number'),
+            'order_type': order.get('order_type'),
+            'status': order.get('status'),
+            'items_count': len(order.get('items', [])),
+            'total': order.get('total', 0),
+            'waiter': order.get('waiter'),
+            'chef': order.get('chef'),
+            'created_at': order.get('created_at').isoformat() if order.get('created_at') else None,
+            'wait_time_minutes': None
+        }
+        
+        # Calculate wait time
+        if order.get('created_at'):
+            wait_time = datetime.now(timezone.utc) - order['created_at']
+            order_data['wait_time_minutes'] = int(wait_time.total_seconds() / 60)
+        
+        orders.append(order_data)
+        total_value += order.get('total', 0)
+    
+    # Summary by status
+    summary = {
+        'pending': len([o for o in orders if o['status'] == 'pending']),
+        'preparing': len([o for o in orders if o['status'] == 'preparing']),
+        'ready': len([o for o in orders if o['status'] == 'ready']),
+        'total_orders': len(orders),
+        'total_value': total_value,
+        'average_wait_time': sum(o.get('wait_time_minutes', 0) for o in orders) / len(orders) if orders else 0
+    }
+    
+    return {
+        'orders': orders,
+        'summary': summary
+    }
+
+
+@api_router.get("/fnb/mobile/orders/{order_id}")
+async def get_order_detail_mobile(
+    order_id: str,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Get order detail with items"""
+    current_user = await get_current_user(credentials)
+    
+    order = await db.pos_orders.find_one({
+        'id': order_id,
+        'tenant_id': current_user.tenant_id
+    })
+    
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+    
+    return {
+        'order': {
+            'id': order.get('id'),
+            'order_number': order.get('order_number'),
+            'outlet_name': order.get('outlet_name'),
+            'table_number': order.get('table_number'),
+            'room_number': order.get('room_number'),
+            'order_type': order.get('order_type'),
+            'status': order.get('status'),
+            'items': order.get('items', []),
+            'subtotal': order.get('subtotal', 0),
+            'tax': order.get('tax', 0),
+            'service_charge': order.get('service_charge', 0),
+            'total': order.get('total', 0),
+            'waiter': order.get('waiter'),
+            'chef': order.get('chef'),
+            'notes': order.get('notes'),
+            'created_at': order.get('created_at').isoformat() if order.get('created_at') else None,
+            'started_at': order.get('started_at').isoformat() if order.get('started_at') else None,
+            'ready_at': order.get('ready_at').isoformat() if order.get('ready_at') else None,
+            'served_at': order.get('served_at').isoformat() if order.get('served_at') else None
+        }
+    }
+
+
+@api_router.post("/fnb/mobile/orders/{order_id}/status")
+async def update_order_status_mobile(
+    order_id: str,
+    new_status: str,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Update order status"""
+    current_user = await get_current_user(credentials)
+    
+    order = await db.pos_orders.find_one({
+        'id': order_id,
+        'tenant_id': current_user.tenant_id
+    })
+    
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+    
+    update_data = {
+        'status': new_status,
+        'updated_at': datetime.now(timezone.utc)
+    }
+    
+    if new_status == 'preparing' and not order.get('started_at'):
+        update_data['started_at'] = datetime.now(timezone.utc)
+    elif new_status == 'ready' and not order.get('ready_at'):
+        update_data['ready_at'] = datetime.now(timezone.utc)
+    elif new_status == 'served' and not order.get('served_at'):
+        update_data['served_at'] = datetime.now(timezone.utc)
+    
+    await db.pos_orders.update_one(
+        {'id': order_id, 'tenant_id': current_user.tenant_id},
+        {'$set': update_data}
+    )
+    
+    return {
+        'message': f'Order status updated to {new_status}',
+        'order_id': order_id,
+        'new_status': new_status
+    }
+
+
+@api_router.get("/fnb/mobile/recipes")
+async def get_recipes_mobile(
+    menu_item_id: Optional[str] = None,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Get recipes with ingredient details"""
+    current_user = await get_current_user(credentials)
+    
+    query = {'tenant_id': current_user.tenant_id}
+    if menu_item_id:
+        query['menu_item_id'] = menu_item_id
+    
+    recipes = []
+    async for recipe in db.recipes.find(query).sort('menu_item_name', 1):
+        recipes.append({
+            'id': recipe.get('id'),
+            'menu_item_id': recipe.get('menu_item_id'),
+            'menu_item_name': recipe.get('menu_item_name'),
+            'ingredients': recipe.get('ingredients', []),
+            'ingredient_count': len(recipe.get('ingredients', [])),
+            'preparation_time_minutes': recipe.get('preparation_time_minutes'),
+            'serving_size': recipe.get('serving_size', 1),
+            'total_cost': recipe.get('total_cost', 0),
+            'selling_price': recipe.get('selling_price', 0),
+            'profit_margin': recipe.get('profit_margin', 0),
+            'notes': recipe.get('notes')
+        })
+    
+    return {
+        'recipes': recipes,
+        'count': len(recipes)
+    }
+
+
+@api_router.get("/fnb/mobile/ingredients")
+async def get_ingredients_mobile(
+    low_stock_only: bool = False,
+    category: Optional[str] = None,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Get ingredient inventory"""
+    current_user = await get_current_user(credentials)
+    
+    query = {'tenant_id': current_user.tenant_id}
+    if category:
+        query['category'] = category
+    
+    ingredients = []
+    low_stock_count = 0
+    total_value = 0.0
+    
+    async for ingredient in db.ingredients.find(query).sort('name', 1):
+        current_stock = ingredient.get('current_stock', 0)
+        minimum_stock = ingredient.get('minimum_stock', 0)
+        is_low_stock = current_stock <= minimum_stock
+        
+        if low_stock_only and not is_low_stock:
+            continue
+        
+        if is_low_stock:
+            low_stock_count += 1
+        
+        stock_value = current_stock * ingredient.get('unit_cost', 0)
+        total_value += stock_value
+        
+        ingredients.append({
+            'id': ingredient.get('id'),
+            'name': ingredient.get('name'),
+            'category': ingredient.get('category'),
+            'unit': ingredient.get('unit'),
+            'current_stock': current_stock,
+            'minimum_stock': minimum_stock,
+            'is_low_stock': is_low_stock,
+            'unit_cost': ingredient.get('unit_cost', 0),
+            'stock_value': stock_value,
+            'supplier': ingredient.get('supplier'),
+            'storage_location': ingredient.get('storage_location'),
+            'expiry_date': ingredient.get('expiry_date').isoformat() if ingredient.get('expiry_date') else None,
+            'last_restocked': ingredient.get('last_restocked').isoformat() if ingredient.get('last_restocked') else None
+        })
+    
+    return {
+        'ingredients': ingredients,
+        'summary': {
+            'total_count': len(ingredients),
+            'low_stock_count': low_stock_count,
+            'total_inventory_value': total_value,
+            'categories': list(set(i['category'] for i in ingredients))
+        }
+    }
+
+
+@api_router.get("/fnb/mobile/stock-consumption")
+async def get_stock_consumption_mobile(
+    outlet_id: Optional[str] = None,
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Get stock consumption report"""
+    current_user = await get_current_user(credentials)
+    
+    query = {'tenant_id': current_user.tenant_id}
+    
+    if outlet_id:
+        query['outlet_id'] = outlet_id
+    
+    if start_date or end_date:
+        date_filter = {}
+        if start_date:
+            date_filter['$gte'] = datetime.fromisoformat(start_date)
+        if end_date:
+            date_filter['$lte'] = datetime.fromisoformat(end_date)
+        query['consumed_at'] = date_filter
+    else:
+        # Default to today
+        today = datetime.now(timezone.utc).date()
+        start_of_day = datetime.combine(today, datetime.min.time()).replace(tzinfo=timezone.utc)
+        end_of_day = datetime.combine(today, datetime.max.time()).replace(tzinfo=timezone.utc)
+        query['consumed_at'] = {'$gte': start_of_day, '$lte': end_of_day}
+    
+    consumptions = []
+    total_cost = 0.0
+    by_ingredient = {}
+    by_outlet = {}
+    
+    async for consumption in db.stock_consumption.find(query).sort('consumed_at', -1):
+        ingredient_name = consumption.get('ingredient_name')
+        outlet_name = consumption.get('outlet_name')
+        cost = consumption.get('cost', 0)
+        quantity = consumption.get('consumed_quantity', 0)
+        
+        consumptions.append({
+            'id': consumption.get('id'),
+            'ingredient_name': ingredient_name,
+            'consumed_quantity': quantity,
+            'unit': consumption.get('unit'),
+            'outlet_name': outlet_name,
+            'cost': cost,
+            'consumed_at': consumption.get('consumed_at').isoformat() if consumption.get('consumed_at') else None
+        })
+        
+        total_cost += cost
+        
+        # Aggregate by ingredient
+        if ingredient_name not in by_ingredient:
+            by_ingredient[ingredient_name] = {'quantity': 0, 'cost': 0}
+        by_ingredient[ingredient_name]['quantity'] += quantity
+        by_ingredient[ingredient_name]['cost'] += cost
+        
+        # Aggregate by outlet
+        if outlet_name not in by_outlet:
+            by_outlet[outlet_name] = {'cost': 0, 'item_count': 0}
+        by_outlet[outlet_name]['cost'] += cost
+        by_outlet[outlet_name]['item_count'] += 1
+    
+    return {
+        'consumptions': consumptions,
+        'summary': {
+            'total_items': len(consumptions),
+            'total_cost': total_cost,
+            'by_ingredient': by_ingredient,
+            'by_outlet': by_outlet
+        }
+    }
+
+
+@api_router.get("/fnb/mobile/daily-summary")
+async def get_fnb_daily_summary_mobile(
+    date: Optional[str] = None,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Get comprehensive F&B daily summary"""
+    current_user = await get_current_user(credentials)
+    
+    if date:
+        target_date = datetime.fromisoformat(date).date()
+    else:
+        target_date = datetime.now(timezone.utc).date()
+    
+    start_of_day = datetime.combine(target_date, datetime.min.time()).replace(tzinfo=timezone.utc)
+    end_of_day = datetime.combine(target_date, datetime.max.time()).replace(tzinfo=timezone.utc)
+    
+    # Orders summary
+    orders_query = {
+        'tenant_id': current_user.tenant_id,
+        'created_at': {'$gte': start_of_day, '$lte': end_of_day}
+    }
+    
+    total_orders = 0
+    total_revenue = 0.0
+    orders_by_outlet = {}
+    orders_by_status = {'pending': 0, 'preparing': 0, 'ready': 0, 'served': 0, 'cancelled': 0}
+    
+    async for order in db.pos_orders.find(orders_query):
+        total_orders += 1
+        total_revenue += order.get('total', 0)
+        
+        outlet = order.get('outlet_name', 'Unknown')
+        if outlet not in orders_by_outlet:
+            orders_by_outlet[outlet] = {'count': 0, 'revenue': 0}
+        orders_by_outlet[outlet]['count'] += 1
+        orders_by_outlet[outlet]['revenue'] += order.get('total', 0)
+        
+        status = order.get('status', 'pending')
+        orders_by_status[status] = orders_by_status.get(status, 0) + 1
+    
+    # Stock consumption summary
+    consumption_query = {
+        'tenant_id': current_user.tenant_id,
+        'consumed_at': {'$gte': start_of_day, '$lte': end_of_day}
+    }
+    
+    total_consumption_cost = 0.0
+    consumption_count = 0
+    
+    async for consumption in db.stock_consumption.find(consumption_query):
+        total_consumption_cost += consumption.get('cost', 0)
+        consumption_count += 1
+    
+    # Calculate profit
+    gross_profit = total_revenue - total_consumption_cost
+    profit_margin = (gross_profit / total_revenue * 100) if total_revenue > 0 else 0
+    
+    return {
+        'date': target_date.isoformat(),
+        'orders': {
+            'total_count': total_orders,
+            'total_revenue': total_revenue,
+            'by_outlet': orders_by_outlet,
+            'by_status': orders_by_status,
+            'average_order_value': total_revenue / total_orders if total_orders > 0 else 0
+        },
+        'stock_consumption': {
+            'total_cost': total_consumption_cost,
+            'item_count': consumption_count
+        },
+        'profitability': {
+            'revenue': total_revenue,
+            'cost': total_consumption_cost,
+            'gross_profit': gross_profit,
+            'profit_margin_percentage': profit_margin
+        }
+    }
+
+
+
 # ========================================
 # 5. Group Reservations & Block Reservations
 # ========================================
