@@ -28886,6 +28886,8 @@ async def get_pos_orders(
     
     orders = []
     async for order in db.pos_orders.find(query).sort('created_at', -1):
+        # Remove ObjectId fields to prevent serialization issues
+        order.pop('_id', None)
         orders.append(order)
     
     return {
