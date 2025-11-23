@@ -1461,6 +1461,18 @@ backend:
       - working: true
         agent: "testing"
         comment: "✅ COMPREHENSIVE CHECK-OUT TESTING COMPLETED - Enhanced check-out endpoint working perfectly. Tested: Outstanding balance validation (properly rejects checkout with 400 error and detailed balance info), Successful checkout with payment (response contains message, checked_out_at, total_balance, folios_closed), Booking status change to 'checked_out', Room status change to 'dirty' with current_booking_id cleared, Auto folio closure when balance is zero, Force checkout with outstanding balance (force=true parameter), Multi-folio balance calculation across guest and company folios, Already checked-out validation (400 error). Housekeeping task creation verified in code. All balance validations and status transitions working correctly."
+
+  - task: "POS Orders Endpoint - ObjectId Serialization Fix"
+    implemented: true
+    working: false
+    file: "/app/backend/server.py"
+    stuck_count: 1
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: false
+        agent: "testing"
+        comment: "❌ CRITICAL ISSUE FOUND - GET /api/pos/orders returns HTTP 500 error due to ObjectId serialization issue in FastAPI response. Error: 'ObjectId object is not iterable' + 'vars() argument must have __dict__ attribute'. This is a common MongoDB ObjectId serialization problem where ObjectId fields are not being properly converted to strings before JSON serialization. REQUIRES IMMEDIATE FIX to remove '_id' fields or convert ObjectIds to strings."
   
   - task: "Create Company model and CompanyCreate pydantic model"
     implemented: true
