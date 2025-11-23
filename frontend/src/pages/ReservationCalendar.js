@@ -1663,33 +1663,57 @@ const ReservationCalendar = ({ user, tenant, onLogout }) => {
         <Card>
           <CardContent className="py-3">
             <div className="space-y-3">
-              {/* Market Segment Colors */}
+              {/* Market Segment Colors - Enhanced & Customizable */}
               <div>
-                <div className="text-xs font-semibold text-gray-700 mb-2">Market Segments (by color):</div>
-                <div className="flex items-center space-x-4 text-sm">
-                  <div className="flex items-center space-x-2">
-                    <div className="w-4 h-4 bg-blue-600 rounded"></div>
-                    <span>Corporate</span>
+                <div className="flex items-center justify-between mb-2">
+                  <div className="text-xs font-semibold text-gray-700">Market Segments & Rate Types:</div>
+                  <Button 
+                    size="sm" 
+                    variant="ghost"
+                    className="h-6 text-xs"
+                    onClick={() => toast.info('Legend customization coming soon!')}
+                  >
+                    ⚙️ Customize
+                  </Button>
+                </div>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
+                  {/* Standard Segments */}
+                  <div className="flex items-center gap-2 p-1.5 bg-gray-50 rounded">
+                    <div className="w-4 h-4 bg-blue-600 rounded flex-shrink-0"></div>
+                    <span className="truncate">Corporate</span>
                   </div>
-                  <div className="flex items-center space-x-2">
-                    <div className="w-4 h-4 bg-purple-600 rounded"></div>
-                    <span>OTA</span>
+                  <div className="flex items-center gap-2 p-1.5 bg-gray-50 rounded">
+                    <div className="w-4 h-4 bg-purple-600 rounded flex-shrink-0"></div>
+                    <span className="truncate">OTA</span>
                   </div>
-                  <div className="flex items-center space-x-2">
-                    <div className="w-4 h-4 bg-orange-500 rounded"></div>
-                    <span>Walk-in</span>
+                  <div className="flex items-center gap-2 p-1.5 bg-gray-50 rounded">
+                    <div className="w-4 h-4 bg-orange-500 rounded flex-shrink-0"></div>
+                    <span className="truncate">Walk-in</span>
                   </div>
-                  <div className="flex items-center space-x-2">
-                    <div className="w-4 h-4 bg-green-600 rounded"></div>
-                    <span>Group</span>
+                  <div className="flex items-center gap-2 p-1.5 bg-gray-50 rounded">
+                    <div className="w-4 h-4 bg-green-600 rounded flex-shrink-0"></div>
+                    <span className="truncate">Group</span>
                   </div>
-                  <div className="flex items-center space-x-2">
-                    <div className="w-4 h-4 bg-pink-500 rounded"></div>
-                    <span>Leisure</span>
+                  <div className="flex items-center gap-2 p-1.5 bg-gray-50 rounded">
+                    <div className="w-4 h-4 bg-pink-500 rounded flex-shrink-0"></div>
+                    <span className="truncate">Leisure</span>
                   </div>
-                  <div className="flex items-center space-x-2">
-                    <div className="w-4 h-4 bg-indigo-600 rounded"></div>
-                    <span>Government</span>
+                  <div className="flex items-center gap-2 p-1.5 bg-gray-50 rounded">
+                    <div className="w-4 h-4 bg-indigo-600 rounded flex-shrink-0"></div>
+                    <span className="truncate">Government</span>
+                  </div>
+                  {/* Special Rate Types */}
+                  <div className="flex items-center gap-2 p-1.5 bg-gradient-to-r from-yellow-100 to-orange-100 rounded">
+                    <div className="w-4 h-4 bg-gradient-to-r from-yellow-500 to-orange-500 rounded flex-shrink-0"></div>
+                    <span className="truncate font-medium">🎉 Promo</span>
+                  </div>
+                  <div className="flex items-center gap-2 p-1.5 bg-gray-50 rounded">
+                    <div className="w-4 h-4 bg-red-600 rounded flex-shrink-0"></div>
+                    <span className="truncate">Non-Refund</span>
+                  </div>
+                  <div className="flex items-center gap-2 p-1.5 bg-gray-50 rounded">
+                    <div className="w-4 h-4 bg-teal-600 rounded flex-shrink-0"></div>
+                    <span className="truncate">Advance</span>
                   </div>
                 </div>
               </div>
