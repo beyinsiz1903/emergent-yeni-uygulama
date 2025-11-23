@@ -158,7 +158,7 @@ class UltraPerformanceTester:
         
         # Make 5 consecutive calls as per test protocol
         for call_num in range(1, 6):
-            call_type = "cold" if call_num == 1 else "cached"
+            call_type = "cold" if call_num == 1 else "warm"
             
             try:
                 start_time = time.perf_counter()
@@ -170,29 +170,16 @@ class UltraPerformanceTester:
                     if response.status == 200:
                         data = await response.json()
                         
-                        call_result = {
-                            "call_number": call_num,
-                            "type": call_type,
-                            "response_time_ms": response_time_ms,
-                            "status": response.status,
-                            "success": True,
-                            "data_size": len(str(data)) if data else 0
-                        }
+                        results["response_times"].append(response_time_ms)
                         
-                        results["calls"].append(call_result)
+                        # Status indicator based on ultra-strict performance
+                        status = "✅" if response_time_ms < target_ms else "❌"
                         
+                        print(f"   Call {call_num} ({call_type}): {status} {response_time_ms:.1f}ms")
+                        
+                        # Store data for completeness check
                         if call_num == 1:
-                            results["cold_time_ms"] = response_time_ms
-                        else:
-                            results["cached_times_ms"].append(response_time_ms)
-                        
-                        # Status indicator based on performance
-                        if call_type == "cold":
-                            status = "✅" if response_time_ms < COLD_TARGET_MS else "⚠️" if response_time_ms < COLD_TARGET_MS * 1.5 else "❌"
-                        else:
-                            status = "✅" if response_time_ms < target_cached_ms else "⚠️" if response_time_ms < target_cached_ms * 1.5 else "❌"
-                        
-                        print(f"   {status} Call {call_num} ({call_type}): {response_time_ms:.1f}ms")
+                            results["data_complete"] = isinstance(data, dict) and len(data) > 0
                         
                     else:
                         error_msg = f"HTTP {response.status}"
@@ -212,9 +199,9 @@ class UltraPerformanceTester:
                 results["success"] = False
                 print(f"   ❌ Call {call_num} ({call_type}): {error_msg}")
             
-            # Small delay between calls to simulate real usage
-            if call_num < 3:
-                await asyncio.sleep(0.1)
+            # Small delay between calls
+            if call_num < 5:
+                await asyncio.sleep(0.05)
         
         # Calculate metrics
         if results["cached_times_ms"]:
