@@ -9129,6 +9129,111 @@ async def get_oversell_protection_map(
         'protection_map': protection_map,
         'summary': {
             'danger_days': sum(1 for d in protection_map if d['risk_level'] == 'danger'),
+
+
+@api_router.get("/deluxe/grouped-conflicts")
+async def get_grouped_conflicts(
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+    current_user: User = Depends(get_current_user)
+):
+    """Get booking conflicts grouped by room for cleaner display"""
+    
+    # Default to next 30 days
+    if not start_date:
+        start_date = datetime.now(timezone.utc).isoformat()
+    if not end_date:
+        end_date = (datetime.now(timezone.utc) + timedelta(days=30)).isoformat()
+    
+    # Find all overlapping bookings
+    pipeline = [
+        {
+            '$match': {
+                'tenant_id': current_user.tenant_id,
+                'status': {'$in': ['confirmed', 'guaranteed', 'checked_in']},
+                'check_in': {'$gte': start_date, '$lte': end_date}
+            }
+        },
+        {
+            '$group': {
+                '_id': {
+                    'room_id': '$room_id',
+                    'date': {'$substr': ['$check_in', 0, 10]}
+                },
+                'count': {'$sum': 1},
+                'bookings': {
+                    '$push': {
+                        'id': '$id',
+                        'guest_id': '$guest_id',
+                        'check_in': '$check_in',
+                        'check_out': '$check_out',
+                        'total_amount': '$total_amount'
+                    }
+                }
+            }
+        },
+        {
+            '$match': {'count': {'$gt': 1}}
+        }
+    ]
+    
+    conflicts_raw = await db.bookings.aggregate(pipeline).to_list(1000)
+    
+    # Group by room
+    room_conflicts = {}
+    total_conflicts = 0
+    
+    for conflict in conflicts_raw:
+        room_id = conflict['_id']['room_id']
+        if room_id not in room_conflicts:
+            # Get room details
+            room = await db.rooms.find_one({'id': room_id, 'tenant_id': current_user.tenant_id}, {'_id': 0})
+            room_conflicts[room_id] = {
+                'room_number': room.get('room_number', 'Unknown') if room else 'Unknown',
+                'room_type': room.get('room_type', 'N/A') if room else 'N/A',
+                'conflict_dates': [],
+                'total_overlaps': 0
+            }
+        
+        room_conflicts[room_id]['conflict_dates'].append({
+            'date': conflict['_id']['date'],
+            'overlap_count': conflict['count'],
+            'bookings': conflict['bookings']
+        })
+        room_conflicts[room_id]['total_overlaps'] += (conflict['count'] - 1)
+        total_conflicts += (conflict['count'] - 1)
+    
+    # Convert to list and sort by severity
+    grouped_list = []
+    for room_id, data in room_conflicts.items():
+        grouped_list.append({
+            'room_id': room_id,
+            'room_number': data['room_number'],
+            'room_type': data['room_type'],
+            'total_overlaps': data['total_overlaps'],
+            'conflict_count': len(data['conflict_dates']),
+            'conflict_dates': sorted(data['conflict_dates'], key=lambda x: x['date']),
+            'severity': 'critical' if data['total_overlaps'] >= 5 else 'high' if data['total_overlaps'] >= 3 else 'medium'
+        })
+    
+    # Sort by total_overlaps descending
+    grouped_list.sort(key=lambda x: x['total_overlaps'], reverse=True)
+    
+    # Get top 10 critical rooms
+    top_critical = grouped_list[:10]
+    
+    return {
+        'total_conflict_count': total_conflicts,
+        'affected_rooms': len(grouped_list),
+        'top_critical_rooms': top_critical,
+        'all_conflicts': grouped_list,
+        'summary': {
+            'critical': len([r for r in grouped_list if r['severity'] == 'critical']),
+            'high': len([r for r in grouped_list if r['severity'] == 'high']),
+            'medium': len([r for r in grouped_list if r['severity'] == 'medium'])
+        }
+    }
+
             'caution_days': sum(1 for d in protection_map if d['risk_level'] == 'caution'),
             'safe_days': sum(1 for d in protection_map if d['risk_level'] == 'safe')
         }
