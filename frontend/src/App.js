@@ -84,13 +84,19 @@ console.log('🔍 Backend Configuration:', {
 axios.defaults.baseURL = API;
 axios.defaults.timeout = 30000;
 
-// Setup axios interceptor for token
+// Setup axios interceptor for token and caching
 axios.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
+    
+    // Add cache headers for GET requests
+    if (config.method === 'get') {
+      config.headers['Cache-Control'] = 'max-age=60'; // Cache for 60 seconds
+    }
+    
     return config;
   },
   (error) => {
