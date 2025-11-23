@@ -785,7 +785,8 @@ function App() {
           />
         </Routes>
       </BrowserRouter>
-      <ReactQueryDevtools initialIsOpen={false} />
+      {/* ReactQueryDevtools disabled for production */}
+      {process.env.NODE_ENV === 'development' && <ReactQueryDevtools initialIsOpen={false} />}
     </div>
   </QueryClientProvider>
   );
