@@ -3939,6 +3939,7 @@ async def update_housekeeping_task(task_id: str, status: Optional[str] = None, a
     return task
 
 @api_router.get("/housekeeping/room-status")
+@cached(ttl=60, key_prefix="housekeeping_room_status")  # Cache for 1 minute (real-time data)
 async def get_room_status_board(current_user: User = Depends(get_current_user)):
     """Get comprehensive room status board"""
     rooms = await db.rooms.find({'tenant_id': current_user.tenant_id}, {'_id': 0}).to_list(1000)
