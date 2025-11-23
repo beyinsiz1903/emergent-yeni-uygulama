@@ -231,9 +231,19 @@ performance_metrics = PerformanceMetrics()
 @monitoring_router.get("/health")
 async def health_check():
     """
-    Comprehensive health check endpoint
+    Comprehensive health check endpoint - ULTRA FAST with Redis cache
     Returns system health status and key metrics
     """
+    # Try Redis cache first for instant response
+    try:
+        from redis_cache import redis_cache
+        if redis_cache:
+            cached = redis_cache.get("monitoring:health")
+            if cached:
+                return cached
+    except:
+        pass
+    
     try:
         from cache_manager import cache
         
