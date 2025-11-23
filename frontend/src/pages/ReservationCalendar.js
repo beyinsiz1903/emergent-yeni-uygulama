@@ -85,6 +85,9 @@ const ReservationCalendar = ({ user, tenant, onLogout }) => {
   const [leadTimeData, setLeadTimeData] = useState(null);
   const [oversellProtection, setOversellProtection] = useState([]);
   const [channelMixData, setChannelMixData] = useState(null);
+  const [groupedConflicts, setGroupedConflicts] = useState(null);
+  const [showConflictSolutions, setShowConflictSolutions] = useState(false);
+
   
   // New booking form
   const [newBooking, setNewBooking] = useState({
