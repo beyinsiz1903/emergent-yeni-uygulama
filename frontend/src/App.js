@@ -11,6 +11,7 @@ import InvoiceModule from "@/pages/InvoiceModule";
 import RMSModule from "@/pages/RMSModule";
 import ChannelManagerModule from "@/pages/ChannelManagerModule";
 import ReservationCalendar from "@/pages/ReservationCalendar";
+import Settings from "@/pages/Settings";
 import PendingAR from "@/pages/PendingAR";
 import LoyaltyModule from "@/pages/LoyaltyModule";
 import MarketplaceModule from "@/pages/MarketplaceModule";
