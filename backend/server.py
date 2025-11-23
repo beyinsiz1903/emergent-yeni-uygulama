@@ -44135,3 +44135,37 @@ try:
     print("✅ Monitoring endpoints included")
 except ImportError as e:
     print(f"⚠️ Monitoring endpoints not available: {e}")
+
+# Include optimization endpoints (Enterprise Performance)
+try:
+    from optimization_endpoints import optimization_router, init_optimization_managers
+    app.include_router(optimization_router, prefix="/api", tags=["optimization"])
+    print("✅ Optimization endpoints included")
+except ImportError as e:
+    print(f"⚠️ Optimization endpoints not available: {e}")
+
+# Include GraphQL endpoint
+try:
+    from strawberry.fastapi import GraphQLRouter
+    from graphql_schema import schema
+    graphql_app = GraphQLRouter(
+        schema,
+        context_getter=lambda: {
+            "db": db,
+            "cache": None,  # Will be initialized in startup
+            "materialized_views": None  # Will be initialized in startup
+        }
+    )
+    app.include_router(graphql_app, prefix="/api/graphql", tags=["graphql"])
+    print("✅ GraphQL endpoint included")
+except Exception as e:
+    print(f"⚠️ GraphQL endpoint not available: {e}")
+
+# Include WebSocket
+try:
+    from websocket_server import socket_app
+    # Mount WebSocket app
+    app.mount("/ws", socket_app)
+    print("✅ WebSocket server mounted at /ws")
+except Exception as e:
+    print(f"⚠️ WebSocket server not available: {e}")
