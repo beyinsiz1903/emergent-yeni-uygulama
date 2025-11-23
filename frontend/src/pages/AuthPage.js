@@ -52,10 +52,10 @@ const AuthPage = ({ onLogin }) => {
       console.log('✅ Login successful:', response.data);
       toast.success('Login successful!');
       onLogin(response.data.access_token, response.data.user, response.data.tenant);
-      // Force navigation after successful login
+      // Force full page reload to ensure state is updated
       setTimeout(() => {
-        navigate('/');
-      }, 100);
+        window.location.href = '/';
+      }, 500);
     } catch (error) {
       console.error('❌ Login error:', error);
       console.error('Error response:', error.response);
