@@ -112,6 +112,10 @@ const AuthPage = ({ onLogin }) => {
       const response = await axios.post('/auth/register-guest', guestRegisterData);
       toast.success('Account created! Welcome!');
       onLogin(response.data.access_token, response.data.user, response.data.tenant);
+      // Force full page reload to ensure state is updated
+      setTimeout(() => {
+        window.location.href = '/guest-portal';
+      }, 500);
     } catch (error) {
       toast.error(error.response?.data?.detail || 'Registration failed');
     } finally {
