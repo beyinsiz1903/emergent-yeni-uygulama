@@ -3176,10 +3176,10 @@ const PMSModule = ({ user, tenant, onLogout }) => {
                     New Company
                   </Button>
                 </div>
-                <Select value={newBooking.company_id} onValueChange={handleCompanySelect}>
+                <Select value={newBooking.company_id || "none"} onValueChange={handleCompanySelect}>
                   <SelectTrigger><SelectValue placeholder="Select company (optional)" /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">None</SelectItem>
+                    <SelectItem value="none">None</SelectItem>
                     {companies.filter(c => c.status === 'active').map(c => (
                       <SelectItem key={c.id} value={c.id}>{c.name} - {c.corporate_code}</SelectItem>
                     ))}
