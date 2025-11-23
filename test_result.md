@@ -1473,6 +1473,18 @@ backend:
       - working: false
         agent: "testing"
         comment: "❌ CRITICAL ISSUE FOUND - GET /api/pos/orders returns HTTP 500 error due to ObjectId serialization issue in FastAPI response. Error: 'ObjectId object is not iterable' + 'vars() argument must have __dict__ attribute'. This is a common MongoDB ObjectId serialization problem where ObjectId fields are not being properly converted to strings before JSON serialization. REQUIRES IMMEDIATE FIX to remove '_id' fields or convert ObjectIds to strings."
+
+  - task: "Monitoring Endpoints Performance Optimization"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "testing"
+        comment: "⚠️ PERFORMANCE ISSUE IDENTIFIED - Monitoring endpoints are functional but slow: GET /api/monitoring/health (1011ms) and GET /api/monitoring/system (1008ms) exceed 500ms target. These endpoints work correctly but need optimization for better performance. Database monitoring endpoint is fast (15ms). Consider caching system metrics or reducing data collection overhead."
   
   - task: "Create Company model and CompanyCreate pydantic model"
     implemented: true
