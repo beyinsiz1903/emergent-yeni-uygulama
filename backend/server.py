@@ -10206,6 +10206,15 @@ async def startup_db_seed():
     except Exception as e:
         print(f"⚠️ Startup seeding error: {str(e)}")
     
+    # Initialize Redis cache
+    try:
+        print("🚀 Initializing Redis ultra-fast cache...")
+        from redis_cache import init_redis_cache
+        init_redis_cache()
+        print("✅ Redis cache initialized!")
+    except Exception as e:
+        print(f"⚠️ Redis cache initialization: {str(e)}")
+    
     # Initialize cache warmer for instant responses
     try:
         print("🔥 Initializing ultra-fast cache warmer...")
