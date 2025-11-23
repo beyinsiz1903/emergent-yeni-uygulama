@@ -127,8 +127,8 @@ const AuthPage = ({ onLogin }) => {
       padding: isMobile ? '10px' : '20px'
     }}>
       <div style={{ width: '100%', maxWidth: isMobile ? '100%' : '500px' }}>
-        <div style={{ textAlign: 'center', marginBottom: isMobile ? '1.5rem' : '2rem' }}>
-          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1rem' }}>
+        <div style={{ textAlign: 'center', marginBottom: isMobile ? '2rem' : '3rem', marginTop: isMobile ? '2rem' : '3rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1.5rem' }}>
             <img 
               src={syroceLogo} 
               alt="Syroce" 
