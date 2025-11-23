@@ -87,7 +87,18 @@ ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
 
 mongo_url = os.environ['MONGO_URL']
-client = AsyncIOMotorClient(mongo_url)
+# Optimized connection pool for high concurrency (550 rooms, 300+ daily transactions)
+client = AsyncIOMotorClient(
+    mongo_url,
+    maxPoolSize=200,  # Support high concurrent requests
+    minPoolSize=20,   # Always maintain minimum connections
+    maxIdleTimeMS=60000,  # 60 seconds idle timeout
+    serverSelectionTimeoutMS=5000,
+    connectTimeoutMS=10000,
+    socketTimeoutMS=30000,
+    retryWrites=True,
+    retryReads=True
+)
 db = client[os.environ['DB_NAME']]
 
 JWT_SECRET = os.environ.get('JWT_SECRET', 'hotel-pms-super-secret-key-change-in-production-2025')
