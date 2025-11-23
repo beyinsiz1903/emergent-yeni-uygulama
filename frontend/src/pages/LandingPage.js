@@ -149,17 +149,17 @@ const LandingPage = () => {
       {/* Header/Navigation */}
       <nav className="bg-white shadow-sm sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-24">
+          <div className="flex justify-between items-center h-40">
             <div className="flex items-center space-x-3">
-              <img src={syroceLogo} alt="Syroce" className="h-20 w-auto" />
+              <img src={syroceLogo} alt="Syroce" className="h-32 w-auto" />
             </div>
             <div className="hidden md:flex items-center space-x-8">
-              <a href="#features" className="text-gray-600 hover:text-gray-900 text-base font-medium">Özellikler</a>
-              <a href="#pricing" className="text-gray-600 hover:text-gray-900 text-base font-medium">Fiyatlar</a>
-              <a href="#demo" className="text-gray-600 hover:text-gray-900 text-base font-medium">Demo</a>
+              <a href="#features" className="text-gray-600 hover:text-gray-900 text-lg font-medium">Özellikler</a>
+              <a href="#pricing" className="text-gray-600 hover:text-gray-900 text-lg font-medium">Fiyatlar</a>
+              <a href="#demo" className="text-gray-600 hover:text-gray-900 text-lg font-medium">Demo</a>
               <button 
                 onClick={() => navigate('/login')}
-                className="bg-blue-600 text-white px-8 py-3 rounded-lg hover:bg-blue-700 transition text-base font-semibold"
+                className="bg-blue-600 text-white px-10 py-4 rounded-lg hover:bg-blue-700 transition text-lg font-semibold"
               >
                 Giriş Yap
               </button>
