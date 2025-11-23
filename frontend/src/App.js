@@ -22,6 +22,7 @@ const Settings = lazy(() => import("@/pages/Settings"));
 const PendingAR = lazy(() => import("@/pages/PendingAR"));
 const LoyaltyModule = lazy(() => import("@/pages/LoyaltyModule"));
 const MarketplaceModule = lazy(() => import("@/pages/MarketplaceModule"));
+const HotelInventory = lazy(() => import("@/pages/HotelInventory"));
 const GuestPortal = lazy(() => import("@/pages/GuestPortal"));
 const TemplateManager = lazy(() => import("@/pages/TemplateManager"));
 const SelfCheckin = lazy(() => import("@/pages/SelfCheckin"));
