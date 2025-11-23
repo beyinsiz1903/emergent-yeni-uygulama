@@ -301,6 +301,264 @@ async def _generate_daily_reports_async():
         await client.close()
 
 
+# ============= OPTIMIZATION TASKS =============
+
+@celery_app.task(name='celery_tasks.refresh_materialized_views')
+def refresh_materialized_views():
+    """Refresh materialized views for dashboard metrics"""
+    return asyncio.run(_refresh_materialized_views_async())
+
+async def _refresh_materialized_views_async():
+    """Async materialized views refresh"""
+    db, client = get_db()
+    
+    try:
+        from materialized_views import MaterializedViewsManager
+        
+        views_manager = MaterializedViewsManager(db)
+        result = await views_manager.refresh_dashboard_metrics()
+        
+        logger.info(f"Materialized views refreshed: {result.get('refresh_duration_ms')}ms")
+        
+        return result
+        
+    except Exception as e:
+        logger.error(f"Materialized views refresh failed: {e}")
+        return {
+            'success': False,
+            'error': str(e)
+        }
+    finally:
+        await client.close()
+
+
+@celery_app.task(name='celery_tasks.warm_cache')
+def warm_cache():
+    """Warm cache with frequently accessed data"""
+    return asyncio.run(_warm_cache_async())
+
+async def _warm_cache_async():
+    """Async cache warming"""
+    db, client = get_db()
+    
+    try:
+        import redis
+        from advanced_cache import AdvancedCacheManager, CacheWarmer
+        from materialized_views import MaterializedViewsManager
+        
+        # Initialize Redis
+        redis_client = redis.Redis(
+            host='127.0.0.1',
+            port=6379,
+            db=0,
+            decode_responses=False
+        )
+        
+        cache_manager = AdvancedCacheManager(redis_client)
+        cache_warmer = CacheWarmer(cache_manager)
+        views_manager = MaterializedViewsManager(db)
+        
+        # Warm dashboard cache
+        dashboard_result = await cache_warmer.warm_dashboard_cache(views_manager)
+        
+        # Warm PMS cache
+        pms_result = await cache_warmer.warm_pms_cache(db)
+        
+        logger.info(f"Cache warmed: Dashboard={dashboard_result}, PMS={pms_result}")
+        
+        return {
+            'success': True,
+            'dashboard': dashboard_result,
+            'pms': pms_result
+        }
+        
+    except Exception as e:
+        logger.error(f"Cache warming failed: {e}")
+        return {
+            'success': False,
+            'error': str(e)
+        }
+    finally:
+        await client.close()
+
+
+@celery_app.task(name='celery_tasks.archive_old_bookings')
+def archive_old_bookings():
+    """Archive old bookings to separate collection"""
+    return asyncio.run(_archive_old_bookings_async())
+
+async def _archive_old_bookings_async():
+    """Async booking archival"""
+    db, client = get_db()
+    
+    try:
+        from data_archival import DataArchivalManager
+        
+        archival_manager = DataArchivalManager(db)
+        result = await archival_manager.archive_old_bookings(dry_run=False)
+        
+        logger.info(f"Archival completed: {result.get('records_archived', 0)} bookings archived")
+        
+        return result
+        
+    except Exception as e:
+        logger.error(f"Archival failed: {e}")
+        return {
+            'success': False,
+            'error': str(e)
+        }
+    finally:
+        await client.close()
+
+
+@celery_app.task(name='celery_tasks.cleanup_old_cache')
+def cleanup_old_cache():
+    """Cleanup expired cache entries"""
+    return asyncio.run(_cleanup_old_cache_async())
+
+async def _cleanup_old_cache_async():
+    """Async cache cleanup"""
+    try:
+        import redis
+        
+        redis_client = redis.Redis(
+            host='127.0.0.1',
+            port=6379,
+            db=0,
+            decode_responses=False
+        )
+        
+        # Get all keys
+        keys = redis_client.keys('pms:cache:*')
+        
+        # Redis handles TTL automatically, this is just for logging
+        logger.info(f"Cache has {len(keys)} keys")
+        
+        return {
+            'success': True,
+            'total_keys': len(keys),
+            'message': 'Redis handles TTL automatically'
+        }
+        
+    except Exception as e:
+        logger.error(f"Cache cleanup failed: {e}")
+        return {
+            'success': False,
+            'error': str(e)
+        }
+
+
+@celery_app.task(name='celery_tasks.database_maintenance')
+def database_maintenance():
+    """Run database maintenance tasks"""
+    return asyncio.run(_database_maintenance_async())
+
+async def _database_maintenance_async():
+    """Async database maintenance"""
+    db, client = get_db()
+    
+    try:
+        # Ensure all indexes exist
+        from data_archival import DataArchivalManager
+        from materialized_views import MaterializedViewsManager
+        
+        archival_manager = DataArchivalManager(db)
+        views_manager = MaterializedViewsManager(db)
+        
+        await archival_manager.setup_indexes()
+        await views_manager.setup_indexes()
+        
+        # Get database stats
+        stats = await client.admin.command('serverStatus')
+        
+        logger.info("Database maintenance completed")
+        
+        return {
+            'success': True,
+            'uptime': stats['uptime'],
+            'connections': stats['connections']['current']
+        }
+        
+    except Exception as e:
+        logger.error(f"Database maintenance failed: {e}")
+        return {
+            'success': False,
+            'error': str(e)
+        }
+    finally:
+        await client.close()
+
+
+@celery_app.task(name='celery_tasks.generate_daily_report')
+def generate_daily_report():
+    """Generate comprehensive daily performance report"""
+    return asyncio.run(_generate_daily_report_async())
+
+async def _generate_daily_report_async():
+    """Async daily report generation"""
+    db, client = get_db()
+    
+    try:
+        today = datetime.now(timezone.utc).date()
+        yesterday = today - timedelta(days=1)
+        
+        # Collect metrics
+        bookings_count = await db.bookings.count_documents({
+            'created_at': {
+                '$gte': datetime.combine(yesterday, datetime.min.time()),
+                '$lt': datetime.combine(today, datetime.min.time())
+            }
+        })
+        
+        # Revenue calculation
+        revenue_pipeline = [
+            {
+                '$match': {
+                    'created_at': {
+                        '$gte': datetime.combine(yesterday, datetime.min.time()),
+                        '$lt': datetime.combine(today, datetime.min.time())
+                    }
+                }
+            },
+            {
+                '$group': {
+                    '_id': None,
+                    'total_revenue': {'$sum': '$total_amount'}
+                }
+            }
+        ]
+        
+        revenue_result = await db.bookings.aggregate(revenue_pipeline).to_list(1)
+        revenue = revenue_result[0]['total_revenue'] if revenue_result else 0
+        
+        report = {
+            'date': yesterday.isoformat(),
+            'bookings_count': bookings_count,
+            'revenue': revenue,
+            'generated_at': datetime.now(timezone.utc)
+        }
+        
+        # Store report
+        await db.daily_performance_reports.insert_one(report)
+        
+        logger.info(f"Daily report generated: {bookings_count} bookings, ${revenue} revenue")
+        
+        return {
+            'success': True,
+            'report': report
+        }
+        
+    except Exception as e:
+        logger.error(f"Daily report generation failed: {e}")
+        return {
+            'success': False,
+            'error': str(e)
+        }
+    finally:
+        await client.close()
+
+
+
 # ============= MAINTENANCE TASKS =============
 
 @celery_app.task(name='celery_tasks.check_maintenance_sla_task')
