@@ -610,6 +610,7 @@ class User(BaseModel):
     phone: Optional[str] = None
     is_active: bool = True
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    password: Optional[str] = Field(None, exclude=True)  # Exclude password from responses
 
 class TenantRegister(BaseModel):
     property_name: str
