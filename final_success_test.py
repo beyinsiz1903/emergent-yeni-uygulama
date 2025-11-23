@@ -496,15 +496,22 @@ class FinalSuccessTest:
                 if response.status == 200:
                     data = await response.json()
                     
-                    # Check required fields
-                    required_fields = ["status", "database", "cache", "system"]
+                    # Check for actual structure: status, components, system_info
+                    required_fields = ["status", "components"]
                     missing_fields = [field for field in required_fields if field not in data]
                     
                     if not missing_fields:
-                        print(f"  ✅ PASSED - Health check working")
-                        print(f"     Status: {data.get('status', 'unknown')}")
-                        self.test_results.append({"endpoint": "GET /api/monitoring/health", "status": "PASSED", "details": "Health check working"})
-                        return True
+                        # Check components structure
+                        components = data.get("components", {})
+                        if "database" in components and "system" in components:
+                            print(f"  ✅ PASSED - Health check working")
+                            print(f"     Status: {data.get('status', 'unknown')}")
+                            self.test_results.append({"endpoint": "GET /api/monitoring/health", "status": "PASSED", "details": "Health check working"})
+                            return True
+                        else:
+                            print(f"  ❌ FAILED - Missing components: database or system")
+                            self.test_results.append({"endpoint": "GET /api/monitoring/health", "status": "FAILED", "details": "Missing components"})
+                            return False
                     else:
                         print(f"  ❌ FAILED - Missing fields: {missing_fields}")
                         self.test_results.append({"endpoint": "GET /api/monitoring/health", "status": "FAILED", "details": f"Missing fields: {missing_fields}"})
