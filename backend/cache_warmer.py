@@ -35,19 +35,28 @@ class CacheWarmer:
         try:
             projection = {
                 '_id': 0, 'id': 1, 'room_number': 1, 'room_type': 1,
-                'status': 1, 'floor': 1, 'capacity': 1, 'base_price': 1
+                'status': 1, 'floor': 1, 'capacity': 1, 'base_price': 1, 'max_occupancy': 1
             }
-            rooms = await self.db.rooms.find(
-                {'tenant_id': tenant_id}, 
-                projection
-            ).limit(100).to_list(100)
+            # First, check total count
+            total_rooms = await self.db.rooms.count_documents({})
+            print(f"  🔍 Total rooms in DB: {total_rooms}")
             
-            cache_key = f"rooms:{tenant_id}"
-            self.cache[cache_key] = {
-                'data': rooms,
-                'expires_at': datetime.utcnow() + timedelta(seconds=60)
-            }
-            print(f"  ✅ Rooms cache warmed: {len(rooms)} rooms")
+            # Try without tenant filter if none found
+            rooms = await self.db.rooms.find({}, projection).limit(100).to_list(100)
+            
+            if rooms and len(rooms) > 0:
+                # Cache for all tenants found
+                tenants = set(room.get('tenant_id') for room in rooms if room.get('tenant_id'))
+                for t_id in tenants:
+                    tenant_rooms = [r for r in rooms if r.get('tenant_id') == t_id]
+                    cache_key = f"rooms:{t_id}"
+                    self.cache[cache_key] = {
+                        'data': tenant_rooms,
+                        'expires_at': datetime.utcnow() + timedelta(seconds=60)
+                    }
+                    print(f"  ✅ Rooms cache warmed for tenant {t_id[:8]}: {len(tenant_rooms)} rooms")
+            else:
+                print(f"  ⚠️ No rooms found in database")
         except Exception as e:
             print(f"  ❌ Rooms cache warming failed: {e}")
     
