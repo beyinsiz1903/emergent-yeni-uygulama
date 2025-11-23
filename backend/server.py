@@ -27791,6 +27791,7 @@ async def get_budget_vs_actual(
     }
 
 @api_router.get("/dashboard/monthly-profitability")
+@cached(ttl=600, key_prefix="monthly_profitability")  # Cache for 10 minutes
 async def get_monthly_profitability(
     months: int = 6,  # Last N months
     credentials: HTTPAuthorizationCredentials = Depends(security)
