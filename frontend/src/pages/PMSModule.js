@@ -828,11 +828,16 @@ const PMSModule = ({ user, tenant, onLogout }) => {
   const loadGuest360 = async (guestId) => {
     setLoadingGuest360(true);
     try {
-      const response = await axios.get(`/crm/guest/${guestId}`);
+      const response = await axios.get(`/crm/guest/${guestId}`, { timeout: 15000 });
       setGuest360Data(response.data);
       setOpenDialog('guest360');
     } catch (error) {
-      toast.error('Failed to load guest profile');
+      console.error('Guest 360 error:', error);
+      if (error.code === 'ECONNABORTED') {
+        toast.error('Request timeout - Guest profile has too much data. Please try again.');
+      } else {
+        toast.error(error.response?.data?.detail || 'Failed to load guest profile. Please try again later.');
+      }
     } finally {
       setLoadingGuest360(false);
     }
