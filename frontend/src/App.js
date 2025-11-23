@@ -137,9 +137,16 @@ function App() {
   }, []);
 
   useEffect(() => {
+    console.log('🔄 App mounting - checking auth state...');
     const token = localStorage.getItem('token');
     const storedUser = localStorage.getItem('user');
     const storedTenant = localStorage.getItem('tenant');
+    
+    console.log('📦 LocalStorage check:', {
+      hasToken: !!token,
+      hasUser: !!storedUser,
+      hasTenant: !!storedTenant
+    });
     
     if (token && storedUser) {
       try {
@@ -155,13 +162,16 @@ function App() {
           }
         }
         setIsAuthenticated(true);
+        console.log('✅ Auth state restored successfully');
       } catch (e) {
-        console.error('Failed to restore auth state:', e);
+        console.error('❌ Failed to restore auth state:', e);
         // Clear invalid data
         localStorage.removeItem('token');
         localStorage.removeItem('user');
         localStorage.removeItem('tenant');
       }
+    } else {
+      console.log('ℹ️ No auth data found in localStorage');
     }
     setLoading(false);
   }, []);
