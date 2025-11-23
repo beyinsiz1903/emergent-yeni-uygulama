@@ -78,7 +78,7 @@ pypng==0.20220715.0
 openpyxl==3.1.2
 et-xmlfile==2.0.0
 psutil
-redis==5.0.0
+redis==5.0.1
 celery==5.3.4
 flower==2.0.1
 strawberry-graphql[fastapi]==0.235.0
@@ -86,6 +86,5 @@ python-socketio==5.11.0
 python-engineio==4.9.0
 aiodataloader==0.2.1
 orjson
-redis==5.0.1
 aioredis==2.0.1
 uvloop
