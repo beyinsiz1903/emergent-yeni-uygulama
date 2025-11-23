@@ -35,7 +35,7 @@ class CacheWarmer:
         try:
             projection = {
                 '_id': 0, 'id': 1, 'room_number': 1, 'room_type': 1,
-                'status': 1, 'floor': 1, 'capacity': 1, 'base_price': 1, 'max_occupancy': 1
+                'status': 1, 'floor': 1, 'capacity': 1, 'base_price': 1, 'max_occupancy': 1, 'tenant_id': 1
             }
             # First, check total count
             total_rooms = await self.db.rooms.count_documents({})
