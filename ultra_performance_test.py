@@ -134,29 +134,30 @@ class UltraPerformanceTester:
             "Connection": "keep-alive"
         }
 
-    async def measure_endpoint_performance(self, url: str, endpoint_name: str, target_cached_ms: int) -> dict:
-        """Measure endpoint performance with 3 calls (cold, cached, cached)"""
+    async def measure_endpoint_performance(self, url: str, endpoint_name: str, target_ms: float) -> dict:
+        """Measure endpoint performance with 5 consecutive calls"""
         print(f"\n🎯 Testing {endpoint_name}")
         print(f"   URL: {url}")
-        print(f"   Target: <{target_cached_ms}ms (cached), <{COLD_TARGET_MS}ms (cold)")
+        print(f"   Target: <{target_ms}ms")
+        print("   " + "-" * 50)
         
         results = {
             "endpoint": endpoint_name,
             "url": url,
-            "target_cached_ms": target_cached_ms,
-            "target_cold_ms": COLD_TARGET_MS,
+            "target_ms": target_ms,
             "calls": [],
-            "cold_time_ms": 0,
-            "cached_times_ms": [],
-            "avg_cached_ms": 0,
-            "peak_performance_ms": 0,
-            "cache_hit_rate": 0,
+            "response_times": [],
+            "min_ms": 0,
+            "avg_ms": 0,
+            "max_ms": 0,
+            "cache_working": False,
+            "data_complete": False,
             "success": True,
             "errors": []
         }
         
-        # Make 3 calls as per test protocol
-        for call_num in range(1, 4):
+        # Make 5 consecutive calls as per test protocol
+        for call_num in range(1, 6):
             call_type = "cold" if call_num == 1 else "cached"
             
             try:
