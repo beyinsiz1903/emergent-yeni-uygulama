@@ -262,7 +262,7 @@ async def health_check():
         if db_status != 'healthy':
             overall_status = 'unhealthy'
         
-        await client.close()
+        client.close()
         
         return {
             'status': overall_status,
