@@ -24,31 +24,6 @@ const Dashboard = ({ user, tenant, onLogout }) => {
   const [aiBriefing, setAiBriefing] = useState(dashboardCache.aiBriefing);
   const [loadingAI, setLoadingAI] = useState(false);
 
-  useEffect(() => {
-    const now = Date.now();
-    const isCacheValid = dashboardCache.timestamp && (now - dashboardCache.timestamp < dashboardCache.CACHE_DURATION);
-    
-    if (!isCacheValid) {
-      loadDashboardStats();
-      loadAIBriefing();
-    }
-
-    // Prefetch commonly used routes in background
-    const prefetchRoutes = () => {
-      const routes = ['/pms/dashboard', '/invoices/stats'];
-      routes.forEach(route => {
-        const link = document.createElement('link');
-        link.rel = 'prefetch';
-        link.href = route;
-        document.head.appendChild(link);
-      });
-    };
-
-    // Prefetch after 2 seconds
-    const timer = setTimeout(prefetchRoutes, 2000);
-    return () => clearTimeout(timer);
-  }, [loadDashboardStats, loadAIBriefing]);
-
   const loadAIBriefing = useCallback(async () => {
     setLoadingAI(true);
     try {
