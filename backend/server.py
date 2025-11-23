@@ -2388,9 +2388,22 @@ async def create_room(room_data: RoomCreate, current_user: User = Depends(get_cu
     return room
 
 @api_router.get("/pms/rooms", response_model=List[Room])
-@cached(ttl=120, key_prefix="pms_rooms")  # Cache for 2 minutes
+@cached(ttl=30, key_prefix="pms_rooms")  # Cache for 30 sec - shorter for freshness
 async def get_rooms(current_user: User = Depends(get_current_user)):
-    rooms_raw = await db.rooms.find({'tenant_id': current_user.tenant_id}, {'_id': 0}).to_list(1000)
+    # Project only essential fields for ultra-fast response
+    projection = {
+        '_id': 0,
+        'id': 1,
+        'room_number': 1,
+        'room_type': 1,
+        'status': 1,
+        'floor': 1,
+        'capacity': 1,
+        'max_occupancy': 1,
+        'base_price': 1,
+        'tenant_id': 1
+    }
+    rooms_raw = await db.rooms.find({'tenant_id': current_user.tenant_id}, projection).to_list(500)
     
     # Fix field mapping
     rooms = []
