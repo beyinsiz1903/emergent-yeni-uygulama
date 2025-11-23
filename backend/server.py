@@ -44213,6 +44213,14 @@ async def network_ping_test(
             'packets_received': successful_pings,
             'packet_loss_percent': round(packet_loss, 2),
             'latency': {
+                'average': round(avg_latency, 2),
+                'min': round(min_latency, 2),
+                'max': round(max_latency, 2)
+            },
+            'quality': quality
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Ping failed: {str(e)}")
 
 # ===== LANDING PAGE - DEMO REQUEST ENDPOINT =====
 class DemoRequest(BaseModel):
