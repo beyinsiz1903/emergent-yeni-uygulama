@@ -1860,6 +1860,145 @@ const ReservationCalendar = ({ user, tenant, onLogout }) => {
         )}
 
 
+        {/* Historical Trends Panel */}
+        {showHistoricalPanel && (
+          <Card className="border-blue-300 bg-blue-50">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-lg flex items-center gap-2 text-blue-800">
+                📊 Historical Performance Analysis
+              </CardTitle>
+              <CardDescription>
+                90-day occupancy and revenue trends
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {historicalTrends ? (
+                <>
+                  {/* Summary Stats */}
+                  <div className="grid grid-cols-4 gap-3">
+                    <div className="bg-white p-3 rounded-lg border border-blue-200 text-center">
+                      <div className="text-2xl font-bold text-blue-700">
+                        {historicalTrends.avg_occupancy || 0}%
+                      </div>
+                      <div className="text-xs text-gray-600">Avg Occupancy</div>
+                    </div>
+                    <div className="bg-white p-3 rounded-lg border border-green-200 text-center">
+                      <div className="text-2xl font-bold text-green-700">
+                        ${historicalTrends.avg_adr || 0}
+                      </div>
+                      <div className="text-xs text-gray-600">Avg ADR</div>
+                    </div>
+                    <div className="bg-white p-3 rounded-lg border border-purple-200 text-center">
+                      <div className="text-2xl font-bold text-purple-700">
+                        ${historicalTrends.total_revenue || 0}
+                      </div>
+                      <div className="text-xs text-gray-600">Total Revenue</div>
+                    </div>
+                    <div className="bg-white p-3 rounded-lg border border-amber-200 text-center">
+                      <div className="text-2xl font-bold text-amber-700">
+                        {historicalTrends.total_bookings || 0}
+                      </div>
+                      <div className="text-xs text-gray-600">Total Bookings</div>
+                    </div>
+                  </div>
+
+                  {/* Trend Indicators */}
+                  <div className="grid grid-cols-3 gap-3">
+                    <div className="bg-white p-3 rounded-lg border">
+                      <div className="text-xs font-semibold text-gray-700 mb-2">Occupancy Trend</div>
+                      <div className={`text-lg font-bold ${
+                        historicalTrends.occupancy_trend === 'up' ? 'text-green-600' :
+                        historicalTrends.occupancy_trend === 'down' ? 'text-red-600' :
+                        'text-gray-600'
+                      }`}>
+                        {historicalTrends.occupancy_trend === 'up' ? '↗ Increasing' :
+                         historicalTrends.occupancy_trend === 'down' ? '↘ Decreasing' :
+                         '→ Stable'}
+                      </div>
+                      <div className="text-xs text-gray-500 mt-1">
+                        {historicalTrends.occupancy_change || 0}% vs previous period
+                      </div>
+                    </div>
+                    <div className="bg-white p-3 rounded-lg border">
+                      <div className="text-xs font-semibold text-gray-700 mb-2">Revenue Trend</div>
+                      <div className={`text-lg font-bold ${
+                        historicalTrends.revenue_trend === 'up' ? 'text-green-600' :
+                        historicalTrends.revenue_trend === 'down' ? 'text-red-600' :
+                        'text-gray-600'
+                      }`}>
+                        {historicalTrends.revenue_trend === 'up' ? '↗ Increasing' :
+                         historicalTrends.revenue_trend === 'down' ? '↘ Decreasing' :
+                         '→ Stable'}
+                      </div>
+                      <div className="text-xs text-gray-500 mt-1">
+                        {historicalTrends.revenue_change || 0}% vs previous period
+                      </div>
+                    </div>
+                    <div className="bg-white p-3 rounded-lg border">
+                      <div className="text-xs font-semibold text-gray-700 mb-2">ADR Trend</div>
+                      <div className={`text-lg font-bold ${
+                        historicalTrends.adr_trend === 'up' ? 'text-green-600' :
+                        historicalTrends.adr_trend === 'down' ? 'text-red-600' :
+                        'text-gray-600'
+                      }`}>
+                        {historicalTrends.adr_trend === 'up' ? '↗ Increasing' :
+                         historicalTrends.adr_trend === 'down' ? '↘ Decreasing' :
+                         '→ Stable'}
+                      </div>
+                      <div className="text-xs text-gray-500 mt-1">
+                        ${historicalTrends.adr_change || 0} vs previous period
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Best & Worst Days */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="bg-green-50 p-3 rounded-lg border border-green-200">
+                      <div className="text-xs font-semibold text-green-900 mb-2">🌟 Best Performance Days</div>
+                      {historicalTrends.best_days && historicalTrends.best_days.slice(0, 3).map((day, idx) => (
+                        <div key={idx} className="text-xs text-gray-700 flex items-center justify-between mb-1">
+                          <span>{new Date(day.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
+                          <Badge className="bg-green-600 text-white text-[9px]">
+                            {day.occupancy}% occ
+                          </Badge>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="bg-red-50 p-3 rounded-lg border border-red-200">
+                      <div className="text-xs font-semibold text-red-900 mb-2">📉 Worst Performance Days</div>
+                      {historicalTrends.worst_days && historicalTrends.worst_days.slice(0, 3).map((day, idx) => (
+                        <div key={idx} className="text-xs text-gray-700 flex items-center justify-between mb-1">
+                          <span>{new Date(day.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
+                          <Badge className="bg-red-600 text-white text-[9px]">
+                            {day.occupancy}% occ
+                          </Badge>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Insights */}
+                  <div className="bg-white p-3 rounded-lg border border-blue-200">
+                    <div className="text-xs font-semibold text-blue-900 mb-2">💡 Key Insights:</div>
+                    <ul className="text-xs text-gray-700 space-y-1 list-disc list-inside">
+                      <li>Average occupancy is {historicalTrends.avg_occupancy > 70 ? 'healthy' : 'below target'} at {historicalTrends.avg_occupancy}%</li>
+                      <li>ADR trend is {historicalTrends.adr_trend === 'up' ? 'positive' : historicalTrends.adr_trend === 'down' ? 'declining' : 'stable'}</li>
+                      <li>Revenue performance is {historicalTrends.revenue_trend === 'up' ? 'improving' : historicalTrends.revenue_trend === 'down' ? 'declining' : 'stable'}</li>
+                      <li>Consider reviewing pricing strategy for low-performing days</li>
+                    </ul>
+                  </div>
+                </>
+              ) : (
+                <div className="text-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-2"></div>
+                  <div className="text-sm text-gray-600">Loading historical data...</div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
+
         {/* Legend - Market Segments & Quick Tips */}
         <Card>
           <CardContent className="py-3">
