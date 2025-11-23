@@ -44213,6 +44213,44 @@ async def network_ping_test(
             'packets_received': successful_pings,
             'packet_loss_percent': round(packet_loss, 2),
             'latency': {
+
+# ===== LANDING PAGE - DEMO REQUEST ENDPOINT =====
+class DemoRequest(BaseModel):
+    name: str
+    email: str
+    phone: str
+    hotel_name: str = Field(..., alias='hotelName')
+    room_count: str = Field(..., alias='roomCount')
+
+@api_router.post("/demo-requests")
+async def create_demo_request(request: DemoRequest):
+    """
+    Create demo request from landing page
+    Public endpoint - no authentication required
+    """
+    try:
+        demo_data = {
+            'id': str(uuid.uuid4()),
+            'name': request.name,
+            'email': request.email,
+            'phone': request.phone,
+            'hotel_name': request.hotel_name,
+            'room_count': request.room_count,
+            'status': 'pending',
+            'created_at': datetime.now(timezone.utc).isoformat(),
+            'contacted': False
+        }
+        
+        await db.demo_requests.insert_one(demo_data)
+        
+        return {
+            'success': True,
+            'message': 'Demo talebi başarıyla alındı',
+            'request_id': demo_data['id']
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Demo talebi kaydedilemedi: {str(e)}")
+
                 'min_ms': round(min_latency, 2),
                 'avg_ms': round(avg_latency, 2),
                 'max_ms': round(max_latency, 2)
