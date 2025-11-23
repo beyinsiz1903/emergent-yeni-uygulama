@@ -27562,6 +27562,7 @@ async def create_rate_override_mobile(
 # ===== DASHBOARD ENHANCEMENTS (REVENUE-EXPENSE, BUDGET, PROFITABILITY, TRENDS) =====
 
 @api_router.get("/dashboard/revenue-expense-chart")
+@cached(ttl=600, key_prefix="revenue_expense_chart")  # Cache for 10 minutes
 async def get_revenue_expense_chart(
     period: str = "30days",  # 30days, 90days, 12months
     credentials: HTTPAuthorizationCredentials = Depends(security)
