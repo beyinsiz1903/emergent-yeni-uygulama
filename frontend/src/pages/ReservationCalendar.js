@@ -91,6 +91,9 @@ const ReservationCalendar = ({ user, tenant, onLogout }) => {
   const [showConflictSolutions, setShowConflictSolutions] = useState(false);
 
   const [pricingAlerts, setPricingAlerts] = useState([]);
+  const [historicalTrends, setHistoricalTrends] = useState(null);
+  const [showHistoricalPanel, setShowHistoricalPanel] = useState(false);
+
 
   
   // New booking form
