@@ -914,6 +914,16 @@ const ReservationCalendar = ({ user, tenant, onLogout }) => {
                   >
                     💎 Deluxe+
                   </Button>
+                  {groupedConflicts && groupedConflicts.total_conflict_count > 0 && (
+                    <Button
+                      size="sm"
+                      variant={showConflictSolutions ? "default" : "outline"}
+                      onClick={() => setShowConflictSolutions(!showConflictSolutions)}
+                      className="flex items-center gap-2 bg-gradient-to-r from-red-500 to-pink-600 text-white hover:from-red-600 hover:to-pink-700"
+                    >
+                      ⚠️ Conflicts ({groupedConflicts.total_conflict_count})
+                    </Button>
+                  )}
                   <div className="text-center">
                     <div className="text-2xl font-bold text-blue-600">{getOccupancyForDate(new Date())}%</div>
                     <div className="text-xs text-gray-600">Today</div>
