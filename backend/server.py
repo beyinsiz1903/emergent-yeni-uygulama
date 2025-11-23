@@ -8234,6 +8234,7 @@ async def analyze_ota_insights(
 # ============= ENTERPRISE MODE FEATURES =============
 
 @api_router.get("/enterprise/rate-leakage")
+@cached(ttl=900, key_prefix="enterprise_rate_leakage")  # Cache for 15 min
 async def detect_rate_leakage(
     start_date: Optional[str] = None,
     end_date: Optional[str] = None,
@@ -8315,6 +8316,7 @@ async def detect_rate_leakage(
     }
 
 @api_router.get("/enterprise/pickup-pace")
+@cached(ttl=900, key_prefix="enterprise_pickup_pace")  # Cache for 15 min
 async def get_pickup_pace(
     target_date: str,
     lookback_days: int = 30,
@@ -8392,6 +8394,7 @@ async def get_pickup_pace(
     }
 
 @api_router.get("/enterprise/availability-heatmap")
+@cached(ttl=900, key_prefix="enterprise_avail_heatmap")  # Cache for 15 min
 async def get_availability_heatmap(
     start_date: str,
     end_date: str,
@@ -9015,6 +9018,7 @@ async def get_group_bookings(
     }
 
 @api_router.get("/deluxe/pickup-pace-analytics")
+@cached(ttl=900, key_prefix="deluxe_pickup_pace")  # Cache for 15 min
 async def get_pickup_pace_analytics(
     target_date: str,
     lookback_days: int = 90,
@@ -9086,6 +9090,7 @@ async def get_pickup_pace_analytics(
     }
 
 @api_router.get("/deluxe/lead-time-analysis")
+@cached(ttl=900, key_prefix="deluxe_lead_time")  # Cache for 15 min
 async def get_lead_time_analysis(
     start_date: str,
     end_date: str,
@@ -9159,6 +9164,7 @@ async def get_lead_time_analysis(
     }
 
 @api_router.get("/deluxe/oversell-protection")
+@cached(ttl=600, key_prefix="deluxe_oversell")  # Cache for 10 min
 async def get_oversell_protection_map(
     start_date: str,
     end_date: str,
@@ -9235,6 +9241,7 @@ async def get_oversell_protection_map(
     }
 
 @api_router.get("/deluxe/grouped-conflicts")
+@cached(ttl=600, key_prefix="deluxe_grouped_conflicts")  # Cache for 10 min
 async def get_grouped_conflicts(
     start_date: Optional[str] = None,
     end_date: Optional[str] = None,
@@ -32679,6 +32686,7 @@ async def create_approval_request(
     }
 
 @api_router.get("/approvals/pending")
+@cached(ttl=180, key_prefix="approvals_pending")  # Cache for 3 min
 async def get_pending_approvals(
     credentials: HTTPAuthorizationCredentials = Depends(security)
 ):
@@ -32703,6 +32711,7 @@ async def get_pending_approvals(
     }
 
 @api_router.get("/approvals/my-requests")
+@cached(ttl=300, key_prefix="approvals_my_requests")  # Cache for 5 min
 async def get_my_approval_requests(
     status: Optional[str] = None,
     credentials: HTTPAuthorizationCredentials = Depends(security)
