@@ -18017,6 +18017,7 @@ async def get_guest_satisfaction_trends(
 
 
 @api_router.get("/dashboard/ota-cancellation-rate")
+@cached(ttl=600, key_prefix="dashboard_ota_cancellation")  # Cache for 10 minutes
 async def get_ota_cancellation_rate(
     days: int = 30,
     current_user: User = Depends(get_current_user)
