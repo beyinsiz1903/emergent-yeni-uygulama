@@ -4988,6 +4988,7 @@ async def get_role_based_dashboard(current_user: User = Depends(get_current_user
         }
 
 @api_router.get("/dashboard/gm-forecast")
+@cached(ttl=600, key_prefix="gm_forecast")  # Cache for 10 minutes
 async def get_gm_forecast_summary(current_user: User = Depends(get_current_user)):
     """Get 30-day forecast summary for GM Dashboard"""
     today = datetime.now(timezone.utc).date()
