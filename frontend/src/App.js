@@ -228,7 +228,7 @@ function App() {
             path="/"
             element={
               isAuthenticated ? (
-                <GMDashboard user={user} tenant={tenant} onLogout={handleLogout} />
+                <Dashboard user={user} tenant={tenant} onLogout={handleLogout} />
               ) : (
                 <LandingPage />
               )
