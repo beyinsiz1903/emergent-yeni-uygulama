@@ -7694,3 +7694,70 @@ agent_communication:
         - Target: Cache keys created → **ACHIEVED: 5/5 endpoints**
         - Target: Subsequent calls faster → **ACHIEVED: All endpoints**
 
+    - agent: "testing"
+      message: |
+        🔍 BACKEND API RE-TESTING COMPLETED - Previously Failed Endpoints Investigation
+        
+        **TESTING RESULTS SUMMARY:**
+        Overall Success Rate: 9/21 tests (42.9%) - CRITICAL ISSUES IDENTIFIED
+        
+        **✅ FIXED ENDPOINTS (2/2 - 100% SUCCESS):**
+        1. POST /api/notifications/send-system-alert - ✅ WORKING
+           - SystemAlertRequest model now working correctly
+           - All test cases passing with proper response structure
+        
+        2. PUT /api/notifications/preferences - ✅ WORKING  
+           - Now returns updated_preference field as expected
+           - All notification types tested successfully
+        
+        **❌ CRITICAL ISSUES REQUIRING IMMEDIATE ATTENTION:**
+        
+        1. POST /api/guests/{guest_id}/preferences - ❌ FAILING (422/500 errors)
+           - Issue: dietary_restrictions expects list but receives string
+           - Error: "Input should be a valid list" for dietary_restrictions field
+           - Some requests causing 500 internal server errors
+        
+        2. POST /api/guests/{guest_id}/tags - ❌ FAILING (422 errors)
+           - Issue: Expects 'tag' query parameter instead of request body
+           - All test cases failing with "Field required" for query.tag
+           - Model structure mismatch between implementation and documentation
+        
+        3. POST /api/pos/create-order - ❌ FAILING (422 errors)
+           - Issue: Missing required 'item_id' field in order_items
+           - Expects different field structure than documented
+           - order_items array validation failing
+        
+        4. GET /api/guests/{guest_id}/profile-complete - ❌ FAILING (500 error)
+           - Critical server-side runtime error for existing guests
+           - Returns 500 Internal Server Error consistently
+           - 404 handling works correctly for non-existent guests
+        
+        5. GET /api/approvals/pending - ❌ FIELD MISMATCH
+           - Missing 'urgent_count' field in response
+           - Only returns 'approvals' and 'count' fields
+        
+        6. GET /api/approvals/my-requests - ❌ FIELD MISMATCH  
+           - Returns 'approvals' field instead of expected 'requests' field
+           - Response structure inconsistent with documentation
+        
+        **⚠️ PARTIAL SUCCESS:**
+        
+        7. GET /api/rms/price-recommendation-slider - ⚠️ PARTIAL (1/3 tests)
+           - Works with correct parameters (room_type + check_in_date)
+           - Fails with alternative parameter names
+           - Requires both room_type and check_in_date parameters
+        
+        **✅ WORKING CORRECTLY:**
+        
+        8. POST /api/messaging/send-message - ✅ WORKING (3/3 tests)
+           - All message types working: WhatsApp, SMS, Email
+           - SendMessageRequest model validation working correctly
+        
+        **🚨 URGENT ACTIONS NEEDED:**
+        1. Fix guest preferences endpoint - dietary_restrictions should accept string or convert to list
+        2. Fix guest tags endpoint - clarify if it uses query params or request body
+        3. Debug guest profile-complete 500 error - server-side runtime issue
+        4. Add missing urgent_count field to approvals/pending response
+        5. Change approvals/my-requests to return 'requests' field instead of 'approvals'
+        6. Fix POS create-order model - add required item_id field or update validation
+
