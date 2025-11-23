@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -7,17 +7,30 @@ import { Button } from '@/components/ui/button';
 import Layout from '@/components/Layout';
 import { Hotel, FileText, TrendingUp, Award, ShoppingCart, Users, BedDouble, Calendar } from 'lucide-react';
 
+// Cache for dashboard data
+const dashboardCache = {
+  stats: null,
+  aiBriefing: null,
+  timestamp: null,
+  CACHE_DURATION: 30000 // 30 seconds
+};
+
 const Dashboard = ({ user, tenant, onLogout }) => {
   const navigate = useNavigate();
   const { t } = useTranslation();
-  const [stats, setStats] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [aiBriefing, setAiBriefing] = useState(null);
+  const [stats, setStats] = useState(dashboardCache.stats);
+  const [loading, setLoading] = useState(!dashboardCache.stats);
+  const [aiBriefing, setAiBriefing] = useState(dashboardCache.aiBriefing);
   const [loadingAI, setLoadingAI] = useState(false);
 
   useEffect(() => {
-    loadDashboardStats();
-    loadAIBriefing();
+    const now = Date.now();
+    const isCacheValid = dashboardCache.timestamp && (now - dashboardCache.timestamp < dashboardCache.CACHE_DURATION);
+    
+    if (!isCacheValid) {
+      loadDashboardStats();
+      loadAIBriefing();
+    }
   }, []);
 
   const loadAIBriefing = async () => {
