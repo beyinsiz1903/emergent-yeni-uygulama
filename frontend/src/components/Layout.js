@@ -58,7 +58,7 @@ const Layout = ({ children, user, tenant, onLogout, currentModule }) => {
               <img 
                 src={syroceLogo} 
                 alt="Syroce" 
-                className="h-8 w-auto cursor-pointer"
+                className="h-10 w-auto cursor-pointer"
                 onClick={() => navigate('/')}
                 data-testid="logo"
               />
