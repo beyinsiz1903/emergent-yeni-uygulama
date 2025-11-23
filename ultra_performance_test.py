@@ -233,44 +233,44 @@ class UltraPerformanceTester:
         return results
 
     async def test_critical_endpoints(self):
-        """Test all critical endpoints with ultra performance verification"""
-        print("🚀 ULTRA PERFORMANCE VERIFICATION - Target <20ms for All Endpoints")
+        """Test all critical endpoints with ultra-strict <5ms performance requirements"""
+        print("🚀 FINAL ULTRA PERFORMANCE TEST - Target <5ms (Absolutely Perfect)")
         print("=" * 80)
-        print("Testing Protocol: 3 calls per endpoint (cold → cached → cached)")
-        print("Optimizations: GZip, CPU instant reading, DB indexes, query projection, cache TTL")
+        print("GOAL: ACHIEVE <5ms RESPONSE TIMES (PERFECT INSTANT RESPONSE)")
+        print("Testing Protocol: 5 consecutive calls per endpoint")
         print("=" * 80)
         
-        # Define critical endpoints with their targets
+        # Define critical endpoints with their ultra-strict targets
         endpoints = [
             {
                 "name": "Monitoring Health",
                 "url": f"{BACKEND_URL}/monitoring/health",
-                "target_ms": CACHED_TARGET_MS
+                "target_ms": ULTRA_TARGET_MS
             },
             {
                 "name": "Monitoring System",
                 "url": f"{BACKEND_URL}/monitoring/system", 
-                "target_ms": CACHED_TARGET_MS
+                "target_ms": ULTRA_TARGET_MS
             },
             {
-                "name": "PMS Rooms",
+                "name": "PMS Rooms (Pre-warmed Cache)",
                 "url": f"{BACKEND_URL}/pms/rooms",
-                "target_ms": CACHED_PMS_TARGET_MS
+                "target_ms": CACHE_TARGET_MS
             },
             {
-                "name": "PMS Bookings",
+                "name": "PMS Bookings (Pre-warmed Cache)",
                 "url": f"{BACKEND_URL}/pms/bookings",
-                "target_ms": CACHED_PMS_TARGET_MS
+                "target_ms": CACHE_TARGET_MS
             },
             {
-                "name": "PMS Dashboard", 
+                "name": "PMS Dashboard (Pre-warmed Cache)", 
                 "url": f"{BACKEND_URL}/pms/dashboard",
-                "target_ms": CACHED_PMS_TARGET_MS
+                "target_ms": CACHE_TARGET_MS
             },
             {
-                "name": "Executive KPI Snapshot",
+                "name": "Executive KPI Snapshot (Pre-warmed Cache)",
                 "url": f"{BACKEND_URL}/executive/kpi-snapshot",
-                "target_ms": CACHED_TARGET_MS
+                "target_ms": CACHE_TARGET_MS
             }
         ]
         
