@@ -409,6 +409,16 @@ function App() {
             }
           />
           <Route
+            path="/hotel-inventory"
+            element={
+              isAuthenticated ? (
+                <HotelInventory user={user} tenant={tenant} onLogout={handleLogout} />
+              ) : (
+                <Navigate to="/auth" replace />
+              )
+            }
+          />
+          <Route
             path="/templates"
             element={
               isAuthenticated ? (
