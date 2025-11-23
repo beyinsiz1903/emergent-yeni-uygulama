@@ -4781,7 +4781,7 @@ const PMSModule = ({ user, tenant, onLogout }) => {
                       <SelectValue placeholder="Any type" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">Any type</SelectItem>
+                      <SelectItem value="any">Any type</SelectItem>
                       <SelectItem value="standard">Standard</SelectItem>
                       <SelectItem value="deluxe">Deluxe</SelectItem>
                       <SelectItem value="suite">Suite</SelectItem>
