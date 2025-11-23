@@ -33,6 +33,8 @@ const ReservationCalendar = ({ user, tenant, onLogout }) => {
   const [roomBlocks, setRoomBlocks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [daysToShow, setDaysToShow] = useState(14); // 2 weeks view
+  const [visibleRoomRange, setVisibleRoomRange] = useState({ start: 0, end: 20 }); // Lazy load rooms
+
   
   // Dialog states
   const [showNewBookingDialog, setShowNewBookingDialog] = useState(false);
