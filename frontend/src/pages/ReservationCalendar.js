@@ -628,7 +628,11 @@ const ReservationCalendar = ({ user, tenant, onLogout }) => {
       'gov': { label: 'GOV', color: 'text-indigo-300' },
       'leisure': { label: 'RACK', color: 'text-pink-300' },
       'ota': { label: 'OTA', color: 'text-purple-300' },
-      'group': { label: 'GROUP', color: 'text-green-300' }
+      'group': { label: 'GROUP', color: 'text-green-300' },
+      'promotional': { label: '🎉 PROMO', color: 'text-yellow-300 font-bold' },
+      'promo': { label: '🎉 PROMO', color: 'text-yellow-300 font-bold' },
+      'non_refundable': { label: 'NON-REF', color: 'text-red-300' },
+      'advance_purchase': { label: 'ADVANCE', color: 'text-teal-300' }
     };
     
     return rateTypes[booking.rate_type] || { label: booking.rate_type?.toUpperCase() || 'STD', color: 'text-gray-300' };
