@@ -128,16 +128,17 @@ const AuthPage = ({ onLogin }) => {
     }}>
       <div style={{ width: '100%', maxWidth: isMobile ? '100%' : '500px' }}>
         <div style={{ textAlign: 'center', marginBottom: isMobile ? '1.5rem' : '2rem' }}>
-          <h1 style={{ 
-            fontSize: isMobile ? '2rem' : '3rem', 
-            fontWeight: '700', 
-            color: 'white',
-            marginBottom: '0.5rem',
-            fontFamily: 'Space Grotesk'
-          }}>
-            {isMobile && <Smartphone className="inline-block mr-2 mb-1" size={isMobile ? 32 : 48} />}
-            RoomOps
-          </h1>
+          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1rem' }}>
+            <img 
+              src={syroceLogo} 
+              alt="Syroce" 
+              style={{ 
+                height: isMobile ? '80px' : '120px', 
+                width: 'auto',
+                filter: 'brightness(0) invert(1)'
+              }} 
+            />
+          </div>
           <p style={{ color: 'rgba(255,255,255,0.9)', fontSize: isMobile ? '0.9rem' : '1.1rem' }}>
             {isMobile ? 'Mobile Hotel Management' : 'Complete Hotel Management Platform'}
           </p>
