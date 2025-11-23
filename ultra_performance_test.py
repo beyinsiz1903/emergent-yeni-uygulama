@@ -204,28 +204,31 @@ class UltraPerformanceTester:
                 await asyncio.sleep(0.05)
         
         # Calculate metrics
-        if results["cached_times_ms"]:
-            results["avg_cached_ms"] = statistics.mean(results["cached_times_ms"])
-            results["peak_performance_ms"] = min(results["cached_times_ms"])
+        if results["response_times"]:
+            results["min_ms"] = min(results["response_times"])
+            results["avg_ms"] = statistics.mean(results["response_times"])
+            results["max_ms"] = max(results["response_times"])
             
-            # Cache hit rate calculation (simplified)
-            # If cached calls are significantly faster than cold call, assume cache hit
-            if results["cold_time_ms"] > 0:
-                cache_improvement = (results["cold_time_ms"] - results["avg_cached_ms"]) / results["cold_time_ms"]
-                results["cache_hit_rate"] = max(0, min(100, cache_improvement * 100))
+            # Check cache effectiveness (2nd call should be faster than 1st)
+            if len(results["response_times"]) >= 2:
+                results["cache_working"] = results["response_times"][1] < results["response_times"][0]
         
         # Performance assessment
-        cached_pass = results["avg_cached_ms"] < target_cached_ms if results["cached_times_ms"] else False
-        cold_pass = results["cold_time_ms"] < COLD_TARGET_MS
+        target_met = results["success"] and results["avg_ms"] < target_ms
         
-        if results["success"] and cached_pass and cold_pass:
-            print(f"   🎉 EXCELLENT: All targets met!")
-        elif results["success"] and cached_pass:
-            print(f"   ✅ GOOD: Cached performance meets target")
-        elif results["success"]:
-            print(f"   ⚠️ NEEDS IMPROVEMENT: Performance below target")
+        print(f"   Min/Avg/Max: {results['min_ms']:.1f}/{results['avg_ms']:.1f}/{results['max_ms']:.1f} ms")
+        print(f"   Cache working: {'✅ Yes' if results['cache_working'] else '❌ No'}")
+        print(f"   Data complete: {'✅ Yes' if results['data_complete'] else '❌ No'}")
+        
+        if target_met:
+            if results["avg_ms"] < 1.0:
+                print(f"   🚀 EXCEPTIONAL: Sub-millisecond performance!")
+            elif results["avg_ms"] < 2.0:
+                print(f"   ⚡ EXCELLENT: Ultra-fast response!")
+            else:
+                print(f"   ✅ PASS: Within target")
         else:
-            print(f"   ❌ FAILED: Endpoint errors")
+            print(f"   ❌ FAIL: Exceeds {target_ms}ms target")
         
         return results
 
