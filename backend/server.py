@@ -3361,7 +3361,6 @@ async def create_booking(booking_data: BookingCreate, current_user: User = Depen
     return booking
 
 @api_router.get("/pms/bookings", response_model=List[Booking])
-@cached(ttl=15, key_prefix="pms_bookings")  # Ultra-short cache
 async def get_bookings(
     limit: int = 30,  # Further reduced for instant response
     offset: int = 0,
