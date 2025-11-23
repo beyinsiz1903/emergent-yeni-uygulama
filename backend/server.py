@@ -4730,6 +4730,7 @@ async def get_daily_flash_report_data(current_user: User):
     }
 
 @api_router.get("/reports/daily-flash")
+@cached(ttl=300, key_prefix="report_daily_flash")  # Cache for 5 minutes
 async def get_daily_flash_report(date_str: Optional[str] = None, current_user: User = Depends(get_current_user)):
     """Daily Flash Report - GM/CFO Dashboard"""
     target_date = datetime.fromisoformat(date_str).date() if date_str else datetime.now(timezone.utc).date()
