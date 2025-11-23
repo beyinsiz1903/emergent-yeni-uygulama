@@ -1580,7 +1580,10 @@ const ReservationCalendar = ({ user, tenant, onLogout }) => {
                               >
                                 {/* Main booking info */}
                                 <div className="p-2 h-[48px] relative">
-                                  <div className="font-semibold truncate pr-8">
+                                  <div className="font-semibold truncate pr-8 flex items-center gap-1">
+                                    {(booking.rate_type === 'promotional' || booking.rate_type === 'promo') && (
+                                      <span className="text-yellow-300 animate-pulse">🎉</span>
+                                    )}
                                     {booking.guest_name || 'Guest'}
                                   </div>
                                   <div className="text-xs opacity-90 flex items-center mt-1">
