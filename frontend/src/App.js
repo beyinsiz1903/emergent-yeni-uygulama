@@ -199,7 +199,8 @@ function App() {
           <Toaster position="top-right" />
           <BrowserRouter>
             <Routes>
-              <Route path="/*" element={<GuestPortal user={user} onLogout={handleLogout} />} />
+              <Route path="/" element={<LandingPage />} />
+              <Route path="/guest-portal/*" element={<GuestPortal user={user} onLogout={handleLogout} />} />
             </Routes>
           </BrowserRouter>
         </div>
