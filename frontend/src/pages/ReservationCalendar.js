@@ -185,6 +185,22 @@ const ReservationCalendar = ({ user, tenant, onLogout }) => {
     }
   };
 
+
+  const loadHistoricalTrends = async () => {
+    try {
+      // Get last 90 days for trend analysis
+      const endDate = new Date();
+      const startDate = new Date();
+      startDate.setDate(startDate.getDate() - 90);
+      
+      const response = await axios.get(`/analytics/occupancy-trend?start_date=${startDate.toISOString().split('T')[0]}&end_date=${endDate.toISOString().split('T')[0]}`);
+      setHistoricalTrends(response.data);
+    } catch (error) {
+      console.error('Failed to load historical trends:', error);
+    }
+  };
+
+
   const loadEnterpriseData = async () => {
     try {
       const startDate = currentDate.toISOString().split('T')[0];
