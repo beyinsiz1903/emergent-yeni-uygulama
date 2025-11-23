@@ -88,7 +88,7 @@ class CacheWarmer:
                     cache_key = f"bookings:{t_id}"
                     self.cache[cache_key] = {
                         'data': tenant_bookings,
-                        'expires_at': datetime.utcnow() + timedelta(seconds=60)
+                        'expires_at': datetime.utcnow() + timedelta(seconds=20)  # Aggressive refresh
                     }
                     print(f"  ✅ Bookings cache warmed for tenant {t_id[:8]}: {len(tenant_bookings)} bookings")
             else:
