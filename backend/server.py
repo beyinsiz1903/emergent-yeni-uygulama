@@ -2458,6 +2458,15 @@ async def get_rooms(current_user: User = Depends(get_current_user)):
         
         rooms.append(room)
     
+    # Cache result in Redis for 10 seconds
+    try:
+        from redis_cache import redis_cache
+        if redis_cache:
+            cache_key = f"rooms:{current_user.tenant_id}"
+            redis_cache.set(cache_key, rooms, ttl=10)
+    except:
+        pass
+    
     return rooms
 
 @api_router.put("/pms/rooms/{room_id}")
