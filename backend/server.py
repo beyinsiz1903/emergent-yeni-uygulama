@@ -10141,9 +10141,10 @@ async def startup_db_seed():
         
         # Initialize Redis connection
         redis_client = redis.Redis(
-            host='localhost',
+            host='127.0.0.1',
             port=6379,
             db=0,
+            socket_connect_timeout=2,
             decode_responses=False  # Keep as bytes for now
         )
         
