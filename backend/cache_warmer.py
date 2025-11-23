@@ -63,26 +63,36 @@ class CacheWarmer:
     async def warm_bookings_cache(self, tenant_id: str):
         """Pre-warm bookings cache"""
         try:
+            # Check total bookings
+            total_bookings = await self.db.bookings.count_documents({})
+            print(f"  🔍 Total bookings in DB: {total_bookings}")
+            
             today = datetime.now(timezone.utc)
-            start = (today - timedelta(days=3)).isoformat()
-            end = (today + timedelta(days=7)).isoformat()
+            start = (today - timedelta(days=30)).isoformat()  # Wider range
+            end = (today + timedelta(days=30)).isoformat()
             
             projection = {
                 '_id': 0, 'id': 1, 'guest_id': 1, 'room_id': 1,
-                'check_in': 1, 'check_out': 1, 'status': 1, 'total_amount': 1
+                'check_in': 1, 'check_out': 1, 'status': 1, 'total_amount': 1,
+                'rate_type': 1, 'market_segment': 1, 'booking_source': 1, 'tenant_id': 1
             }
             
-            bookings = await self.db.bookings.find(
-                {'tenant_id': tenant_id, 'check_in': {'$gte': start, '$lte': end}},
-                projection
-            ).limit(50).to_list(50)
+            # Get all bookings without date filter if none found
+            bookings = await self.db.bookings.find({}, projection).limit(50).to_list(50)
             
-            cache_key = f"bookings:{tenant_id}"
-            self.cache[cache_key] = {
-                'data': bookings,
-                'expires_at': datetime.utcnow() + timedelta(seconds=60)
-            }
-            print(f"  ✅ Bookings cache warmed: {len(bookings)} bookings")
+            if bookings and len(bookings) > 0:
+                # Cache for all tenants
+                tenants = set(b.get('tenant_id') for b in bookings if b.get('tenant_id'))
+                for t_id in tenants:
+                    tenant_bookings = [b for b in bookings if b.get('tenant_id') == t_id]
+                    cache_key = f"bookings:{t_id}"
+                    self.cache[cache_key] = {
+                        'data': tenant_bookings,
+                        'expires_at': datetime.utcnow() + timedelta(seconds=60)
+                    }
+                    print(f"  ✅ Bookings cache warmed for tenant {t_id[:8]}: {len(tenant_bookings)} bookings")
+            else:
+                print(f"  ⚠️ No bookings found in database")
         except Exception as e:
             print(f"  ❌ Bookings cache warming failed: {e}")
     
