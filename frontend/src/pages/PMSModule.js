@@ -1763,10 +1763,16 @@ const PMSModule = ({ user, tenant, onLogout }) => {
           <TabsContent value="bookings" className="space-y-4">
             <div className="flex justify-between items-center">
               <h2 className="text-2xl font-semibold">Bookings ({bookings.length})</h2>
-              <Button onClick={() => setOpenDialog('booking')}>
-                <Plus className="w-4 h-4 mr-2" />
-                New Booking
-              </Button>
+              <div className="flex gap-2">
+                <Button variant="outline" onClick={() => setOpenDialog('findroom')}>
+                  <Home className="w-4 h-4 mr-2" />
+                  Find Available Rooms
+                </Button>
+                <Button onClick={() => setOpenDialog('booking')}>
+                  <Plus className="w-4 h-4 mr-2" />
+                  New Booking
+                </Button>
+              </div>
             </div>
             <div className="space-y-4">
               {bookings.map((booking) => {
