@@ -9139,8 +9139,9 @@ async def get_oversell_protection_map(
         'period': {'start_date': start.isoformat(), 'end_date': end.isoformat()},
         'protection_map': protection_map,
         'summary': {
-            'danger_days': sum(1 for d in protection_map if d['risk_level'] == 'danger'),
-
+            'danger_days': sum(1 for d in protection_map if d['risk_level'] == 'danger')
+        }
+    }
 
 @api_router.get("/deluxe/grouped-conflicts")
 async def get_grouped_conflicts(
