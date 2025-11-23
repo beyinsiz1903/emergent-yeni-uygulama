@@ -274,7 +274,7 @@ async def health_check():
         
         client.close()
         
-        return {
+        result = {
             'status': overall_status,
             'timestamp': datetime.now(timezone.utc).isoformat(),
             'components': {
@@ -292,6 +292,16 @@ async def health_check():
             },
             'system_info': system
         }
+        
+        # Cache for 5 seconds for ultra-fast subsequent calls
+        try:
+            from redis_cache import redis_cache
+            if redis_cache:
+                redis_cache.set("monitoring:health", result, ttl=5)
+        except:
+            pass
+        
+        return result
         
     except Exception as e:
         logger.error(f"Health check failed: {e}")
