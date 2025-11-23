@@ -2431,6 +2431,7 @@ async def create_company(company_data: CompanyCreate, current_user: User = Depen
     return company
 
 @api_router.get("/companies")
+@cached(ttl=600, key_prefix="companies_list")  # Cache for 10 minutes
 async def get_companies(
     search: Optional[str] = None,
     status: Optional[CompanyStatus] = None,
