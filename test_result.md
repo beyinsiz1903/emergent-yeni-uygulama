@@ -143,7 +143,46 @@
 #====================================================================================================
 
 user_problem_statement: |
-  Comprehensive Hotel PMS Enhancement - 17 Categories + NEW ENHANCEMENTS:
+  Hotel PMS Performance and Scalability Optimizations Testing:
+  
+  OPTIMIZATIONS IMPLEMENTED:
+  1. MongoDB Indexes - 17 collections with 103+ indexes
+  2. Connection Pool - maxPoolSize=200, minPoolSize=20
+  3. Redis Cache - Working and ready
+  4. Background Jobs (Celery) - Installed
+  5. Rate Limiting - Active
+  6. Pagination & Query Optimization - Ready
+  7. Data Archival - Ready
+  8. Monitoring & Health Checks - Working
+  
+  ENDPOINTS TO TEST:
+  1. Monitoring Endpoints (5):
+     - GET /api/monitoring/health
+     - GET /api/monitoring/system
+     - GET /api/monitoring/database
+     - GET /api/monitoring/alerts
+     - GET /api/monitoring/metrics
+  
+  2. Performance Testing:
+     - Dashboard endpoint response times
+     - Booking list performance (pagination)
+     - Cache functionality
+  
+  3. Connection Pool Testing:
+     - Database connection stats
+     - Pool usage under load
+  
+  4. Redis Cache Testing:
+     - Redis connection
+     - Cache performance
+  
+  EXPECTED RESULTS:
+  - Health check: "status": "healthy"
+  - System metrics: CPU, Memory, Disk info
+  - Database: Connection pool working
+  - Response times < 500ms
+
+  Previous Comprehensive Hotel PMS Enhancement - 17 Categories + NEW ENHANCEMENTS:
   1. Dashboard - Employee Performance, Guest Satisfaction Trends, OTA Cancellation Rate
   2. Check-in - Passport scan, Walk-in booking, Guest alerts
   3. Housekeeping - Task timing, Staff performance, Linen inventory
