@@ -93,9 +93,9 @@ const LandingPage = () => {
   ];
 
   const stats = [
-    { value: "500+", label: "Aktif Otel" },
-    { value: "50K+", label: "Aylık Rezervasyon" },
-    { value: "%98", label: "Müşteri Memnuniyeti" },
+    { value: "2024", label: "Yeni Nesil Teknoloji" },
+    { value: "15+", label: "Entegre Modül" },
+    { value: "8", label: "Dil Desteği" },
     { value: "24/7", label: "Canlı Destek" }
   ];
 
