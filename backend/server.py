@@ -17698,6 +17698,7 @@ async def get_system_health(current_user: User = Depends(get_current_user)):
 # ============= ENHANCED DASHBOARD ENDPOINTS =============
 
 @api_router.get("/dashboard/employee-performance")
+@cached(ttl=600, key_prefix="dashboard_employee_performance")  # Cache for 10 minutes
 async def get_employee_performance(
     start_date: Optional[str] = None,
     end_date: Optional[str] = None,
