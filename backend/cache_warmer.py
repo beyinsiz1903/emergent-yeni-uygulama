@@ -161,7 +161,7 @@ class CacheWarmer:
             cache_key = f"kpi:{tenant_id}"
             self.cache[cache_key] = {
                 'data': kpi_data,
-                'expires_at': datetime.utcnow() + timedelta(seconds=60)
+                'expires_at': datetime.utcnow() + timedelta(seconds=20)  # Aggressive refresh
             }
             print(f"  ✅ KPI cache warmed")
         except Exception as e:
