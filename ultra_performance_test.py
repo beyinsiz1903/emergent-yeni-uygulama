@@ -1,35 +1,54 @@
 #!/usr/bin/env python3
 """
-ULTRA PERFORMANCE VERIFICATION - Target <20ms for All Endpoints
+FINAL ULTRA PERFORMANCE TEST - Target <5ms (Absolutely Perfect)
 
-Test Protocol:
-For each endpoint, make 3 calls:
-1. First call (cold) - measure baseline
-2. Second call (cached) - measure cache performance  
-3. Third call (cached) - verify consistency
+**GOAL: ACHIEVE <5ms RESPONSE TIMES (PERFECT INSTANT RESPONSE)**
 
-ENDPOINTS TO TEST:
-1. GET /api/monitoring/health - Target: <20ms (cached)
-2. GET /api/monitoring/system - Target: <20ms (cached)
-3. GET /api/pms/rooms - Target: <15ms (cached)
-4. GET /api/pms/bookings - Target: <15ms (cached)
-5. GET /api/pms/dashboard - Target: <15ms (cached)
-6. GET /api/executive/kpi-snapshot - Target: <20ms (cached)
+Test all critical endpoints with detailed performance metrics:
 
-OPTIMIZATIONS APPLIED:
-- ✅ GZip compression
-- ✅ CPU instant reading (0ms wait)
-- ✅ Database compound indexes
-- ✅ Query projection (minimal fields)
-- ✅ Aggregation pipelines
-- ✅ Reduced cache TTL (30-60s)
-- ✅ Reduced default limits
+**CRITICAL ENDPOINTS:**
+1. GET /api/monitoring/health - Target: <5ms
+2. GET /api/monitoring/system - Target: <5ms  
+3. GET /api/pms/rooms - Target: <3ms (pre-warmed cache should be instant)
+4. GET /api/pms/bookings - Target: <3ms (pre-warmed cache should be instant)
+5. GET /api/pms/dashboard - Target: <3ms (pre-warmed cache should be instant)
+6. GET /api/executive/kpi-snapshot - Target: <3ms (pre-warmed cache should be instant)
 
-SUCCESS CRITERIA:
-- All cached calls <20ms
-- Cold calls <40ms
-- No functionality regression
-- All data still accurate
+**TEST PROTOCOL:**
+- Make 5 consecutive calls per endpoint
+- Measure min, max, avg response times
+- Verify cache is working (2nd call should be faster than 1st)
+- Check response data completeness
+
+**OPTIMIZATIONS APPLIED:**
+✅ Pre-warming cache on startup (rooms, bookings, dashboard, KPI)
+✅ Background cache refresh every 30s
+✅ Ultra-short cache TTL (15s)
+✅ Minimal field projection
+✅ Reduced data limits (30-50 records)
+✅ Aggregation pipelines
+✅ GZip compression
+✅ Connection pooling (200 max)
+✅ CPU instant read (0ms wait)
+✅ Compound indexes
+
+**SUCCESS CRITERIA:**
+- Average response <5ms for all endpoints
+- Peak performance <3ms
+- All data accurate and complete
+- No errors or timeouts
+- Cache hit rate >50%
+
+**REPORT FORMAT:**
+For each endpoint:
+- Call 1 (cold): Xms
+- Call 2-5 (warm): Xms, Xms, Xms, Xms
+- Min/Avg/Max: X/X/X ms
+- Cache working: Yes/No
+- Data complete: Yes/No
+- Status: ✅/<5ms or ❌/>5ms
+
+Target: 6/6 endpoints under 5ms average = ABSOLUTELY PERFECT
 """
 
 import asyncio
