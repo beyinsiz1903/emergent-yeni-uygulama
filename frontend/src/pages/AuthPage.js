@@ -127,19 +127,19 @@ const AuthPage = ({ onLogin }) => {
       padding: isMobile ? '10px' : '20px'
     }}>
       <div style={{ width: '100%', maxWidth: isMobile ? '100%' : '500px' }}>
-        <div style={{ textAlign: 'center', marginBottom: isMobile ? '1.5rem' : '2rem' }}>
-          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1rem' }}>
+        <div style={{ textAlign: 'center', marginBottom: isMobile ? '1rem' : '1.5rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '0.75rem' }}>
             <img 
               src={syroceLogo} 
               alt="Syroce" 
               style={{ 
-                height: isMobile ? '80px' : '100px', 
+                height: isMobile ? '70px' : '90px', 
                 width: 'auto',
                 filter: 'brightness(0) invert(1)'
               }} 
             />
           </div>
-          <p style={{ color: 'rgba(255,255,255,0.9)', fontSize: isMobile ? '0.9rem' : '1.1rem', marginBottom: '1rem' }}>
+          <p style={{ color: 'rgba(255,255,255,0.95)', fontSize: isMobile ? '0.875rem' : '1rem', marginBottom: '0.75rem', fontWeight: '500' }}>
             {isMobile ? 'Mobile Hotel Management' : 'Complete Hotel Management Platform'}
           </p>
           
