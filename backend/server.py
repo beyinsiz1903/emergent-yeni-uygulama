@@ -3607,7 +3607,18 @@ async def create_room_move_history(
 
 @api_router.get("/pms/dashboard")
 async def get_pms_dashboard(current_user: User = Depends(get_current_user)):
-    # Check pre-warmed cache first (instant response!)
+    # Try Redis cache first (FASTEST!)
+    try:
+        from redis_cache import redis_cache
+        if redis_cache:
+            cache_key = f"dashboard:{current_user.tenant_id}"
+            cached = redis_cache.get(cache_key)
+            if cached:
+                return cached
+    except:
+        pass
+    
+    # Check pre-warmed cache second
     from cache_warmer import cache_warmer
     if cache_warmer:
         cached_data = cache_warmer.get_cached(f"dashboard:{current_user.tenant_id}")
