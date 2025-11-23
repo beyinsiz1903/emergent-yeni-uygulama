@@ -3640,7 +3640,7 @@ async def get_pms_dashboard(current_user: User = Depends(get_current_user)):
     occupied_rooms = room_stats[0]['occupied_rooms'] if room_stats else 0
     
     # Ultra-fast response - minimal queries
-    return {
+    result = {
         'total_rooms': total_rooms,
         'occupied_rooms': occupied_rooms,
         'available_rooms': total_rooms - occupied_rooms,
@@ -3648,6 +3648,17 @@ async def get_pms_dashboard(current_user: User = Depends(get_current_user)):
         'today_checkins': 0,  # Skip for max speed
         'total_guests': 0  # Skip for max speed
     }
+    
+    # Cache in Redis for 5 seconds
+    try:
+        from redis_cache import redis_cache
+        if redis_cache:
+            cache_key = f"dashboard:{current_user.tenant_id}"
+            redis_cache.set(cache_key, result, ttl=5)
+    except:
+        pass
+    
+    return result
 
 @api_router.get("/pms/room-services")
 @cached(ttl=300, key_prefix="pms_room_services")  # Cache for 5 min
