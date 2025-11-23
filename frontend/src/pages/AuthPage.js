@@ -50,12 +50,21 @@ const AuthPage = ({ onLogin }) => {
       console.log('📡 Axios baseURL:', axios.defaults.baseURL);
       const response = await axios.post('/auth/login', hotelLoginData);
       console.log('✅ Login successful:', response.data);
+      
+      // Store auth data first
+      localStorage.setItem('token', response.data.access_token);
+      localStorage.setItem('user', JSON.stringify(response.data.user));
+      localStorage.setItem('tenant', response.data.tenant ? JSON.stringify(response.data.tenant) : 'null');
+      
       toast.success('Login successful!');
+      
+      // Then call onLogin
       onLogin(response.data.access_token, response.data.user, response.data.tenant);
-      // Force full page reload to ensure state is updated
+      
+      // Force full page reload to dashboard
       setTimeout(() => {
-        window.location.href = '/';
-      }, 500);
+        window.location.href = '/dashboard-simple';
+      }, 300);
     } catch (error) {
       console.error('❌ Login error:', error);
       console.error('Error response:', error.response);
