@@ -2395,7 +2395,18 @@ async def create_room(room_data: RoomCreate, current_user: User = Depends(get_cu
 
 @api_router.get("/pms/rooms", response_model=List[Room])
 async def get_rooms(current_user: User = Depends(get_current_user)):
-    # Check pre-warmed cache first
+    # Try Redis cache first (FASTEST!)
+    try:
+        from redis_cache import redis_cache
+        if redis_cache:
+            cache_key = f"rooms:{current_user.tenant_id}"
+            cached = redis_cache.get(cache_key)
+            if cached:
+                return cached
+    except:
+        pass
+    
+    # Check pre-warmed cache second
     from cache_warmer import cache_warmer
     if cache_warmer:
         cached_data = cache_warmer.get_cached(f"rooms:{current_user.tenant_id}")
