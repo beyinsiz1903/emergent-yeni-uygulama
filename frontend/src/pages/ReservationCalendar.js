@@ -611,6 +611,10 @@ const ReservationCalendar = ({ user, tenant, onLogout }) => {
       group: 'bg-green-600',         // Group → Green
       leisure: 'bg-pink-500',        // Leisure → Pink
       government: 'bg-indigo-600',   // Government → Indigo
+      promotional: 'bg-gradient-to-r from-yellow-500 via-amber-500 to-orange-500',  // Promo → Gradient Gold
+      promo: 'bg-gradient-to-r from-yellow-500 via-amber-500 to-orange-500',        // Promo → Gradient Gold
+      'non_refundable': 'bg-red-600',     // Non-refundable → Red
+      'advance_purchase': 'bg-teal-600',  // Advance Purchase → Teal
       default: 'bg-blue-500'
     };
     return colors[segment?.toLowerCase()] || colors.default;
