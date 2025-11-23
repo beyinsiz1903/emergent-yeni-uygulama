@@ -169,6 +169,14 @@ const Dashboard = ({ user, tenant, onLogout }) => {
       icon: ShoppingCart,
       path: '/marketplace',
       color: '#fa709a'
+    },
+    {
+      title: '🏨 Otel Ekipman Stoğu',
+      description: 'Otomatik stok takibi ve sipariş yönetimi',
+      icon: Package,
+      path: '/hotel-inventory',
+      color: '#10b981',
+      badge: 'NEW'
     }
   ], [t, stats]);
 
