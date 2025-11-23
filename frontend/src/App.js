@@ -779,6 +779,8 @@ function App() {
         </Routes>
       </BrowserRouter>
     </div>
+    <ReactQueryDevtools initialIsOpen={false} />
+  </QueryClientProvider>
   );
 }
 
