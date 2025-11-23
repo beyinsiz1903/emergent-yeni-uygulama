@@ -67,24 +67,70 @@ const SLAConfigCard = ({ slaConfigs, delayedTasks }) => {
       {delayedTasks && delayedTasks.length > 0 && (
         <Card className="border-red-200 bg-red-50">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-red-800">
-              <AlertCircle className="w-5 h-5" />
-              Geciken Görevler
+            <CardTitle className="flex items-center justify-between text-red-800">
+              <div className="flex items-center gap-2">
+                <AlertCircle className="w-5 h-5" />
+                <span>Top {Math.min(10, delayedTasks.length)} Kritik Görevler</span>
+              </div>
+              {delayedTasks.length > 10 && (
+                <Badge variant="outline" className="bg-white text-red-600">
+                  +{delayedTasks.length - 10} daha
+                </Badge>
+              )}
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-2">
-              {delayedTasks.slice(0, 5).map((task) => (
-                <div key={task.id} className="p-3 bg-white rounded border border-red-200">
+            <div className="space-y-2 max-h-96 overflow-y-auto">
+              {delayedTasks
+                .sort((a, b) => b.delay_minutes - a.delay_minutes)
+                .slice(0, 10)
+                .map((task, index) => (
+                <div 
+                  key={task.id} 
+                  className={`p-3 bg-white rounded border ${
+                    task.delay_minutes > 60 ? 'border-red-500' : 
+                    task.delay_minutes > 30 ? 'border-orange-400' : 
+                    'border-red-200'
+                  }`}
+                >
                   <div className="flex items-center justify-between mb-1">
-                    <span className="font-medium text-sm">Oda {task.room_number}</span>
-                    <Badge className="bg-red-500 text-xs">{task.delay_minutes} dk gecikme</Badge>
+                    <div className="flex items-center gap-2">
+                      <span className={`
+                        w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold
+                        ${task.delay_minutes > 60 ? 'bg-red-600 text-white' : 
+                          task.delay_minutes > 30 ? 'bg-orange-500 text-white' : 
+                          'bg-yellow-500 text-white'}
+                      `}>
+                        {index + 1}
+                      </span>
+                      <span className="font-medium text-sm">Oda {task.room_number}</span>
+                    </div>
+                    <Badge className={`text-xs ${
+                      task.delay_minutes > 60 ? 'bg-red-600' : 
+                      task.delay_minutes > 30 ? 'bg-orange-500' : 
+                      'bg-yellow-500'
+                    }`}>
+                      {task.delay_minutes} dk gecikme
+                    </Badge>
                   </div>
-                  <p className="text-xs text-gray-600">{task.guest_name}</p>
-                  <p className="text-xs text-gray-500 mt-1">SLA: {task.sla_minutes} dk | Geçen: {task.elapsed_minutes} dk</p>
+                  {task.guest_name && (
+                    <p className="text-xs text-gray-600 ml-8">{task.guest_name}</p>
+                  )}
+                  <div className="flex items-center justify-between text-xs text-gray-500 mt-1 ml-8">
+                    <span>SLA: {task.sla_minutes} dk</span>
+                    <span>Geçen: {task.elapsed_minutes} dk</span>
+                    <span className="text-red-600 font-medium capitalize">{task.priority || 'normal'}</span>
+                  </div>
                 </div>
               ))}
             </div>
+            {delayedTasks.length > 10 && (
+              <div className="mt-3 text-center">
+                <Button variant="outline" size="sm" className="text-xs">
+                  Tümünü Gör ({delayedTasks.length} görev)
+                </Button>
+              </div>
+            )}
           </CardContent>
         </Card>
       )}
