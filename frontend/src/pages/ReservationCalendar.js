@@ -534,6 +534,22 @@ const ReservationCalendar = ({ user, tenant, onLogout }) => {
       booking.room_id === roomId && isBookingOnDate(booking, date)
     );
   };
+  // Get bookings for a specific cell (room + date) - Memoized for performance
+  const getBookingsForCell = useCallback((roomId, date) => {
+    return bookings.filter(booking => {
+      const checkIn = new Date(booking.check_in);
+      const checkOut = new Date(booking.check_out);
+      const cellDate = new Date(date);
+      
+      checkIn.setHours(0, 0, 0, 0);
+      checkOut.setHours(0, 0, 0, 0);
+      cellDate.setHours(0, 0, 0, 0);
+      
+      return booking.room_id === roomId && 
+             cellDate >= checkIn && 
+             cellDate < checkOut;
+    });
+  }, [bookings]);
 
   // Get room block for room on specific date
   const getRoomBlockForDate = (roomId, date) => {
