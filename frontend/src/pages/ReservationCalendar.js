@@ -114,6 +114,39 @@ const ReservationCalendar = ({ user, tenant, onLogout }) => {
     loadCalendarData();
   }, [currentDate, daysToShow]);
 
+  // Real-time updates - Poll every 30 seconds for new bookings
+  useEffect(() => {
+    if (!showAIPanel && !showDeluxePanel && !showConflictSolutions) {
+      const interval = setInterval(() => {
+        // Silent refresh - don't show loading state
+        const silentRefresh = async () => {
+          try {
+            const startDate = currentDate.toISOString().split('T')[0];
+            const endDate = new Date(currentDate);
+            endDate.setDate(endDate.getDate() + daysToShow);
+            const endDateStr = endDate.toISOString().split('T')[0];
+            
+            const bookingsRes = await axios.get(`/bookings?start_date=${startDate}&end_date=${endDateStr}`);
+            const newBookings = bookingsRes.data || [];
+            
+            // Only update if there are changes
+            if (JSON.stringify(newBookings) !== JSON.stringify(bookings)) {
+              setBookings(newBookings);
+              toast.info('📡 Calendar updated with latest bookings', { duration: 2000 });
+            }
+          } catch (error) {
+            console.error('Silent refresh failed:', error);
+          }
+        };
+        
+        silentRefresh();
+      }, 30000); // 30 seconds
+      
+      return () => clearInterval(interval);
+    }
+  }, [currentDate, daysToShow, bookings, showAIPanel, showDeluxePanel, showConflictSolutions]);
+
+
   const loadCalendarData = async () => {
     setLoading(true);
     try {
