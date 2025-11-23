@@ -9246,11 +9246,6 @@ async def get_grouped_conflicts(
         }
     }
 
-            'caution_days': sum(1 for d in protection_map if d['risk_level'] == 'caution'),
-            'safe_days': sum(1 for d in protection_map if d['risk_level'] == 'safe')
-        }
-    }
-
 @api_router.post("/deluxe/optimize-channel-mix")
 async def optimize_channel_mix(
     start_date: str,
