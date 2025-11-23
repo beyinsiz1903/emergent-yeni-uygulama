@@ -6052,6 +6052,7 @@ async def get_active_cleaning_timers(current_user: User = Depends(get_current_us
     }
 
 @api_router.get("/housekeeping/performance-stats")
+@cached(ttl=600, key_prefix="housekeeping_performance")  # Cache for 10 minutes
 async def get_housekeeping_performance_stats(
     days: int = 7,
     current_user: User = Depends(get_current_user)
