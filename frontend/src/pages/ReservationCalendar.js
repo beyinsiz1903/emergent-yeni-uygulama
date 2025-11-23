@@ -127,6 +127,14 @@ const ReservationCalendar = ({ user, tenant, onLogout }) => {
       setCompanies(companiesRes.data || []);
       setRoomBlocks(blocksRes.data.blocks || []);
       
+      // Load grouped conflicts for better conflict management
+      try {
+        const conflictsRes = await axios.get('/deluxe/grouped-conflicts');
+        setGroupedConflicts(conflictsRes.data);
+      } catch (error) {
+        console.error('Failed to load grouped conflicts:', error);
+      }
+      
       // Load Enterprise Mode data
       loadEnterpriseData();
     } catch (error) {
