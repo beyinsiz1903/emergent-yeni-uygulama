@@ -351,12 +351,15 @@ const POSEnhancements = () => {
             ) : (
               <div className="space-y-3">
                 {orders.map((order, idx) => (
-                  <Card key={idx} className="border-l-4 border-l-blue-500">
+                  <Card key={idx} className={`border-l-4 ${order.folio_id ? 'border-l-green-500 bg-green-50/30' : 'border-l-blue-500'}`}>
                     <CardContent className="p-4">
                       <div className="space-y-3">
                         <div className="flex items-center justify-between">
                           <div>
-                            <div className="font-semibold">Order #{order.id?.slice(0, 8)}</div>
+                            <div className="font-semibold flex items-center gap-2">
+                              Order #{order.id?.slice(0, 8)}
+                              {order.folio_id && <span className="text-xs text-green-600">📋</span>}
+                            </div>
                             <div className="text-sm text-gray-600">
                               {new Date(order.created_at).toLocaleString()}
                             </div>
