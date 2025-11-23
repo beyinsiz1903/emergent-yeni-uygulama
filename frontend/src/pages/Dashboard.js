@@ -33,34 +33,43 @@ const Dashboard = ({ user, tenant, onLogout }) => {
     }
   }, []);
 
-  const loadAIBriefing = async () => {
+  const loadAIBriefing = useCallback(async () => {
     setLoadingAI(true);
     try {
       const response = await axios.get('/ai/dashboard/briefing');
-      setAiBriefing(response.data);
+      const data = response.data;
+      setAiBriefing(data);
+      dashboardCache.aiBriefing = data;
     } catch (error) {
       console.error('Failed to load AI briefing:', error);
       // Fail silently - AI features are optional
     } finally {
       setLoadingAI(false);
     }
-  };
+  }, []);
 
-  const loadDashboardStats = async () => {
+  const loadDashboardStats = useCallback(async () => {
     try {
-      const pmsResponse = await axios.get('/pms/dashboard');
-      const invoiceResponse = await axios.get('/invoices/stats');
+      // Use Promise.all for parallel requests - faster!
+      const [pmsResponse, invoiceResponse] = await Promise.all([
+        axios.get('/pms/dashboard'),
+        axios.get('/invoices/stats')
+      ]);
       
-      setStats({
+      const statsData = {
         pms: pmsResponse.data,
         invoices: invoiceResponse.data
-      });
+      };
+      
+      setStats(statsData);
+      dashboardCache.stats = statsData;
+      dashboardCache.timestamp = Date.now();
     } catch (error) {
       console.error('Failed to load stats:', error);
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   const modules = [
     {
