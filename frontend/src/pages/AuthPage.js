@@ -92,6 +92,10 @@ const AuthPage = ({ onLogin }) => {
       console.log('✅ Register response:', response.data);
       toast.success('Registration successful!');
       onLogin(response.data.access_token, response.data.user, response.data.tenant);
+      // Force full page reload to ensure state is updated
+      setTimeout(() => {
+        window.location.href = '/';
+      }, 500);
     } catch (error) {
       console.error('❌ Registration error:', error);
       console.error('❌ Error response:', error.response?.data);
