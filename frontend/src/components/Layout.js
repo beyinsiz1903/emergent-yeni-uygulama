@@ -55,14 +55,13 @@ const Layout = ({ children, user, tenant, onLogout, currentModule }) => {
         <div className="px-4 py-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
-              <h1 
-                className="text-2xl font-bold cursor-pointer"
-                style={{ fontFamily: 'Space Grotesk', color: '#667eea' }}
+              <img 
+                src={syroceLogo} 
+                alt="Syroce" 
+                className="h-8 w-auto cursor-pointer"
                 onClick={() => navigate('/')}
                 data-testid="logo"
-              >
-                RoomOps
-              </h1>
+              />
               <div className="hidden md:block text-sm text-gray-500">
                 {tenant?.property_name || 'Hotel Management'}
               </div>
