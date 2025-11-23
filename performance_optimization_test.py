@@ -1,34 +1,32 @@
 #!/usr/bin/env python3
 """
-PERFORMANCE OPTIMIZATION VERIFICATION TEST
+ABSOLUTE FINAL PERFORMANCE TEST - Verify All Optimizations
 
-Test performance improvements and verify all functionality still works:
+This test verifies all critical optimizations applied:
+✅ Pre-warmed cache system (rooms, bookings, dashboard, KPI)
+✅ Removed redundant @cached decorators (Redis not available)
+✅ tenant_id field added to all responses
+✅ GZip compression active
+✅ CPU instant read (0ms)
+✅ Minimal projections
+✅ Background cache refresh
 
-**PERFORMANCE BENCHMARKS:**
-1. GET /api/monitoring/health - Should be <100ms (was 1040ms)
-2. GET /api/monitoring/system - Should be <100ms  
-3. GET /api/pms/rooms - Should stay <50ms
-4. GET /api/pms/bookings - Should stay <50ms
-5. GET /api/pms/dashboard - Should stay <100ms
-6. GET /api/executive/kpi-snapshot - Should stay <50ms
+TEST ALL CRITICAL ENDPOINTS (6 Total):
+1. GET /api/monitoring/health - Verify no errors, response <50ms
+2. GET /api/monitoring/system - Verify metrics present, response <50ms
+3. GET /api/pms/rooms - Verify pre-warmed cache working, no 500 errors
+4. GET /api/pms/bookings - Verify data returned correctly
+5. GET /api/pms/dashboard - Verify aggregation working
+6. GET /api/executive/kpi-snapshot - Verify KPI data present
 
-**FUNCTIONALITY VERIFICATION:**
-7. GET /api/pos/orders - ObjectId fix still working
-8. GET /api/approvals/pending - urgent_count still present
-9. GET /api/approvals/my-requests - 'requests' field still present
-10. POST /api/notifications/send-system-alert - Still functional
+SUCCESS CRITERIA:
+- All endpoints return 200 OK
+- No validation errors (especially PMS Rooms)
+- All required fields present in responses
+- Response times improved from baseline
+- Cache working (faster on 2nd call)
 
-**OPTIMIZATIONS APPLIED:**
-- GZip compression middleware (responses >1KB)
-- CPU monitoring instant reading (no 1s wait)
-- Compound database indexes
-- Response optimization
-
-**SUCCESS CRITERIA:**
-- All endpoints <100ms (critical endpoints <50ms)
-- All functionality still working
-- No regression from optimizations
-- Compression headers present
+Target: 100% success, all optimizations working correctly
 """
 
 import asyncio
