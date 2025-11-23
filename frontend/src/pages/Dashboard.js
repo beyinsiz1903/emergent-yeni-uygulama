@@ -71,7 +71,7 @@ const Dashboard = ({ user, tenant, onLogout }) => {
     }
   }, []);
 
-  const modules = [
+  const modules = useMemo(() => [
     {
       title: t('nav.pms'),
       description: t('dashboard.propertyManagement'),
@@ -141,7 +141,7 @@ const Dashboard = ({ user, tenant, onLogout }) => {
       path: '/marketplace',
       color: '#fa709a'
     }
-  ];
+  ], [t, stats]);
 
   return (
     <Layout user={user} tenant={tenant} onLogout={onLogout} currentModule="dashboard">
