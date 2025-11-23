@@ -845,6 +845,9 @@ backend:
       - working: true
         agent: "testing"
         comment: "✅ ENDPOINT NOW WORKING - POST /api/notifications/send-system-alert successfully accepts SystemAlertRequest model. Tested with type, title, message, priority, target_roles fields. All test cases (maintenance, system, emergency alerts) working correctly. Returns proper response with message, notifications_sent, target_roles fields. SystemAlertRequest model validation fixed."
+      - working: true
+        agent: "testing"
+        comment: "✅ FINAL SUCCESS TEST CONFIRMED - POST /api/notifications/send-system-alert working perfectly with SystemAlertRequest model. Test data: {type: 'test', title: 'Test Alert', message: 'This is a test system alert', priority: 'high', target_roles: ['admin']}. Response: 'Sistem uyarısı gönderildi', sent=1. SystemAlertRequest model fully functional."
 
   - task: "Dashboard - Employee Performance Endpoint"
     implemented: true
