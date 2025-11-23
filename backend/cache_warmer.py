@@ -132,7 +132,7 @@ class CacheWarmer:
             cache_key = f"dashboard:{tenant_id}"
             self.cache[cache_key] = {
                 'data': dashboard_data,
-                'expires_at': datetime.utcnow() + timedelta(seconds=60)
+                'expires_at': datetime.utcnow() + timedelta(seconds=20)  # Aggressive refresh
             }
             print(f"  ✅ Dashboard cache warmed")
         except Exception as e:
