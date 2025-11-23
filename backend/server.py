@@ -3718,7 +3718,7 @@ async def update_invoice(invoice_id: str, updates: Dict[str, Any], current_user:
     return invoice_doc
 
 @api_router.get("/invoices/stats")
-@cached(ttl=600, key_prefix="invoices_stats")  # Cache for 10 min
+@cached(ttl=120, key_prefix="invoices_stats")  # Cache for 2 min - faster refresh
 async def get_invoice_stats(current_user: User = Depends(get_current_user)):
     invoices = await db.invoices.find({'tenant_id': current_user.tenant_id}, {'_id': 0}).to_list(1000)
     total_revenue = sum(inv['total'] for inv in invoices if inv['status'] == 'paid')
