@@ -10786,6 +10786,7 @@ async def get_balance_sheet(current_user: User = Depends(get_current_user)):
 
 
 @api_router.get("/accounting/dashboard")
+@cached(ttl=600, key_prefix="accounting_dashboard")  # Cache for 10 minutes
 async def get_accounting_dashboard(
     credentials: HTTPAuthorizationCredentials = Depends(security)
 ):
