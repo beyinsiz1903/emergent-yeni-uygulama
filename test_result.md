@@ -776,7 +776,7 @@ backend:
 
   - task: "Notification System - Update Preferences"
     implemented: true
-    working: false
+    working: true
     file: "/app/backend/server.py"
     stuck_count: 1
     priority: "high"
@@ -788,6 +788,9 @@ backend:
       - working: false
         agent: "testing"
         comment: "❌ ENDPOINT FAILING - PUT /api/notifications/preferences returns HTTP 200 but missing 'updated_preference' field in response. Endpoint processes updates but response structure incomplete. All notification types (booking_updates, maintenance_alerts, guest_requests) have same issue."
+      - working: true
+        agent: "testing"
+        comment: "✅ ENDPOINT NOW WORKING - PUT /api/notifications/preferences successfully returns updated_preference field in response. Tested with approval_request, booking_updates, maintenance_alerts notification types. All test cases working correctly with proper response structure including message and updated_preference fields. Preference updates processed and returned correctly."
 
   - task: "Notification System - Get Notifications List"
     implemented: true
