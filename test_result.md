@@ -286,7 +286,7 @@ user_problem_statement: |
 
   - task: "Guest Profile - Complete Profile Endpoint"
     implemented: true
-    working: false
+    working: true
     file: "/app/backend/server.py"
     stuck_count: 1
     priority: "high"
@@ -298,6 +298,9 @@ user_problem_statement: |
       - working: false
         agent: "testing"
         comment: "❌ ENDPOINT FAILING - GET /api/guests/{guest_id}/profile-complete returns HTTP 500 internal server error. Server-side error in endpoint implementation. Endpoint exists but has runtime error that needs debugging. Non-existent guest validation works correctly (404 error)."
+      - working: true
+        agent: "testing"
+        comment: "✅ BUG FIX SUCCESSFUL - GET /api/guests/{guest_id}/profile-complete now working after fixing ObjectId serialization issue. Fixed by removing '_id' fields from MongoDB documents before JSON serialization. Endpoint returns HTTP 200 with proper response structure: guest_id, guest, stay_history, total_stays, preferences, tags, vip_status, blacklist_status. The 500 error has been completely resolved."
 
   - task: "Guest Profile - Preferences Management"
     implemented: true
