@@ -72,10 +72,10 @@ const AuthPage = ({ onLogin }) => {
       const response = await axios.post('/auth/login', guestLoginData);
       toast.success('Welcome back!');
       onLogin(response.data.access_token, response.data.user, response.data.tenant);
-      // Force navigation after successful login
+      // Force full page reload to ensure state is updated
       setTimeout(() => {
-        navigate('/guest-portal');
-      }, 100);
+        window.location.href = '/guest-portal';
+      }, 500);
     } catch (error) {
       toast.error(error.response?.data?.detail || 'Login failed');
     } finally {
