@@ -93,10 +93,10 @@ const LandingPage = () => {
   ];
 
   const stats = [
-    { value: "99.2%", label: "Performans İyileştirmesi" },
-    { value: "<10ms", label: "Ortalama Response Süresi" },
-    { value: "300+", label: "API Endpoint" },
-    { value: "24/7", label: "Destek" }
+    { value: "500+", label: "Aktif Otel" },
+    { value: "50K+", label: "Aylık Rezervasyon" },
+    { value: "%98", label: "Müşteri Memnuniyeti" },
+    { value: "24/7", label: "Canlı Destek" }
   ];
 
   const pricingPlans = [
