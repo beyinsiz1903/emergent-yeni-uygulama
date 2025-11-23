@@ -11,7 +11,7 @@ import time
 from datetime import datetime
 
 # Configuration
-BACKEND_URL = "https://rapid-checkin-sys.preview.emergentagent.com/api"
+BACKEND_URL = "https://cache-boost-2.preview.emergentagent.com/api"
 
 class SimpleMonitoringTester:
     def __init__(self):
