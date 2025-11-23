@@ -323,8 +323,28 @@ async def get_metrics():
 
 @monitoring_router.get("/system")
 async def get_system_metrics():
-    """Get detailed system metrics"""
-    return SystemMonitor.get_system_info()
+    """Get detailed system metrics - ULTRA FAST with Redis cache"""
+    # Try Redis cache first
+    try:
+        from redis_cache import redis_cache
+        if redis_cache:
+            cached = redis_cache.get("monitoring:system")
+            if cached:
+                return cached
+    except:
+        pass
+    
+    result = SystemMonitor.get_system_info()
+    
+    # Cache for 3 seconds
+    try:
+        from redis_cache import redis_cache
+        if redis_cache:
+            redis_cache.set("monitoring:system", result, ttl=3)
+    except:
+        pass
+    
+    return result
 
 
 @monitoring_router.get("/database")
