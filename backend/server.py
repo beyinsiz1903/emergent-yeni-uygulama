@@ -2388,7 +2388,6 @@ async def create_room(room_data: RoomCreate, current_user: User = Depends(get_cu
     return room
 
 @api_router.get("/pms/rooms", response_model=List[Room])
-@cached(ttl=15, key_prefix="pms_rooms")  # Ultra-short cache for instant updates
 async def get_rooms(current_user: User = Depends(get_current_user)):
     # Check pre-warmed cache first
     from cache_warmer import cache_warmer
