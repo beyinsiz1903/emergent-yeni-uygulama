@@ -204,8 +204,7 @@ function App() {
             </Routes>
           </BrowserRouter>
         </div>
-        {/* ReactQueryDevtools disabled for production */}
-        {process.env.NODE_ENV === 'development' && <ReactQueryDevtools initialIsOpen={false} />}
+        {/* ReactQueryDevtools removed for production */}
       </QueryClientProvider>
     );
   }
