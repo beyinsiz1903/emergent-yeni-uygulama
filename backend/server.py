@@ -3692,6 +3692,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Add GZip compression for responses >1KB (significant speed boost for large JSON responses)
+app.add_middleware(GZipMiddleware, minimum_size=1000)
+
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
 # ============= FRONT DESK OPERATIONS =============
