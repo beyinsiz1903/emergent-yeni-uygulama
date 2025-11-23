@@ -5049,6 +5049,7 @@ async def get_gm_forecast_summary(current_user: User = Depends(get_current_user)
 # ==================== DEPARTMENT-SPECIFIC ENDPOINTS ====================
 
 @api_router.get("/department/front-office/dashboard")
+@cached(ttl=180, key_prefix="front_office_dashboard")  # Cache for 3 minutes
 async def get_front_office_dashboard(current_user: User = Depends(get_current_user)):
     """Front Office Manager Dashboard with overbooking alerts"""
     today = datetime.now(timezone.utc)
