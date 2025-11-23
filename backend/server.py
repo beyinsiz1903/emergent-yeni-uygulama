@@ -3345,16 +3345,16 @@ async def create_booking(booking_data: BookingCreate, current_user: User = Depen
     return booking
 
 @api_router.get("/pms/bookings", response_model=List[Booking])
-@cached(ttl=180, key_prefix="pms_bookings")  # Cache for 3 minutes
+@cached(ttl=30, key_prefix="pms_bookings")  # Cache for 30 sec - ultra fresh
 async def get_bookings(
-    limit: int = 100,
+    limit: int = 50,  # Reduced default limit for speed
     offset: int = 0,
     start_date: Optional[str] = None,
     end_date: Optional[str] = None,
     status: Optional[str] = None,
     credentials: HTTPAuthorizationCredentials = Depends(security)
 ):
-    """Get bookings with pagination and filtering - OPTIMIZED"""
+    """Get bookings with pagination and filtering - ULTRA OPTIMIZED"""
     current_user = await get_current_user(credentials)
     
     # Build query
@@ -3369,9 +3369,9 @@ async def get_bookings(
             date_filter['$lte'] = end_date
         query['check_in'] = date_filter
     else:
-        # Default: last 7 days to next 7 days (for performance)
+        # Default: last 3 days to next 7 days (for performance)
         today = datetime.now(timezone.utc)
-        start_default = (today - timedelta(days=7)).isoformat()
+        start_default = (today - timedelta(days=3)).isoformat()
         end_default = (today + timedelta(days=7)).isoformat()
         query['check_in'] = {'$gte': start_default, '$lte': end_default}
     
@@ -3379,8 +3379,18 @@ async def get_bookings(
     if status:
         query['status'] = status
     
+    # Essential fields projection for ultra-fast response
+    projection = {
+        '_id': 0,
+        'id': 1, 'guest_id': 1, 'room_id': 1,
+        'check_in': 1, 'check_out': 1, 'status': 1,
+        'total_amount': 1, 'guests_count': 1,
+        'rate_type': 1, 'market_segment': 1,
+        'booking_source': 1, 'tenant_id': 1
+    }
+    
     # Get bookings with pagination
-    bookings_raw = await db.bookings.find(query, {'_id': 0}).skip(offset).limit(limit).to_list(limit)
+    bookings_raw = await db.bookings.find(query, projection).skip(offset).limit(limit).to_list(limit)
     
     # Fix enum mismatches
     bookings = []
