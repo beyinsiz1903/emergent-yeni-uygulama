@@ -537,15 +537,15 @@ class FinalSuccessTest:
                 if response.status == 200:
                     data = await response.json()
                     
-                    # Check required fields
-                    required_fields = ["cpu", "memory", "disk"]
+                    # Check for actual structure: cpu_usage, memory, disk
+                    required_fields = ["cpu_usage", "memory", "disk"]
                     missing_fields = [field for field in required_fields if field not in data]
                     
                     if not missing_fields:
                         print(f"  ✅ PASSED - System metrics working")
-                        cpu = data.get('cpu', {})
+                        cpu_usage = data.get('cpu_usage', 0)
                         memory = data.get('memory', {})
-                        print(f"     CPU: {cpu.get('usage_percent', 0):.1f}%, Memory: {memory.get('usage_percent', 0):.1f}%")
+                        print(f"     CPU: {cpu_usage:.1f}%, Memory: {memory.get('percent', 0):.1f}%")
                         self.test_results.append({"endpoint": "GET /api/monitoring/system", "status": "PASSED", "details": "System metrics working"})
                         return True
                     else:
