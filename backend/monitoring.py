@@ -325,7 +325,7 @@ async def get_database_metrics():
             'timestamp': datetime.now(timezone.utc).isoformat()
         }
         
-        await client.close()
+        client.close()
         
         return metrics
         
