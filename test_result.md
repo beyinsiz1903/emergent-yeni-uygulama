@@ -471,6 +471,141 @@ user_problem_statement: |
   24. POS Improvements - Detailed F&B charge entry, Menu items, Order tracking
 
 backend:
+  - task: "Monitoring Health Check Endpoint"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "GET /api/monitoring/health - Health check endpoint with system status"
+      - working: true
+        agent: "testing"
+        comment: "✅ ENDPOINT WORKING - GET /api/monitoring/health returns HTTP 200 with comprehensive health data. Response includes status:'healthy', database health, cache health (Redis connected with 1 client), system metrics (CPU: 1.9%, Memory: 38.1%, Disk: 15.5%), and detailed system info. Response time: 1060ms. All components healthy."
+
+  - task: "Monitoring System Metrics Endpoint"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "GET /api/monitoring/system - System metrics endpoint with CPU, memory, disk, network stats"
+      - working: true
+        agent: "testing"
+        comment: "✅ ENDPOINT WORKING - GET /api/monitoring/system returns HTTP 200 with detailed system metrics. CPU usage: 5.3%, Memory: 31.3GB total/19.38GB available (38.1% used), Disk: 106.99GB total/90.35GB free (15.5% used), Network stats included. Response time: 1012ms. All metrics within normal ranges."
+
+  - task: "Monitoring Database Metrics Endpoint"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "GET /api/monitoring/database - Database connection and collection metrics"
+      - working: true
+        agent: "testing"
+        comment: "✅ ENDPOINT WORKING - GET /api/monitoring/database returns HTTP 200 with connection pool stats. Current connections: 25, Available: 794, Total pool: 819 (exceeds target of 200). Network stats: 128KB in, 364KB out, 562 requests. Collections monitored: 9 (bookings, rooms, guests, folios, etc.). Response time: 55ms. Connection pool optimized and working well."
+
+  - task: "Monitoring Alerts Endpoint"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "GET /api/monitoring/alerts - System alerts and warnings endpoint"
+      - working: true
+        agent: "testing"
+        comment: "✅ ENDPOINT WORKING - GET /api/monitoring/alerts returns HTTP 200 with alerts array. Currently 0 alerts (system healthy). Response includes count and timestamp. Response time: 1050ms. No critical issues detected."
+
+  - task: "Monitoring Metrics Endpoint"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "GET /api/monitoring/metrics - Performance metrics and statistics"
+      - working: true
+        agent: "testing"
+        comment: "✅ ENDPOINT WORKING - GET /api/monitoring/metrics returns HTTP 200 with metrics object. Currently empty metrics (system baseline). Response time: 12ms. Fastest response among monitoring endpoints."
+
+  - task: "Dashboard Performance Optimization"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Dashboard endpoints optimized for performance: employee-performance, guest-satisfaction-trends, ota-cancellation-rate"
+      - working: true
+        agent: "testing"
+        comment: "✅ PERFORMANCE EXCELLENT - All dashboard endpoints performing under 10ms: /dashboard/employee-performance (9.5ms), /dashboard/guest-satisfaction-trends (9.8ms), /dashboard/ota-cancellation-rate (7.0ms). All well under 500ms target. Performance optimization successful."
+
+  - task: "Booking List Pagination Performance"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Booking list with pagination optimization - limit parameters for performance"
+      - working: true
+        agent: "testing"
+        comment: "✅ PAGINATION WORKING - Booking list performance excellent with pagination: limit=10 (49.7ms), limit=50 (8.0ms), limit=100 (7.4ms). All responses under 50ms, well under 500ms target. Pagination optimization successful."
+
+  - task: "MongoDB Connection Pool Optimization"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Connection pool optimized: maxPoolSize=200, minPoolSize=20 for high concurrency"
+      - working: true
+        agent: "testing"
+        comment: "✅ CONNECTION POOL EXCELLENT - Stress test with 20 concurrent requests: 100% success rate (20/20), avg response time 51.2ms, max 80.3ms, total time 82.2ms. Pool size: 819 connections (current: 25, available: 794). Handling concurrent load excellently."
+
+  - task: "Redis Cache Implementation"
+    implemented: true
+    working: false
+    file: "/app/backend/server.py"
+    stuck_count: 1
+    priority: "medium"
+    needs_retesting: false
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Redis cache implemented for performance optimization"
+      - working: false
+        agent: "testing"
+        comment: "⚠️ CACHE NOT OPTIMIZED - Redis is connected (1 client, 984KB memory) but cache performance not showing improvements. Cache tests show no significant performance benefit: /pms/rooms (-8.5%), /pms/guests (-29.4%), /pms/bookings (9.6%). Cache success rate: 0/3. Cache layer may need configuration or implementation review."
+
   - task: "Approval System - Create Approval Request"
     implemented: true
     working: true
