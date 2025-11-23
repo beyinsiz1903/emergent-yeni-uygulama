@@ -4839,6 +4839,7 @@ async def export_daily_flash_excel(date_str: Optional[str] = None, current_user:
 
 
 @api_router.get("/dashboard/role-based")
+@cached(ttl=300, key_prefix="dashboard_role_based")  # Cache for 5 minutes
 async def get_role_based_dashboard(current_user: User = Depends(get_current_user)):
     """Role-based dashboard data - GM, Owner, Front Desk, Housekeeping"""
     today = datetime.now(timezone.utc)
