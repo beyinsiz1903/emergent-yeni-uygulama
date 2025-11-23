@@ -40401,11 +40401,7 @@ async def mark_notification_read(
 # 5. POST /api/notifications/send-system-alert - Send system alert (internal use)
 @api_router.post("/notifications/send-system-alert")
 async def send_system_alert(
-    type: str,
-    title: str,
-    message: str,
-    priority: str = "normal",
-    target_roles: Optional[List[str]] = None,
+    request: SystemAlertRequest,
     credentials: HTTPAuthorizationCredentials = Depends(security)
 ):
     """
@@ -40419,8 +40415,8 @@ async def send_system_alert(
     
     # Get users with target roles
     query = {'tenant_id': current_user.tenant_id}
-    if target_roles:
-        query['role'] = {'$in': target_roles}
+    if request.target_roles:
+        query['role'] = {'$in': request.target_roles}
     
     users = await db.users.find(query).to_list(1000)
     
@@ -40431,10 +40427,10 @@ async def send_system_alert(
             'id': str(uuid.uuid4()),
             'tenant_id': current_user.tenant_id,
             'user_id': target_user['id'],
-            'type': type,
-            'title': title,
-            'message': message,
-            'priority': priority,
+            'type': request.type,
+            'title': request.title,
+            'message': request.message,
+            'priority': request.priority,
             'read': False,
             'created_at': datetime.now(timezone.utc).isoformat()
         }
@@ -40444,7 +40440,7 @@ async def send_system_alert(
     return {
         'message': 'Sistem uyarısı gönderildi',
         'notifications_sent': notifications_created,
-        'target_roles': target_roles
+        'target_roles': request.target_roles
     }
 
 
