@@ -933,6 +933,9 @@ backend:
       - working: true
         agent: "testing"
         comment: "🎉 PERFORMANCE OPTIMIZATION EXCELLENT - 100% SUCCESS RATE (11/11 tests passed). PAGINATION PERFORMANCE: All 6 tests <100ms target (avg 8.1-11.6ms). DATE RANGE PERFORMANCE: All 5 tests <200ms target (avg 8.8-11.1ms, even 3-year dataset: 8.9ms). CONCURRENT LOAD: 100% success rate with 10-20 concurrent requests (avg 22.1-25.0ms). INDEX EFFECTIVENESS: All 3 compound indexes working perfectly (avg 8.0-8.6ms). FILTER PERFORMANCE: All filters <10ms. System ready for 550-room property with 3 years of booking data. Outstanding performance across all metrics."
+      - working: false
+        agent: "testing"
+        comment: "🏨 HOTEL PMS FRONTEND PERFORMANCE TESTING COMPLETED - CRITICAL ISSUE FOUND: ❌ RESERVATION CALENDAR BROKEN - JavaScript component error prevents calendar from rendering. React error: 'Cannot access loadCalendarData before initialization'. No API calls executed, calendar UI completely non-functional. ✅ PMS MODULE WORKING PERFECTLY - Load time 1.01s, all optimizations implemented: rooms pagination (limit=100), bookings pagination (limit=200), 7-day date filtering, 15s timeout. 26 API requests optimized correctly. PERFORMANCE TARGETS: PMS <2s ✅ ACHIEVED (1.01s), Calendar <3s ❌ FAILED (component broken). OPTIMIZATION STATUS: 4/6 (66.7%) working. BUSINESS IMPACT: HIGH - Calendar timeline view unavailable, but PMS module provides full booking functionality as alternative."
 
   - task: "MongoDB Indexes Performance Verification"
     implemented: true
