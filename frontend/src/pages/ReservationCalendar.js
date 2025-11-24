@@ -118,18 +118,9 @@ const ReservationCalendar = ({ user, tenant, onLogout }) => {
   // Conflicts state
   const [conflicts, setConflicts] = useState([]);
 
-  // Memoize loadCalendarData to prevent unnecessary re-renders
-  const loadCalendarDataMemo = useCallback(loadCalendarData, [
-    currentDate, 
-    daysToShow, 
-    visibleRoomRange.start, 
-    showConflictSolutions, 
-    showEnterprisePanel
-  ]);
-
   useEffect(() => {
-    loadCalendarDataMemo();
-  }, [loadCalendarDataMemo]);
+    loadCalendarData();
+  }, [currentDate, daysToShow, visibleRoomRange.start, showConflictSolutions, showEnterprisePanel]);
 
   // Real-time updates - Poll every 60 seconds for new bookings (optimized for performance)
   useEffect(() => {
