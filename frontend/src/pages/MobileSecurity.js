@@ -150,6 +150,15 @@ const MobileSecurity = ({ user }) => {
             <Button
               variant="ghost"
               size="sm"
+              onClick={() => navigate('/')}
+              className="text-white hover:bg-white/20 p-2"
+              title="Ana Sayfa"
+            >
+              <Home className="w-5 h-5" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
               onClick={handleRefresh}
               disabled={refreshing}
               className="text-white hover:bg-white/20 p-2"
