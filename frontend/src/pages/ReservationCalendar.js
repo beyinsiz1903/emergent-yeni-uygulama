@@ -156,7 +156,7 @@ const ReservationCalendar = ({ user, tenant, onLogout }) => {
   }, [currentDate, daysToShow, bookings, showAIPanel, showDeluxePanel, showConflictSolutions]);
 
 
-  const loadCalendarData = async () => {
+  const loadCalendarData = useCallback(async () => {
     setLoading(true);
     try {
       // Calculate date range for calendar view
@@ -202,7 +202,7 @@ const ReservationCalendar = ({ user, tenant, onLogout }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [currentDate, daysToShow, visibleRoomRange.start, showConflictSolutions, showEnterprisePanel]);
 
 
   const loadHistoricalTrends = async () => {
