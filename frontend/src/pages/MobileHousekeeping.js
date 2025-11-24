@@ -985,11 +985,11 @@ const MobileHousekeeping = ({ user }) => {
                         Bulan: {item.found_by} • {new Date(item.found_date).toLocaleDateString('tr-TR')}
                       </p>
                     </div>
-                    <Badge className={{
-                      'unclaimed': 'bg-orange-500',
-                      'claimed': 'bg-green-500',
-                      'disposed': 'bg-gray-500'
-                    }[item.status]}>
+                    <Badge className={
+                      item.status === 'unclaimed' ? 'bg-orange-500' :
+                      item.status === 'claimed' ? 'bg-green-500' :
+                      item.status === 'disposed' ? 'bg-gray-500' : 'bg-gray-500'
+                    }>
                       {item.status}
                     </Badge>
                   </div>
