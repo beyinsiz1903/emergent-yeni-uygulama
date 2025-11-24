@@ -17,7 +17,7 @@ import {
   Database,
   RefreshCw,
   Wifi,
-  WifiOff
+  WifiOff,
   Home
 } from 'lucide-react';
 
