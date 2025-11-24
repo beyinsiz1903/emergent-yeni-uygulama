@@ -9584,15 +9584,10 @@ metadata:
 
 test_plan:
   current_focus:
-    - "MongoDB Performance Indexes"
-    - "Rooms Endpoint Pagination"
-    - "ReservationCalendar Optimizations"
-    - "PMSModule Optimizations"
-  performance_targets:
-    - "Calendar initial load: <2 seconds"
-    - "Bookings query: <100ms"
-    - "Rooms query: <100ms"
-    - "Support 550 rooms without performance degradation"
+    - "Landing Page Visual Enhancement - COMPLETED ✅"
+  stuck_tasks: []
+  test_all: false
+  test_priority: "high_first"
     - "Support 3 years of booking data"
   test_priority: "high_first"
 
