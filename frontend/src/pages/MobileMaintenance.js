@@ -32,7 +32,7 @@ import {
   Plus,
   Minus,
   QrCode,
-  Activity
+  Activity,
   Home
 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
