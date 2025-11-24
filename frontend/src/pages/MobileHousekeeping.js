@@ -404,7 +404,7 @@ const MobileHousekeeping = ({ user }) => {
               className="text-white hover:bg-white/20 p-2"
             >
               <RefreshCw className={`w-5 h-5 ${refreshing ? 'animate-spin' : ''}`} />
-          </Button>
+            </Button>
         </div>
       </div>
 
