@@ -8,7 +8,7 @@ import json
 from datetime import datetime, timedelta
 import random
 
-BASE_URL = "https://syroce-hub.preview.emergentagent.com/api"
+BASE_URL = "https://user-auth-flow-14.preview.emergentagent.com/api"
 TOKEN = None
 
 def register_demo_hotel():

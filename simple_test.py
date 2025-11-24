@@ -9,7 +9,7 @@ import json
 from datetime import datetime, timezone
 
 # Use external URL as configured
-BACKEND_URL = "https://syroce-hub.preview.emergentagent.com/api"
+BACKEND_URL = "https://user-auth-flow-14.preview.emergentagent.com/api"
 
 async def test_backend():
     async with aiohttp.ClientSession() as session:
