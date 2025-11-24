@@ -10404,22 +10404,24 @@ logger = logging.getLogger(__name__)
 async def startup_db_seed():
     """Automatically seed database on startup if empty"""
     try:
-        # Check if users collection is empty
-        user_count = await db.users.count_documents({})
-        if user_count == 0:
-            print("🌱 Database is empty, starting automatic seeding...")
+        # Check if demo user exists
+        demo_user = await db.users.find_one({"email": "demo@hotel.com"})
+        if not demo_user:
+            print("🌱 Demo user not found, starting automatic seeding...")
             import subprocess
             result = subprocess.run(
-                ['python3', '/app/backend/seed_data.py'],
+                ['python3', '/app/backend/seed_demo_data.py'],
                 capture_output=True,
-                text=True
+                text=True,
+                timeout=120
             )
             if result.returncode == 0:
                 print(result.stdout)
+                print("✅ Demo data seeded successfully!")
             else:
                 print(f"⚠️ Seeding failed: {result.stderr}")
         else:
-            print(f"✓ Database already contains {user_count} users, skipping seed")
+            print(f"✓ Demo user exists (demo@hotel.com), skipping seed")
     except Exception as e:
         print(f"⚠️ Startup seeding error: {str(e)}")
     
