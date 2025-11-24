@@ -249,6 +249,145 @@ const LandingPage = () => {
         </div>
       </section>
 
+      {/* Dashboard Preview Section */}
+      <section className="py-20 bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid md:grid-cols-2 gap-12 items-center">
+            <div>
+              <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-6">
+                Güçlü Dashboard ile Her Şey Kontrolünüzde
+              </h2>
+              <p className="text-xl text-gray-600 mb-8">
+                Gerçek zamanlı veriler, detaylı analizler ve özelleştirilebilir raporlarla otel performansınızı her an takip edin
+              </p>
+              <ul className="space-y-4">
+                <li className="flex items-start">
+                  <CheckCircle className="w-6 h-6 text-green-500 mr-3 flex-shrink-0 mt-0.5" />
+                  <span className="text-gray-700">Gerçek zamanlı doluluk oranları ve gelir metrikleri</span>
+                </li>
+                <li className="flex items-start">
+                  <CheckCircle className="w-6 h-6 text-green-500 mr-3 flex-shrink-0 mt-0.5" />
+                  <span className="text-gray-700">AI destekli tahminler ve öneriler</span>
+                </li>
+                <li className="flex items-start">
+                  <CheckCircle className="w-6 h-6 text-green-500 mr-3 flex-shrink-0 mt-0.5" />
+                  <span className="text-gray-700">Özelleştirilebilir widget'lar ve raporlar</span>
+                </li>
+              </ul>
+            </div>
+            <div className="relative">
+              <img 
+                src="https://images.unsplash.com/photo-1576272531110-2a342fe22342?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NDk1Nzh8MHwxfHNlYXJjaHwyfHxkYXNoYm9hcmQlMjBzb2Z0d2FyZXxlbnwwfHx8Ymx1ZXwxNzYzOTc0NDQwfDA&ixlib=rb-4.1.0&q=85"
+                alt="Dashboard Preview"
+                className="rounded-2xl shadow-2xl"
+              />
+              <div className="absolute -bottom-6 -left-6 bg-blue-600 text-white p-6 rounded-xl shadow-xl">
+                <div className="text-3xl font-bold">%98</div>
+                <div className="text-sm">Müşteri Memnuniyeti</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Mobile App Section */}
+      <section className="py-20 bg-gradient-to-br from-slate-50 to-slate-100">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid md:grid-cols-2 gap-12 items-center">
+            <div className="order-2 md:order-1 relative">
+              <img 
+                src="https://images.unsplash.com/photo-1551721434-8b94ddff0e6d?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2NzB8MHwxfHNlYXJjaHwyfHxtb2JpbGUlMjBhcHB8ZW58MHx8fGJsdWV8MTc2Mzk3NDQ1Nnww&ixlib=rb-4.1.0&q=85"
+                alt="Mobile App"
+                className="rounded-2xl shadow-2xl"
+              />
+              <div className="absolute -top-6 -right-6 bg-green-500 text-white p-6 rounded-xl shadow-xl">
+                <Smartphone className="w-8 h-8 mb-2" />
+                <div className="text-sm font-semibold">7 Departman</div>
+                <div className="text-xs">Mobil Uygulama</div>
+              </div>
+            </div>
+            <div className="order-1 md:order-2">
+              <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-6">
+                Mobil ile Her Yerden Yönetim
+              </h2>
+              <p className="text-xl text-gray-600 mb-8">
+                GM, Ön Büro, Kat Hizmetleri, F&B, Teknik Servis, Finans ve Güvenlik için özel mobil uygulamalar
+              </p>
+              <div className="space-y-6">
+                <div className="flex items-start">
+                  <div className="bg-blue-100 p-3 rounded-lg mr-4">
+                    <Users className="w-6 h-6 text-blue-600" />
+                  </div>
+                  <div>
+                    <h4 className="font-semibold text-gray-900 mb-1">Kat Hizmetleri</h4>
+                    <p className="text-gray-600">Oda durumları, temizlik görevleri ve bulunmuş eşya takibi</p>
+                  </div>
+                </div>
+                <div className="flex items-start">
+                  <div className="bg-green-100 p-3 rounded-lg mr-4">
+                    <Hotel className="w-6 h-6 text-green-600" />
+                  </div>
+                  <div>
+                    <h4 className="font-semibold text-gray-900 mb-1">Ön Büro</h4>
+                    <p className="text-gray-600">Check-in/out, rezervasyonlar ve misafir yönetimi</p>
+                  </div>
+                </div>
+                <div className="flex items-start">
+                  <div className="bg-purple-100 p-3 rounded-lg mr-4">
+                    <BarChart3 className="w-6 h-6 text-purple-600" />
+                  </div>
+                  <div>
+                    <h4 className="font-semibold text-gray-900 mb-1">GM Dashboard</h4>
+                    <p className="text-gray-600">Günlük özet, KPI'lar ve kritik metrikler</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Hotel Professional Image Section */}
+      <section className="py-20 bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid md:grid-cols-2 gap-12 items-center">
+            <div>
+              <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-6">
+                Profesyonel Ekipler İçin Tasarlandı
+              </h2>
+              <p className="text-xl text-gray-600 mb-8">
+                Otel personelinizin işini kolaylaştıran, hata oranını azaltan ve misafir memnuniyetini artıran araçlar
+              </p>
+              <div className="grid grid-cols-2 gap-6">
+                <div className="text-center p-4 bg-blue-50 rounded-xl">
+                  <div className="text-3xl font-bold text-blue-600 mb-2">%45</div>
+                  <div className="text-sm text-gray-600">Zaman Tasarrufu</div>
+                </div>
+                <div className="text-center p-4 bg-green-50 rounded-xl">
+                  <div className="text-3xl font-bold text-green-600 mb-2">%30</div>
+                  <div className="text-sm text-gray-600">Maliyet Azaltma</div>
+                </div>
+                <div className="text-center p-4 bg-purple-50 rounded-xl">
+                  <div className="text-3xl font-bold text-purple-600 mb-2">%60</div>
+                  <div className="text-sm text-gray-600">Daha Az Hata</div>
+                </div>
+                <div className="text-center p-4 bg-orange-50 rounded-xl">
+                  <div className="text-3xl font-bold text-orange-600 mb-2">24/7</div>
+                  <div className="text-sm text-gray-600">Destek</div>
+                </div>
+              </div>
+            </div>
+            <div className="relative">
+              <img 
+                src="https://images.pexels.com/photos/4090093/pexels-photo-4090093.jpeg"
+                alt="Hotel Staff"
+                className="rounded-2xl shadow-2xl"
+              />
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Key Benefits */}
       <section className="py-20 bg-gradient-to-br from-blue-50 to-indigo-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
