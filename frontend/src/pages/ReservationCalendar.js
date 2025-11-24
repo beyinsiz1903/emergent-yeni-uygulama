@@ -182,7 +182,7 @@ const ReservationCalendar = ({ user, tenant, onLogout }) => {
         axios.get(`/pms/bookings?start_date=${startDate}&end_date=${endDateStr}&limit=500`),
         axios.get('/pms/guests?limit=200').catch(() => ({ data: [] })),
         axios.get('/companies?limit=100').catch(() => ({ data: [] })),
-        axios.get(`/pms/room-blocks?status=active&start_date=${startDate}&end_date=${endDateStr}`).catch(() => ({ data: { blocks: [] } }))
+        axios.get(`/pms/room-blocks?status=active&from_date=${startDate}&to_date=${endDateStr}`).catch(() => ({ data: { blocks: [] } }))
       ]);
 
       setRooms(roomsRes.data || []);
