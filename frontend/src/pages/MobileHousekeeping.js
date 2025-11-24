@@ -969,7 +969,6 @@ const MobileHousekeeping = ({ user }) => {
                   </form>
                 </DialogContent>
               </Dialog>
-            </DialogTitle>
           </DialogHeader>
           <div className="space-y-2">
             {lostFoundItems.map((item) => (
