@@ -122,7 +122,7 @@ const ReservationCalendar = ({ user, tenant, onLogout }) => {
     loadCalendarData();
   }, [currentDate, daysToShow]);
 
-  // Real-time updates - Poll every 30 seconds for new bookings
+  // Real-time updates - Poll every 60 seconds for new bookings (optimized for performance)
   useEffect(() => {
     if (!showAIPanel && !showDeluxePanel && !showConflictSolutions) {
       const interval = setInterval(() => {
@@ -134,7 +134,8 @@ const ReservationCalendar = ({ user, tenant, onLogout }) => {
             endDate.setDate(endDate.getDate() + daysToShow);
             const endDateStr = endDate.toISOString().split('T')[0];
             
-            const bookingsRes = await axios.get(`/bookings?start_date=${startDate}&end_date=${endDateStr}`);
+            // PERFORMANCE: Only fetch bookings for visible date range with limit
+            const bookingsRes = await axios.get(`/pms/bookings?start_date=${startDate}&end_date=${endDateStr}&limit=500`);
             const newBookings = bookingsRes.data || [];
             
             // Only update if there are changes
@@ -148,7 +149,7 @@ const ReservationCalendar = ({ user, tenant, onLogout }) => {
         };
         
         silentRefresh();
-      }, 30000); // 30 seconds
+      }, 60000); // 60 seconds (optimized from 30s for better performance)
       
       return () => clearInterval(interval);
     }
