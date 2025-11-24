@@ -27,7 +27,8 @@ import {
   Download,
   Store,
   ChevronDown,
-  CheckCircle
+  CheckCircle,
+  Home
 } from 'lucide-react';
 
 const MobileFnB = ({ user }) => {
