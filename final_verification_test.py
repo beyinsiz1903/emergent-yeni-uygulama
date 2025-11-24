@@ -55,7 +55,7 @@ from typing import Dict, List, Any, Optional
 import uuid
 
 # Configuration
-BACKEND_URL = "https://optimize-booking.preview.emergentagent.com/api"
+BACKEND_URL = "https://syroce-hub.preview.emergentagent.com/api"
 TEST_EMAIL = "test@test.com"
 TEST_PASSWORD = "test123"
 

@@ -41,7 +41,7 @@ import uuid
 import statistics
 
 # Configuration
-BACKEND_URL = "https://optimize-booking.preview.emergentagent.com/api"
+BACKEND_URL = "https://syroce-hub.preview.emergentagent.com/api"
 TEST_EMAIL = "admin@hotel.com"
 TEST_PASSWORD = "admin123"
 
