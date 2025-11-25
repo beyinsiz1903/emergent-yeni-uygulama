@@ -18,6 +18,15 @@ const AuthPage = ({ onLogin }) => {
   const [loading, setLoading] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   
+  // Registration flow states
+  const [registrationStep, setRegistrationStep] = useState('form'); // 'form', 'verification'
+  const [verificationCode, setVerificationCode] = useState('');
+  
+  // Forgot password states
+  const [forgotPasswordStep, setForgotPasswordStep] = useState('email'); // 'email', 'code', 'newpassword'
+  const [resetCode, setResetCode] = useState('');
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
+  
   // Detect if device is mobile
   useEffect(() => {
     const checkMobile = () => {
