@@ -68,6 +68,12 @@ import CostManagement from "@/pages/CostManagement";
 import FeaturesShowcase from "@/pages/FeaturesShowcase";
 import HousekeepingDashboard from "@/pages/HousekeepingDashboard";
 import POSDashboard from "@/pages/POSDashboard";
+
+// New 5-star hotel features
+const OnlineCheckin = lazy(() => import("@/pages/OnlineCheckin"));
+const FlashReport = lazy(() => import("@/pages/FlashReport"));
+const GroupSales = lazy(() => import("@/pages/GroupSales"));
+
 import { Toaster } from "@/components/ui/sonner";
 
 // Loading component
