@@ -257,6 +257,30 @@ const Dashboard = ({ user, tenant, onLogout }) => {
       path: '/reputation-center',
       color: '#f59e0b',
       badge: 'NEW'
+    },
+    {
+      title: '🏢 Multi-Property',
+      description: 'Çoklu otel yönetimi dashboard',
+      icon: Building,
+      path: '/multi-property',
+      color: '#06b6d4',
+      badge: 'NEW'
+    },
+    {
+      title: '💳 Payment Gateway',
+      description: 'Stripe, PayPal, Crypto ödeme entegrasyonu',
+      icon: CreditCard,
+      path: '/payment-gateway',
+      color: '#10b981',
+      badge: 'NEW'
+    },
+    {
+      title: '🎯 Advanced Loyalty',
+      description: 'Gamification, referral, tier management',
+      icon: Gift,
+      path: '/advanced-loyalty',
+      color: '#f59e0b',
+      badge: 'NEW'
     }
   ], [t, stats]);
 
