@@ -4358,7 +4358,7 @@ async def budget_vs_actual(month: str, current_user: User = Depends(get_current_
 
 @api_router.post("/frontdesk/express-checkin")
 async def express_checkin_qr(qr_data: dict, current_user: User = Depends(get_current_user)):
-    \"\"\"QR code ile express check-in\"\"\"
+    """QR code ile express check-in"""
     booking = await db.bookings.find_one({
         'express_checkin_code': qr_data['qr_code'], 'tenant_id': current_user.tenant_id
     }, {'_id': 0})
