@@ -138,6 +138,65 @@ const VIPManagement = () => {
 
         {/* VIP List */}
         <TabsContent value="vip-list" className="space-y-4">
+          {/* Add VIP Button */}
+          <div className="flex justify-end mb-4">
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button className="bg-purple-600 hover:bg-purple-700">
+                  <UserPlus className="w-4 h-4 mr-2" />
+                  Yeni VIP Ekle
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-2xl">
+                <DialogHeader>
+                  <DialogTitle>VIP Protokol Oluştur</DialogTitle>
+                </DialogHeader>
+                <form className="space-y-4 mt-4" onSubmit={async (e) => {
+                  e.preventDefault();
+                  const formData = new FormData(e.target);
+                  try {
+                    await axios.post('/guests/search-guest-id/vip-protocol', {
+                      vip_tier: formData.get('tier'),
+                      special_handling_notes: formData.get('notes'),
+                      welcome_amenities: formData.get('amenities')?.split(',') || [],
+                      early_checkin_guaranteed: formData.get('early_checkin') === 'on'
+                    });
+                    toast.success('VIP protokol oluşturuldu!');
+                    loadVIPGuests();
+                  } catch (error) {
+                    toast.error('VIP oluşturulamadı');
+                  }
+                }}>
+                  <div>
+                    <Label>Misafir ID veya Email</Label>
+                    <Input name="guest_search" placeholder="Misafir ara..." required />
+                  </div>
+                  <div>
+                    <Label>VIP Tier</Label>
+                    <select name="tier" className="w-full px-3 py-2 border rounded-lg">
+                      <option value="platinum">Platinum</option>
+                      <option value="gold">Gold</option>
+                      <option value="silver">Silver</option>
+                    </select>
+                  </div>
+                  <div>
+                    <Label>Özel Notlar</Label>
+                    <Textarea name="notes" placeholder="Özel talimatlar, tercihler..." rows={3} />
+                  </div>
+                  <div>
+                    <Label>Welcome Amenities (virgülle ayırın)</Label>
+                    <Input name="amenities" placeholder="Champagne, Flowers, Fruit Basket" />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <input type="checkbox" name="early_checkin" id="early_checkin" className="w-4 h-4" />
+                    <Label htmlFor="early_checkin">Erken Check-in Garantisi</Label>
+                  </div>
+                  <Button type="submit" className="w-full">VIP Protokol Oluştur</Button>
+                </form>
+              </DialogContent>
+            </Dialog>
+          </div>
+
           {vipGuests.length === 0 ? (
             <Card>
               <CardContent className="pt-12 pb-12 text-center">
