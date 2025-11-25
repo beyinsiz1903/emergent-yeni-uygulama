@@ -193,6 +193,14 @@ const Dashboard = ({ user, tenant, onLogout }) => {
       path: '/group-sales',
       color: '#ec4899',
       badge: 'NEW'
+    },
+    {
+      title: '👑 VIP Yönetimi',
+      description: 'VIP profiller, özel protokoller ve kutlamalar',
+      icon: Crown,
+      path: '/vip-management',
+      color: '#a855f7',
+      badge: 'NEW'
     }
   ], [t, stats]);
 
