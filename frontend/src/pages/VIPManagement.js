@@ -12,10 +12,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { 
   Crown, Star, Shield, AlertTriangle, Gift, Cake, 
-  Heart, User, Mail, Phone, Calendar, TrendingUp 
+  Heart, User, Mail, Phone, Calendar, TrendingUp, Home 
 } from 'lucide-react';
 
 const VIPManagement = () => {
+  const navigate = useNavigate();
   const [vipGuests, setVipGuests] = useState([]);
   const [upcomingCelebrations, setUpcomingCelebrations] = useState([]);
   const [selectedGuest, setSelectedGuest] = useState(null);
