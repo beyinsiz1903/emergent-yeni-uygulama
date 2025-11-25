@@ -4367,12 +4367,12 @@ async def express_checkin_qr(qr_data: dict, current_user: User = Depends(get_cur
             {'id': booking['id']},
             {'$set': {'status': 'checked_in', 'checked_in_at': datetime.now(timezone.utc).isoformat()}}
         )
-        return {'success': True, 'message': 'Express check-in tamamland\u0131', 'booking': booking}
-    return {'success': False, 'message': 'QR code ge\u00e7ersiz'}
+        return {'success': True, 'message': 'Express check-in tamamlandi', 'booking': booking}
+    return {'success': False, 'message': 'QR code gecersiz'}
 
 @api_router.post("/frontdesk/kiosk-checkin")
 async def kiosk_checkin(checkin_data: dict, current_user: User = Depends(get_current_user)):
-    return {'success': True, 'message': 'Kiosk check-in (entegrasyon haz\u0131r)', 'room_key': 'DIGITAL_KEY_123'}
+    return {'success': True, 'message': 'Kiosk check-in (entegrasyon hazir)', 'room_key': 'DIGITAL_KEY_123'}
 
     return {'amount': amount, 'installments': installments, 'monthly_payment': round(monthly, 2), 'total_amount': round(total, 2)}
 
