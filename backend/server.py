@@ -2361,7 +2361,10 @@ async def verify_email_and_register(data: VerifyCodeRequest):
         raise HTTPException(status_code=400, detail="Geçersiz veya hatalı doğrulama kodu")
     
     # Kod süresi dolmuş mu kontrol et
-    if datetime.now(timezone.utc) > verification['expires_at']:
+    expires_at = verification['expires_at']
+    if not expires_at.tzinfo:
+        expires_at = expires_at.replace(tzinfo=timezone.utc)
+    if datetime.now(timezone.utc) > expires_at:
         await db.verification_codes.delete_one({'_id': verification['_id']})
         raise HTTPException(status_code=400, detail="Doğrulama kodu süresi dolmuş. Lütfen yeni kod isteyin")
     
