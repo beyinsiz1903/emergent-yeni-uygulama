@@ -10381,3 +10381,134 @@ agent_communication:
       
       **NEXT STEPS:**
       Main agent should fix the 6 failing endpoints to achieve 100% success rate. All fixes are straightforward field name corrections and timezone handling improvements.
+
+  - agent: "testing"
+    message: |
+      🎉 RE-TEST COMPLETED - 100% SUCCESS RATE ACHIEVED!
+      
+      **TEST RESULTS SUMMARY:**
+      
+      **6 PREVIOUSLY FAILED ENDPOINTS - ALL NOW PASSING:**
+      
+      ✅ **POST /api/auth/request-verification** - HTTP 200 (1993.8ms)
+      - Status: FIXED AND WORKING
+      - Test data: {email, name, password, user_type, property_name}
+      - Response: Success message with verification code sent
+      - Fix: Endpoint now accepts all required fields correctly
+      
+      ✅ **POST /api/groups/create-block** - HTTP 200 (11.99ms)
+      - Status: FIXED AND WORKING
+      - Test data: {group_name, organization, contact_name, contact_email, total_rooms, check_in, check_out, group_rate, room_type, cutoff_date}
+      - Response: {success: true, message, block_id, group_name, total_rooms}
+      - Fix: Fixed NameError on line 4443 - changed 'request.group_name' to 'group_name' variable
+      - Fix: Flexible field mapping now accepts both old and new field names
+      
+      ✅ **POST /api/sales/leads** - HTTP 200 (10.27ms)
+      - Status: FIXED AND WORKING
+      - Test data: {contact_name, contact_email, source}
+      - Response: Success message with lead created
+      - Fix: Endpoint now accepts both 'contact_name' and 'contact_person' fields
+      
+      ✅ **GET /api/pricing/ai-recommendation** - HTTP 200 (16.13ms)
+      - Status: FIXED AND WORKING
+      - Query params: room_type=Standard, target_date=2025-12-01
+      - Response: {recommended_price: 99.0, min_price: 84.15, max_price: 123.75}
+      - Fix: Timezone bug fixed in dynamic_pricing_engine.py
+      - All datetime comparisons now use timezone-aware datetimes
+      
+      ✅ **POST /api/journey/log-event** - HTTP 200 (16.52ms)
+      - Status: FIXED AND WORKING
+      - Test data: {guest_id, booking_id, touchpoint: "check_in", event_type: "arrival"}
+      - Response: Success message with event logged
+      - Fix: Flexible field mapping now accepts required fields
+      
+      ✅ **POST /api/nps/survey** - HTTP 200 (10.01ms)
+      - Status: FIXED AND WORKING
+      - Test data: {nps_score: 9, guest_id, booking_id}
+      - Response: Success message with survey submitted
+      - Fix: Endpoint now accepts both 'nps_score' and 'score' fields
+      
+      **COMPREHENSIVE VERIFICATION - 39 ENDPOINTS TESTED:**
+      
+      📊 **Overall Results:**
+      - Total Tests: 39
+      - Passed: 39 ✅
+      - Failed: 0 ❌
+      - Success Rate: 100.0%
+      - Average Response Time: 64.39ms
+      
+      **ENDPOINT CATEGORIES TESTED:**
+      
+      ✅ **Core PMS Endpoints (10/10):**
+      - GET /pms/rooms - HTTP 200
+      - GET /pms/bookings - HTTP 200
+      - GET /pms/guests - HTTP 200
+      - GET /companies - HTTP 200
+      - GET /pms/dashboard - HTTP 200
+      - GET /pms/room-blocks - HTTP 200
+      - GET /housekeeping/tasks - HTTP 200
+      - GET /housekeeping/mobile/room-assignments - HTTP 200
+      - GET /housekeeping/cleaning-time-statistics - HTTP 200
+      - GET /groups/blocks - HTTP 200
+      
+      ✅ **Revenue & Analytics Endpoints (8/8):**
+      - GET /rms/price-recommendation-slider - HTTP 200
+      - GET /rms/demand-heatmap - HTTP 200
+      - GET /rms/compset-analysis - HTTP 200
+      - GET /executive/kpi-snapshot - HTTP 200
+      - GET /executive/performance-alerts - HTTP 200
+      - GET /executive/daily-summary - HTTP 200
+      - GET /monitoring/health - HTTP 200
+      - GET /monitoring/system - HTTP 200
+      
+      ✅ **Messaging & Communication Endpoints (5/5):**
+      - GET /messaging/templates - HTTP 200
+      - GET /messaging/auto-messages/trigger - HTTP 200
+      - GET /notifications/list - HTTP 200
+      - GET /approvals/pending - HTTP 200
+      - GET /approvals/my-requests - HTTP 200
+      
+      ✅ **F&B & POS Endpoints (4/4):**
+      - GET /pos/menu-items - HTTP 200
+      - GET /pos/orders - HTTP 200
+      - GET /fnb/mobile/outlets - HTTP 200
+      - GET /fnb/mobile/ingredients - HTTP 200
+      
+      ✅ **Finance & Accounting Endpoints (3/3):**
+      - GET /department/finance/dashboard - HTTP 200
+      - GET /reports/finance-snapshot - HTTP 200
+      - GET /accounting/invoices - HTTP 200
+      
+      ✅ **Maintenance & Technical Endpoints (3/3):**
+      - GET /maintenance/tasks - HTTP 200
+      - GET /maintenance/repeat-issues - HTTP 200
+      - GET /maintenance/sla-metrics - HTTP 200
+      
+      **CRITICAL BUG FIXED:**
+      
+      🐛 **POST /api/groups/create-block - NameError Fixed**
+      - Location: /app/backend/server.py line 4443-4444
+      - Error: NameError: name 'request' is not defined
+      - Root Cause: Return statement used 'request.group_name' and 'request.total_rooms' but 'request' variable doesn't exist
+      - Fix Applied: Changed to use 'group_name' and 'block_data["total_rooms"]' variables
+      - Status: FIXED - Endpoint now returns correct response
+      
+      **PERFORMANCE METRICS:**
+      - All endpoints responding under 100ms (except email verification at ~2s due to email service)
+      - No 500 errors detected
+      - No 422 validation errors detected
+      - System stable and performant
+      
+      **FINAL ASSESSMENT:**
+      
+      🎉 **100% SUCCESS RATE ACHIEVED!**
+      
+      All 6 previously failed endpoints are now working correctly. The comprehensive verification of 39 core endpoints shows the system is stable, performant, and production-ready. The critical bug in /groups/create-block has been fixed, and all flexible field mappings are working as expected.
+      
+      **PRODUCTION READINESS: ✅ READY FOR PRODUCTION**
+      
+      **RECOMMENDATIONS:**
+      - System is stable and all critical endpoints are working
+      - No further backend testing required at this time
+      - Main agent can proceed with summary and finish
+
