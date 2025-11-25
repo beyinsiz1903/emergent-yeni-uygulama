@@ -525,59 +525,76 @@ const Dashboard = ({ user, tenant, onLogout }) => {
               </div>
             )}
 
-            {/* Modules Grid */}
-            <div>
+            {/* Modules Grid - Categorized */}
+            <div className="space-y-6">
               <h2 className="text-xl md:text-2xl font-bold mb-3" style={{ fontFamily: 'Space Grotesk' }}>{t('dashboard.yourModules')}</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {modules.map((module) => {
-                  const Icon = module.icon;
-                  return (
-                    <Card 
-                      key={module.path} 
-                      className={`card-hover cursor-pointer ${module.badge === 'NEW' ? 'border-2 border-purple-400 shadow-lg' : ''}`}
-                      onClick={() => navigate(module.path)}
-                      data-testid={`module-${module.title.toLowerCase()}`}
-                    >
-                      <CardHeader className="p-4">
-                        <div className="flex items-center space-x-2">
-                          <div 
-                            style={{ 
-                              background: module.color,
-                              padding: '8px',
-                              borderRadius: '8px'
-                            }}
+              
+              {Object.entries(categorizedModules).map(([categoryKey, category]) => (
+                category.modules.length > 0 && (
+                  <div key={categoryKey} className="space-y-3">
+                    <div className="flex items-center space-x-2">
+                      <h3 className={`text-lg font-semibold text-${category.color}-600`}>
+                        {category.title}
+                      </h3>
+                      <span className="text-sm text-gray-500">({category.modules.length})</span>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {category.modules.map((module) => {
+                        const Icon = module.icon;
+                        return (
+                          <Card 
+                            key={module.path} 
+                            className={`card-hover cursor-pointer ${module.badge === 'GAME-CHANGER' ? 'border-2 border-pink-500 shadow-lg' : module.badge === 'AI' ? 'border-2 border-purple-400 shadow-lg' : module.badge === 'NEW' ? 'border-2 border-blue-300 shadow-md' : ''}`}
+                            onClick={() => navigate(module.path)}
+                            data-testid={`module-${module.title.toLowerCase()}`}
                           >
-                            <Icon className="w-5 h-5 text-white" />
-                          </div>
-                          <div className="flex-1">
-                            <div className="flex items-center justify-between">
-                              <CardTitle className="text-base">{module.title}</CardTitle>
-                              {module.badge && (
-                                <span className="px-1.5 py-0.5 text-xs font-bold bg-purple-100 text-purple-700 rounded">
-                                  {module.badge}
-                                </span>
-                              )}
-                            </div>
-                            <CardDescription className="text-xs">{module.description}</CardDescription>
-                          </div>
-                        </div>
-                      </CardHeader>
-                      {module.stats && (
-                        <CardContent>
-                          <div className="grid grid-cols-2 gap-2 text-sm">
-                            {Object.entries(module.stats).slice(0, 2).map(([key, value]) => (
-                              <div key={key}>
-                                <p className="text-gray-500 capitalize">{key.replace('_', ' ')}</p>
-                                <p className="font-semibold">{typeof value === 'number' ? value.toFixed(0) : value}</p>
+                            <CardHeader className="p-4">
+                              <div className="flex items-center space-x-2">
+                                <div 
+                                  style={{ 
+                                    background: module.color,
+                                    padding: '8px',
+                                    borderRadius: '8px'
+                                  }}
+                                >
+                                  <Icon className="w-5 h-5 text-white" />
+                                </div>
+                                <div className="flex-1">
+                                  <div className="flex items-center justify-between">
+                                    <CardTitle className="text-base">{module.title}</CardTitle>
+                                    {module.badge && (
+                                      <span className={`px-1.5 py-0.5 text-xs font-bold rounded ${
+                                        module.badge === 'GAME-CHANGER' ? 'bg-pink-100 text-pink-700' :
+                                        module.badge === 'AI' ? 'bg-purple-100 text-purple-700' :
+                                        'bg-blue-100 text-blue-700'
+                                      }`}>
+                                        {module.badge}
+                                      </span>
+                                    )}
+                                  </div>
+                                  <CardDescription className="text-xs">{module.description}</CardDescription>
+                                </div>
                               </div>
-                            ))}
-                          </div>
-                        </CardContent>
-                      )}
-                    </Card>
-                  );
-                })}
-              </div>
+                            </CardHeader>
+                            {module.stats && (
+                              <CardContent>
+                                <div className="grid grid-cols-2 gap-2 text-sm">
+                                  {Object.entries(module.stats).slice(0, 2).map(([key, value]) => (
+                                    <div key={key}>
+                                      <p className="text-gray-500 capitalize">{key.replace('_', ' ')}</p>
+                                      <p className="font-semibold">{typeof value === 'number' ? value.toFixed(0) : value}</p>
+                                    </div>
+                                  ))}
+                                </div>
+                              </CardContent>
+                            )}
+                          </Card>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )
+              ))}
             </div>
           </>
         )}
