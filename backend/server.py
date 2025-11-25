@@ -4311,7 +4311,7 @@ async def create_beo(beo_data: dict, current_user: User = Depends(get_current_us
         'created_at': datetime.now(timezone.utc).isoformat()
     }
     await db.banquet_event_orders.insert_one(beo)
-    return {'success': True, 'beo_id': beo['id'], 'message': 'BEO olu\u015fturuldu'}
+    return {'success': True, 'beo_id': beo['id'], 'message': 'BEO olusturuldu'}
 
 @api_router.get("/fnb/kitchen-display")
 async def get_kitchen_orders(current_user: User = Depends(get_current_user)):
