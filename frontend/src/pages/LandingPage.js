@@ -267,7 +267,7 @@ const LandingPage = () => {
           {/* Features with Icons */}
           <div className="grid md:grid-cols-4 gap-8">
             {[
-              { icon: '⚡', title: 'Ultra Hızlı', desc: '<10ms yanıt süresi' },
+              { icon: '⚡', title: 'Ultra Hızlı', desc: '10ms altı yanıt' },
               { icon: '🔒', title: 'Güvenli', desc: 'Enterprise-grade security' },
               { icon: '📱', title: 'Mobil', desc: '7 departman mobil app' },
               { icon: '🌍', title: 'Global', desc: '8 dil desteği' }
