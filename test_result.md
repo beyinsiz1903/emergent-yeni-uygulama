@@ -743,6 +743,91 @@ user_problem_statement: |
   19. OTA Reservation Details - Special requests/remarks (expandable), Multi-room reservation, Extra charges, Source of booking
   20. Finance Mobile Endpoints - Turkish Finance Mobile Development (Finans Mobil Geliştirmeler)
   21. Hotel PMS Frontend Performance Optimization - 550 Rooms + 3 Years Data
+  22. Email Verification & Password Reset System - New user registration with email verification, Password reset flow
+
+  - task: "Email Verification - Request Verification Code"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "POST /api/auth/request-verification - Send 6-digit verification code via email (mock service), supports hotel and guest user types, 15-minute expiration"
+      - working: true
+        agent: "testing"
+        comment: "✅ ENDPOINT WORKING PERFECTLY - POST /api/auth/request-verification returns HTTP 200 with success message. Verification code generated and printed to console logs. Response includes: {success: true, message, expires_in_minutes: 15}. Code format: 6 digits. Mock email service working correctly, codes visible in /var/log/supervisor/backend.out.log. Tested with hotel user type successfully."
+
+  - task: "Email Verification - Verify Email and Register"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 1
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "POST /api/auth/verify-email - Verify 6-digit code and create user account, returns JWT token, user, and tenant objects"
+      - working: false
+        agent: "testing"
+        comment: "❌ CRITICAL BUG - POST /api/auth/verify-email returns HTTP 500 error. Root cause: TypeError: can't compare offset-naive and offset-aware datetimes. The verification['expires_at'] from MongoDB is timezone-naive but datetime.now(timezone.utc) is timezone-aware. This causes comparison failure at line 2364."
+      - working: true
+        agent: "testing"
+        comment: "✅ BUG FIX SUCCESSFUL - POST /api/auth/verify-email now working after fixing timezone comparison issue. Added timezone handling: if not expires_at.tzinfo: expires_at = expires_at.replace(tzinfo=timezone.utc). Endpoint returns HTTP 200 with complete response: {access_token, token_type, user, tenant}. User object includes: id, email, name, role (admin for hotel). Tenant object includes: id, property_name. Email verification flow fully functional."
+
+  - task: "Password Reset - Request Reset Code"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 1
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "POST /api/auth/forgot-password - Send 6-digit password reset code via email (mock service), 15-minute expiration, returns generic success message for security"
+      - working: false
+        agent: "testing"
+        comment: "❌ ENDPOINT FAILING - POST /api/auth/reset-password returns HTTP 400 error with 'Geçersiz veya kullanılmış sıfırlama kodu'. Same timezone comparison issue as email verification. The reset['expires_at'] from MongoDB is timezone-naive causing comparison failure."
+      - working: true
+        agent: "testing"
+        comment: "✅ BUG FIX SUCCESSFUL - POST /api/auth/forgot-password working perfectly. Returns HTTP 200 with generic success message (prevents email enumeration attacks). Reset code generated and printed to console logs. Response: {success: true, message, expires_in_minutes: 15}. Code format: 6 digits. Mock email service working correctly."
+
+  - task: "Password Reset - Reset Password with Code"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 1
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "POST /api/auth/reset-password - Verify reset code and update password, marks code as used, returns success message"
+      - working: false
+        agent: "testing"
+        comment: "❌ ENDPOINT FAILING - POST /api/auth/reset-password returns HTTP 400 error. Same timezone comparison issue as email verification endpoint."
+      - working: true
+        agent: "testing"
+        comment: "✅ BUG FIX SUCCESSFUL - POST /api/auth/reset-password now working after fixing timezone comparison issue. Added same timezone handling as verification endpoint. Endpoint returns HTTP 200 with success message. Password successfully updated in database. Login with new password verified working. Code marked as used to prevent reuse. Complete password reset flow functional."
+
+  - task: "Email Verification & Password Reset - Error Handling"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Error handling for: already registered email (400), wrong verification code (400), expired code (400), invalid email for reset (200 generic), wrong reset code (400)"
+      - working: true
+        agent: "testing"
+        comment: "✅ ERROR HANDLING PERFECT - All error cases tested successfully: (1) Already registered email correctly rejected with HTTP 400, (2) Wrong verification code correctly rejected with HTTP 400, (3) Invalid email for password reset returns HTTP 200 with generic message (security best practice to prevent email enumeration), (4) Wrong reset code correctly rejected with HTTP 400. All error messages appropriate and secure."
 
 frontend:
   - task: "Landing Page Visual Enhancement"
