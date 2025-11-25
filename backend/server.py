@@ -3777,9 +3777,80 @@ async def control_smart_device(control_data: dict, current_user: User = Depends(
 
 @api_router.post(\"/hr/staff\")\nasync def add_staff_member(staff_data: dict, current_user: User = Depends(get_current_user)):\n    \"\"\"Yeni personel ekle\"\"\"\n    staff = {\n        'id': str(uuid.uuid4()),\n        'tenant_id': current_user.tenant_id,\n        'name': staff_data['name'],\n        'email': staff_data['email'],\n        'phone': staff_data['phone'],\n        'department': staff_data['department'],\n        'position': staff_data['position'],\n        'hire_date': staff_data['hire_date'],\n        'employment_type': staff_data.get('employment_type', 'full_time'),\n        'performance_score': 0.0,\n        'active': True,\n        'created_at': datetime.now(timezone.utc).isoformat()\n    }\n    await db.staff_members.insert_one(staff)\n    return {'success': True, 'staff_id': staff['id']}\n\n@api_router.get(\"/hr/staff\")\nasync def get_staff_list(department: Optional[str] = None, current_user: User = Depends(get_current_user)):\n    \"\"\"Personel listesi\"\"\"\n    query = {'tenant_id': current_user.tenant_id, 'active': True}\n    if department:\n        query['department'] = department\n    staff = await db.staff_members.find(query, {'_id': 0}).to_list(200)\n    return {'staff': staff, 'total': len(staff)}\n\n@api_router.post(\"/hr/shift\")\nasync def create_shift(shift_data: dict, current_user: User = Depends(get_current_user)):\n    \"\"\"Vardiya olu\u015ftur\"\"\"\n    shift = {\n        'id': str(uuid.uuid4()),\n        'tenant_id': current_user.tenant_id,\n        'staff_id': shift_data['staff_id'],\n        'shift_date': shift_data['shift_date'],\n        'shift_type': shift_data['shift_type'],\n        'start_time': shift_data['start_time'],\n        'end_time': shift_data['end_time'],\n        'status': 'scheduled',\n        'created_at': datetime.now(timezone.utc).isoformat()\n    }\n    await db.shift_schedules.insert_one(shift)\n    return {'success': True, 'shift_id': shift['id']}\n\n@api_router.get(\"/hr/performance/{staff_id}\")\nasync def get_staff_performance(staff_id: str, current_user: User = Depends(get_current_user)):\n    \"\"\"Personel performans\u0131\"\"\"\n    reviews = await db.performance_reviews.find({\n        'staff_id': staff_id,\n        'tenant_id': current_user.tenant_id\n    }, {'_id': 0}).sort('reviewed_at', -1).to_list(10)\n    \n    avg_score = sum([r.get('overall_score', 0) for r in reviews]) / len(reviews) if reviews else 0\n    \n    return {\n        'staff_id': staff_id,\n        'recent_reviews': reviews,\n        'avg_performance_score': round(avg_score, 2),\n        'total_reviews': len(reviews)\n    }
 
+    return {
+        'staff_id': staff_id,
+        'recent_reviews': reviews,
+        'avg_performance_score': round(avg_score, 2),
+        'total_reviews': len(reviews)
+    }
+
 # ============= GUEST JOURNEY & NPS =============
 
-@api_router.post(\"/journey/log-event\")\nasync def log_journey_event(event_data: dict, current_user: User = Depends(get_current_user)):\n    \"\"\"M\u00fcsafir yolculu\u011fu olay\u0131 kaydet\"\"\"\n    event = {\n        'id': str(uuid.uuid4()),\n        'tenant_id': current_user.tenant_id,\n        'guest_id': event_data['guest_id'],\n        'booking_id': event_data['booking_id'],\n        'touchpoint': event_data['touchpoint'],\n        'event_type': event_data['event_type'],\n        'description': event_data.get('description', ''),\n        'occurred_at': datetime.now(timezone.utc).isoformat()\n    }\n    await db.guest_journey_events.insert_one(event)\n    return {'success': True, 'event_id': event['id']}\n\n@api_router.post(\"/nps/survey\")\nasync def submit_nps_survey(survey_data: dict, current_user: User = Depends(get_current_user)):\n    \"\"\"NPS anketi kaydet\"\"\"\n    score = survey_data['nps_score']\n    category = 'detractor' if score <= 6 else 'passive' if score <= 8 else 'promoter'\n    \n    survey = {\n        'id': str(uuid.uuid4()),\n        'tenant_id': current_user.tenant_id,\n        'guest_id': survey_data['guest_id'],\n        'booking_id': survey_data['booking_id'],\n        'nps_score': score,\n        'category': category,\n        'feedback': survey_data.get('feedback'),\n        'responded_at': datetime.now(timezone.utc).isoformat()\n    }\n    await db.nps_surveys.insert_one(survey)\n    return {'success': True, 'survey_id': survey['id'], 'category': category}\n\n@api_router.get(\"/nps/score\")\nasync def get_nps_score(days: int = 30, current_user: User = Depends(get_current_user)):\n    \"\"\"NPS skoru hesapla\"\"\"\n    from datetime import timedelta\n    start = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()\n    \n    surveys = await db.nps_surveys.find({\n        'tenant_id': current_user.tenant_id,\n        'responded_at': {'$gte': start}\n    }, {'_id': 0, 'category': 1}).to_list(1000)\n    \n    if not surveys:\n        return {'nps_score': 0, 'total_responses': 0}\n    \n    promoters = len([s for s in surveys if s['category'] == 'promoter'])\n    detractors = len([s for s in surveys if s['category'] == 'detractor'])\n    total = len(surveys)\n    \n    nps = ((promoters - detractors) / total * 100) if total > 0 else 0\n    \n    return {\n        'nps_score': round(nps, 1),\n        'promoters': promoters,\n        'passives': len([s for s in surveys if s['category'] == 'passive']),\n        'detractors': detractors,\n        'total_responses': total,\n        'period_days': days\n    }
+@api_router.post("/journey/log-event")
+async def log_journey_event(event_data: dict, current_user: User = Depends(get_current_user)):
+    """Misafir yolculuğu olayı kaydet"""
+    event = {
+        'id': str(uuid.uuid4()),
+        'tenant_id': current_user.tenant_id,
+        'guest_id': event_data['guest_id'],
+        'booking_id': event_data['booking_id'],
+        'touchpoint': event_data['touchpoint'],
+        'event_type': event_data['event_type'],
+        'description': event_data.get('description', ''),
+        'occurred_at': datetime.now(timezone.utc).isoformat()
+    }
+    await db.guest_journey_events.insert_one(event)
+    return {'success': True, 'event_id': event['id']}
+
+@api_router.post("/nps/survey")
+async def submit_nps_survey(survey_data: dict, current_user: User = Depends(get_current_user)):
+    """NPS anketi kaydet"""
+    score = survey_data['nps_score']
+    category = 'detractor' if score <= 6 else 'passive' if score <= 8 else 'promoter'
+    
+    survey = {
+        'id': str(uuid.uuid4()),
+        'tenant_id': current_user.tenant_id,
+        'guest_id': survey_data['guest_id'],
+        'booking_id': survey_data['booking_id'],
+        'nps_score': score,
+        'category': category,
+        'feedback': survey_data.get('feedback'),
+        'responded_at': datetime.now(timezone.utc).isoformat()
+    }
+    await db.nps_surveys.insert_one(survey)
+    return {'success': True, 'survey_id': survey['id'], 'category': category}
+
+@api_router.get("/nps/score")
+async def get_nps_score(days: int = 30, current_user: User = Depends(get_current_user)):
+    """NPS skoru hesapla"""
+    from datetime import timedelta
+    start = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
+    
+    surveys = await db.nps_surveys.find({
+        'tenant_id': current_user.tenant_id,
+        'responded_at': {'$gte': start}
+    }, {'_id': 0, 'category': 1}).to_list(1000)
+    
+    if not surveys:
+        return {'nps_score': 0, 'total_responses': 0}
+    
+    promoters = len([s for s in surveys if s['category'] == 'promoter'])
+    detractors = len([s for s in surveys if s['category'] == 'detractor'])
+    total = len(surveys)
+    
+    nps = ((promoters - detractors) / total * 100) if total > 0 else 0
+    
+    return {
+        'nps_score': round(nps, 1),
+        'promoters': promoters,
+        'passives': len([s for s in surveys if s['category'] == 'passive']),
+        'detractors': detractors,
+        'total_responses': total,
+        'period_days': days
+    }
+
+# ============= PAYMENT & FINANCIAL (ALREADY ADDED ABOVE) =============
 
     return {'success': True, 'payment_intent_id': intent['id'], 'client_secret': f'secret_{intent["id"][:8]}'}
 
