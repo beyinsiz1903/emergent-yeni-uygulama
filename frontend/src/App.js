@@ -845,6 +845,40 @@ function App() {
               )
             }
           />
+          
+          {/* New 5-Star Hotel Features */}
+          <Route
+            path="/online-checkin/:bookingId"
+            element={
+              <Suspense fallback={<LoadingFallback />}>
+                <OnlineCheckin />
+              </Suspense>
+            }
+          />
+          <Route
+            path="/flash-report"
+            element={
+              isAuthenticated ? (
+                <Suspense fallback={<LoadingFallback />}>
+                  <FlashReport user={user} tenant={tenant} onLogout={handleLogout} />
+                </Suspense>
+              ) : (
+                <Navigate to="/auth" replace />
+              )
+            }
+          />
+          <Route
+            path="/group-sales"
+            element={
+              isAuthenticated ? (
+                <Suspense fallback={<LoadingFallback />}>
+                  <GroupSales user={user} tenant={tenant} onLogout={handleLogout} />
+                </Suspense>
+              ) : (
+                <Navigate to="/auth" replace />
+              )
+            }
+          />
         </Routes>
       </BrowserRouter>
       {/* ReactQueryDevtools removed for production */}
