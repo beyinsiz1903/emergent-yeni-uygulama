@@ -3551,15 +3551,9 @@ async def get_negative_review_alerts(current_user: User = Depends(get_current_us
 
 
 # ============= HOUSEKEEPING AI PREDICTIONS =============
-        'description': complaint_data['description'],
-        'status': 'open',
-        'created_by': current_user.id,
 
-
-# ============= REPORT AUTOMATION =============
-
-@api_router.post("/reports/schedule-flash")
-async def schedule_flash_report(
+@api_router.get("/housekeeping/ai/predict-time")
+async def predict_cleaning_time(
     schedule_data: dict,
     current_user: User = Depends(get_current_user)
 ):
