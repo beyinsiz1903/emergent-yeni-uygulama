@@ -3398,6 +3398,144 @@ async def get_sentiment(guest_id: str, current_user: User = Depends(get_current_
     reviews = await db.reviews.find({'guest_id': guest_id}, {'_id': 0, 'rating': 1}).to_list(100)
     avg = sum([r.get('rating', 3) for r in reviews]) / len(reviews) if reviews else 3
     return {
+
+
+# ============= AI DYNAMIC PRICING (MARKET LEADER FEATURE) =============
+
+@api_router.get("/pricing/ai-recommendation")
+async def get_ai_pricing_recommendation(
+    room_type: str,
+    target_date: str,
+    current_user: User = Depends(get_current_user)
+):
+    """AI-powered dynamic pricing recommendation"""
+    from dynamic_pricing_engine import get_pricing_engine
+    
+    engine = get_pricing_engine(db)
+    recommendation = await engine.recommend_price(
+        current_user.tenant_id,
+        room_type,
+        target_date
+    )
+    
+    return recommendation
+
+@api_router.get("/pricing/competitor-rates")
+async def get_competitor_rates(
+    room_type: str,
+    target_date: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Rakip otel fiyatları"""
+    from dynamic_pricing_engine import get_pricing_engine
+    
+    engine = get_pricing_engine(db)
+    rates = await engine.get_competitor_rates(target_date, room_type)
+    
+    return rates
+
+# ============= WHATSAPP BUSINESS INTEGRATION =============
+
+@api_router.post("/whatsapp/send-confirmation")
+async def send_whatsapp_confirmation(
+    booking_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """WhatsApp ile rezervasyon onayı gönder"""
+    from whatsapp_service import whatsapp_service
+    
+    # Get booking
+    booking = await db.bookings.find_one({
+        'id': booking_id,
+        'tenant_id': current_user.tenant_id
+    }, {'_id': 0})
+    
+    if not booking:
+        raise HTTPException(status_code=404, detail="Rezervasyon bulunamadı")
+    
+    # Get guest
+    guest = await db.guests.find_one({'id': booking['guest_id']}, {'_id': 0})
+    
+    if not guest or not guest.get('phone'):
+        raise HTTPException(status_code=400, detail="Misafir telefon numarası bulunamadı")
+    
+    # Get room
+    room = await db.rooms.find_one({'id': booking['room_id']}, {'_id': 0})
+    
+    booking_details = {
+        'booking_id': booking['id'],
+        'guest_name': guest['name'],
+        'check_in': booking['check_in'][:10] if isinstance(booking['check_in'], str) else str(booking['check_in'])[:10],
+        'check_out': booking['check_out'][:10] if isinstance(booking['check_out'], str) else str(booking['check_out'])[:10],
+        'room_type': room.get('room_type', 'Standard') if room else 'Standard',
+        'total_amount': booking['total_amount']
+    }
+    
+    await whatsapp_service.send_booking_confirmation(guest['phone'], booking_details)
+    
+    return {
+        'success': True,
+        'message': 'WhatsApp onay mesajı gönderildi',
+        'phone': guest['phone']
+    }
+
+# ============= REPUTATION MANAGEMENT =============
+
+@api_router.get("/reputation/overview")
+async def get_reputation_overview(current_user: User = Depends(get_current_user)):
+    """Online reputation özeti"""
+    from reputation_manager import get_reputation_manager
+    
+    manager = get_reputation_manager(db)
+    overview = await manager.aggregate_reviews(current_user.tenant_id)
+    
+    return overview
+
+@api_router.get("/reputation/trends")
+async def get_reputation_trends(
+    days: int = 30,
+    current_user: User = Depends(get_current_user)
+):
+    """Reputation trend analizi"""
+    from reputation_manager import get_reputation_manager
+    
+    manager = get_reputation_manager(db)
+    trends = await manager.get_reputation_trends(current_user.tenant_id, days)
+    
+    return trends
+
+@api_router.post("/reputation/suggest-response")
+async def suggest_review_response(
+    review_data: dict,
+    current_user: User = Depends(get_current_user)
+):
+    """AI review yanıt önerisi"""
+    from reputation_manager import get_reputation_manager
+    
+    manager = get_reputation_manager(db)
+    response = await manager.suggest_response(
+        review_data['review_text'],
+        review_data.get('rating', 3)
+    )
+    
+    return {
+        'suggested_response': response
+    }
+
+@api_router.get("/reputation/negative-alerts")
+async def get_negative_review_alerts(current_user: User = Depends(get_current_user)):
+    """Son 24 saatteki negatif review'lar"""
+    from reputation_manager import get_reputation_manager
+    
+    manager = get_reputation_manager(db)
+    alerts = await manager.detect_negative_reviews(current_user.tenant_id)
+    
+    return {
+        'negative_reviews': alerts,
+        'total': len(alerts),
+        'requires_action': len(alerts) > 0
+    }
+
         'sentiment': 'positive' if avg >= 4 else 'neutral' if avg >= 3 else 'negative',
         'score': round((avg - 3) / 2, 2),
         'based_on_reviews': len(reviews)
