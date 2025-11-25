@@ -3348,6 +3348,14 @@ async def create_complaint(
     complaint = {
         'id': str(uuid.uuid4()),
         'tenant_id': current_user.tenant_id,
+        **complaint_data,
+        'status': 'open',
+        'created_at': datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.service_complaints.insert_one(complaint)
+    
+    return {'success': True, 'message': 'Şikayet kaydedildi', 'complaint_id': complaint['id']}
 
 
 # ============= SPA & WELLNESS (FAZ 3) =============
