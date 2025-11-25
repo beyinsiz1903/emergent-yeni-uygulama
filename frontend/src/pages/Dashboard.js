@@ -527,17 +527,17 @@ const Dashboard = ({ user, tenant, onLogout }) => {
             )}
 
             {/* Modules Grid - Categorized */}
-            <div className="space-y-6">
-              <h2 className="text-xl md:text-2xl font-bold mb-3" style={{ fontFamily: 'Space Grotesk' }}>{t('dashboard.yourModules')}</h2>
+            <div className="space-y-8">
+              <h2 className="text-xl md:text-2xl font-bold mb-4" style={{ fontFamily: 'Space Grotesk' }}>{t('dashboard.yourModules')}</h2>
               
               {Object.entries(categorizedModules).map(([categoryKey, category]) => (
                 category.modules.length > 0 && (
-                  <div key={categoryKey} className="space-y-3">
-                    <div className="flex items-center space-x-2">
-                      <h3 className={`text-lg font-semibold text-${category.color}-600`}>
-                        {category.title}
-                      </h3>
-                      <span className="text-sm text-gray-500">({category.modules.length})</span>
+                  <div key={categoryKey}>
+                    <div className="flex items-center gap-2 mb-4">
+                      <h3 className="text-lg font-bold text-gray-700">{category.title}</h3>
+                      <Badge variant="outline" className="text-xs">
+                        {category.modules.length} modül
+                      </Badge>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                       {category.modules.map((module) => {
