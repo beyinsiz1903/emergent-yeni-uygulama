@@ -3863,13 +3863,17 @@ async def get_staff_performance(staff_id: str, current_user: User = Depends(get_
 @api_router.post("/journey/log-event")
 async def log_journey_event(event_data: dict, current_user: User = Depends(get_current_user)):
     """Misafir yolculuğu olayı kaydet"""
+    # Flexible field mapping
+    guest_id = event_data.get('guest_id') or event_data.get('user_id')
+    booking_id = event_data.get('booking_id') or event_data.get('reservation_id')
+    
     event = {
         'id': str(uuid.uuid4()),
         'tenant_id': current_user.tenant_id,
-        'guest_id': event_data['guest_id'],
-        'booking_id': event_data['booking_id'],
-        'touchpoint': event_data['touchpoint'],
-        'event_type': event_data['event_type'],
+        'guest_id': guest_id,
+        'booking_id': booking_id,
+        'touchpoint': event_data.get('touchpoint', 'check_in'),
+        'event_type': event_data.get('event_type', 'general'),
         'description': event_data.get('description', ''),
         'occurred_at': datetime.now(timezone.utc).isoformat()
     }
