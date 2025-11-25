@@ -3795,7 +3795,68 @@ async def get_energy_consumption(days: int = 30, current_user: User = Depends(ge
 
 # ============= HR & STAFF MANAGEMENT =============
 
-@api_router.post(\"/hr/staff\")\nasync def add_staff_member(staff_data: dict, current_user: User = Depends(get_current_user)):\n    \"\"\"Yeni personel ekle\"\"\"\n    staff = {\n        'id': str(uuid.uuid4()),\n        'tenant_id': current_user.tenant_id,\n        'name': staff_data['name'],\n        'email': staff_data['email'],\n        'phone': staff_data['phone'],\n        'department': staff_data['department'],\n        'position': staff_data['position'],\n        'hire_date': staff_data['hire_date'],\n        'employment_type': staff_data.get('employment_type', 'full_time'),\n        'performance_score': 0.0,\n        'active': True,\n        'created_at': datetime.now(timezone.utc).isoformat()\n    }\n    await db.staff_members.insert_one(staff)\n    return {'success': True, 'staff_id': staff['id']}\n\n@api_router.get(\"/hr/staff\")\nasync def get_staff_list(department: Optional[str] = None, current_user: User = Depends(get_current_user)):\n    \"\"\"Personel listesi\"\"\"\n    query = {'tenant_id': current_user.tenant_id, 'active': True}\n    if department:\n        query['department'] = department\n    staff = await db.staff_members.find(query, {'_id': 0}).to_list(200)\n    return {'staff': staff, 'total': len(staff)}\n\n@api_router.post(\"/hr/shift\")\nasync def create_shift(shift_data: dict, current_user: User = Depends(get_current_user)):\n    \"\"\"Vardiya olu\u015ftur\"\"\"\n    shift = {\n        'id': str(uuid.uuid4()),\n        'tenant_id': current_user.tenant_id,\n        'staff_id': shift_data['staff_id'],\n        'shift_date': shift_data['shift_date'],\n        'shift_type': shift_data['shift_type'],\n        'start_time': shift_data['start_time'],\n        'end_time': shift_data['end_time'],\n        'status': 'scheduled',\n        'created_at': datetime.now(timezone.utc).isoformat()\n    }\n    await db.shift_schedules.insert_one(shift)\n    return {'success': True, 'shift_id': shift['id']}\n\n@api_router.get(\"/hr/performance/{staff_id}\")\nasync def get_staff_performance(staff_id: str, current_user: User = Depends(get_current_user)):\n    \"\"\"Personel performans\u0131\"\"\"\n    reviews = await db.performance_reviews.find({\n        'staff_id': staff_id,\n        'tenant_id': current_user.tenant_id\n    }, {'_id': 0}).sort('reviewed_at', -1).to_list(10)\n    \n    avg_score = sum([r.get('overall_score', 0) for r in reviews]) / len(reviews) if reviews else 0\n    \n    return {\n        'staff_id': staff_id,\n        'recent_reviews': reviews,\n        'avg_performance_score': round(avg_score, 2),\n        'total_reviews': len(reviews)\n    }
+@api_router.post("/hr/staff")
+async def add_staff_member(staff_data: dict, current_user: User = Depends(get_current_user)):
+    """Yeni personel ekle"""
+    staff = {
+        'id': str(uuid.uuid4()),
+        'tenant_id': current_user.tenant_id,
+        'name': staff_data['name'],
+        'email': staff_data['email'],
+        'phone': staff_data['phone'],
+        'department': staff_data['department'],
+        'position': staff_data['position'],
+        'hire_date': staff_data['hire_date'],
+        'employment_type': staff_data.get('employment_type', 'full_time'),
+        'performance_score': 0.0,
+        'active': True,
+        'created_at': datetime.now(timezone.utc).isoformat()
+    }
+    await db.staff_members.insert_one(staff)
+    return {'success': True, 'staff_id': staff['id']}
+
+@api_router.get("/hr/staff")
+async def get_staff_list(department: Optional[str] = None, current_user: User = Depends(get_current_user)):
+    """Personel listesi"""
+    query = {'tenant_id': current_user.tenant_id, 'active': True}
+    if department:
+        query['department'] = department
+    staff = await db.staff_members.find(query, {'_id': 0}).to_list(200)
+    return {'staff': staff, 'total': len(staff)}
+
+@api_router.post("/hr/shift")
+async def create_shift(shift_data: dict, current_user: User = Depends(get_current_user)):
+    """Vardiya oluştur"""
+    shift = {
+        'id': str(uuid.uuid4()),
+        'tenant_id': current_user.tenant_id,
+        'staff_id': shift_data['staff_id'],
+        'shift_date': shift_data['shift_date'],
+        'shift_type': shift_data['shift_type'],
+        'start_time': shift_data['start_time'],
+        'end_time': shift_data['end_time'],
+        'status': 'scheduled',
+        'created_at': datetime.now(timezone.utc).isoformat()
+    }
+    await db.shift_schedules.insert_one(shift)
+    return {'success': True, 'shift_id': shift['id']}
+
+@api_router.get("/hr/performance/{staff_id}")
+async def get_staff_performance(staff_id: str, current_user: User = Depends(get_current_user)):
+    """Personel performansı"""
+    reviews = await db.performance_reviews.find({
+        'staff_id': staff_id,
+        'tenant_id': current_user.tenant_id
+    }, {'_id': 0}).sort('reviewed_at', -1).to_list(10)
+    
+    avg_score = sum([r.get('overall_score', 0) for r in reviews]) / len(reviews) if reviews else 0
+    
+    return {
+        'staff_id': staff_id,
+        'recent_reviews': reviews,
+        'avg_performance_score': round(avg_score, 2),
+        'total_reviews': len(reviews)
+    }
 
 # ============= GUEST JOURNEY & NPS =============
 
