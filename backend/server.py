@@ -3549,15 +3549,8 @@ async def get_negative_review_alerts(current_user: User = Depends(get_current_us
         'requires_action': len(alerts) > 0
     }
 
-        'sentiment': 'positive' if avg >= 4 else 'neutral' if avg >= 3 else 'negative',
-        'score': round((avg - 3) / 2, 2),
-        'based_on_reviews': len(reviews)
-    }
 
-        'guest_id': complaint_data.get('guest_id'),
-        'booking_id': complaint_data.get('booking_id'),
-        'category': complaint_data['category'],
-        'severity': complaint_data.get('severity', 'medium'),
+# ============= HOUSEKEEPING AI PREDICTIONS =============
         'description': complaint_data['description'],
         'status': 'open',
         'created_by': current_user.id,
