@@ -3928,6 +3928,81 @@ async def get_nps_score(days: int = 30, current_user: User = Depends(get_current
         'promoters': promoters,
         'passives': len([s for s in surveys if s['category'] == 'passive']),
         'detractors': detractors,
+
+
+# ============= ARRIVAL LIST & FRONT DESK OPERATIONS =============
+
+@api_router.get("/arrivals/today")
+async def get_todays_arrivals(current_user: User = Depends(get_current_user)):
+    """Bugünün varışları - VIP, grup ve özel isteklerle"""
+    today = datetime.now(timezone.utc).date()
+    today_start = datetime.combine(today, datetime.min.time()).replace(tzinfo=timezone.utc)
+    today_end = datetime.combine(today, datetime.max.time()).replace(tzinfo=timezone.utc)
+    
+    arrivals = await db.bookings.find({
+        'tenant_id': current_user.tenant_id,
+        'check_in': {
+            '$gte': today_start.isoformat(),
+            '$lte': today_end.isoformat()
+        },
+        'status': {'$in': ['confirmed', 'guaranteed']}
+    }, {'_id': 0}).to_list(100)
+    
+    # Enrich with guest and room info
+    enriched_arrivals = []
+    for booking in arrivals:
+        # Get guest
+        guest = await db.guests.find_one({'id': booking['guest_id']}, {'_id': 0})
+        # Get room if assigned
+        room = None
+        if booking.get('room_id'):
+            room = await db.rooms.find_one({'id': booking['room_id']}, {'_id': 0})
+        
+        enriched = {
+            **booking,
+            'guest_name': guest.get('name') if guest else 'Unknown',
+            'guest_email': guest.get('email') if guest else None,
+            'room_number': room.get('room_number') if room else None,
+            'vip_status': guest.get('vip_status', False) if guest else False
+        }
+        enriched_arrivals.append(enriched)
+    
+    # Sort: VIP first, then group, then regular
+    enriched_arrivals.sort(key=lambda x: (
+        -1 if x.get('vip_status') else 0,
+        -1 if x.get('group_block_id') else 0
+    ), reverse=True)
+    
+    return {
+        'arrivals': enriched_arrivals,
+        'total': len(enriched_arrivals),
+        'vip_count': len([a for a in enriched_arrivals if a.get('vip_status')]),
+        'group_count': len([a for a in enriched_arrivals if a.get('group_block_id')]),
+        'online_checkin_count': len([a for a in enriched_arrivals if a.get('online_checkin_completed')])
+    }
+
+@api_router.post("/rms/update-rate")
+async def update_room_rate(rate_data: dict, current_user: User = Depends(get_current_user)):
+    """Oda fiyatını güncelle ve tüm kanallara gönder"""
+    # Simulated rate update (real: OTA APIs)
+    rate_update = {
+        'id': str(uuid.uuid4()),
+        'tenant_id': current_user.tenant_id,
+        'room_type': rate_data['room_type'],
+        'target_date': rate_data['target_date'],
+        'new_rate': rate_data['new_rate'],
+        'updated_at': datetime.now(timezone.utc).isoformat(),
+        'pushed_to_channels': ['booking_com', 'expedia', 'website', 'direct']
+    }
+    
+    await db.rate_updates.insert_one(rate_update)
+    
+    return {
+        'success': True,
+        'message': f'{rate_data["room_type"]} için fiyat €{rate_data["new_rate"]} olarak güncellendi',
+        'pushed_to': rate_update['pushed_to_channels']
+    }
+
         'total_responses': total,
         'period_days': days
     }
