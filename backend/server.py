@@ -3474,7 +3474,7 @@ async def get_bookings(
         query['status'] = status
     
     # Minimal projection
-    projection = {'_id': 0, 'id': 1, 'guest_id': 1, 'room_id': 1, 'check_in': 1, 'check_out': 1, 'status': 1, 'total_amount': 1}
+    projection = {'_id': 0, 'id': 1, 'tenant_id': 1, 'guest_id': 1, 'room_id': 1, 'check_in': 1, 'check_out': 1, 'status': 1, 'total_amount': 1}
     
     bookings_raw = await db.bookings.find(query, projection).skip(offset).limit(limit).to_list(limit)
     
