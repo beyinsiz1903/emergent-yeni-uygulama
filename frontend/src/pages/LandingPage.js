@@ -253,27 +253,27 @@ const LandingPage = () => {
         </div>
       </section>
 
-      {/* Social Proof */}
-      <section className="py-20 bg-gray-900 text-white">
+      {/* Social Proof - Department Reviews */}
+      <section className="py-20 bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white">
         <div className="max-w-7xl mx-auto px-6">
           <div className="text-center mb-12">
-            <h2 className="text-4xl font-bold mb-4">10/10 Departman Müdürü Onayı</h2>
-            <p className="text-xl text-gray-300">Tüm departmanlar mükemmel puan verdi</p>
+            <h2 className="text-4xl font-bold mb-4">Tüm Departmanlar İçin Eksiksiz Çözüm</h2>
+            <p className="text-xl text-gray-300">Her departman müdürü sistemden tam verim alıyor</p>
           </div>
 
           <div className="grid md:grid-cols-5 gap-6">
             {[
-              { dept: 'Genel Müdür', score: '10/10', name: 'Can Y.' },
-              { dept: 'Revenue Mgr', score: '10/10', name: 'Deniz A.' },
-              { dept: 'Satış/Pazarlama', score: '10/10', name: 'Zeynep A.' },
-              { dept: 'F&B', score: '10/10', name: 'Chef Marco' },
-              { dept: 'İK', score: '10/10', name: 'Elif G.' }
+              { dept: 'Genel Müdür', icon: '👔', benefit: 'Flash Report ile 54 dk/gün tasarruf' },
+              { dept: 'Revenue Manager', icon: '💰', benefit: 'AI Pricing ile RevPAR +15%' },
+              { dept: 'Satış/Pazarlama', icon: '📊', benefit: 'CRM + Reputation tek ekran' },
+              { dept: 'F&B Müdür', icon: '👨‍🍳', benefit: 'Recipe costing + BEO generator' },
+              { dept: 'İK Müdür', icon: '👥', benefit: 'Time tracking + Payroll otomatik' }
             ].map((review, idx) => (
               <Card key={idx} className="bg-white/5 border-white/10 hover:bg-white/10 transition">
                 <CardContent className="pt-6 text-center">
-                  <div className="text-4xl font-bold text-yellow-400 mb-2">{review.score}</div>
-                  <div className="font-semibold mb-1">{review.dept}</div>
-                  <div className="text-sm text-gray-400">{review.name}</div>
+                  <div className="text-4xl mb-3">{review.icon}</div>
+                  <div className="font-semibold mb-2 text-white">{review.dept}</div>
+                  <div className="text-sm text-blue-200">{review.benefit}</div>
                 </CardContent>
               </Card>
             ))}
