@@ -3107,6 +3107,350 @@ async def get_flash_report(
         }
     }
 
+# ============= GROUP SALES MANAGEMENT =============
+
+@api_router.post("/groups/create-block")
+async def create_group_block(
+    block_data: dict,
+    current_user: User = Depends(get_current_user)
+):
+    """Grup bloğu oluştur"""
+    from group_sales_models import GroupBlockCreate, GroupBlock, BillingType, GroupBlockStatus
+    
+    request = GroupBlockCreate(**block_data)
+    
+    # Create group block
+    block = {
+        'id': str(uuid.uuid4()),
+        'tenant_id': current_user.tenant_id,
+        'group_name': request.group_name,
+        'organization': request.organization,
+        'contact_name': request.contact_name,
+        'contact_email': request.contact_email,
+        'contact_phone': request.contact_phone,
+        'check_in': request.check_in,
+        'check_out': request.check_out,
+        'total_rooms': request.total_rooms,
+        'rooms_picked_up': 0,
+        'room_breakdown': request.room_breakdown or {},
+        'group_rate': request.group_rate,
+        'room_type': request.room_type,
+        'cutoff_date': request.cutoff_date,
+        'billing_type': request.billing_type,
+        'status': GroupBlockStatus.TENTATIVE,
+        'special_requirements': request.special_requirements,
+        'created_by': current_user.id,
+        'created_at': datetime.now(timezone.utc).isoformat(),
+        'updated_at': datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.group_blocks.insert_one(block)
+    
+    # Create master folio if billing type is master_account
+    if request.billing_type == BillingType.MASTER_ACCOUNT:
+        master_folio = {
+            'id': str(uuid.uuid4()),
+            'tenant_id': current_user.tenant_id,
+            'group_block_id': block['id'],
+            'folio_type': 'group_master',
+            'total_charges': 0.0,
+            'total_payments': 0.0,
+            'balance': 0.0,
+            'status': 'open',
+            'master_charges': ['room', 'breakfast', 'meeting_room'],
+            'individual_charges': ['minibar', 'spa', 'telephone'],
+            'created_at': datetime.now(timezone.utc).isoformat()
+        }
+        await db.folios.insert_one(master_folio)
+        
+        block['master_folio_id'] = master_folio['id']
+        await db.group_blocks.update_one(
+            {'id': block['id']},
+            {'$set': {'master_folio_id': master_folio['id']}}
+        )
+    
+    return {
+        'success': True,
+        'message': 'Grup bloğu başarıyla oluşturuldu',
+        'block_id': block['id'],
+        'group_name': request.group_name,
+        'total_rooms': request.total_rooms
+    }
+
+@api_router.get("/groups/blocks")
+async def get_group_blocks(
+    status: Optional[str] = None,
+    current_user: User = Depends(get_current_user)
+):
+    """Grup bloklarını listele"""
+    query = {'tenant_id': current_user.tenant_id}
+    if status:
+        query['status'] = status
+    
+    blocks = await db.group_blocks.find(query, {'_id': 0}).sort('check_in', -1).to_list(100)
+    
+    return {
+        'blocks': blocks,
+        'total': len(blocks)
+    }
+
+@api_router.get("/groups/block/{block_id}")
+async def get_group_block_details(
+    block_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Grup bloğu detayları ve pickup tracking"""
+    block = await db.group_blocks.find_one({
+        'id': block_id,
+        'tenant_id': current_user.tenant_id
+    }, {'_id': 0})
+    
+    if not block:
+        raise HTTPException(status_code=404, detail="Grup bloğu bulunamadı")
+    
+    # Get all bookings in this group
+    group_bookings = await db.bookings.find({
+        'tenant_id': current_user.tenant_id,
+        'group_block_id': block_id
+    }, {'_id': 0}).to_list(1000)
+    
+    # Calculate pickup stats
+    rooms_picked_up = len(group_bookings)
+    rooms_remaining = block['total_rooms'] - rooms_picked_up
+    pickup_pct = (rooms_picked_up / block['total_rooms'] * 100) if block['total_rooms'] > 0 else 0
+    
+    # Update block pickup count
+    await db.group_blocks.update_one(
+        {'id': block_id},
+        {'$set': {'rooms_picked_up': rooms_picked_up}}
+    )
+    
+    return {
+        'block': block,
+        'pickup': {
+            'total_rooms': block['total_rooms'],
+            'rooms_picked_up': rooms_picked_up,
+            'rooms_remaining': rooms_remaining,
+            'pickup_percentage': round(pickup_pct, 2)
+        },
+        'bookings': group_bookings,
+        'bookings_count': len(group_bookings)
+    }
+
+@api_router.post("/groups/rooming-list/{block_id}")
+async def upload_rooming_list(
+    block_id: str,
+    rooming_list: List[dict],
+    current_user: User = Depends(get_current_user)
+):
+    """Rooming list upload (Excel'den gelen data)"""
+    from group_sales_models import RoomingListEntry
+    
+    # Verify block exists
+    block = await db.group_blocks.find_one({
+        'id': block_id,
+        'tenant_id': current_user.tenant_id
+    }, {'_id': 0})
+    
+    if not block:
+        raise HTTPException(status_code=404, detail="Grup bloğu bulunamadı")
+    
+    created_bookings = []
+    errors = []
+    
+    for idx, entry_data in enumerate(rooming_list):
+        try:
+            entry = RoomingListEntry(**entry_data)
+            
+            # Create or find guest
+            guest = await db.guests.find_one({
+                'tenant_id': current_user.tenant_id,
+                'name': entry.guest_name
+            }, {'_id': 0})
+            
+            if not guest:
+                # Create new guest
+                guest = {
+                    'id': str(uuid.uuid4()),
+                    'tenant_id': current_user.tenant_id,
+                    'name': entry.guest_name,
+                    'email': entry.email,
+                    'phone': entry.phone,
+                    'passport_number': entry.passport_number,
+                    'created_at': datetime.now(timezone.utc).isoformat()
+                }
+                await db.guests.insert_one(guest)
+            
+            # Find available room of requested type
+            room = await db.rooms.find_one({
+                'tenant_id': current_user.tenant_id,
+                'room_type': entry.room_type,
+                'status': 'available'
+            }, {'_id': 0})
+            
+            if not room:
+                errors.append(f"Row {idx+1}: {entry.room_type} tipi oda mevcut değil")
+                continue
+            
+            # Create booking
+            booking = {
+                'id': str(uuid.uuid4()),
+                'tenant_id': current_user.tenant_id,
+                'guest_id': guest['id'],
+                'room_id': room['id'],
+                'group_block_id': block_id,
+                'check_in': entry.check_in,
+                'check_out': entry.check_out,
+                'status': 'confirmed',
+                'adults': 2,
+                'children': 0,
+                'total_amount': block['group_rate'],
+                'rate_type': 'group',
+                'market_segment': 'group',
+                'special_requests': entry.special_requests,
+                'created_at': datetime.now(timezone.utc).isoformat(),
+                'created_by': current_user.id
+            }
+            
+            await db.bookings.insert_one(booking)
+            created_bookings.append({
+                'booking_id': booking['id'],
+                'guest_name': entry.guest_name,
+                'room_number': room['room_number']
+            })
+            
+        except Exception as e:
+            errors.append(f"Row {idx+1}: {str(e)}")
+    
+    return {
+        'success': True,
+        'message': f'{len(created_bookings)} rezervasyon oluşturuldu',
+        'created_bookings': created_bookings,
+        'errors': errors,
+        'total_processed': len(rooming_list),
+        'successful': len(created_bookings),
+        'failed': len(errors)
+    }
+
+@api_router.get("/groups/master-folio/{block_id}")
+async def get_group_master_folio(
+    block_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Grup master folio detayları"""
+    # Get block
+    block = await db.group_blocks.find_one({
+        'id': block_id,
+        'tenant_id': current_user.tenant_id
+    }, {'_id': 0})
+    
+    if not block:
+        raise HTTPException(status_code=404, detail="Grup bloğu bulunamadı")
+    
+    # Get master folio
+    master_folio = await db.folios.find_one({
+        'group_block_id': block_id,
+        'folio_type': 'group_master'
+    }, {'_id': 0})
+    
+    if not master_folio:
+        return {
+            'block_id': block_id,
+            'has_master_folio': False,
+            'message': 'Bu grup için master folio oluşturulmamış'
+        }
+    
+    # Get all charges on master folio
+    charges = await db.folio_charges.find({
+        'folio_id': master_folio['id'],
+        'voided': False
+    }, {'_id': 0}).to_list(1000)
+    
+    total_charges = sum([c.get('total', c.get('amount', 0)) for c in charges])
+    
+    # Get payments
+    payments = await db.payments.find({
+        'folio_id': master_folio['id']
+    }, {'_id': 0}).to_list(1000)
+    
+    total_payments = sum([p.get('amount', 0) for p in payments])
+    
+    balance = total_charges - total_payments
+    
+    # Update folio totals
+    await db.folios.update_one(
+        {'id': master_folio['id']},
+        {
+            '$set': {
+                'total_charges': total_charges,
+                'total_payments': total_payments,
+                'balance': balance
+            }
+        }
+    )
+    
+    return {
+        'block_id': block_id,
+        'block_name': block['group_name'],
+        'has_master_folio': True,
+        'folio': {
+            'id': master_folio['id'],
+            'total_charges': round(total_charges, 2),
+            'total_payments': round(total_payments, 2),
+            'balance': round(balance, 2),
+            'status': master_folio.get('status', 'open')
+        },
+        'charges': charges,
+        'payments': payments,
+        'charges_count': len(charges),
+        'payments_count': len(payments)
+    }
+
+@api_router.post("/groups/block/{block_id}/release")
+async def release_group_block(
+    block_id: str,
+    release_count: int,
+    current_user: User = Depends(get_current_user)
+):
+    """Grup bloğundan oda serbest bırak"""
+    block = await db.group_blocks.find_one({
+        'id': block_id,
+        'tenant_id': current_user.tenant_id
+    }, {'_id': 0})
+    
+    if not block:
+        raise HTTPException(status_code=404, detail="Grup bloğu bulunamadı")
+    
+    rooms_remaining = block['total_rooms'] - block['rooms_picked_up']
+    
+    if release_count > rooms_remaining:
+        raise HTTPException(
+            status_code=400, 
+            detail=f"Sadece {rooms_remaining} oda serbest bırakılabilir"
+        )
+    
+    new_total = block['total_rooms'] - release_count
+    
+    await db.group_blocks.update_one(
+        {'id': block_id},
+        {
+            '$set': {
+                'total_rooms': new_total,
+                'release_date': datetime.now(timezone.utc).isoformat(),
+                'updated_at': datetime.now(timezone.utc).isoformat()
+            }
+        }
+    )
+    
+    return {
+        'success': True,
+        'message': f'{release_count} oda başarıyla serbest bırakıldı',
+        'block_id': block_id,
+        'previous_total': block['total_rooms'],
+        'new_total': new_total,
+        'released': release_count
+    }
+
 # ============= GUEST PORTAL ENDPOINTS (OLD - DEPRECATED) =============
 # NOTE: New guest endpoints are at line 21170+ (GUEST MOBILE APP ENDPOINTS)
 
