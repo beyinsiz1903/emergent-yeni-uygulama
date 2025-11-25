@@ -132,7 +132,7 @@ const LandingPage = () => {
               <div className="text-sm text-gray-600">Oda Kapasitesi</div>
             </div>
             <div className="text-center">
-              <div className="text-2xl font-bold text-gray-800"><10ms</div>
+              <div className="text-2xl font-bold text-gray-800">&lt;10ms</div>
               <div className="text-sm text-gray-600">Yanıt Süresi</div>
             </div>
             <div className="text-center">
