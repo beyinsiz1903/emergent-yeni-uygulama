@@ -3771,7 +3771,27 @@ async def control_smart_device(control_data: dict, current_user: User = Depends(
     await db.iot_commands.insert_one(command)
     return {'success': True, 'message': 'Cihaz komutu gönderildi (MOCK)'}
 
-@api_router.get("/iot/energy-consumption")\nasync def get_energy_consumption(days: int = 30, current_user: User = Depends(get_current_user)):\n    \"\"\"Enerji t\u00fcketim raporu\"\"\"\n    from datetime import timedelta\n    start = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()\n    \n    consumption = await db.energy_consumption.find({\n        'tenant_id': current_user.tenant_id,\n        'timestamp': {'$gte': start}\n    }, {'_id': 0}).to_list(1000)\n    \n    total_kwh = sum([c.get('consumption_kwh', 0) for c in consumption])\n    total_cost = sum([c.get('cost', 0) for c in consumption])\n    \n    return {\n        'period_days': days,\n        'total_kwh': round(total_kwh, 2),\n        'total_cost': round(total_cost, 2),\n        'daily_avg_kwh': round(total_kwh / days, 2) if days > 0 else 0,\n        'records': len(consumption)\n    }
+@api_router.get("/iot/energy-consumption")
+async def get_energy_consumption(days: int = 30, current_user: User = Depends(get_current_user)):
+    """Enerji tüketim raporu"""
+    from datetime import timedelta
+    start = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
+    
+    consumption = await db.energy_consumption.find({
+        'tenant_id': current_user.tenant_id,
+        'timestamp': {'$gte': start}
+    }, {'_id': 0}).to_list(1000)
+    
+    total_kwh = sum([c.get('consumption_kwh', 0) for c in consumption])
+    total_cost = sum([c.get('cost', 0) for c in consumption])
+    
+    return {
+        'period_days': days,
+        'total_kwh': round(total_kwh, 2),
+        'total_cost': round(total_cost, 2),
+        'daily_avg_kwh': round(total_kwh / days, 2) if days > 0 else 0,
+        'records': len(consumption)
+    }
 
 # ============= HR & STAFF MANAGEMENT =============
 
