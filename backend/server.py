@@ -4248,7 +4248,7 @@ async def clock_out(staff_data: dict, current_user: User = Depends(get_current_u
             {'$set': {'clock_out': clock_out_time.isoformat(), 'total_hours': round(hours, 2)}}
         )
         return {'success': True, 'hours_worked': round(hours, 2)}
-    return {'success': False, 'message': 'Clock-in kayd\u0131 bulunamad\u0131'}
+    return {'success': False, 'message': 'Clock-in kaydi bulunamadi'}
 
 @api_router.post("/hr/leave-request")
 async def create_leave_request(leave_data: dict, current_user: User = Depends(get_current_user)):
