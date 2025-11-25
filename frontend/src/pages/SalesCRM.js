@@ -83,13 +83,23 @@ const SalesCRM = () => {
   return (
     <div className="p-6">
       <div className="flex items-center justify-between mb-8">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            📊 Sales CRM & Pipeline
-          </h1>
-          <p className="text-gray-600">
-            Satış lead'leri ve fırsat yönetimi
-          </p>
+        <div className="flex items-center gap-3">
+          <Button 
+            variant="outline" 
+            size="icon"
+            onClick={() => navigate('/')}
+            className="hover:bg-blue-50"
+          >
+            <Home className="w-5 h-5" />
+          </Button>
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">
+              📊 Sales CRM & Pipeline
+            </h1>
+            <p className="text-gray-600">
+              Satış lead'leri ve fırsat yönetimi
+            </p>
+          </div>
         </div>
         
         <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
