@@ -921,6 +921,9 @@ function App() {
               )
             }
           />
+          <Route path="/spa-wellness" element={isAuthenticated ? <Suspense fallback={<LoadingFallback />}><SpaWellness user={user} tenant={tenant} onLogout={handleLogout} /></Suspense> : <Navigate to="/auth" replace />} />
+          <Route path="/meeting-events" element={isAuthenticated ? <Suspense fallback={<LoadingFallback />}><MeetingEvents user={user} tenant={tenant} onLogout={handleLogout} /></Suspense> : <Navigate to="/auth" replace />} />
+          <Route path="/ai-chatbot" element={isAuthenticated ? <Suspense fallback={<LoadingFallback />}><AIChatbot user={user} tenant={tenant} onLogout={handleLogout} /></Suspense> : <Navigate to="/auth" replace />} />
         </Routes>
       </BrowserRouter>
       {/* ReactQueryDevtools removed for production */}
