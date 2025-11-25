@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Star, TrendingUp, TrendingDown, AlertTriangle } from 'lucide-react';
+import { Star, TrendingUp, TrendingDown, AlertTriangle, Home } from 'lucide-react';
 
 const ReputationCenter = () => {
+  const navigate = useNavigate();
   const [overview, setOverview] = useState(null);
   const [trends, setTrends] = useState(null);
   const [alerts, setAlerts] = useState([]);
