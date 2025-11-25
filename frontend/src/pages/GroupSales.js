@@ -117,13 +117,23 @@ const GroupSales = () => {
     <div className="p-6">
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            👥 Grup Satış Yönetimi
-          </h1>
-          <p className="text-gray-600">
-            Grup rezervasyonları, bloklar ve rooming list yönetimi
-          </p>
+        <div className="flex items-center gap-3">
+          <Button 
+            variant="outline" 
+            size="icon"
+            onClick={() => navigate('/')}
+            className="hover:bg-purple-50"
+          >
+            <Home className="w-5 h-5" />
+          </Button>
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">
+              👥 Grup Satış Yönetimi
+            </h1>
+            <p className="text-gray-600">
+              Grup rezervasyonları, bloklar ve rooming list yönetimi
+            </p>
+          </div>
         </div>
         
         <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
