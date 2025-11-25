@@ -107,7 +107,8 @@ const Dashboard = ({ user, tenant, onLogout }) => {
       icon: Hotel,
       path: '/pms',
       color: '#667eea',
-      stats: stats?.pms
+      stats: stats?.pms,
+      category: 'core'
     },
     {
       title: t('nav.invoices'),
@@ -115,14 +116,16 @@ const Dashboard = ({ user, tenant, onLogout }) => {
       icon: FileText,
       path: '/invoices',
       color: '#f093fb',
-      stats: stats?.invoices
+      stats: stats?.invoices,
+      category: 'financial'
     },
     {
       title: t('nav.rms'),
       description: t('dashboard.revenueManagement'),
       icon: TrendingUp,
       path: '/rms',
-      color: '#4facfe'
+      color: '#4facfe',
+      category: 'revenue'
     },
     {
       title: 'Cost Management',
@@ -130,7 +133,8 @@ const Dashboard = ({ user, tenant, onLogout }) => {
       icon: TrendingUp,
       path: '/cost-management',
       color: '#f093fb',
-      badge: 'NEW'
+      badge: 'NEW',
+      category: 'financial'
     },
     {
       title: 'Housekeeping',
@@ -138,7 +142,8 @@ const Dashboard = ({ user, tenant, onLogout }) => {
       icon: Hotel,
       path: '/housekeeping',
       color: '#3b82f6',
-      badge: 'NEW'
+      badge: 'NEW',
+      category: 'core'
     },
     {
       title: 'POS Restaurant',
@@ -146,7 +151,8 @@ const Dashboard = ({ user, tenant, onLogout }) => {
       icon: ShoppingCart,
       path: '/pos',
       color: '#f97316',
-      badge: 'NEW'
+      badge: 'NEW',
+      category: 'core'
     },
     {
       title: '✨ New Features',
@@ -154,21 +160,24 @@ const Dashboard = ({ user, tenant, onLogout }) => {
       icon: Award,
       path: '/features',
       color: '#a855f7',
-      badge: 'NEW'
+      badge: 'NEW',
+      category: 'core'
     },
     {
       title: t('nav.loyalty'),
       description: t('dashboard.guestRewards'),
       icon: Award,
       path: '/loyalty',
-      color: '#43e97b'
+      color: '#43e97b',
+      category: 'guest'
     },
     {
       title: t('nav.marketplace'),
       description: t('dashboard.wholesalePurchasing'),
       icon: ShoppingCart,
       path: '/marketplace',
-      color: '#fa709a'
+      color: '#fa709a',
+      category: 'core'
     },
     {
       title: '🏨 Otel Ekipman Stoğu',
@@ -176,7 +185,8 @@ const Dashboard = ({ user, tenant, onLogout }) => {
       icon: Package,
       path: '/hotel-inventory',
       color: '#10b981',
-      badge: 'NEW'
+      badge: 'NEW',
+      category: 'core'
     },
     {
       title: '⚡ Flash Report',
@@ -184,7 +194,8 @@ const Dashboard = ({ user, tenant, onLogout }) => {
       icon: TrendingUp,
       path: '/flash-report',
       color: '#8b5cf6',
-      badge: 'NEW'
+      badge: 'NEW',
+      category: 'management'
     },
     {
       title: '👥 Grup Satış',
@@ -192,7 +203,8 @@ const Dashboard = ({ user, tenant, onLogout }) => {
       icon: Users,
       path: '/group-sales',
       color: '#ec4899',
-      badge: 'NEW'
+      badge: 'NEW',
+      category: 'revenue'
     },
     {
       title: '👑 VIP Yönetimi',
@@ -200,7 +212,8 @@ const Dashboard = ({ user, tenant, onLogout }) => {
       icon: Crown,
       path: '/vip-management',
       color: '#a855f7',
-      badge: 'NEW'
+      badge: 'NEW',
+      category: 'guest'
     },
     {
       title: '📊 Sales CRM',
@@ -208,7 +221,8 @@ const Dashboard = ({ user, tenant, onLogout }) => {
       icon: TrendingUp,
       path: '/sales-crm',
       color: '#3b82f6',
-      badge: 'NEW'
+      badge: 'NEW',
+      category: 'revenue'
     },
     {
       title: '🛡️ Service Recovery',
@@ -216,7 +230,8 @@ const Dashboard = ({ user, tenant, onLogout }) => {
       icon: Shield,
       path: '/service-recovery',
       color: '#ef4444',
-      badge: 'NEW'
+      badge: 'NEW',
+      category: 'guest'
     },
     {
       title: '🧖 Spa & Wellness',
@@ -224,7 +239,8 @@ const Dashboard = ({ user, tenant, onLogout }) => {
       icon: Sparkles,
       path: '/spa-wellness',
       color: '#8b5cf6',
-      badge: 'NEW'
+      badge: 'NEW',
+      category: 'guest'
     },
     {
       title: '🏛️ Meeting & Events',
@@ -232,7 +248,8 @@ const Dashboard = ({ user, tenant, onLogout }) => {
       icon: Calendar,
       path: '/meeting-events',
       color: '#f59e0b',
-      badge: 'NEW'
+      badge: 'NEW',
+      category: 'revenue'
     },
     {
       title: '🤖 AI Chatbot',
@@ -240,7 +257,8 @@ const Dashboard = ({ user, tenant, onLogout }) => {
       icon: Bot,
       path: '/ai-chatbot',
       color: '#06b6d4',
-      badge: 'NEW'
+      badge: 'NEW',
+      category: 'ai'
     },
     {
       title: '🤖 AI Dynamic Pricing',
@@ -248,7 +266,8 @@ const Dashboard = ({ user, tenant, onLogout }) => {
       icon: TrendingUp,
       path: '/dynamic-pricing',
       color: '#8b5cf6',
-      badge: 'AI'
+      badge: 'AI',
+      category: 'ai'
     },
     {
       title: '⭐ Reputation Center',
@@ -256,7 +275,8 @@ const Dashboard = ({ user, tenant, onLogout }) => {
       icon: Star,
       path: '/reputation-center',
       color: '#f59e0b',
-      badge: 'NEW'
+      badge: 'NEW',
+      category: 'guest'
     },
     {
       title: '🏢 Multi-Property',
@@ -264,7 +284,8 @@ const Dashboard = ({ user, tenant, onLogout }) => {
       icon: Building,
       path: '/multi-property',
       color: '#06b6d4',
-      badge: 'NEW'
+      badge: 'NEW',
+      category: 'management'
     },
     {
       title: '💳 Payment Gateway',
@@ -272,7 +293,8 @@ const Dashboard = ({ user, tenant, onLogout }) => {
       icon: CreditCard,
       path: '/payment-gateway',
       color: '#10b981',
-      badge: 'NEW'
+      badge: 'NEW',
+      category: 'financial'
     },
     {
       title: '🎯 Advanced Loyalty',
@@ -280,7 +302,8 @@ const Dashboard = ({ user, tenant, onLogout }) => {
       icon: Gift,
       path: '/advanced-loyalty',
       color: '#f59e0b',
-      badge: 'NEW'
+      badge: 'NEW',
+      category: 'guest'
     },
     {
       title: '🌍 GDS Integration',
@@ -288,7 +311,8 @@ const Dashboard = ({ user, tenant, onLogout }) => {
       icon: Globe,
       path: '/gds-integration',
       color: '#3b82f6',
-      badge: 'NEW'
+      badge: 'NEW',
+      category: 'revenue'
     },
     {
       title: '👥 Staff Management',
@@ -296,7 +320,8 @@ const Dashboard = ({ user, tenant, onLogout }) => {
       icon: Users,
       path: '/staff-management',
       color: '#10b981',
-      badge: 'NEW'
+      badge: 'NEW',
+      category: 'management'
     },
     {
       title: '🛤️ Guest Journey',
@@ -304,7 +329,8 @@ const Dashboard = ({ user, tenant, onLogout }) => {
       icon: TrendingUp,
       path: '/guest-journey',
       color: '#8b5cf6',
-      badge: 'NEW'
+      badge: 'NEW',
+      category: 'guest'
     },
     {
       title: '📋 Arrival List',
@@ -312,7 +338,8 @@ const Dashboard = ({ user, tenant, onLogout }) => {
       icon: UserCheck,
       path: '/arrival-list',
       color: '#10b981',
-      badge: 'NEW'
+      badge: 'NEW',
+      category: 'core'
     },
     {
       title: '🤖 AI WhatsApp Concierge',
@@ -320,7 +347,8 @@ const Dashboard = ({ user, tenant, onLogout }) => {
       icon: MessageCircle,
       path: '/ai-whatsapp-concierge',
       color: '#10b981',
-      badge: 'GAME-CHANGER'
+      badge: 'GAME-CHANGER',
+      category: 'ai'
     },
     {
       title: '🔮 Predictive Analytics',
@@ -328,7 +356,8 @@ const Dashboard = ({ user, tenant, onLogout }) => {
       icon: Target,
       path: '/predictive-analytics',
       color: '#8b5cf6',
-      badge: 'GAME-CHANGER'
+      badge: 'GAME-CHANGER',
+      category: 'ai'
     },
     {
       title: '📡 Social Media Radar',
@@ -336,7 +365,8 @@ const Dashboard = ({ user, tenant, onLogout }) => {
       icon: Instagram,
       path: '/social-media-radar',
       color: '#ec4899',
-      badge: 'GAME-CHANGER'
+      badge: 'GAME-CHANGER',
+      category: 'ai'
     },
     {
       title: '⚡ Revenue Autopilot',
@@ -344,9 +374,31 @@ const Dashboard = ({ user, tenant, onLogout }) => {
       icon: Zap,
       path: '/revenue-autopilot',
       color: '#8b5cf6',
-      badge: 'GAME-CHANGER'
+      badge: 'GAME-CHANGER',
+      category: 'ai'
     }
   ], [t, stats]);
+
+  // Kategorilere göre modülleri grupla
+  const categorizedModules = useMemo(() => {
+    const categories = {
+      core: { title: '🏨 Core Operations', color: 'blue', modules: [] },
+      revenue: { title: '💰 Revenue & Sales', color: 'green', modules: [] },
+      guest: { title: '👤 Guest Experience', color: 'purple', modules: [] },
+      ai: { title: '🤖 AI & Game-Changers', color: 'pink', modules: [] },
+      financial: { title: '💵 Financial', color: 'emerald', modules: [] },
+      management: { title: '📊 Management & Reports', color: 'indigo', modules: [] }
+    };
+
+    modules.forEach(module => {
+      const category = module.category || 'core';
+      if (categories[category]) {
+        categories[category].modules.push(module);
+      }
+    });
+
+    return categories;
+  }, [modules]);
 
   return (
     <Layout user={user} tenant={tenant} onLogout={onLogout} currentModule="dashboard">
