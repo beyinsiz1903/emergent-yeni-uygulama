@@ -313,6 +313,22 @@ const Dashboard = ({ user, tenant, onLogout }) => {
       path: '/arrival-list',
       color: '#10b981',
       badge: 'NEW'
+    },
+    {
+      title: '🤖 AI WhatsApp Concierge',
+      description: '24/7 Otomatik misafir hizmeti - Sıfır insan',
+      icon: MessageCircle,
+      path: '/ai-whatsapp-concierge',
+      color: '#10b981',
+      badge: 'GAME-CHANGER'
+    },
+    {
+      title: '🔮 Predictive Analytics',
+      description: 'No-show, talep, şikayet tahminleri - AI Oracle',
+      icon: Target,
+      path: '/predictive-analytics',
+      color: '#8b5cf6',
+      badge: 'GAME-CHANGER'
     }
   ], [t, stats]);
 
