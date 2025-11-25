@@ -435,61 +435,100 @@ const AuthPage = ({ onLogin }) => {
                   </TabsContent>
                   
                   <TabsContent value="register">
-                    <form onSubmit={handleHotelRegister} className="space-y-4">
-                      <div>
-                        <Label>Property Name</Label>
-                        <Input
-                          value={hotelRegisterData.property_name}
-                          onChange={(e) => setHotelRegisterData({...hotelRegisterData, property_name: e.target.value})}
-                          required
-                        />
+                    {registrationStep === 'form' ? (
+                      <form onSubmit={handleRequestVerification} className="space-y-4">
+                        <div>
+                          <Label>Otel Adı</Label>
+                          <Input
+                            value={hotelRegisterData.property_name}
+                            onChange={(e) => setHotelRegisterData({...hotelRegisterData, property_name: e.target.value})}
+                            required
+                            placeholder="Grand Hotel"
+                          />
+                        </div>
+                        <div>
+                          <Label>Yetkili Adı Soyadı</Label>
+                          <Input
+                            value={hotelRegisterData.name}
+                            onChange={(e) => setHotelRegisterData({...hotelRegisterData, name: e.target.value})}
+                            required
+                            placeholder="Ahmet Yılmaz"
+                          />
+                        </div>
+                        <div>
+                          <Label>E-posta</Label>
+                          <Input
+                            type="email"
+                            value={hotelRegisterData.email}
+                            onChange={(e) => setHotelRegisterData({...hotelRegisterData, email: e.target.value})}
+                            required
+                            placeholder="ornek@hotel.com"
+                          />
+                        </div>
+                        <div>
+                          <Label>Telefon</Label>
+                          <Input
+                            value={hotelRegisterData.phone}
+                            onChange={(e) => setHotelRegisterData({...hotelRegisterData, phone: e.target.value})}
+                            required
+                            placeholder="+90 555 123 45 67"
+                          />
+                        </div>
+                        <div>
+                          <Label>Şifre</Label>
+                          <Input
+                            type="password"
+                            value={hotelRegisterData.password}
+                            onChange={(e) => setHotelRegisterData({...hotelRegisterData, password: e.target.value})}
+                            required
+                            minLength={6}
+                            placeholder="En az 6 karakter"
+                          />
+                        </div>
+                        <Button type="submit" className="w-full" disabled={loading}>
+                          {loading ? 'Gönderiliyor...' : 'Doğrulama Kodu Gönder'}
+                        </Button>
+                      </form>
+                    ) : (
+                      <div className="space-y-4">
+                        <div className="bg-blue-50 p-4 rounded-lg">
+                          <p className="text-sm text-blue-800 font-medium mb-2">
+                            📧 E-posta Doğrulama
+                          </p>
+                          <p className="text-xs text-blue-600">
+                            <strong>{hotelRegisterData.email}</strong> adresine 6 haneli bir doğrulama kodu gönderdik. 
+                            Lütfen e-postanızı kontrol edin.
+                          </p>
+                        </div>
+                        <form onSubmit={handleVerifyCode} className="space-y-4">
+                          <div>
+                            <Label>Doğrulama Kodu</Label>
+                            <Input
+                              type="text"
+                              value={verificationCode}
+                              onChange={(e) => setVerificationCode(e.target.value)}
+                              required
+                              placeholder="123456"
+                              maxLength={6}
+                              style={{ fontSize: '18px', letterSpacing: '4px', textAlign: 'center' }}
+                            />
+                            <p className="text-xs text-gray-500 mt-1">
+                              Kod 15 dakika geçerlidir
+                            </p>
+                          </div>
+                          <Button type="submit" className="w-full" disabled={loading}>
+                            {loading ? 'Doğrulanıyor...' : 'Hesabımı Oluştur'}
+                          </Button>
+                          <button
+                            type="button"
+                            onClick={() => setRegistrationStep('form')}
+                            className="text-sm text-blue-600 hover:text-blue-800 w-full text-center"
+                          >
+                            ← Geri Dön
+                          </button>
+                        </form>
                       </div>
-                      <div>
-                        <Label>Admin Name</Label>
-                        <Input
-                          value={hotelRegisterData.name}
-                          onChange={(e) => setHotelRegisterData({...hotelRegisterData, name: e.target.value})}
-                          required
-                        />
-                      </div>
-                      <div>
-                        <Label>Email</Label>
-                        <Input
-                          type="email"
-                          value={hotelRegisterData.email}
-                          onChange={(e) => setHotelRegisterData({...hotelRegisterData, email: e.target.value})}
-                          required
-                        />
-                      </div>
-                      <div>
-                        <Label>Phone</Label>
-                        <Input
-                          value={hotelRegisterData.phone}
-                          onChange={(e) => setHotelRegisterData({...hotelRegisterData, phone: e.target.value})}
-                          required
-                        />
-                      </div>
-                      <div>
-                        <Label>Address</Label>
-                        <Input
-                          value={hotelRegisterData.address}
-                          onChange={(e) => setHotelRegisterData({...hotelRegisterData, address: e.target.value})}
-                          required
-                        />
-                      </div>
-                      <div>
-                        <Label>Password</Label>
-                        <Input
-                          type="password"
-                          value={hotelRegisterData.password}
-                          onChange={(e) => setHotelRegisterData({...hotelRegisterData, password: e.target.value})}
-                          required
-                        />
-                      </div>
-                      <Button type="submit" className="w-full" disabled={loading}>
-                        {loading ? 'Registering...' : 'Register Property'}
-                      </Button>
-                    </form>
+                    )}
                   </TabsContent>
                 </Tabs>
               </TabsContent>
