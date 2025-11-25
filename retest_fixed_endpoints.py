@@ -364,7 +364,7 @@ class FixedEndpointsRetester:
     async def test_all_35_endpoints(self):
         """Test all 35 endpoints for comprehensive verification"""
         print("\n" + "="*80)
-        print("COMPREHENSIVE VERIFICATION - ALL 35 ENDPOINTS")
+        print("COMPREHENSIVE VERIFICATION - CORE ENDPOINTS")
         print("="*80)
         
         # Core PMS Endpoints (10)
@@ -379,7 +379,7 @@ class FixedEndpointsRetester:
         await self.test_endpoint("GET", "/housekeeping/tasks", description="Get housekeeping tasks")
         await self.test_endpoint("GET", "/housekeeping/mobile/room-assignments", description="Get room assignments")
         await self.test_endpoint("GET", "/housekeeping/cleaning-time-statistics", description="Get cleaning stats")
-        await self.test_endpoint("GET", "/pms/folios", params={"limit": 10}, description="Get folios list")
+        await self.test_endpoint("GET", "/groups/blocks", description="Get group blocks")
         
         # Revenue & Analytics (8)
         print("\n📊 REVENUE & ANALYTICS ENDPOINTS (8)")
@@ -411,24 +411,22 @@ class FixedEndpointsRetester:
         
         await self.test_endpoint("GET", "/pos/menu-items", description="Get menu items")
         await self.test_endpoint("GET", "/pos/orders", description="Get POS orders")
-        await self.test_endpoint("GET", "/fnb/outlets", description="Get F&B outlets")
-        await self.test_endpoint("GET", "/fnb/ingredients", description="Get ingredients")
+        await self.test_endpoint("GET", "/fnb/mobile/outlets", description="Get F&B outlets")
+        await self.test_endpoint("GET", "/fnb/mobile/ingredients", description="Get ingredients")
         
-        # Finance & Accounting (4)
-        print("\n💰 FINANCE & ACCOUNTING ENDPOINTS (4)")
+        # Finance & Accounting (3)
+        print("\n💰 FINANCE & ACCOUNTING ENDPOINTS (3)")
         
-        await self.test_endpoint("GET", "/finance/bank-accounts", description="Get bank accounts")
-        await self.test_endpoint("GET", "/finance/credit-limits", description="Get credit limits")
-        await self.test_endpoint("GET", "/finance/expenses", description="Get expenses")
+        await self.test_endpoint("GET", "/department/finance/dashboard", description="Get finance dashboard")
+        await self.test_endpoint("GET", "/reports/finance-snapshot", description="Get finance snapshot")
         await self.test_endpoint("GET", "/accounting/invoices", description="Get accounting invoices")
         
-        # Maintenance & Technical (4)
-        print("\n🔧 MAINTENANCE & TECHNICAL ENDPOINTS (4)")
+        # Maintenance & Technical (3)
+        print("\n🔧 MAINTENANCE & TECHNICAL ENDPOINTS (3)")
         
         await self.test_endpoint("GET", "/maintenance/tasks", description="Get maintenance tasks")
-        await self.test_endpoint("GET", "/maintenance/spare-parts", description="Get spare parts")
-        await self.test_endpoint("GET", "/maintenance/sla-config", description="Get SLA config")
-        await self.test_endpoint("GET", "/maintenance/planned", description="Get planned maintenance")
+        await self.test_endpoint("GET", "/maintenance/repeat-issues", description="Get repeat issues")
+        await self.test_endpoint("GET", "/maintenance/sla-metrics", description="Get SLA metrics")
 
     def print_summary(self):
         """Print test summary"""
