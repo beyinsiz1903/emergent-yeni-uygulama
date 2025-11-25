@@ -88,6 +88,8 @@ const GDSIntegration = lazy(() => import("@/pages/GDSIntegration"));
 const StaffManagement = lazy(() => import("@/pages/StaffManagement"));
 const GuestJourney = lazy(() => import("@/pages/GuestJourney"));
 const ArrivalList = lazy(() => import("@/pages/ArrivalList"));
+const AIWhatsAppConcierge = lazy(() => import("@/pages/AIWhatsAppConcierge"));
+const PredictiveAnalytics = lazy(() => import("@/pages/PredictiveAnalytics"));
 
 import { Toaster } from "@/components/ui/sonner";
 
