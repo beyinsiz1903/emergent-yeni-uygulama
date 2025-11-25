@@ -2498,7 +2498,10 @@ async def reset_password(data: ResetPasswordRequest):
         raise HTTPException(status_code=400, detail="Geçersiz veya kullanılmış sıfırlama kodu")
     
     # Kod süresi dolmuş mu kontrol et
-    if datetime.now(timezone.utc) > reset['expires_at']:
+    expires_at = reset['expires_at']
+    if not expires_at.tzinfo:
+        expires_at = expires_at.replace(tzinfo=timezone.utc)
+    if datetime.now(timezone.utc) > expires_at:
         await db.password_reset_codes.delete_one({'_id': reset['_id']})
         raise HTTPException(status_code=400, detail="Sıfırlama kodu süresi dolmuş. Lütfen yeni kod isteyin")
     
