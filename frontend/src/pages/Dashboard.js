@@ -329,6 +329,22 @@ const Dashboard = ({ user, tenant, onLogout }) => {
       path: '/predictive-analytics',
       color: '#8b5cf6',
       badge: 'GAME-CHANGER'
+    },
+    {
+      title: '📡 Social Media Radar',
+      description: 'Instagram, Twitter, Facebook monitoring - Real-time',
+      icon: Instagram,
+      path: '/social-media-radar',
+      color: '#ec4899',
+      badge: 'GAME-CHANGER'
+    },
+    {
+      title: '⚡ Revenue Autopilot',
+      description: 'Tam otomatik revenue optimization - Sıfır müdahale',
+      icon: Zap,
+      path: '/revenue-autopilot',
+      color: '#8b5cf6',
+      badge: 'GAME-CHANGER'
     }
   ], [t, stats]);
 
