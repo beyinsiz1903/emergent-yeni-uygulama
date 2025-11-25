@@ -3406,6 +3406,11 @@ async def get_sentiment(guest_id: str, current_user: User = Depends(get_current_
     reviews = await db.reviews.find({'guest_id': guest_id}, {'_id': 0, 'rating': 1}).to_list(100)
     avg = sum([r.get('rating', 3) for r in reviews]) / len(reviews) if reviews else 3
     return {
+        'guest_id': guest_id,
+        'sentiment': 'positive' if avg >= 4 else 'neutral' if avg >= 3 else 'negative',
+        'avg_rating': round(avg, 2),
+        'total_reviews': len(reviews)
+    }
 
 
 # ============= AI DYNAMIC PRICING (MARKET LEADER FEATURE) =============
