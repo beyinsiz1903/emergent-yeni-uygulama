@@ -76,6 +76,9 @@ const GroupSales = lazy(() => import("@/pages/GroupSales"));
 const VIPManagement = lazy(() => import("@/pages/VIPManagement"));
 const SalesCRM = lazy(() => import("@/pages/SalesCRM"));
 const ServiceRecovery = lazy(() => import("@/pages/ServiceRecovery"));
+const SpaWellness = lazy(() => import("@/pages/SpaWellness"));
+const MeetingEvents = lazy(() => import("@/pages/MeetingEvents"));
+const AIChatbot = lazy(() => import("@/pages/AIChatbot"));
 
 import { Toaster } from "@/components/ui/sonner";
 
