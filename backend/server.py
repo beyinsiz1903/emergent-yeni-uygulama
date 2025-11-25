@@ -3348,6 +3348,61 @@ async def create_complaint(
     complaint = {
         'id': str(uuid.uuid4()),
         'tenant_id': current_user.tenant_id,
+
+
+# ============= SPA & WELLNESS (FAZ 3) =============
+
+@api_router.post("/spa/appointments")
+async def create_spa_appointment(appointment_data: dict, current_user: User = Depends(get_current_user)):
+    appointment = {
+        'id': str(uuid.uuid4()), 'tenant_id': current_user.tenant_id,
+        **appointment_data, 'status': 'confirmed',
+        'created_at': datetime.now(timezone.utc).isoformat()
+    }
+    await db.spa_appointments.insert_one(appointment)
+    return {'success': True, 'appointment_id': appointment['id']}
+
+@api_router.get("/spa/appointments")
+async def get_spa_appointments(current_user: User = Depends(get_current_user)):
+    appointments = await db.spa_appointments.find({'tenant_id': current_user.tenant_id}, {'_id': 0}).to_list(100)
+    return {'appointments': appointments, 'total': len(appointments)}
+
+# ============= MEETINGS & EVENTS (FAZ 3) =============
+
+@api_router.post("/events/bookings")
+async def create_event_booking(event_data: dict, current_user: User = Depends(get_current_user)):
+    event = {
+        'id': str(uuid.uuid4()), 'tenant_id': current_user.tenant_id,
+        **event_data, 'status': 'confirmed',
+        'created_at': datetime.now(timezone.utc).isoformat()
+    }
+    await db.event_bookings.insert_one(event)
+    return {'success': True, 'event_id': event['id']}
+
+@api_router.get("/events/bookings")
+async def get_event_bookings(current_user: User = Depends(get_current_user)):
+    events = await db.event_bookings.find({'tenant_id': current_user.tenant_id}, {'_id': 0}).to_list(100)
+    return {'events': events, 'total': len(events)}
+
+# ============= AI CHATBOT & ANALYTICS (FAZ 4) =============
+
+@api_router.post("/ai/chat")
+async def ai_chat(message_data: dict, current_user: User = Depends(get_current_user)):
+    response_text = "Merhaba! Size nasıl yardımcı olabilirim?"
+    if 'rezervasyon' in message_data['message'].lower():
+        response_text = "Rezervasyon için lütfen tarih ve oda tipini belirtin."
+    return {'response': response_text}
+
+@api_router.get("/ai/sentiment/{guest_id}")
+async def get_sentiment(guest_id: str, current_user: User = Depends(get_current_user)):
+    reviews = await db.reviews.find({'guest_id': guest_id}, {'_id': 0, 'rating': 1}).to_list(100)
+    avg = sum([r.get('rating', 3) for r in reviews]) / len(reviews) if reviews else 3
+    return {
+        'sentiment': 'positive' if avg >= 4 else 'neutral' if avg >= 3 else 'negative',
+        'score': round((avg - 3) / 2, 2),
+        'based_on_reviews': len(reviews)
+    }
+
         'guest_id': complaint_data.get('guest_id'),
         'booking_id': complaint_data.get('booking_id'),
         'category': complaint_data['category'],
