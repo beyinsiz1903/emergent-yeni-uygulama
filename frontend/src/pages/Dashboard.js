@@ -549,7 +549,7 @@ const Dashboard = ({ user, tenant, onLogout }) => {
             <div className="space-y-4">
               <h2 className="text-xl md:text-2xl font-bold mb-4" style={{ fontFamily: 'Space Grotesk' }}>{t('dashboard.yourModules')}</h2>
               
-              <Accordion type="multiple" defaultValue={['ai', 'core']} className="space-y-3">
+              <Accordion type="multiple" defaultValue={['ai']} className="space-y-3">
                 {Object.entries(categorizedModules).map(([categoryKey, category]) => (
                   category.modules.length > 0 && (
                     <AccordionItem key={categoryKey} value={categoryKey} className="border rounded-lg bg-white shadow-sm">
