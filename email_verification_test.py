@@ -114,7 +114,7 @@ def test_email_verification_flow():
             
             # Extract code from logs
             print_info("Checking backend logs for verification code...")
-            code = extract_code_from_logs()
+            code = extract_code_from_logs("verification")
             
             if code:
                 print_success(f"Found verification code in logs: {code}")
