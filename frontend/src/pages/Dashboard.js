@@ -177,6 +177,22 @@ const Dashboard = ({ user, tenant, onLogout }) => {
       path: '/hotel-inventory',
       color: '#10b981',
       badge: 'NEW'
+    },
+    {
+      title: '⚡ Flash Report',
+      description: 'Günlük performans özeti - Yönetici raporu',
+      icon: TrendingUp,
+      path: '/flash-report',
+      color: '#8b5cf6',
+      badge: 'NEW'
+    },
+    {
+      title: '👥 Grup Satış',
+      description: 'Grup rezervasyonları ve blok yönetimi',
+      icon: Users,
+      path: '/group-sales',
+      color: '#ec4899',
+      badge: 'NEW'
     }
   ], [t, stats]);
 
