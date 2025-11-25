@@ -305,6 +305,14 @@ const Dashboard = ({ user, tenant, onLogout }) => {
       path: '/guest-journey',
       color: '#8b5cf6',
       badge: 'NEW'
+    },
+    {
+      title: '📋 Arrival List',
+      description: 'Bugünün varışları - VIP, grup ve özel istekler',
+      icon: UserCheck,
+      path: '/arrival-list',
+      color: '#10b981',
+      badge: 'NEW'
     }
   ], [t, stats]);
 
