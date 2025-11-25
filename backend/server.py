@@ -3637,13 +3637,6 @@ async def predict_cleaning_time(
     
     return prediction
 
-        'created_at': datetime.now(timezone.utc).isoformat()
-    }
-    
-    await db.service_complaints.insert_one(complaint)
-    
-    return {'success': True, 'message': 'Şikayet kaydedildi', 'complaint_id': complaint['id']}
-
 @api_router.get("/service/complaints")
 async def get_complaints(
     status: Optional[str] = None,
