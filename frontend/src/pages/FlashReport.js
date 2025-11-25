@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { toast } from 'sonner';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -6,10 +7,11 @@ import { Button } from '@/components/ui/button';
 import { 
   TrendingUp, Users, DollarSign, Calendar, 
   ArrowUpRight, ArrowDownRight, Minus,
-  Hotel, LogOut, UserCheck, XCircle, Coffee, Sparkles
+  Hotel, LogOut, UserCheck, XCircle, Coffee, Sparkles, Home
 } from 'lucide-react';
 
 const FlashReport = () => {
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [report, setReport] = useState(null);
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
