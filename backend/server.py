@@ -4345,15 +4345,18 @@ async def add_ingredient(ing_data: dict, current_user: User = Depends(get_curren
 # ============= FINANCE INTEGRATION (FINANS MÜDÜRÜ İÇİN) =============
 
 @api_router.post("/finance/logo-integration/sync")
-async def sync_with_logo(current_user: User = Depends(get_current_user)):
+async def sync_with_logo(sync_data: dict = None, current_user: User = Depends(get_current_user)):
     """Logo Tiger entegrasyonu (simulated)"""
     # Gercekte: Logo Tiger API call
     result = {
+        'id': str(uuid.uuid4()),
+        'tenant_id': current_user.tenant_id,
         'success': True, 'synced_invoices': 45, 'synced_payments': 23,
         'synced_at': datetime.now(timezone.utc).isoformat()
     }
     await db.accounting_sync_logs.insert_one(result)
-    return result
+    return {'success': result['success'], 'synced_invoices': result['synced_invoices'], 
+            'synced_payments': result['synced_payments'], 'synced_at': result['synced_at']}
 
 @api_router.get("/finance/budget-vs-actual")
 async def budget_vs_actual(month: str, current_user: User = Depends(get_current_user)):
