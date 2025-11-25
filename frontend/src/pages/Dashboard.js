@@ -545,21 +545,25 @@ const Dashboard = ({ user, tenant, onLogout }) => {
               </div>
             )}
 
-            {/* Modules Grid - Categorized */}
-            <div className="space-y-8">
+            {/* Modules Grid - Categorized with Accordion */}
+            <div className="space-y-4">
               <h2 className="text-xl md:text-2xl font-bold mb-4" style={{ fontFamily: 'Space Grotesk' }}>{t('dashboard.yourModules')}</h2>
               
-              {Object.entries(categorizedModules).map(([categoryKey, category]) => (
-                category.modules.length > 0 && (
-                  <div key={categoryKey}>
-                    <div className="flex items-center gap-2 mb-4">
-                      <h3 className="text-lg font-bold text-gray-700">{category.title}</h3>
-                      <Badge variant="outline" className="text-xs">
-                        {category.modules.length} modül
-                      </Badge>
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                      {category.modules.map((module) => {
+              <Accordion type="multiple" defaultValue={['ai', 'core']} className="space-y-3">
+                {Object.entries(categorizedModules).map(([categoryKey, category]) => (
+                  category.modules.length > 0 && (
+                    <AccordionItem key={categoryKey} value={categoryKey} className="border rounded-lg bg-white shadow-sm">
+                      <AccordionTrigger className="px-4 py-3 hover:no-underline hover:bg-gray-50">
+                        <div className="flex items-center gap-3 flex-1">
+                          <h3 className="text-lg font-bold text-gray-800">{category.title}</h3>
+                          <Badge variant="outline" className="text-xs">
+                            {category.modules.length} modül
+                          </Badge>
+                        </div>
+                      </AccordionTrigger>
+                      <AccordionContent className="px-4 pb-4 pt-2">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                          {category.modules.map((module) => {
                         const Icon = module.icon;
                         return (
                           <Card 
