@@ -73,6 +73,7 @@ import POSDashboard from "@/pages/POSDashboard";
 const OnlineCheckin = lazy(() => import("@/pages/OnlineCheckin"));
 const FlashReport = lazy(() => import("@/pages/FlashReport"));
 const GroupSales = lazy(() => import("@/pages/GroupSales"));
+const VIPManagement = lazy(() => import("@/pages/VIPManagement"));
 
 import { Toaster } from "@/components/ui/sonner";
 
