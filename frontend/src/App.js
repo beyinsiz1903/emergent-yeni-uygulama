@@ -81,6 +81,9 @@ const MeetingEvents = lazy(() => import("@/pages/MeetingEvents"));
 const AIChatbot = lazy(() => import("@/pages/AIChatbot"));
 const DynamicPricing = lazy(() => import("@/pages/DynamicPricing"));
 const ReputationCenter = lazy(() => import("@/pages/ReputationCenter"));
+const MultiProperty = lazy(() => import("@/pages/MultiProperty"));
+const PaymentGateway = lazy(() => import("@/pages/PaymentGateway"));
+const AdvancedLoyalty = lazy(() => import("@/pages/AdvancedLoyalty"));
 
 import { Toaster } from "@/components/ui/sonner";
 
