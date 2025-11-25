@@ -3,7 +3,7 @@ Reputation Management System
 Review aggregation, sentiment analysis, auto-response
 """
 import random
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from typing import List, Dict
 
 class ReputationManager:
