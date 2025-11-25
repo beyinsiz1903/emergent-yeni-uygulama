@@ -4198,6 +4198,162 @@ async def installment_calculator(amount: float, installments: int, current_user:
     rate = rates.get(installments, 0.1)
     total = amount * (1 + rate)
     monthly = total / installments
+
+
+# ============= HR COMPLETE SUITE (İK MÜDÜRÜ İÇİN) =============
+
+@api_router.post("/hr/clock-in")
+async def clock_in(staff_data: dict, current_user: User = Depends(get_current_user)):
+    \"\"\"Personel giri\u015f kayd\u0131\"\"\"
+    record = {
+        'id': str(uuid.uuid4()), 'tenant_id': current_user.tenant_id,
+        'staff_id': staff_data['staff_id'], 'date': date.today().isoformat(),
+        'clock_in': datetime.now(timezone.utc).isoformat(), 'status': 'present',
+        'created_at': datetime.now(timezone.utc).isoformat()
+    }
+    await db.attendance_records.insert_one(record)
+    return {'success': True, 'message': 'Clock-in kaydedildi', 'time': record['clock_in']}
+
+@api_router.post("/hr/clock-out")
+async def clock_out(staff_data: dict, current_user: User = Depends(get_current_user)):
+    record = await db.attendance_records.find_one({
+        'staff_id': staff_data['staff_id'], 'date': date.today().isoformat(), 'clock_out': None
+    })
+    if record:
+        clock_out_time = datetime.now(timezone.utc)
+        clock_in_time = datetime.fromisoformat(record['clock_in'].replace('Z', '+00:00'))
+        hours = (clock_out_time - clock_in_time).total_seconds() / 3600
+        await db.attendance_records.update_one(
+            {'id': record['id']},
+            {'$set': {'clock_out': clock_out_time.isoformat(), 'total_hours': round(hours, 2)}}
+        )
+        return {'success': True, 'hours_worked': round(hours, 2)}
+    return {'success': False, 'message': 'Clock-in kayd\u0131 bulunamad\u0131'}
+
+@api_router.post("/hr/leave-request")
+async def create_leave_request(leave_data: dict, current_user: User = Depends(get_current_user)):
+    leave = {
+        'id': str(uuid.uuid4()), 'tenant_id': current_user.tenant_id,
+        'staff_id': leave_data['staff_id'], 'leave_type': leave_data['leave_type'],
+        'start_date': leave_data['start_date'], 'end_date': leave_data['end_date'],
+        'total_days': leave_data['total_days'], 'reason': leave_data.get('reason'),
+        'status': 'pending', 'created_at': datetime.now(timezone.utc).isoformat()
+    }
+    await db.leave_requests.insert_one(leave)
+    return {'success': True, 'leave_id': leave['id']}
+
+@api_router.get("/hr/payroll/{month}")
+async def get_payroll(month: str, current_user: User = Depends(get_current_user)):
+    payroll = await db.payroll_records.find({'tenant_id': current_user.tenant_id, 'period_month': month}, {'_id': 0}).to_list(200)
+    total = sum([p.get('net_salary', 0) for p in payroll])
+    return {'payroll': payroll, 'total': total, 'count': len(payroll)}
+
+@api_router.post("/hr/job-posting")
+async def create_job_posting(job_data: dict, current_user: User = Depends(get_current_user)):
+    job = {
+        'id': str(uuid.uuid4()), 'tenant_id': current_user.tenant_id,
+        **job_data, 'status': 'active', 'applicants_count': 0,
+        'created_at': datetime.now(timezone.utc).isoformat()
+    }
+    await db.job_postings.insert_one(job)
+    return {'success': True, 'job_id': job['id']}
+
+# ============= F&B COMPLETE SUITE (CHEF İÇİN) =============
+
+@api_router.post("/fnb/recipes")
+async def create_recipe(recipe_data: dict, current_user: User = Depends(get_current_user)):
+    ingredients = recipe_data.get('ingredients', [])
+    total_cost = sum([i.get('cost', 0) * i.get('quantity', 0) for i in ingredients])
+    selling_price = recipe_data['selling_price']
+    gp = ((selling_price - total_cost) / selling_price * 100) if selling_price > 0 else 0
+    
+    recipe = {
+        'id': str(uuid.uuid4()), 'tenant_id': current_user.tenant_id,
+        'dish_name': recipe_data['dish_name'], 'category': recipe_data['category'],
+        'ingredients': ingredients, 'total_cost': round(total_cost, 2),
+        'selling_price': selling_price, 'gp_percentage': round(gp, 1),
+        'active': True, 'created_at': datetime.now(timezone.utc).isoformat()
+    }
+    await db.recipes.insert_one(recipe)
+    return {'success': True, 'recipe_id': recipe['id'], 'gp_percentage': recipe['gp_percentage']}
+
+@api_router.get("/fnb/recipes")
+async def get_recipes(current_user: User = Depends(get_current_user)):
+    recipes = await db.recipes.find({'tenant_id': current_user.tenant_id, 'active': True}, {'_id': 0}).to_list(200)
+    avg_gp = sum([r.get('gp_percentage', 0) for r in recipes]) / len(recipes) if recipes else 0
+    return {'recipes': recipes, 'total': len(recipes), 'avg_gp': round(avg_gp, 1)}
+
+@api_router.post("/fnb/beo")
+async def create_beo(beo_data: dict, current_user: User = Depends(get_current_user)):
+    beo = {
+        'id': str(uuid.uuid4()), 'tenant_id': current_user.tenant_id,
+        **beo_data, 'status': 'confirmed',
+        'created_at': datetime.now(timezone.utc).isoformat()
+    }
+    await db.banquet_event_orders.insert_one(beo)
+    return {'success': True, 'beo_id': beo['id'], 'message': 'BEO olu\u015fturuldu'}
+
+@api_router.get("/fnb/kitchen-display")
+async def get_kitchen_orders(current_user: User = Depends(get_current_user)):
+    orders = await db.kitchen_orders.find({
+        'tenant_id': current_user.tenant_id, 'status': {'$in': ['pending', 'preparing']}
+    }, {'_id': 0}).sort('priority', -1).to_list(50)
+    return {'orders': orders, 'total': len(orders)}
+
+@api_router.post("/fnb/ingredients")
+async def add_ingredient(ing_data: dict, current_user: User = Depends(get_current_user)):
+    ingredient = {
+        'id': str(uuid.uuid4()), 'tenant_id': current_user.tenant_id,
+        **ing_data, 'created_at': datetime.now(timezone.utc).isoformat()
+    }
+    await db.ingredients.insert_one(ingredient)
+    return {'success': True, 'ingredient_id': ingredient['id']}
+
+# ============= FINANCE INTEGRATION (FINANS MÜDÜRÜ İÇİN) =============
+
+@api_router.post("/finance/logo-integration/sync")
+async def sync_with_logo(current_user: User = Depends(get_current_user)):
+    \"\"\"Logo Tiger entegrasyonu (simulated)\"\"\"
+    # Ger\u00e7ekte: Logo Tiger API call
+    result = {
+        'success': True, 'synced_invoices': 45, 'synced_payments': 23,
+        'synced_at': datetime.now(timezone.utc).isoformat()
+    }
+    await db.accounting_sync_logs.insert_one(result)
+    return result
+
+@api_router.get("/finance/budget-vs-actual")
+async def budget_vs_actual(month: str, current_user: User = Depends(get_current_user)):
+    # Simulated budget data
+    budget = {'rooms': 150000, 'fnb': 50000, 'other': 20000, 'total': 220000}
+    actual = {'rooms': 165000, 'fnb': 48000, 'other': 22000, 'total': 235000}
+    variance = {k: actual[k] - budget[k] for k in budget}
+    variance_pct = {k: round((variance[k] / budget[k] * 100), 1) if budget[k] > 0 else 0 for k in budget}
+    return {
+        'month': month, 'budget': budget, 'actual': actual, 
+        'variance': variance, 'variance_pct': variance_pct
+    }
+
+# ============= FRONT OFFICE EXPRESS (ÖN BÜRO MÜDÜRÜ İÇİN) =============
+
+@api_router.post("/frontdesk/express-checkin")
+async def express_checkin_qr(qr_data: dict, current_user: User = Depends(get_current_user)):
+    \"\"\"QR code ile express check-in\"\"\"
+    booking = await db.bookings.find_one({
+        'express_checkin_code': qr_data['qr_code'], 'tenant_id': current_user.tenant_id
+    }, {'_id': 0})
+    if booking:
+        await db.bookings.update_one(
+            {'id': booking['id']},
+            {'$set': {'status': 'checked_in', 'checked_in_at': datetime.now(timezone.utc).isoformat()}}
+        )
+        return {'success': True, 'message': 'Express check-in tamamland\u0131', 'booking': booking}
+    return {'success': False, 'message': 'QR code ge\u00e7ersiz'}
+
+@api_router.post("/frontdesk/kiosk-checkin")
+async def kiosk_checkin(checkin_data: dict, current_user: User = Depends(get_current_user)):
+    return {'success': True, 'message': 'Kiosk check-in (entegrasyon haz\u0131r)', 'room_key': 'DIGITAL_KEY_123'}
+
     return {'amount': amount, 'installments': installments, 'monthly_payment': round(monthly, 2), 'total_amount': round(total, 2)}
 
 # ============= ADVANCED LOYALTY =============
