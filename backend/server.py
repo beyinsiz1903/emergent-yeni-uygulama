@@ -4406,7 +4406,7 @@ async def create_group_block(
     await db.group_blocks.insert_one(block)
     
     # Create master folio if billing type is master_account
-    if request.billing_type == BillingType.MASTER_ACCOUNT:
+    if block['billing_type'] == 'master_account':
         master_folio = {
             'id': str(uuid.uuid4()),
             'tenant_id': current_user.tenant_id,
