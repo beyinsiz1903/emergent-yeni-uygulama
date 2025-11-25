@@ -281,6 +281,30 @@ const Dashboard = ({ user, tenant, onLogout }) => {
       path: '/advanced-loyalty',
       color: '#f59e0b',
       badge: 'NEW'
+    },
+    {
+      title: '🌍 GDS Integration',
+      description: 'Amadeus, Sabre, Galileo entegrasyonu',
+      icon: Globe,
+      path: '/gds-integration',
+      color: '#3b82f6',
+      badge: 'NEW'
+    },
+    {
+      title: '👥 Staff Management',
+      description: 'Personel, vardiya ve performans yönetimi',
+      icon: Users,
+      path: '/staff-management',
+      color: '#10b981',
+      badge: 'NEW'
+    },
+    {
+      title: '🛤️ Guest Journey',
+      description: 'Misafir yolculuğu ve NPS tracking',
+      icon: TrendingUp,
+      path: '/guest-journey',
+      color: '#8b5cf6',
+      badge: 'NEW'
     }
   ], [t, stats]);
 
