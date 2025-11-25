@@ -3954,22 +3954,6 @@ async def get_loyalty_member(guest_id: str, current_user: User = Depends(get_cur
         member = {'guest_id': guest_id, 'total_points': 0, 'tier': 'bronze'}
     return {'member': member}
 
-    return {'complaints': complaints, 'total': len(complaints)}
-
-        if guest:
-            enriched.append({
-                **protocol,
-                'guest_name': guest.get('name'),
-                'guest_email': guest.get('email'),
-                'guest_phone': guest.get('phone')
-            })
-    
-    return {
-        'vip_guests': enriched,
-        'total': len(enriched),
-        'tier_filter': tier
-    }
-
 @api_router.get("/celebrations/upcoming")
 async def get_upcoming_celebrations(
     days: int = 30,
