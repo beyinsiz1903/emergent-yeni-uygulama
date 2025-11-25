@@ -3648,6 +3648,52 @@ async def get_complaints(
     
     complaints = await db.service_complaints.find(query, {'_id': 0}).sort('created_at', -1).to_list(100)
     
+
+
+# ============= MULTI-PROPERTY MANAGEMENT =============
+
+@api_router.get("/multi-property/dashboard")
+async def multi_property_dashboard(current_user: User = Depends(get_current_user)):
+    properties = [{'property_id': current_user.tenant_id, 'property_name': 'Grand Hotel', 'occupancy_pct': 75, 'total_rooms': 50}]
+    return {'properties': properties, 'total_properties': 1}
+
+# ============= PAYMENT GATEWAY =============
+
+@api_router.post("/payments/create-intent")
+async def create_payment_intent(payment_data: dict, current_user: User = Depends(get_current_user)):
+    intent = {
+        'id': str(uuid.uuid4()), 'amount': payment_data['amount'], 
+        'status': 'pending', 'stripe_id': f'pi_mock_{str(uuid.uuid4())[:8]}'
+    }
+    await db.payment_intents.insert_one(intent)
+    return {'success': True, 'payment_intent_id': intent['id'], 'client_secret': f'secret_{intent["id"][:8]}'}
+
+@api_router.get("/payments/installment-calculator")
+async def installment_calculator(amount: float, installments: int, current_user: User = Depends(get_current_user)):
+    rates = {1: 0.0, 2: 0.02, 3: 0.03, 6: 0.05, 9: 0.07, 12: 0.09}
+    rate = rates.get(installments, 0.1)
+    total = amount * (1 + rate)
+    monthly = total / installments
+    return {'amount': amount, 'installments': installments, 'monthly_payment': round(monthly, 2), 'total_amount': round(total, 2)}
+
+# ============= ADVANCED LOYALTY =============
+
+@api_router.post("/loyalty/earn-points")
+async def earn_points(points_data: dict, current_user: User = Depends(get_current_user)):
+    await db.loyalty_points_transactions.insert_one({
+        'id': str(uuid.uuid4()), 'guest_id': points_data['guest_id'], 
+        'points': points_data['points'], 'type': 'earn',
+        'created_at': datetime.now(timezone.utc).isoformat()
+    })
+    return {'success': True, 'message': f'{points_data["points"]} puan kazanıldı'}
+
+@api_router.get("/loyalty/member/{guest_id}")
+async def get_loyalty_member(guest_id: str, current_user: User = Depends(get_current_user)):
+    member = await db.loyalty_members.find_one({'guest_id': guest_id}, {'_id': 0})
+    if not member:
+        member = {'guest_id': guest_id, 'total_points': 0, 'tier': 'bronze'}
+    return {'member': member}
+
     return {'complaints': complaints, 'total': len(complaints)}
 
         if guest:
