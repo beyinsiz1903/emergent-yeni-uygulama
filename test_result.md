@@ -1022,11 +1022,11 @@ backend:
 
   - task: "OTA Reservation - Multi-Room Reservation"
     implemented: true
-    working: false
+    working: true
     file: "/app/backend/server.py"
-    stuck_count: 1
+    stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: "NA"
         agent: "main"
@@ -1037,6 +1037,9 @@ backend:
       - working: "NA"
         agent: "main"
         comment: "Main agent reviewing endpoint implementation. Model MultiRoomReservationCreate defined correctly at line 29541. Ready for comprehensive testing."
+      - working: true
+        agent: "testing"
+        comment: "✅ ENDPOINT NOW WORKING - POST /api/reservations/multi-room returns HTTP 200. Tested with correct request body: {group_name, primary_booking_id, related_booking_ids}. Response includes success message and multi_room_id. Endpoint fully functional."
 
   - task: "Housekeeping Mobile - Room Assignments"
     implemented: true
