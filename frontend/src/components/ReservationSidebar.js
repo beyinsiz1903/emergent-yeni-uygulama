@@ -19,7 +19,7 @@ const ReservationSidebar = ({
 
   return (
     <div 
-      className="fixed right-0 top-0 h-full w-[480px] bg-white shadow-2xl z-50 overflow-y-auto transform transition-transform duration-300"
+      className="fixed right-0 top-16 bottom-0 w-[480px] bg-white shadow-2xl z-50 overflow-y-auto transform transition-transform duration-300"
       style={{ borderLeft: '4px solid #3b82f6' }}
     >
       {/* Header */}
