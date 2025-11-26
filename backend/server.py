@@ -795,6 +795,19 @@ class CashFlow(BaseModel):
     description: str
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
+class CityLedgerTransaction(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    tenant_id: str
+    account_id: str
+    transaction_type: str  # charge, payment
+    amount: float
+    description: str
+    reference_number: Optional[str] = None
+    posted_by: str
+    transaction_date: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
 
 # Maintenance & Technical Service Models
 class SLAConfiguration(BaseModel):
