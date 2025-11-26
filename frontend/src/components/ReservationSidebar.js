@@ -71,7 +71,7 @@ const ReservationSidebar = ({
         <Card className="border-none shadow-md hover:shadow-lg transition-shadow duration-300 rounded-xl">
           <CardContent className="pt-6">
             <div className="flex items-center mb-4">
-              <User className="w-5 h-5 text-blue-600 mr-2" />
+              <User className="w-5 h-5 text-blue-600 mr-3 transition-transform group-hover:scale-110" />
               <h3 className="font-bold text-lg">Guest Information</h3>
             </div>
             <div className="space-y-3">
@@ -339,7 +339,7 @@ const ReservationSidebar = ({
         <Card className="border-none shadow-md hover:shadow-lg transition-all duration-300 rounded-xl backdrop-blur-sm">
           <CardContent className="pt-6">
             <div className="flex items-center mb-4">
-              <Info className="w-5 h-5 text-blue-600 mr-2" />
+              <Info className="w-5 h-5 text-blue-600 mr-3 transition-transform group-hover:scale-110" />
               <h3 className="font-bold text-lg">Special Notes</h3>
             </div>
             <div className="space-y-2">
