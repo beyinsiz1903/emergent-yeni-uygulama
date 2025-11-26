@@ -94,6 +94,7 @@ const SocialMediaRadar = lazy(() => import("@/pages/SocialMediaRadar"));
 const RevenueAutopilot = lazy(() => import("@/pages/RevenueAutopilot"));
 const HRComplete = lazy(() => import("@/pages/HRComplete"));
 const FnBComplete = lazy(() => import("@/pages/FnBComplete"));
+const KitchenDisplay = lazy(() => import("@/pages/KitchenDisplay"));
 
 import { Toaster } from "@/components/ui/sonner";
 
