@@ -32,7 +32,7 @@ import uuid
 import base64
 
 # Configuration
-BACKEND_URL = "https://user-auth-flow-14.preview.emergentagent.com/api"
+BACKEND_URL = "https://api-inspection.preview.emergentagent.com/api"
 TEST_EMAIL = "admin@hotel.com"
 TEST_PASSWORD = "admin123"
 

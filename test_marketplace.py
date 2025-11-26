@@ -2,7 +2,7 @@
 import requests
 import json
 
-BACKEND_URL = 'https://user-auth-flow-14.preview.emergentagent.com/api'
+BACKEND_URL = 'https://api-inspection.preview.emergentagent.com/api'
 
 # Login
 response = requests.post(f'{BACKEND_URL}/auth/login', json={

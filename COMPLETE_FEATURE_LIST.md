@@ -218,7 +218,7 @@
 ## 📋 QUICK START GUIDE
 
 **Login:**
-- URL: https://user-auth-flow-14.preview.emergentagent.com
+- URL: https://api-inspection.preview.emergentagent.com
 - Demo: demo@hotel.com / demo123
 
 **New User Registration:**

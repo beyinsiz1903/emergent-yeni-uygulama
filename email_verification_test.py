@@ -8,7 +8,7 @@ import re
 from datetime import datetime
 
 # Backend URL from environment
-BACKEND_URL = "https://user-auth-flow-14.preview.emergentagent.com/api"
+BACKEND_URL = "https://api-inspection.preview.emergentagent.com/api"
 
 class Colors:
     GREEN = '\033[92m'
