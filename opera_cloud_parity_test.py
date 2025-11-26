@@ -617,13 +617,8 @@ def test_complete_flows(headers: Dict):
     success, elapsed, _ = test_endpoint(
         "  Assign Priority",
         "POST",
-        "/rooms/queue/assign-priority",
-        headers,
-        data={
-            "queue_id": queue_id,
-            "priority": "high",
-            "reason": "VIP"
-        }
+        f"/rooms/queue/assign-priority?queue_id={queue_id}&priority=1",
+        headers
     )
     if not success:
         flow_success = False
