@@ -64,11 +64,11 @@ const ReservationSidebar = ({
         </div>
       </div>
 
-      {/* Content */}
-      <div className="p-6 space-y-6">
+      {/* Content - Scrollable */}
+      <div className="flex-1 overflow-y-auto p-6 space-y-4 bg-gradient-to-b from-gray-50 to-white">
         
         {/* Guest Information */}
-        <Card>
+        <Card className="border-none shadow-md hover:shadow-lg transition-shadow duration-300 rounded-xl">
           <CardContent className="pt-6">
             <div className="flex items-center mb-4">
               <User className="w-5 h-5 text-blue-600 mr-2" />
