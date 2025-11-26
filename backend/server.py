@@ -4351,7 +4351,7 @@ async def send_push_notification(notif_data: dict, current_user: User = Depends(
     await db.push_notifications.insert_one(notification)
     
     # Gerçekte: Firebase Cloud Messaging, APNs
-    print(f\"📱 Push Notification: {notif_data['title']} → {notif_data.get('user_id', 'all')}\")
+    print(f"📱 Push Notification: {notif_data['title']} → {notif_data.get('user_id', 'all')}")
     
     return {'success': True, 'notification_id': notification['id']}
 
