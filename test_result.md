@@ -10498,6 +10498,209 @@ agent_communication:
       ✅ System stable
       
       **FINAL VERDICT: 🎉 SYSTEM IS 100% PRODUCTION READY!**
+
+
+  - agent: "testing"
+    message: |
+      🏨 OPERA CLOUD PARITY FEATURES - COMPREHENSIVE TEST COMPLETED
+      
+      **TEST OBJECTIVE:** Test 3 new critical feature sets for Opera Cloud parity (26 endpoints total)
+      
+      **AUTHENTICATION:** ✅ demo@hotel.com / demo123 working
+      
+      **OVERALL RESULTS:**
+      - Total Endpoints Tested: 26
+      - Endpoints Passing: 14/26 (53.8%)
+      - Endpoints Failing: 12/26 (46.2%)
+      - Average Response Time: 39ms ✅ (Target: <100ms)
+      - Complete Flows Passing: 0/3
+      
+      ═══════════════════════════════════════════════════════════════════════════
+      
+      **🌙 NIGHT AUDIT MODULE: 7/11 WORKING (63.6%)**
+      
+      ✅ WORKING (7 endpoints):
+      1. GET /night-audit/status - HTTP 200 (39ms)
+      2. POST /night-audit/room-rate-posting - HTTP 200 (40ms)
+      3. POST /night-audit/tax-posting - HTTP 200 (38ms)
+      4. POST /night-audit/automatic-posting - HTTP 200 (40ms)
+      5. POST /night-audit/no-show-handling - HTTP 200 (44ms)
+      6. GET /night-audit/audit-report - HTTP 200 (38ms)
+      7. GET /night-audit/audit-trail - HTTP 200 (38ms)
+      
+      ❌ FAILING (4 endpoints):
+      1. POST /night-audit/start-audit - HTTP 400 (41ms)
+         - Error: "Night audit for 2025-11-26 already exists or is in progress"
+         - Issue: Business logic preventing duplicate audits (expected behavior)
+      
+      2. GET /night-audit/audit-history - HTTP 404 (36ms)
+         - Error: "Not Found"
+         - ROOT CAUSE: Endpoint defined at line 49594 AFTER app.include_router() at line 48497
+         - CRITICAL BUG: Endpoint never registered with FastAPI
+      
+      3. POST /night-audit/end-of-day - HTTP 404 (41ms)
+         - Error: "Audit not found"
+         - Issue: Requires valid audit_id from start-audit
+      
+      4. POST /night-audit/rollback - HTTP 404 (39ms)
+         - Error: "Audit not found"
+         - Issue: Requires valid audit_id
+      
+      ═══════════════════════════════════════════════════════════════════════════
+      
+      **💰 CASHIERING & CITY LEDGER MODULE: 6/10 WORKING (60.0%)**
+      
+      ✅ WORKING (6 endpoints):
+      1. POST /cashiering/city-ledger - HTTP 200 (42ms)
+         - Successfully creates city ledger accounts
+      2. GET /cashiering/city-ledger - HTTP 200 (41ms)
+      3. POST /cashiering/credit-limit - HTTP 200 (41ms)
+      4. GET /cashiering/credit-limit/{account_id} - HTTP 200 (37ms)
+      5. POST /cashiering/direct-bill - HTTP 200 (40ms)
+         - Direct billing to city ledger working
+      6. GET /cashiering/outstanding-balance - HTTP 200 (39ms)
+      
+      ❌ FAILING (4 endpoints):
+      1. POST /cashiering/split-payment - HTTP 404 (39ms)
+         - Error: "Booking not found"
+         - Issue: Requires valid booking_id, test booking creation failed
+      
+      2. GET /cashiering/ar-aging-report - HTTP 500 (42ms)
+         - Error: "TypeError: fromisoformat: argument must be str"
+         - ROOT CAUSE: Line 48126 tries to parse transaction_date that's already datetime object
+         - CRITICAL BUG: datetime.fromisoformat() called on datetime object instead of string
+      
+      3. POST /cashiering/city-ledger-payment - HTTP 404 (36ms)
+         - Error: "Not Found"
+         - ROOT CAUSE: Endpoint defined at line 49612 AFTER app.include_router() at line 48497
+         - CRITICAL BUG: Endpoint never registered with FastAPI
+      
+      4. GET /cashiering/city-ledger/{account_id}/transactions - HTTP 404 (38ms)
+         - Error: "Not Found"
+         - ROOT CAUSE: Endpoint defined at line 49661 AFTER app.include_router()
+         - CRITICAL BUG: Endpoint never registered with FastAPI
+      
+      ═══════════════════════════════════════════════════════════════════════════
+      
+      **🚪 QUEUE ROOMS MODULE: 1/5 WORKING (20.0%)**
+      
+      ✅ WORKING (1 endpoint):
+      1. GET /rooms/queue/list - HTTP 200 (40ms)
+      
+      ❌ FAILING (4 endpoints):
+      1. POST /rooms/queue/add - HTTP 404 (38ms)
+         - Error: "Booking not found"
+         - Issue: Requires valid booking_id, test booking creation failed
+         - Dependency: Cannot test without valid booking
+      
+      2. POST /rooms/queue/assign-priority - HTTP 404 (36ms)
+         - Error: "Queue entry not found"
+         - Dependency: Requires successful add-to-queue first
+      
+      3. POST /rooms/queue/notify-guest - HTTP 404 (39ms)
+         - Error: "Queue entry not found"
+         - Dependency: Requires successful add-to-queue first
+      
+      4. DELETE /rooms/queue/{queue_id} - HTTP 404 (38ms)
+         - Error: "Queue entry not found"
+         - Dependency: Requires successful add-to-queue first
+      
+      ═══════════════════════════════════════════════════════════════════════════
+      
+      **🔄 COMPLETE FLOW TESTING:**
+      
+      ❌ Flow 1: Night Audit Complete Cycle - PARTIALLY WORKING
+      - Start Audit: ❌ FAIL (audit already exists)
+      - Post Room Rates: ✅ PASS
+      - Post Taxes: ✅ PASS
+      - Handle No-Shows: ✅ PASS
+      - Get Report: ✅ PASS
+      
+      ❌ Flow 2: City Ledger Account Management - PARTIALLY WORKING
+      - Create Account: ✅ PASS
+      - Post Charges: ✅ PASS
+      - Check Balance: ✅ PASS
+      - Post Payment: ❌ FAIL (404 - routing bug)
+      
+      ❌ Flow 3: Queue Rooms Management - BLOCKED
+      - Add to Queue: ❌ FAIL (no valid booking)
+      - Check Queue List: ✅ PASS
+      - Assign Priority: ❌ FAIL (no queue entry)
+      - Notify Guest: ❌ FAIL (no queue entry)
+      
+      ═══════════════════════════════════════════════════════════════════════════
+      
+      **🐛 CRITICAL BUGS IDENTIFIED:**
+      
+      1. **ROUTING BUG (HIGHEST PRIORITY):**
+         - Location: /app/backend/server.py
+         - Issue: Endpoints defined at lines 49594-49700 are AFTER app.include_router(api_router) at line 48497
+         - Impact: 4 endpoints return 404 (audit-history, city-ledger-payment, account-transactions, and others)
+         - Fix: Move all Opera Cloud endpoint definitions BEFORE line 48497 OR create separate router
+         - Affected Endpoints:
+           * GET /night-audit/audit-history (line 49594)
+           * POST /cashiering/city-ledger-payment (line 49612)
+           * GET /cashiering/city-ledger/{account_id}/transactions (line 49661)
+      
+      2. **DATETIME PARSING BUG:**
+         - Location: /app/backend/server.py line 48126
+         - Issue: datetime.fromisoformat() called on datetime object instead of string
+         - Error: "TypeError: fromisoformat: argument must be str"
+         - Impact: GET /cashiering/ar-aging-report returns HTTP 500
+         - Fix: Check if transaction_date is already datetime before parsing:
+           ```python
+           if isinstance(oldest_transaction['transaction_date'], str):
+               transaction_date = datetime.fromisoformat(oldest_transaction['transaction_date'])
+           else:
+               transaction_date = oldest_transaction['transaction_date']
+           ```
+      
+      3. **DEPENDENCY ISSUE:**
+         - Module: Queue Rooms
+         - Issue: All queue operations require valid booking_id
+         - Impact: Cannot test queue module without creating bookings first
+         - Note: This is expected behavior, not a bug
+      
+      ═══════════════════════════════════════════════════════════════════════════
+      
+      **📊 PERFORMANCE ANALYSIS:**
+      - ✅ All endpoints meeting <100ms target
+      - ✅ Average response time: 39ms (EXCELLENT)
+      - ✅ No performance issues detected
+      - ✅ System stable under test load
+      
+      **🎯 OPERA CLOUD PARITY STATUS:**
+      - Current Achievement: 53.8% (14/26 endpoints working)
+      - Blocked by: 2 critical bugs (routing + datetime parsing)
+      - Estimated Fix Impact: Would bring success rate to 73.1% (19/26)
+      - Remaining Issues: Dependency-based failures (queue module needs bookings)
+      
+      **⚠️ RECOMMENDATIONS FOR MAIN AGENT:**
+      
+      1. **IMMEDIATE FIX (CRITICAL):**
+         - Move endpoints at lines 49594-49700 to BEFORE line 48497
+         - This will fix 3 endpoints immediately (audit-history, city-ledger-payment, account-transactions)
+      
+      2. **HIGH PRIORITY FIX:**
+         - Fix datetime parsing bug in ar-aging-report (line 48126)
+         - Add type checking before calling fromisoformat()
+      
+      3. **TESTING IMPROVEMENT:**
+         - Create helper function to generate valid test bookings
+         - This will enable full queue module testing
+      
+      4. **BUSINESS LOGIC:**
+         - start-audit failure is expected (duplicate prevention)
+         - Consider adding cleanup endpoint for testing purposes
+      
+      **FINAL VERDICT:**
+      ❌ OPERA CLOUD PARITY NOT YET ACHIEVED
+      - 2 critical bugs blocking 4 endpoints
+      - 1 datetime parsing bug blocking 1 endpoint
+      - Queue module blocked by test data dependencies
+      - With bug fixes: Expected 73% success rate
+      - System architecture is sound, implementation has routing issues
+
       
       All departments' critical features are operational:
       - HR Department: Staff management, attendance, payroll, recruitment ✅
