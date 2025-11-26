@@ -104,7 +104,7 @@ const ReservationSidebar = ({
         </Card>
 
         {/* Stay Information */}
-        <Card>
+        <Card className="border-none shadow-md hover:shadow-lg transition-all duration-300 rounded-xl backdrop-blur-sm">
           <CardContent className="pt-6">
             <div className="flex items-center mb-4">
               <Calendar className="w-5 h-5 text-green-600 mr-2" />
@@ -142,7 +142,7 @@ const ReservationSidebar = ({
         </Card>
 
         {/* Rate Information */}
-        <Card>
+        <Card className="border-none shadow-md hover:shadow-lg transition-all duration-300 rounded-xl backdrop-blur-sm">
           <CardContent className="pt-6">
             <div className="flex items-center mb-4">
               <DollarSign className="w-5 h-5 text-purple-600 mr-2" />
@@ -184,7 +184,7 @@ const ReservationSidebar = ({
 
         {/* Folio Balance */}
         {folio && (
-          <Card>
+          <Card className="border-none shadow-md hover:shadow-lg transition-all duration-300 rounded-xl backdrop-blur-sm">
             <CardContent className="pt-6">
               <div className="flex items-center mb-4">
                 <FileText className="w-5 h-5 text-orange-600 mr-2" />
@@ -222,7 +222,7 @@ const ReservationSidebar = ({
 
         {/* Company Information */}
         {booking.company_name && (
-          <Card>
+          <Card className="border-none shadow-md hover:shadow-lg transition-all duration-300 rounded-xl backdrop-blur-sm">
             <CardContent className="pt-6">
               <div className="flex items-center mb-4">
                 <Building2 className="w-5 h-5 text-indigo-600 mr-2" />
@@ -251,7 +251,7 @@ const ReservationSidebar = ({
         )}
 
         {/* Housekeeping Status */}
-        <Card>
+        <Card className="border-none shadow-md hover:shadow-lg transition-all duration-300 rounded-xl backdrop-blur-sm">
           <CardContent className="pt-6">
             <div className="flex items-center mb-4">
               <Home className="w-5 h-5 text-teal-600 mr-2" />
@@ -283,7 +283,7 @@ const ReservationSidebar = ({
 
         {/* Room Move History */}
         {booking.room_moves && booking.room_moves.length > 0 && (
-          <Card>
+          <Card className="border-none shadow-md hover:shadow-lg transition-all duration-300 rounded-xl backdrop-blur-sm">
             <CardContent className="pt-6">
               <div className="flex items-center mb-4">
                 <Clock className="w-5 h-5 text-gray-600 mr-2" />
@@ -312,7 +312,7 @@ const ReservationSidebar = ({
         )}
 
         {/* Loyalty Points */}
-        <Card>
+        <Card className="border-none shadow-md hover:shadow-lg transition-all duration-300 rounded-xl backdrop-blur-sm">
           <CardContent className="pt-6">
             <div className="flex items-center mb-4">
               <Award className="w-5 h-5 text-yellow-600 mr-2" />
@@ -336,7 +336,7 @@ const ReservationSidebar = ({
         </Card>
 
         {/* Notes */}
-        <Card>
+        <Card className="border-none shadow-md hover:shadow-lg transition-all duration-300 rounded-xl backdrop-blur-sm">
           <CardContent className="pt-6">
             <div className="flex items-center mb-4">
               <Info className="w-5 h-5 text-blue-600 mr-2" />
