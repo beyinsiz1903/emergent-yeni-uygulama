@@ -11089,3 +11089,35 @@ agent_communication:
       
       **NEXT STEPS:**
       Main agent should implement the 3 immediate actions above, then request retesting to verify 100% endpoint functionality.
+
+   -agent: "main"
+   -message: |
+       🛠️ CRITICAL BACKEND FIXES APPLIED
+       
+       **FIXES COMPLETED:**
+       
+       1. ✅ **Duplicate Endpoint Definitions Removed:**
+          - Deleted duplicate POST /api/guests/{guest_id}/preferences (lines 29820-29866)
+          - Deleted duplicate POST /api/guests/{guest_id}/tags (lines 29871-29905)
+          - Now using only the original definitions at lines 22920 and 22972
+       
+       2. ✅ **ObjectId Serialization Fixed:**
+          - Added `if '_id' in charge: del charge['_id']` before appending to extra_charges list
+          - GET /api/reservations/{booking_id}/ota-details now properly serializes MongoDB documents
+       
+       3. ✅ **Enum Case Sensitivity Fixed:**
+          - Added field_validator to SendMessageRequest model for case-insensitive message_type
+          - Now accepts 'WHATSAPP', 'whatsapp', 'WhatsApp' etc. (converts to lowercase)
+          - Added field_validator import to pydantic imports
+       
+       4. ✅ **Previous Fixes from Testing Agent (Already Applied):**
+          - FastAPI imports: Added File, UploadFile, Form
+          - Fixed syntax error at line 4354 (escaped quotes)
+       
+       **BACKEND STATUS:**
+       - ✅ Backend server restarted successfully
+       - ✅ No startup errors in logs
+       - ✅ All services running (Backend, Frontend, MongoDB)
+       
+       **READY FOR COMPREHENSIVE RE-TEST**
+       All identified issues have been fixed. Requesting full endpoint re-test to verify 100% functionality.
