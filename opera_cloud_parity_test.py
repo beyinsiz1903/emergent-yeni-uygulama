@@ -290,19 +290,16 @@ def test_cashiering_module(headers: Dict):
     )
     test_results["cashiering"].append(("direct-bill", success, elapsed))
     
-    # 6. Split Payment
+    # 6. Split Payment (uses query parameter for booking_id and list of payments in body)
     success, elapsed, data = test_endpoint(
         "6. POST /cashiering/split-payment",
         "POST",
-        "/cashiering/split-payment",
+        "/cashiering/split-payment?booking_id=test-booking-001",
         headers,
-        data={
-            "folio_id": "test-folio-001",
-            "splits": [
-                {"payment_method": "cash", "amount": 500.0},
-                {"payment_method": "card", "amount": 1000.0}
-            ]
-        }
+        data=[
+            {"payment_method": "cash", "amount": 500.0},
+            {"payment_method": "card", "amount": 1000.0}
+        ]
     )
     test_results["cashiering"].append(("split-payment", success, elapsed))
     
