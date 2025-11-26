@@ -9,7 +9,7 @@ import orjson
 import os
 import logging
 from pathlib import Path
-from pydantic import BaseModel, Field, ConfigDict, EmailStr
+from pydantic import BaseModel, Field, ConfigDict, EmailStr, field_validator
 from typing import List, Optional, Dict, Any
 import uuid
 from datetime import datetime, timezone, timedelta, date
@@ -13531,7 +13531,7 @@ async def startup_db_seed():
 @app.on_event("shutdown")
 async def shutdown_db_client():
     client.close()
-from pydantic import BaseModel, Field, ConfigDict, EmailStr
+from pydantic import BaseModel, Field, ConfigDict, EmailStr, field_validator
 from typing import List, Optional
 from datetime import datetime
 from enum import Enum
