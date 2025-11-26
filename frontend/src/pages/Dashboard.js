@@ -396,6 +396,15 @@ const Dashboard = ({ user, tenant, onLogout }) => {
       color: '#f97316',
       badge: 'COMPLETE',
       category: 'core'
+    },
+    {
+      title: '📺 Kitchen Display',
+      description: 'Real-time mutfak ekranı - Sipariş takibi',
+      icon: Monitor,
+      path: '/kitchen-display',
+      color: '#ef4444',
+      badge: 'NEW',
+      category: 'core'
     }
   ], [t, stats]);
 
