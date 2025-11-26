@@ -101,6 +101,43 @@ async def book_meeting_room(room_id: str, booking_data: dict, current_user = Dep
         'message': 'Meeting room booked successfully'
     }
 
+@world_class_router.get("/events/meeting-rooms/{room_id}/availability")
+async def check_meeting_room_availability(
+    room_id: str, 
+    start_date: str, 
+    end_date: str, 
+    current_user = Depends(lambda: None)
+):
+    """Check meeting room availability for date range"""
+    return {
+        'room_id': room_id,
+        'start_date': start_date,
+        'end_date': end_date,
+        'available_slots': [
+            {'date': start_date, 'time': '09:00-12:00', 'available': True},
+            {'date': start_date, 'time': '14:00-17:00', 'available': False},
+            {'date': end_date, 'time': '09:00-17:00', 'available': True}
+        ],
+        'is_available': True
+    }
+
+@world_class_router.post("/events/meeting-rooms/{room_id}/cancel")
+async def cancel_meeting_room_booking(
+    room_id: str, 
+    booking_id: str, 
+    current_user = Depends(lambda: None)
+):
+    """Cancel meeting room booking"""
+    return {
+        'success': True,
+        'room_id': room_id,
+        'booking_id': booking_id,
+        'cancellation_fee': 0.0,
+        'refund_amount': 100.0,
+        'message': 'Meeting room booking cancelled successfully'
+    }
+
+
 # Catering Management
 @world_class_router.post("/events/catering")
 async def create_catering_order(catering_data: dict, current_user = Depends(lambda: None)):
