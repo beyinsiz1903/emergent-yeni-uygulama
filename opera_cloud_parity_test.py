@@ -281,19 +281,12 @@ def test_cashiering_module(headers: Dict):
     )
     test_results["cashiering"].append(("get-credit-limit", success, elapsed))
     
-    # 5. Direct Bill Posting
+    # 5. Direct Bill Posting (uses query parameters)
     success, elapsed, data = test_endpoint(
         "5. POST /cashiering/direct-bill",
         "POST",
-        "/cashiering/direct-bill",
-        headers,
-        data={
-            "account_id": account_id if account_id else "test-account-id",
-            "booking_id": "test-booking-001",
-            "amount": 1500.0,
-            "description": "Room charges for corporate booking",
-            "reference": "INV-2025-001"
-        }
+        f"/cashiering/direct-bill?booking_id=test-booking-001&account_id={account_id if account_id else 'test-account-id'}&amount=1500.0&description=Room+charges+for+corporate+booking",
+        headers
     )
     test_results["cashiering"].append(("direct-bill", success, elapsed))
     
