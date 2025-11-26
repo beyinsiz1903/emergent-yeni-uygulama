@@ -1001,11 +1001,11 @@ backend:
 
   - task: "OTA Reservation - Extra Charges Endpoint"
     implemented: true
-    working: false
+    working: true
     file: "/app/backend/server.py"
-    stuck_count: 1
+    stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: "NA"
         agent: "main"
@@ -1016,6 +1016,9 @@ backend:
       - working: "NA"
         agent: "main"
         comment: "Main agent reviewing endpoint implementation. Model ExtraChargeCreate defined with charge_name, charge_amount, notes fields. Endpoint at line 29506. Ready for comprehensive testing to identify exact validation issue."
+      - working: true
+        agent: "testing"
+        comment: "✅ ENDPOINT NOW WORKING - POST /api/reservations/{booking_id}/extra-charges returns HTTP 200. Fixed syntax errors in server.py (missing File and Form imports). Tested with correct request body: {charge_name, charge_amount, notes}. Response includes success message and extra_charge object with id, booking_id, tenant_id, charge_name, charge_amount, charge_date, notes. Endpoint fully functional."
 
   - task: "OTA Reservation - Multi-Room Reservation"
     implemented: true
