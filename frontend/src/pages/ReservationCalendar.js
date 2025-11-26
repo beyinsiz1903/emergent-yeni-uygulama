@@ -3064,9 +3064,9 @@ const ReservationCalendar = ({ user, tenant, onLogout }) => {
       {/* Reservation Details Sidebar - Opera Navigator Style */}
       {showSidebar && (
         <>
-          {/* Backdrop - adjusted to start below header */}
+          {/* Backdrop - soft blur effect */}
           <div 
-            className="fixed top-16 right-0 bottom-0 left-0 bg-black bg-opacity-50 z-40"
+            className="fixed top-16 right-0 bottom-0 left-0 bg-black/40 backdrop-blur-sm z-40 animate-fade-in"
             onClick={() => setShowSidebar(false)}
           ></div>
           
