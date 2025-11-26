@@ -1049,6 +1049,51 @@ frontend:
         comment: "✅ EXCELLENT PERFORMANCE - PMS Module working perfectly. Load time: 1.01s (target <2s ✅). All optimizations implemented and functional: rooms pagination (limit=100), bookings pagination (limit=200), 7-day date filtering, 15s timeout. All tabs responsive (1.5-1.7s switching). 26 API requests optimized correctly. AI insights loading successfully. Performance targets exceeded."
 
 backend:
+  - task: "Opera Cloud Parity - Night Audit Module (11 endpoints)"
+    implemented: true
+    working: false
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Implemented 11 Night Audit endpoints: start-audit, end-of-day, automatic-posting, audit-report, no-show-handling, status, room-rate-posting, tax-posting, audit-trail, rollback, audit-history"
+      - working: false
+        agent: "testing"
+        comment: "❌ CRITICAL ROUTING BUG - 7/11 endpoints working (63.6%). WORKING: status, room-rate-posting, tax-posting, automatic-posting, no-show-handling, audit-report, audit-trail. FAILING: start-audit (400 - audit already exists), audit-history (404 - Not Found), end-of-day (404 - Audit not found), rollback (404 - Audit not found). ROOT CAUSE: Endpoints defined at lines 49594+ are AFTER app.include_router(api_router) at line 48497, causing 404 errors. These endpoints are never registered with FastAPI. CRITICAL FIX NEEDED: Move all Opera Cloud endpoints BEFORE line 48497 or create separate router."
+
+  - task: "Opera Cloud Parity - Cashiering & City Ledger Module (10 endpoints)"
+    implemented: true
+    working: false
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Implemented 10 Cashiering endpoints: create city-ledger, list city-ledger, split-payment, ar-aging-report, credit-limit (set/get), direct-bill, outstanding-balance, city-ledger-payment, account-transactions"
+      - working: false
+        agent: "testing"
+        comment: "❌ CRITICAL BUGS - 6/10 endpoints working (60.0%). WORKING: create-city-ledger, list-city-ledger, set-credit-limit, get-credit-limit, direct-bill, outstanding-balance. FAILING: split-payment (404 - Booking not found, needs valid booking), ar-aging-report (500 - TypeError: fromisoformat: argument must be str, datetime parsing bug at line 48126), city-ledger-payment (404 - Not Found, routing bug), account-transactions (404 - Not Found, routing bug). BUGS: (1) Endpoints at lines 49612+ defined AFTER router inclusion causing 404s, (2) AR aging report has datetime parsing error when transaction_date is already datetime object, (3) Split payment requires existing booking."
+
+  - task: "Opera Cloud Parity - Queue Rooms Module (5 endpoints)"
+    implemented: true
+    working: false
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Implemented 5 Queue Rooms endpoints: add to queue, list queue, assign-priority, notify-guest, remove from queue"
+      - working: false
+        agent: "testing"
+        comment: "❌ CRITICAL DEPENDENCY ISSUE - 1/5 endpoints working (20.0%). WORKING: list-queue. FAILING: add-to-queue (404 - Booking not found, requires valid booking_id), assign-priority (404 - Queue entry not found, depends on add-to-queue), notify-guest (404 - Queue entry not found, depends on add-to-queue), remove-from-queue (404 - Queue entry not found, depends on add-to-queue). ROOT CAUSE: Queue module requires existing bookings but test cannot create bookings due to API response structure mismatch. All queue operations depend on successful add-to-queue which requires valid booking_id."
+
   - task: "OTA Reservation Details - Complete Endpoint"
     implemented: true
     working: true
