@@ -321,19 +321,12 @@ def test_cashiering_module(headers: Dict):
     )
     test_results["cashiering"].append(("ar-aging-report", success, elapsed))
     
-    # 9. Post City Ledger Payment
+    # 9. Post City Ledger Payment (uses query parameters)
     success, elapsed, data = test_endpoint(
         "9. POST /cashiering/city-ledger-payment",
         "POST",
-        "/cashiering/city-ledger-payment",
-        headers,
-        data={
-            "account_id": account_id if account_id else "test-account-id",
-            "amount": 1000.0,
-            "payment_method": "bank_transfer",
-            "reference": "WIRE-2025-001",
-            "notes": "Partial payment for November invoices"
-        }
+        f"/cashiering/city-ledger-payment?account_id={account_id if account_id else 'test-account-id'}&amount=1000.0&payment_method=bank_transfer&reference=WIRE-2025-001",
+        headers
     )
     test_results["cashiering"].append(("city-ledger-payment", success, elapsed))
     
