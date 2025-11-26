@@ -1117,7 +1117,7 @@ backend:
     implemented: true
     working: false
     file: "/app/backend/server.py"
-    stuck_count: 1
+    stuck_count: 2
     priority: "high"
     needs_retesting: false
     status_history:
@@ -1127,6 +1127,9 @@ backend:
       - working: false
         agent: "testing"
         comment: "❌ ENDPOINT FAILING - POST /api/guests/{guest_id}/tags returns HTTP 422 error. Request body validation failing. Tested with array of tags [vip, honeymoon, frequent_guest, high_spender] but endpoint expects different request structure."
+      - working: false
+        agent: "testing"
+        comment: "❌ DUPLICATE ENDPOINT DEFINITIONS FOUND - There are TWO definitions of POST /api/guests/{guest_id}/tags: (1) Line 22972: Expects single 'tag' as query parameter (not body), plus color and notes parameters. (2) Line 29871: Expects body with 'tags' array using GuestTagsUpdate model. FastAPI is using the FIRST definition (line 22972). Error: Missing required query parameter 'tag'. RECOMMENDATION: Remove duplicate endpoint definition and decide on single tag vs array of tags approach."
 
   - task: "Revenue Management - Price Recommendation Slider"
     implemented: true
