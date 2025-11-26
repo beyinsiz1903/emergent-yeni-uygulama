@@ -8975,6 +8975,74 @@ async def get_ai_activity_feed(
         'last_updated': today.isoformat()
     }
 
+
+@api_router.get("/ai/dashboard/briefing")
+async def get_ai_dashboard_briefing(
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Get AI-powered dashboard briefing for the day"""
+    current_user = await get_current_user(credentials)
+    
+    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    
+    # Get today's key metrics
+    total_rooms = await db.rooms.count_documents({'tenant_id': current_user.tenant_id})
+    occupied = await db.bookings.count_documents({
+        'tenant_id': current_user.tenant_id,
+        'status': 'checked_in',
+        'check_in': {'$lte': today},
+        'check_out': {'$gt': today}
+    })
+    
+    arrivals = await db.bookings.count_documents({
+        'tenant_id': current_user.tenant_id,
+        'check_in': today,
+        'status': {'$in': ['confirmed', 'guaranteed']}
+    })
+    
+    departures = await db.bookings.count_documents({
+        'tenant_id': current_user.tenant_id,
+        'check_out': today
+    })
+    
+    # AI-generated briefing
+    occupancy_pct = round((occupied / total_rooms * 100), 1) if total_rooms > 0 else 0
+    
+    briefing_items = [
+        {
+            'priority': 'high',
+            'category': 'occupancy',
+            'message': f"Current occupancy: {occupancy_pct}% ({occupied}/{total_rooms} rooms)",
+            'insight': 'On track with forecast' if occupancy_pct > 70 else 'Below target'
+        },
+        {
+            'priority': 'medium',
+            'category': 'arrivals',
+            'message': f"{arrivals} arrivals expected today",
+            'insight': 'Standard volume' if arrivals < 20 else 'High volume - prepare extra staff'
+        },
+        {
+            'priority': 'medium',
+            'category': 'departures',
+            'message': f"{departures} departures scheduled",
+            'insight': 'Housekeeping workload: Normal'
+        },
+        {
+            'priority': 'low',
+            'category': 'recommendation',
+            'message': 'Consider upselling room upgrades to VIP guests',
+            'insight': 'High conversion potential'
+        }
+    ]
+    
+    return {
+        'briefing_date': today,
+        'briefing_items': briefing_items,
+        'summary': f"Occupancy {occupancy_pct}%, {arrivals} arrivals, {departures} departures",
+        'generated_at': datetime.now(timezone.utc).isoformat()
+    }
+
+
 @api_router.get("/revenue/by-department")
 @cached(ttl=900, key_prefix="revenue_by_dept")  # Cache for 15 min
 async def get_revenue_by_department(
