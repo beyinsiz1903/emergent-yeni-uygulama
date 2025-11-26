@@ -443,17 +443,12 @@ def test_queue_rooms_module(headers: Dict):
     )
     test_results["queue_rooms"].append(("assign-priority", success, elapsed))
     
-    # 4. Notify Guest
+    # 4. Notify Guest (uses query parameters)
     success, elapsed, data = test_endpoint(
         "4. POST /rooms/queue/notify-guest",
         "POST",
-        "/rooms/queue/notify-guest",
-        headers,
-        data={
-            "queue_id": queue_id if queue_id else "test-queue-id",
-            "notification_type": "room_ready",
-            "message": "Your room is now ready for check-in"
-        }
+        f"/rooms/queue/notify-guest?queue_id={queue_id if queue_id else 'test-queue-id'}&room_number=101",
+        headers
     )
     test_results["queue_rooms"].append(("notify-guest", success, elapsed))
     
