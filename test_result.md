@@ -1182,7 +1182,7 @@ backend:
     implemented: true
     working: false
     file: "/app/backend/server.py"
-    stuck_count: 2
+    stuck_count: 3
     priority: "high"
     needs_retesting: false
     status_history:
@@ -1195,6 +1195,9 @@ backend:
       - working: false
         agent: "testing"
         comment: "❌ DUPLICATE ENDPOINT DEFINITIONS FOUND - There are TWO definitions of POST /api/guests/{guest_id}/preferences: (1) Line 22920: Expects dietary_restrictions as List[str], room_temperature as int, includes extra_requests, allergies fields. (2) Line 29820: Expects dietary_restrictions as Optional[str], room_temperature as str, different field set. FastAPI is using the FIRST definition (line 22920). Error: dietary_restrictions must be a list, not a string. RECOMMENDATION: Remove duplicate endpoint definition and standardize the model."
+      - working: false
+        agent: "testing"
+        comment: "❌ COMPREHENSIVE RE-TEST FAILED - HTTP 500 Internal Server Error. ROOT CAUSE CONFIRMED: Duplicate GuestPreference model definitions causing type mismatch. Model at line 22743 expects room_temperature as int and dietary_restrictions as List[str], but model at line 29719 expects room_temperature as str. Endpoint at line 22920 uses query parameters (room_temperature='22' as string) but tries to create model instance expecting int. Pydantic validation error: 'Input should be a valid string [type=string_type, input_value=22, input_type=int]'. CRITICAL FIX REQUIRED: Remove duplicate GuestPreference model definition and ensure consistent typing across endpoint parameters and model fields."
 
   - task: "Guest Profile - Tags Management (VIP/Blacklist)"
     implemented: true
