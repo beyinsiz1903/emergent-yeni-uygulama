@@ -263,17 +263,12 @@ def test_cashiering_module(headers: Dict):
         if accounts:
             account_id = accounts[0].get("id")
     
-    # 3. Set Credit Limit
+    # 3. Set Credit Limit (uses query parameters, not body)
     success, elapsed, data = test_endpoint(
         "3. POST /cashiering/credit-limit",
         "POST",
-        "/cashiering/credit-limit",
-        headers,
-        data={
-            "account_id": account_id if account_id else "test-account-id",
-            "credit_limit": 75000.0,
-            "payment_terms_days": 45
-        }
+        f"/cashiering/credit-limit?account_id={account_id if account_id else 'test-account-id'}&credit_limit=75000.0",
+        headers
     )
     test_results["cashiering"].append(("set-credit-limit", success, elapsed))
     
