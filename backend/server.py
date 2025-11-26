@@ -31760,6 +31760,14 @@ class SendMessageRequest(BaseModel):
     recipient: str
     message_content: str
     booking_id: Optional[str] = None
+    
+    @field_validator('message_type', mode='before')
+    @classmethod
+    def lowercase_message_type(cls, v):
+        """Convert message type to lowercase for case-insensitive validation"""
+        if isinstance(v, str):
+            return v.lower()
+        return v
 
 @api_router.post("/messaging/send-message")
 async def send_message(
