@@ -238,10 +238,10 @@ def test_cashiering_module(headers: Dict):
             "account_name": "Test Corporate Account",
             "company_name": "Test Corp Ltd",
             "contact_person": "John Doe",
-            "contact_email": "john@testcorp.com",
-            "contact_phone": "+1234567890",
+            "email": "john@testcorp.com",
+            "phone": "+1234567890",
             "credit_limit": 50000.0,
-            "payment_terms": "Net 30"
+            "payment_terms": 30
         }
     )
     test_results["cashiering"].append(("create-city-ledger", success, elapsed))
