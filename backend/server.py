@@ -4299,6 +4299,81 @@ async def create_job_posting(job_data: dict, current_user: User = Depends(get_cu
     await db.job_postings.insert_one(job)
     return {'success': True, 'job_id': job['id']}
 
+
+# ============= KITCHEN DISPLAY SYSTEM (F&B MÜDÜRÜ İÇİN) =============
+
+@api_router.post("/fnb/kitchen-order/{order_id}/complete")
+async def complete_kitchen_order(order_id: str, current_user: User = Depends(get_current_user)):
+    await db.kitchen_orders.update_one(
+        {'id': order_id},
+        {'$set': {'status': 'ready', 'ready_at': datetime.now(timezone.utc).isoformat()}}
+    )
+    return {'success': True, 'message': 'Sipariş hazır olarak işaretlendi'}
+
+# ============= PHOTO UPLOAD (KAT HİZMETLERİ İÇİN) =============
+
+@api_router.post("/housekeeping/upload-photo")
+async def upload_room_photo(
+    photo: bytes = File(...),
+    room_id: str = Form(...),
+    photo_type: str = Form(...),
+    current_user: User = Depends(get_current_user)
+):
+    # Save photo (simulated - gerçekte S3, CloudFlare R2)
+    photo_record = {
+        'id': str(uuid.uuid4()),
+        'tenant_id': current_user.tenant_id,
+        'room_id': room_id,
+        'photo_type': photo_type,  # before, after
+        'uploaded_by': current_user.id,
+        'uploaded_at': datetime.now(timezone.utc).isoformat(),
+        'url': f'/photos/{room_id}_{photo_type}_{str(uuid.uuid4())[:8]}.jpg'
+    }
+    await db.room_photos.insert_one(photo_record)
+    return {'success': True, 'photo_id': photo_record['id'], 'url': photo_record['url']}
+
+# ============= PUSH NOTIFICATIONS (TÜM DEPARTMANLAR) =============
+
+@api_router.post("/notifications/send-push")
+async def send_push_notification(notif_data: dict, current_user: User = Depends(get_current_user)):
+    # Save notification
+    notification = {
+        'id': str(uuid.uuid4()),
+        'tenant_id': current_user.tenant_id,
+        'user_id': notif_data.get('user_id'),
+        'department': notif_data.get('department'),
+        'title': notif_data['title'],
+        'body': notif_data['body'],
+        'type': notif_data.get('type', 'info'),
+        'sent_at': datetime.now(timezone.utc).isoformat(),
+        'read': False
+    }
+    await db.push_notifications.insert_one(notification)
+    
+    # Gerçekte: Firebase Cloud Messaging, APNs
+    print(f\"📱 Push Notification: {notif_data['title']} → {notif_data.get('user_id', 'all')}\")
+    
+    return {'success': True, 'notification_id': notification['id']}
+
+@api_router.get("/notifications/my-notifications")
+async def get_my_notifications(current_user: User = Depends(get_current_user)):
+    notifications = await db.push_notifications.find({
+        '$or': [
+            {'user_id': current_user.id},
+            {'department': current_user.role}
+        ],
+        'tenant_id': current_user.tenant_id
+    }, {'_id': 0}).sort('sent_at', -1).limit(50).to_list(50)
+    
+    unread_count = len([n for n in notifications if not n.get('read', False)])
+    
+    return {
+        'notifications': notifications,
+        'unread_count': unread_count,
+        'total': len(notifications)
+    }
+
+
 # ============= F&B COMPLETE SUITE (CHEF İÇİN) =============
 
 @api_router.post("/fnb/recipes")
