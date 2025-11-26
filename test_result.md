@@ -999,6 +999,24 @@ backend:
         agent: "testing"
         comment: "✅ ENDPOINT WORKING - GET /api/reservations/{booking_id}/ota-details returns proper response with booking_id, special_requests, source_of_booking, ota_channel, extra_charges, multi_room_info, commission_pct, payment_model. Response structure verified. Minor: Field names differ from expected (source_info vs source_of_booking, ota_details vs individual fields) but core functionality works."
 
+  - task: "OTA Reservation Details - Complete Endpoint"
+    implemented: true
+    working: false
+    file: "/app/backend/server.py"
+    stuck_count: 1
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Added GET /api/reservations/{booking_id}/ota-details - Returns special requests (expandable), multi-room info, extra charges, source of booking (OTA/Website/Corporate), OTA channel details, commission"
+      - working: true
+        agent: "testing"
+        comment: "✅ ENDPOINT WORKING - GET /api/reservations/{booking_id}/ota-details returns proper response with booking_id, special_requests, source_of_booking, ota_channel, extra_charges, multi_room_info, commission_pct, payment_model. Response structure verified. Minor: Field names differ from expected (source_info vs source_of_booking, ota_details vs individual fields) but core functionality works."
+      - working: false
+        agent: "testing"
+        comment: "❌ ENDPOINT FAILING WITH HTTP 500 - GET /api/reservations/{booking_id}/ota-details returns Internal Server Error. Root cause: ObjectId serialization error in response. Error: 'ObjectId' object is not iterable. The endpoint is trying to serialize MongoDB ObjectId fields directly in the response. RECOMMENDATION: Remove '_id' fields from MongoDB documents before returning, or convert ObjectId to string."
+
   - task: "OTA Reservation - Extra Charges Endpoint"
     implemented: true
     working: true
