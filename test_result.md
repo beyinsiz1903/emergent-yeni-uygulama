@@ -1199,15 +1199,24 @@ backend:
 
   - task: "Messaging Module - Send Message (WhatsApp/SMS/Email)"
     implemented: true
-    working: true
+    working: false
     file: "/app/backend/server.py"
-    stuck_count: 1
+    stuck_count: 2
     priority: "high"
     needs_retesting: false
     status_history:
       - working: "NA"
         agent: "main"
         comment: "Added POST /api/messaging/send-message - Send WhatsApp/SMS/Email to guests. Note: Production integration with Twilio/WhatsApp Business API required"
+      - working: false
+        agent: "testing"
+        comment: "❌ ENDPOINT FAILING - POST /api/messaging/send-message returns HTTP 422 error. Request body validation failing. Tested with channel, to, message, subject fields but endpoint expects different request structure. All message types (WhatsApp, SMS, Email) failing validation."
+      - working: true
+        agent: "testing"
+        comment: "✅ FINAL SUCCESS TEST PASSED - POST /api/messaging/send-message working perfectly with SendMessageRequest model. Correct fields: guest_id, message_type, recipient, message_content, booking_id. Test guest created, message sent successfully. Response: 'WHATSAPP sent successfully'. Message model fully functional."
+      - working: false
+        agent: "testing"
+        comment: "❌ CASE SENSITIVITY ISSUE - POST /api/messaging/send-message returns HTTP 422. Error: message_type must be lowercase ('whatsapp', 'sms', 'email'), not uppercase ('WHATSAPP'). The enum validation is case-sensitive. Tested with 'WHATSAPP' but endpoint expects 'whatsapp'. RECOMMENDATION: Either make enum case-insensitive or document that values must be lowercase."
       - working: false
         agent: "testing"
         comment: "❌ ENDPOINT FAILING - POST /api/messaging/send-message returns HTTP 422 error. Request body validation failing. Tested with channel, to, message, subject fields but endpoint expects different request structure. All message types (WhatsApp, SMS, Email) failing validation."
