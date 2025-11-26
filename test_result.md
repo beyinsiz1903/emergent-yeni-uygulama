@@ -10929,3 +10929,163 @@ agent_communication:
        Achieve 100% working endpoint rate with no validation errors, ensuring hatasız (error-free) backend infrastructure.
        
        **READY FOR TESTING AGENT EXECUTION**
+
+  - agent: "testing"
+    message: |
+      🔍 COMPREHENSIVE BACKEND ENDPOINT AUDIT COMPLETED - DETAILED FINDINGS
+      
+      **AUTHENTICATION:** ✅ WORKING
+      - Email: demo@hotel.com / Password: demo123
+      - JWT token generation successful
+      - Tenant ID: 863a5da2-33f7-4152-8f45-f2b16ed929e4
+      
+      **OVERALL RESULTS: 5/9 ENDPOINTS WORKING (55.6% SUCCESS RATE)**
+      
+      ═══════════════════════════════════════════════════════════════════
+      **FAILING ENDPOINTS - DETAILED ANALYSIS**
+      ═══════════════════════════════════════════════════════════════════
+      
+      ❌ **1. POST /api/reservations/{booking_id}/extra-charges**
+      - **STATUS:** ✅ NOW WORKING (Was failing with HTTP 422)
+      - **ROOT CAUSE:** Syntax errors in server.py (missing File and Form imports)
+      - **FIX APPLIED:** Added `File, UploadFile, Form` to FastAPI imports
+      - **CURRENT STATUS:** HTTP 200, returns success message and extra_charge object
+      - **REQUEST BODY:** {charge_name, charge_amount, notes}
+      
+      ❌ **2. POST /api/reservations/multi-room**
+      - **STATUS:** ✅ NOW WORKING (Was failing with HTTP 422)
+      - **ROOT CAUSE:** Same syntax errors as above
+      - **FIX APPLIED:** Same import fixes
+      - **CURRENT STATUS:** HTTP 200, returns success message and multi_room_id
+      - **REQUEST BODY:** {group_name, primary_booking_id, related_booking_ids}
+      
+      ❌ **3. POST /api/guests/{guest_id}/preferences**
+      - **STATUS:** ❌ STILL FAILING - HTTP 422
+      - **ROOT CAUSE:** DUPLICATE ENDPOINT DEFINITIONS
+      - **DETAILS:**
+        * Line 22920: Expects dietary_restrictions as List[str], room_temperature as int
+        * Line 29820: Expects dietary_restrictions as Optional[str], room_temperature as str
+        * FastAPI uses FIRST definition (line 22920)
+      - **ERROR:** "Input should be a valid list" for dietary_restrictions field
+      - **RECOMMENDATION:** Remove duplicate at line 29820, standardize on single model
+      - **CORRECT REQUEST BODY:**
+        ```json
+        {
+          "pillow_type": "soft",
+          "room_temperature": 22,
+          "smoking": false,
+          "floor_preference": "high",
+          "room_view": "sea",
+          "newspaper": "daily",
+          "extra_requests": [],
+          "dietary_restrictions": ["vegetarian"],
+          "allergies": []
+        }
+        ```
+      
+      ❌ **4. POST /api/guests/{guest_id}/tags**
+      - **STATUS:** ❌ STILL FAILING - HTTP 422
+      - **ROOT CAUSE:** DUPLICATE ENDPOINT DEFINITIONS
+      - **DETAILS:**
+        * Line 22972: Expects single 'tag' as QUERY PARAMETER (not body)
+        * Line 29871: Expects body with 'tags' array using GuestTagsUpdate model
+        * FastAPI uses FIRST definition (line 22972)
+      - **ERROR:** "Field required" for query parameter 'tag'
+      - **RECOMMENDATION:** Remove duplicate at line 29871, decide on single vs array approach
+      - **CORRECT REQUEST (for line 22972):**
+        ```
+        POST /api/guests/{guest_id}/tags?tag=vip&color=gold&notes=High value guest
+        ```
+      
+      ❌ **5. GET /api/reservations/{booking_id}/ota-details**
+      - **STATUS:** ❌ FAILING - HTTP 500 Internal Server Error
+      - **ROOT CAUSE:** ObjectId serialization error
+      - **ERROR:** "'ObjectId' object is not iterable"
+      - **DETAILS:** Endpoint tries to serialize MongoDB ObjectId fields directly
+      - **RECOMMENDATION:** Remove '_id' fields from MongoDB documents before JSON response
+      - **FIX NEEDED:** Add ObjectId handling in endpoint (similar to other working endpoints)
+      
+      ❌ **6. POST /api/messaging/send-message**
+      - **STATUS:** ❌ FAILING - HTTP 422
+      - **ROOT CAUSE:** Case-sensitive enum validation
+      - **ERROR:** "Input should be 'whatsapp', 'sms' or 'email'" (got 'WHATSAPP')
+      - **DETAILS:** Enum values must be lowercase
+      - **RECOMMENDATION:** Either make enum case-insensitive or document lowercase requirement
+      - **CORRECT REQUEST BODY:**
+        ```json
+        {
+          "guest_id": "...",
+          "message_type": "whatsapp",  // lowercase!
+          "recipient": "+905551234567",
+          "message_content": "Welcome!",
+          "booking_id": "..."
+        }
+        ```
+      
+      ═══════════════════════════════════════════════════════════════════
+      **WORKING ENDPOINTS - VERIFIED**
+      ═══════════════════════════════════════════════════════════════════
+      
+      ✅ **1. POST /api/reservations/{booking_id}/extra-charges** - HTTP 200
+      ✅ **2. POST /api/reservations/multi-room** - HTTP 200
+      ✅ **3. GET /api/housekeeping/mobile/room-assignments** - HTTP 200
+      ✅ **4. GET /api/rms/price-recommendation-slider** - HTTP 200
+      ✅ **5. GET /api/pos/menu-items** - HTTP 200
+      
+      ═══════════════════════════════════════════════════════════════════
+      **CRITICAL ISSUES SUMMARY**
+      ═══════════════════════════════════════════════════════════════════
+      
+      🔴 **HIGH PRIORITY:**
+      1. **Duplicate Endpoint Definitions** (2 endpoints affected)
+         - /api/guests/{guest_id}/preferences (lines 22920 & 29820)
+         - /api/guests/{guest_id}/tags (lines 22972 & 29871)
+         - Impact: Confusing API behavior, validation errors
+         - Action: Remove duplicates, standardize models
+      
+      2. **ObjectId Serialization** (1 endpoint affected)
+         - /api/reservations/{booking_id}/ota-details
+         - Impact: HTTP 500 errors, endpoint unusable
+         - Action: Add ObjectId to string conversion
+      
+      🟡 **MEDIUM PRIORITY:**
+      3. **Case-Sensitive Enum Validation** (1 endpoint affected)
+         - /api/messaging/send-message
+         - Impact: User confusion, validation errors
+         - Action: Document lowercase requirement or add case-insensitive handling
+      
+      ═══════════════════════════════════════════════════════════════════
+      **RECOMMENDATIONS FOR MAIN AGENT**
+      ═══════════════════════════════════════════════════════════════════
+      
+      **IMMEDIATE ACTIONS:**
+      
+      1. **Remove Duplicate Endpoints:**
+         - Delete lines 29820-29866 (duplicate preferences endpoint)
+         - Delete lines 29871-29905 (duplicate tags endpoint)
+         - Keep the earlier definitions (lines 22920 and 22972)
+      
+      2. **Fix ObjectId Serialization:**
+         - In GET /api/reservations/{booking_id}/ota-details endpoint
+         - Add: `if '_id' in document: del document['_id']` before returning
+         - Or convert: `document['_id'] = str(document['_id'])`
+      
+      3. **Document Enum Values:**
+         - Add API documentation noting lowercase requirement for message_type
+         - Or implement case-insensitive enum validation
+      
+      4. **Update API Documentation:**
+         - Document correct request body structures
+         - Add examples for all endpoints
+         - Clarify query parameters vs body parameters
+      
+      **TESTING NOTES:**
+      - Fixed 2 syntax errors (File, Form imports) during testing
+      - Created test data: guest, room, booking for comprehensive testing
+      - All sample module endpoints (Housekeeping, RMS, POS) working correctly
+      
+      **BACKEND HEALTH: 55.6% (5/9 endpoints working)**
+      **TARGET: 100% (all endpoints working without errors)**
+      
+      **NEXT STEPS:**
+      Main agent should implement the 3 immediate actions above, then request retesting to verify 100% endpoint functionality.
