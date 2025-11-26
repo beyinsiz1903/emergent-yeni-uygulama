@@ -29390,52 +29390,6 @@ async def get_occupancy_prediction(
         'prediction_period_days': days
     }
 
-@api_router.get("/ai/pms/guest-patterns")
-async def get_guest_patterns(
-    credentials: HTTPAuthorizationCredentials = Depends(security)
-):
-    """Get AI-analyzed guest behavior patterns"""
-    current_user = await get_current_user(credentials)
-    
-    # Return mock data for now
-    return {
-        'patterns': {
-            'average_length_of_stay': 2.3,
-            'total_bookings_analyzed': 0,
-            'repeat_guest_ratio': 0.0,
-            'vip_guest_count': 0,
-            'guests_with_preferences': 0
-        },
-        'insights': [
-            "Guest pattern analysis available",
-            "Behavioral analysis in progress",
-            "AI learning from guest data"
-        ],
-        'status': 'operational'
-    }
-
-@api_router.get("/ai/pms/guest-behavior")
-async def get_guest_behavior_analysis(
-    credentials: HTTPAuthorizationCredentials = Depends(security)
-):
-    """Alternative endpoint for guest behavior analysis"""
-    current_user = await get_current_user(credentials)
-    
-    return {
-        'behavior_analysis': {
-            'booking_lead_time_avg': 15,
-            'preferred_room_types': ['Deluxe', 'Suite'],
-            'peak_booking_days': ['Monday', 'Friday'],
-            'cancellation_rate': 8.5,
-            'no_show_rate': 3.2
-        },
-        'guest_segments': [
-            {'segment': 'Business Travelers', 'percentage': 45},
-            {'segment': 'Leisure Guests', 'percentage': 35},
-            {'segment': 'Groups', 'percentage': 20}
-        ]
-    }
-
 # ============= NEW ENHANCEMENTS: OTA, GUEST PROFILE, HK MOBILE, RMS, MESSAGING, POS =============
 
 # ===== 1. OTA RESERVATION DETAILS ENHANCEMENTS =====
