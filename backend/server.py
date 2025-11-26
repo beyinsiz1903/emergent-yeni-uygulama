@@ -47470,6 +47470,1028 @@ async def system_health_check(
         raise HTTPException(status_code=500, detail=f"Health check failed: {str(e)}")
 
 
+# ============================================================================
+# OPERA CLOUD PARITY FEATURES - CRITICAL ENTERPRISE FUNCTIONALITY
+# ============================================================================
+
+# Import night audit models
+from night_audit_module import (
+    NightAuditRecord, AuditStatus, AutomaticPosting, 
+    CityLedgerAccount, CityLedgerTransaction, SplitPayment,
+    QueueRoom, AuditTrailEntry
+)
+
+# ============= 1. NIGHT AUDIT MODULE (ENTERPRISE GRADE) =============
+
+@api_router.post("/night-audit/start-audit")
+async def start_night_audit(
+    audit_date: str,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Start night audit process for specified date"""
+    current_user = await get_current_user(credentials)
+    
+    # Check if audit already exists for this date
+    existing_audit = await db.night_audits.find_one({
+        'tenant_id': current_user.tenant_id,
+        'audit_date': audit_date,
+        'status': {'$in': ['in_progress', 'completed']}
+    })
+    
+    if existing_audit:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Night audit for {audit_date} already exists or is in progress"
+        )
+    
+    # Create audit record
+    audit = NightAuditRecord(
+        tenant_id=current_user.tenant_id,
+        audit_date=audit_date,
+        started_by=current_user.name,
+        status=AuditStatus.IN_PROGRESS
+    )
+    
+    # Calculate statistics
+    total_rooms = await db.rooms.count_documents({'tenant_id': current_user.tenant_id})
+    
+    audit_date_obj = datetime.fromisoformat(audit_date).replace(tzinfo=timezone.utc)
+    occupied_rooms = await db.bookings.count_documents({
+        'tenant_id': current_user.tenant_id,
+        'status': 'checked_in',
+        'check_in': {'$lte': audit_date},
+        'check_out': {'$gt': audit_date}
+    })
+    
+    audit.total_rooms = total_rooms
+    audit.occupied_rooms = occupied_rooms
+    audit.vacant_rooms = total_rooms - occupied_rooms
+    
+    # Calculate revenue
+    bookings = await db.bookings.find({
+        'tenant_id': current_user.tenant_id,
+        'check_in': {'$lte': audit_date},
+        'check_out': {'$gt': audit_date},
+        'status': {'$in': ['checked_in', 'checked_out']}
+    }).to_list(10000)
+    
+    total_revenue = sum(b.get('total_amount', 0) for b in bookings)
+    room_revenue = sum(b.get('base_rate', 0) for b in bookings)
+    
+    audit.total_revenue = round(total_revenue, 2)
+    audit.room_revenue = round(room_revenue, 2)
+    audit.tax_revenue = round(total_revenue * 0.1, 2)
+    audit.other_revenue = round(total_revenue - room_revenue, 2)
+    
+    # Save audit record
+    await db.night_audits.insert_one(audit.model_dump())
+    
+    return {
+        'success': True,
+        'audit_id': audit.id,
+        'audit_date': audit_date,
+        'status': audit.status,
+        'statistics': {
+            'total_rooms': audit.total_rooms,
+            'occupied_rooms': audit.occupied_rooms,
+            'occupancy_pct': round((occupied_rooms / total_rooms * 100), 1) if total_rooms > 0 else 0,
+            'total_revenue': audit.total_revenue,
+            'room_revenue': audit.room_revenue
+        }
+    }
+
+@api_router.post("/night-audit/end-of-day")
+async def end_of_day_audit(
+    audit_id: str,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Complete end-of-day audit process"""
+    current_user = await get_current_user(credentials)
+    
+    # Get audit record
+    audit = await db.night_audits.find_one({
+        'id': audit_id,
+        'tenant_id': current_user.tenant_id
+    })
+    
+    if not audit:
+        raise HTTPException(status_code=404, detail="Audit not found")
+    
+    if audit['status'] == 'completed':
+        raise HTTPException(status_code=400, detail="Audit already completed")
+    
+    # Process no-shows
+    no_shows = await db.bookings.count_documents({
+        'tenant_id': current_user.tenant_id,
+        'check_in': audit['audit_date'],
+        'status': 'confirmed'
+    })
+    
+    # Update status
+    await db.night_audits.update_one(
+        {'id': audit_id},
+        {
+            '$set': {
+                'status': 'completed',
+                'completed_at': datetime.now(timezone.utc).isoformat(),
+                'no_shows_processed': no_shows
+            }
+        }
+    )
+    
+    return {
+        'success': True,
+        'audit_id': audit_id,
+        'completed_at': datetime.now(timezone.utc).isoformat(),
+        'summary': {
+            'total_revenue': audit.get('total_revenue', 0),
+            'no_shows': no_shows,
+            'occupied_rooms': audit.get('occupied_rooms', 0)
+        }
+    }
+
+@api_router.post("/night-audit/automatic-posting")
+async def automatic_posting(
+    audit_date: str,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Automatically post room charges and taxes for all in-house guests"""
+    current_user = await get_current_user(credentials)
+    
+    posted_count = 0
+    failed_count = 0
+    total_posted = 0.0
+    
+    # Get all checked-in bookings for this date
+    bookings = await db.bookings.find({
+        'tenant_id': current_user.tenant_id,
+        'status': 'checked_in',
+        'check_in': {'$lte': audit_date},
+        'check_out': {'$gt': audit_date}
+    }).to_list(10000)
+    
+    for booking in bookings:
+        try:
+            # Get or create folio
+            folio = await db.folios.find_one({
+                'booking_id': booking['id'],
+                'folio_type': 'guest'
+            })
+            
+            if not folio:
+                # Create folio
+                folio = {
+                    'id': str(uuid.uuid4()),
+                    'tenant_id': current_user.tenant_id,
+                    'booking_id': booking['id'],
+                    'folio_type': 'guest',
+                    'status': 'open',
+                    'created_at': datetime.now(timezone.utc).isoformat()
+                }
+                await db.folios.insert_one(folio)
+            
+            # Post room charge
+            room_charge = {
+                'id': str(uuid.uuid4()),
+                'tenant_id': current_user.tenant_id,
+                'folio_id': folio['id'],
+                'booking_id': booking['id'],
+                'charge_category': 'room',
+                'description': f"Room {booking.get('room_number', 'TBD')} - {audit_date}",
+                'amount': booking.get('base_rate', booking.get('total_amount', 0) / max(1, booking.get('nights', 1))),
+                'quantity': 1,
+                'posted_at': datetime.now(timezone.utc).isoformat(),
+                'posted_by': 'night_audit_system',
+                'voided': False
+            }
+            
+            await db.folio_charges.insert_one(room_charge)
+            
+            # Post tax
+            tax_amount = room_charge['amount'] * 0.10
+            tax_charge = {
+                'id': str(uuid.uuid4()),
+                'tenant_id': current_user.tenant_id,
+                'folio_id': folio['id'],
+                'booking_id': booking['id'],
+                'charge_category': 'tax',
+                'description': f"Room Tax - {audit_date}",
+                'amount': tax_amount,
+                'quantity': 1,
+                'posted_at': datetime.now(timezone.utc).isoformat(),
+                'posted_by': 'night_audit_system',
+                'voided': False
+            }
+            
+            await db.folio_charges.insert_one(tax_charge)
+            
+            posted_count += 1
+            total_posted += room_charge['amount'] + tax_amount
+            
+        except Exception as e:
+            failed_count += 1
+    
+    return {
+        'success': True,
+        'audit_date': audit_date,
+        'posted_count': posted_count,
+        'failed_count': failed_count,
+        'total_amount_posted': round(total_posted, 2),
+        'message': f'Automatic posting completed: {posted_count} bookings processed'
+    }
+
+@api_router.get("/night-audit/audit-report")
+async def get_audit_report(
+    audit_date: str,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Get comprehensive night audit report"""
+    current_user = await get_current_user(credentials)
+    
+    # Get audit record
+    audit = await db.night_audits.find_one({
+        'tenant_id': current_user.tenant_id,
+        'audit_date': audit_date
+    }, {'_id': 0})
+    
+    if not audit:
+        raise HTTPException(status_code=404, detail="Audit not found for this date")
+    
+    # Get detailed breakdown
+    bookings_summary = await db.bookings.aggregate([
+        {
+            '$match': {
+                'tenant_id': current_user.tenant_id,
+                'check_in': {'$lte': audit_date},
+                'check_out': {'$gt': audit_date}
+            }
+        },
+        {
+            '$group': {
+                '_id': '$status',
+                'count': {'$sum': 1},
+                'revenue': {'$sum': '$total_amount'}
+            }
+        }
+    ]).to_list(100)
+    
+    return {
+        'audit': audit,
+        'bookings_by_status': bookings_summary,
+        'generated_at': datetime.now(timezone.utc).isoformat()
+    }
+
+@api_router.post("/night-audit/no-show-handling")
+async def handle_no_shows(
+    audit_date: str,
+    charge_no_show_fee: bool = True,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Process no-shows for the audit date"""
+    current_user = await get_current_user(credentials)
+    
+    no_show_fee = 50.0
+    processed_count = 0
+    total_charges = 0.0
+    
+    # Find bookings that should have checked in but didn't
+    no_show_bookings = await db.bookings.find({
+        'tenant_id': current_user.tenant_id,
+        'check_in': audit_date,
+        'status': 'confirmed'
+    }).to_list(1000)
+    
+    for booking in no_show_bookings:
+        # Update booking status
+        await db.bookings.update_one(
+            {'id': booking['id']},
+            {
+                '$set': {
+                    'status': 'no_show',
+                    'no_show_date': audit_date,
+                    'updated_at': datetime.now(timezone.utc).isoformat()
+                }
+            }
+        )
+        
+        # Post no-show fee if configured
+        if charge_no_show_fee:
+            folio = await db.folios.find_one({
+                'booking_id': booking['id'],
+                'folio_type': 'guest'
+            })
+            
+            if folio:
+                charge = {
+                    'id': str(uuid.uuid4()),
+                    'tenant_id': current_user.tenant_id,
+                    'folio_id': folio['id'],
+                    'booking_id': booking['id'],
+                    'charge_category': 'no_show_fee',
+                    'description': f"No-Show Fee - {audit_date}",
+                    'amount': no_show_fee,
+                    'posted_at': datetime.now(timezone.utc).isoformat(),
+                    'voided': False
+                }
+                await db.folio_charges.insert_one(charge)
+                total_charges += no_show_fee
+        
+        processed_count += 1
+    
+    return {
+        'success': True,
+        'audit_date': audit_date,
+        'no_shows_processed': processed_count,
+        'total_no_show_charges': round(total_charges, 2),
+        'fee_per_booking': no_show_fee
+    }
+
+@api_router.get("/night-audit/status")
+async def get_night_audit_status(
+    audit_date: Optional[str] = None,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Get night audit status for date"""
+    current_user = await get_current_user(credentials)
+    
+    if not audit_date:
+        audit_date = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    
+    audit = await db.night_audits.find_one({
+        'tenant_id': current_user.tenant_id,
+        'audit_date': audit_date
+    }, {'_id': 0})
+    
+    if not audit:
+        return {
+            'audit_date': audit_date,
+            'status': 'not_started',
+            'message': 'Night audit not yet started for this date'
+        }
+    
+    return audit
+
+@api_router.post("/night-audit/room-rate-posting")
+async def post_room_rates(
+    audit_date: str,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Post room rates for all in-house guests"""
+    current_user = await get_current_user(credentials)
+    
+    posted = 0
+    total_amount = 0.0
+    
+    bookings = await db.bookings.find({
+        'tenant_id': current_user.tenant_id,
+        'status': 'checked_in',
+        'check_in': {'$lte': audit_date},
+        'check_out': {'$gt': audit_date}
+    }).to_list(10000)
+    
+    for booking in bookings:
+        folio = await db.folios.find_one({'booking_id': booking['id'], 'folio_type': 'guest'})
+        
+        if folio:
+            rate = booking.get('base_rate', 0)
+            charge = {
+                'id': str(uuid.uuid4()),
+                'tenant_id': current_user.tenant_id,
+                'folio_id': folio['id'],
+                'charge_category': 'room',
+                'description': f"Room Charge - {audit_date}",
+                'amount': rate,
+                'posted_at': datetime.now(timezone.utc).isoformat(),
+                'voided': False
+            }
+            await db.folio_charges.insert_one(charge)
+            posted += 1
+            total_amount += rate
+    
+    return {
+        'success': True,
+        'posted_count': posted,
+        'total_amount': round(total_amount, 2)
+    }
+
+@api_router.post("/night-audit/tax-posting")
+async def post_taxes(
+    audit_date: str,
+    tax_rate: float = 0.10,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Post tax charges for all in-house guests"""
+    current_user = await get_current_user(credentials)
+    
+    posted = 0
+    total_tax = 0.0
+    
+    bookings = await db.bookings.find({
+        'tenant_id': current_user.tenant_id,
+        'status': 'checked_in',
+        'check_in': {'$lte': audit_date},
+        'check_out': {'$gt': audit_date}
+    }).to_list(10000)
+    
+    for booking in bookings:
+        folio = await db.folios.find_one({'booking_id': booking['id'], 'folio_type': 'guest'})
+        
+        if folio:
+            rate = booking.get('base_rate', 0)
+            tax_amount = rate * tax_rate
+            
+            charge = {
+                'id': str(uuid.uuid4()),
+                'tenant_id': current_user.tenant_id,
+                'folio_id': folio['id'],
+                'charge_category': 'tax',
+                'description': f"Room Tax ({tax_rate*100}%) - {audit_date}",
+                'amount': tax_amount,
+                'posted_at': datetime.now(timezone.utc).isoformat(),
+                'voided': False
+            }
+            await db.folio_charges.insert_one(charge)
+            posted += 1
+            total_tax += tax_amount
+    
+    return {
+        'success': True,
+        'posted_count': posted,
+        'total_tax': round(total_tax, 2),
+        'tax_rate': tax_rate
+    }
+
+@api_router.get("/night-audit/audit-trail")
+async def get_audit_trail(
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+    limit: int = 100,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Get audit trail of all system changes"""
+    current_user = await get_current_user(credentials)
+    
+    query = {'tenant_id': current_user.tenant_id}
+    
+    if start_date and end_date:
+        query['timestamp'] = {
+            '$gte': datetime.fromisoformat(start_date).isoformat(),
+            '$lte': datetime.fromisoformat(end_date).isoformat()
+        }
+    
+    trail = await db.audit_trail.find(query, {'_id': 0}).sort('timestamp', -1).limit(limit).to_list(limit)
+    
+    return {
+        'audit_trail': trail,
+        'total_entries': len(trail)
+    }
+
+@api_router.post("/night-audit/rollback")
+async def rollback_audit(
+    audit_id: str,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Rollback a completed audit (emergency use)"""
+    current_user = await get_current_user(credentials)
+    
+    audit = await db.night_audits.find_one({
+        'id': audit_id,
+        'tenant_id': current_user.tenant_id
+    })
+    
+    if not audit:
+        raise HTTPException(status_code=404, detail="Audit not found")
+    
+    # Update status
+    await db.night_audits.update_one(
+        {'id': audit_id},
+        {
+            '$set': {
+                'status': 'pending',
+                'completed_at': None
+            },
+            '$push': {
+                'warnings': f"Audit rolled back by {current_user.name} at {datetime.now(timezone.utc).isoformat()}"
+            }
+        }
+    )
+    
+    return {
+        'success': True,
+        'message': 'Audit rolled back successfully',
+        'audit_id': audit_id
+    }
+
+# ============= 2. CASHIERING & CITY LEDGER MODULE =============
+
+@api_router.post("/cashiering/city-ledger")
+async def create_city_ledger_account(
+    account_data: dict,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Create a new city ledger account for direct billing"""
+    current_user = await get_current_user(credentials)
+    
+    account = CityLedgerAccount(
+        tenant_id=current_user.tenant_id,
+        account_name=account_data['account_name'],
+        company_name=account_data['company_name'],
+        contact_person=account_data.get('contact_person'),
+        email=account_data.get('email'),
+        phone=account_data.get('phone'),
+        address=account_data.get('address'),
+        credit_limit=account_data.get('credit_limit', 0.0),
+        payment_terms=account_data.get('payment_terms', 30)
+    )
+    
+    await db.city_ledger_accounts.insert_one(account.model_dump())
+    
+    return {
+        'success': True,
+        'account_id': account.id,
+        'account_name': account.account_name,
+        'credit_limit': account.credit_limit
+    }
+
+@api_router.get("/cashiering/city-ledger")
+async def get_city_ledger_accounts(
+    is_active: bool = True,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Get all city ledger accounts"""
+    current_user = await get_current_user(credentials)
+    
+    query = {'tenant_id': current_user.tenant_id}
+    if is_active is not None:
+        query['is_active'] = is_active
+    
+    accounts = await db.city_ledger_accounts.find(query, {'_id': 0}).to_list(1000)
+    
+    return {
+        'accounts': accounts,
+        'total_count': len(accounts)
+    }
+
+@api_router.post("/cashiering/split-payment")
+async def process_split_payment(
+    booking_id: str,
+    payments: List[dict],
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Process split payment (multiple payment methods for one bill)"""
+    current_user = await get_current_user(credentials)
+    
+    # Get booking
+    booking = await db.bookings.find_one({
+        'id': booking_id,
+        'tenant_id': current_user.tenant_id
+    })
+    
+    if not booking:
+        raise HTTPException(status_code=404, detail="Booking not found")
+    
+    # Validate total matches booking amount
+    total_payment = sum(p['amount'] for p in payments)
+    
+    if abs(total_payment - booking.get('total_amount', 0)) > 0.01:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Payment total ({total_payment}) doesn't match booking amount ({booking.get('total_amount', 0)})"
+        )
+    
+    # Process each payment
+    payment_records = []
+    for payment in payments:
+        payment_record = {
+            'id': str(uuid.uuid4()),
+            'tenant_id': current_user.tenant_id,
+            'booking_id': booking_id,
+            'payment_method': payment['payment_method'],
+            'amount': payment['amount'],
+            'reference': payment.get('reference'),
+            'processed_at': datetime.now(timezone.utc).isoformat(),
+            'processed_by': current_user.name
+        }
+        await db.payments.insert_one(payment_record)
+        payment_records.append(payment_record)
+    
+    # Update booking status
+    await db.bookings.update_one(
+        {'id': booking_id},
+        {'$set': {'payment_status': 'paid', 'paid_at': datetime.now(timezone.utc).isoformat()}}
+    )
+    
+    return {
+        'success': True,
+        'booking_id': booking_id,
+        'payments_processed': len(payment_records),
+        'total_amount': total_payment,
+        'payment_methods': [p['payment_method'] for p in payments]
+    }
+
+@api_router.get("/cashiering/ar-aging-report")
+async def get_ar_aging_report(
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Get Accounts Receivable aging report (30/60/90 days)"""
+    current_user = await get_current_user(credentials)
+    
+    today = datetime.now(timezone.utc)
+    
+    aging_buckets = {
+        'current': [],
+        '30_days': [],
+        '60_days': [],
+        '90_plus': []
+    }
+    
+    # Get all city ledger accounts with balance
+    accounts = await db.city_ledger_accounts.find({
+        'tenant_id': current_user.tenant_id,
+        'current_balance': {'$gt': 0}
+    }, {'_id': 0}).to_list(1000)
+    
+    for account in accounts:
+        # Get oldest transaction
+        oldest_transaction = await db.city_ledger_transactions.find_one(
+            {
+                'account_id': account['id'],
+                'transaction_type': 'charge'
+            },
+            {'_id': 0},
+            sort=[('transaction_date', 1)]
+        )
+        
+        if oldest_transaction:
+            transaction_date = datetime.fromisoformat(oldest_transaction['transaction_date'])
+            days_old = (today - transaction_date).days
+            
+            aging_entry = {
+                'account_id': account['id'],
+                'account_name': account['account_name'],
+                'balance': account['current_balance'],
+                'days_old': days_old
+            }
+            
+            if days_old <= 30:
+                aging_buckets['current'].append(aging_entry)
+            elif days_old <= 60:
+                aging_buckets['30_days'].append(aging_entry)
+            elif days_old <= 90:
+                aging_buckets['60_days'].append(aging_entry)
+            else:
+                aging_buckets['90_plus'].append(aging_entry)
+    
+    # Calculate totals
+    totals = {
+        'current': sum(a['balance'] for a in aging_buckets['current']),
+        '30_days': sum(a['balance'] for a in aging_buckets['30_days']),
+        '60_days': sum(a['balance'] for a in aging_buckets['60_days']),
+        '90_plus': sum(a['balance'] for a in aging_buckets['90_plus'])
+    }
+    
+    totals['total'] = sum(totals.values())
+    
+    return {
+        'aging_buckets': aging_buckets,
+        'totals': totals,
+        'generated_at': today.isoformat()
+    }
+
+@api_router.post("/cashiering/credit-limit")
+async def set_credit_limit(
+    account_id: str,
+    credit_limit: float,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Set credit limit for city ledger account"""
+    current_user = await get_current_user(credentials)
+    
+    result = await db.city_ledger_accounts.update_one(
+        {
+            'id': account_id,
+            'tenant_id': current_user.tenant_id
+        },
+        {'$set': {'credit_limit': credit_limit}}
+    )
+    
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Account not found")
+    
+    return {
+        'success': True,
+        'account_id': account_id,
+        'credit_limit': credit_limit
+    }
+
+@api_router.get("/cashiering/credit-limit/{account_id}")
+async def get_credit_limit(
+    account_id: str,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Get credit limit and current balance for account"""
+    current_user = await get_current_user(credentials)
+    
+    account = await db.city_ledger_accounts.find_one({
+        'id': account_id,
+        'tenant_id': current_user.tenant_id
+    }, {'_id': 0})
+    
+    if not account:
+        raise HTTPException(status_code=404, detail="Account not found")
+    
+    available_credit = account['credit_limit'] - account['current_balance']
+    
+    return {
+        'account_id': account_id,
+        'account_name': account['account_name'],
+        'credit_limit': account['credit_limit'],
+        'current_balance': account['current_balance'],
+        'available_credit': available_credit,
+        'credit_status': 'ok' if available_credit > 0 else 'exceeded'
+    }
+
+@api_router.post("/cashiering/direct-bill")
+async def post_to_city_ledger(
+    booking_id: str,
+    account_id: str,
+    amount: float,
+    description: str,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Post charge to city ledger (direct billing)"""
+    current_user = await get_current_user(credentials)
+    
+    # Verify account
+    account = await db.city_ledger_accounts.find_one({
+        'id': account_id,
+        'tenant_id': current_user.tenant_id
+    })
+    
+    if not account:
+        raise HTTPException(status_code=404, detail="City ledger account not found")
+    
+    # Check credit limit
+    if account['current_balance'] + amount > account['credit_limit']:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Credit limit exceeded. Available: {account['credit_limit'] - account['current_balance']}"
+        )
+    
+    # Create transaction
+    transaction = CityLedgerTransaction(
+        tenant_id=current_user.tenant_id,
+        account_id=account_id,
+        booking_id=booking_id,
+        transaction_type='charge',
+        amount=amount,
+        description=description,
+        posted_by=current_user.name
+    )
+    
+    await db.city_ledger_transactions.insert_one(transaction.model_dump())
+    
+    # Update account balance
+    await db.city_ledger_accounts.update_one(
+        {'id': account_id},
+        {'$inc': {'current_balance': amount}}
+    )
+    
+    return {
+        'success': True,
+        'transaction_id': transaction.id,
+        'account_name': account['account_name'],
+        'amount_posted': amount,
+        'new_balance': account['current_balance'] + amount
+    }
+
+@api_router.get("/cashiering/outstanding-balance")
+async def get_outstanding_balances(
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Get all city ledger accounts with outstanding balances"""
+    current_user = await get_current_user(credentials)
+    
+    accounts = await db.city_ledger_accounts.find({
+        'tenant_id': current_user.tenant_id,
+        'current_balance': {'$gt': 0}
+    }, {'_id': 0}).sort('current_balance', -1).to_list(1000)
+    
+    total_outstanding = sum(a['current_balance'] for a in accounts)
+    
+    return {
+        'accounts': accounts,
+        'total_accounts': len(accounts),
+        'total_outstanding': round(total_outstanding, 2)
+    }
+
+# ============= 3. QUEUE ROOMS MODULE (EARLY ARRIVAL MANAGEMENT) =============
+
+@api_router.post("/rooms/queue/add")
+async def add_to_room_queue(
+    queue_data: dict,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Add guest to room queue (early arrival waiting list)"""
+    current_user = await get_current_user(credentials)
+    
+    # Verify booking
+    booking = await db.bookings.find_one({
+        'id': queue_data['booking_id'],
+        'tenant_id': current_user.tenant_id
+    })
+    
+    if not booking:
+        raise HTTPException(status_code=404, detail="Booking not found")
+    
+    # Get guest info
+    guest = await db.guests.find_one({'id': booking['guest_id']})
+    
+    # Determine priority
+    priority = 5
+    if guest and guest.get('vip_status'):
+        priority = 1
+    elif guest and guest.get('loyalty_tier') in ['gold', 'platinum']:
+        priority = 2
+    elif queue_data.get('priority'):
+        priority = queue_data['priority']
+    
+    queue_entry = QueueRoom(
+        tenant_id=current_user.tenant_id,
+        booking_id=queue_data['booking_id'],
+        guest_name=guest.get('name', 'Unknown') if guest else 'Unknown',
+        room_type=booking.get('room_type', 'Standard'),
+        priority=priority,
+        requested_room=queue_data.get('requested_room'),
+        arrival_time=queue_data.get('arrival_time'),
+        special_requests=queue_data.get('special_requests'),
+        vip_status=guest.get('vip_status', False) if guest else False
+    )
+    
+    await db.room_queue.insert_one(queue_entry.model_dump())
+    
+    return {
+        'success': True,
+        'queue_id': queue_entry.id,
+        'priority': priority,
+        'message': f"{queue_entry.guest_name} added to room queue with priority {priority}"
+    }
+
+@api_router.get("/rooms/queue/list")
+async def get_room_queue(
+    status: str = "waiting",
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Get room queue list sorted by priority"""
+    current_user = await get_current_user(credentials)
+    
+    queue = await db.room_queue.find({
+        'tenant_id': current_user.tenant_id,
+        'status': status
+    }, {'_id': 0}).sort('priority', 1).to_list(1000)
+    
+    # Get available rooms for assignment
+    available_rooms = await db.rooms.find({
+        'tenant_id': current_user.tenant_id,
+        'status': 'available',
+        'housekeeping_status': 'clean'
+    }, {'_id': 0}).to_list(1000)
+    
+    return {
+        'queue': queue,
+        'queue_length': len(queue),
+        'available_rooms': len(available_rooms),
+        'recommendations': [
+            {
+                'queue_entry': q,
+                'suggested_room': next((r for r in available_rooms if r['room_type'] == q['room_type']), None)
+            }
+            for q in queue[:10]
+        ]
+    }
+
+@api_router.post("/rooms/queue/assign-priority")
+async def assign_queue_priority(
+    queue_id: str,
+    priority: int,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Manually assign priority to queue entry"""
+    current_user = await get_current_user(credentials)
+    
+    if priority < 1 or priority > 10:
+        raise HTTPException(status_code=400, detail="Priority must be between 1 and 10")
+    
+    result = await db.room_queue.update_one(
+        {
+            'id': queue_id,
+            'tenant_id': current_user.tenant_id
+        },
+        {'$set': {'priority': priority}}
+    )
+    
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Queue entry not found")
+    
+    return {
+        'success': True,
+        'queue_id': queue_id,
+        'new_priority': priority
+    }
+
+@api_router.post("/rooms/queue/notify-guest")
+async def notify_guest_room_ready(
+    queue_id: str,
+    room_number: str,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Notify guest that their room is ready"""
+    current_user = await get_current_user(credentials)
+    
+    # Get queue entry
+    queue_entry = await db.room_queue.find_one({
+        'id': queue_id,
+        'tenant_id': current_user.tenant_id
+    })
+    
+    if not queue_entry:
+        raise HTTPException(status_code=404, detail="Queue entry not found")
+    
+    # Get booking
+    booking = await db.bookings.find_one({'id': queue_entry['booking_id']})
+    
+    # Update queue status
+    await db.room_queue.update_one(
+        {'id': queue_id},
+        {
+            '$set': {
+                'status': 'assigned',
+                'notified': True,
+                'assigned_room': room_number,
+                'notified_at': datetime.now(timezone.utc).isoformat()
+            }
+        }
+    )
+    
+    # Send notification (mock)
+    notification_message = f"Dear {queue_entry['guest_name']}, your room {room_number} is now ready! Please proceed to reception."
+    
+    print(f"📱 Room Ready Notification: {notification_message}")
+    
+    return {
+        'success': True,
+        'message': 'Guest notified successfully',
+        'guest_name': queue_entry['guest_name'],
+        'room_number': room_number,
+        'notification': notification_message
+    }
+
+@api_router.delete("/rooms/queue/{queue_id}")
+async def remove_from_queue(
+    queue_id: str,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Remove entry from room queue"""
+    current_user = await get_current_user(credentials)
+    
+    result = await db.room_queue.delete_one({
+        'id': queue_id,
+        'tenant_id': current_user.tenant_id
+    })
+    
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Queue entry not found")
+    
+    return {
+        'success': True,
+        'message': 'Entry removed from queue'
+    }
+
+# ============= AUDIT TRAIL LOGGING (AUTO-TRACKING) =============
+
+async def log_audit_trail(
+    tenant_id: str,
+    user_id: str,
+    action: str,
+    entity_type: str,
+    entity_id: str,
+    old_value: str = None,
+    new_value: str = None
+):
+    """Helper function to log all system changes"""
+    entry = AuditTrailEntry(
+        tenant_id=tenant_id,
+        user_id=user_id,
+        action=action,
+        entity_type=entity_type,
+        entity_id=entity_id,
+        old_value=old_value,
+        new_value=new_value
+    )
+    
+    await db.audit_trail.insert_one(entry.model_dump())
+
+
 
 # Include router at the very end after ALL endpoints are defined
 app.include_router(api_router)
