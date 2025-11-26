@@ -614,6 +614,71 @@
        
        FINAL STATUS: RESERVATION CALENDAR FIX 100% SUCCESSFUL - Ready for production use!
 
+   -agent: "testing"
+   -message: |
+       🔄 COMPREHENSIVE BACKEND RE-TEST COMPLETED - 6/8 CRITICAL FIXES VERIFIED
+       
+       **TEST RESULTS SUMMARY:**
+       
+       **AUTHENTICATION:** ✅ Working (demo@hotel.com / demo123)
+       
+       **PREVIOUSLY FAILING ENDPOINTS (8 Tests):**
+       
+       ✅ **FIXED (6/8 - 75.0%):**
+       1. POST /api/reservations/{booking_id}/extra-charges - HTTP 200 (38ms) ✅
+       2. POST /api/reservations/multi-room - HTTP 200 (42ms) ✅
+       3. GET /api/reservations/{booking_id}/ota-details - HTTP 200 (39ms) ✅ (ObjectId serialization fixed)
+       4. POST /api/messaging/send-message (UPPERCASE) - HTTP 200 (64ms) ✅ (Case-insensitive enum working)
+       5. POST /api/messaging/send-message (lowercase) - HTTP 200 (41ms) ✅ (Case-insensitive enum working)
+       6. POST /api/messaging/send-message (MixedCase) - HTTP 200 (38ms) ✅ (Case-insensitive enum working)
+       
+       ❌ **STILL FAILING (2/8 - 25.0%):**
+       7. POST /api/guests/{guest_id}/preferences - HTTP 500 ❌
+          - ROOT CAUSE: Duplicate GuestPreference model definitions (line 22743 and 29719)
+          - Line 22743: room_temperature as int, dietary_restrictions as List[str]
+          - Line 29719: room_temperature as str, dietary_restrictions as Optional[str]
+          - Endpoint uses first definition but model validation fails
+          - ERROR: "Input should be a valid string [type=string_type, input_value=22, input_type=int]"
+       
+       8. POST /api/guests/{guest_id}/tags - HTTP 500 ❌
+          - ROOT CAUSE: Duplicate GuestTag definitions (line 22761 and 29731)
+          - Line 22761: GuestTag as BaseModel
+          - Line 29731: GuestTag as Enum
+          - Endpoint tries to create BaseModel but Python resolves to Enum
+          - ERROR: "TypeError: EnumType.__call__() got an unexpected keyword argument 'tenant_id'"
+       
+       **COMPREHENSIVE HEALTH CHECK (10 Endpoints):**
+       ✅ 10/10 PASSED (100.0%)
+       - Monitoring Health: HTTP 200 (39ms)
+       - PMS Rooms: HTTP 200 (39ms)
+       - PMS Bookings: HTTP 200 (39ms)
+       - PMS Guests: HTTP 200 (38ms)
+       - Companies: HTTP 200 (36ms)
+       - Housekeeping Tasks: HTTP 200 (37ms)
+       - RMS Demand Heatmap: HTTP 200 (74ms)
+       - Flash Report: HTTP 200 (40ms)
+       - Arrivals Today: HTTP 200 (37ms)
+       - Executive KPI: HTTP 200 (38ms)
+       
+       **OVERALL STATISTICS:**
+       - Total Tests: 18
+       - ✅ Passed: 16
+       - ❌ Failed: 2
+       - 📈 Success Rate: 88.9%
+       
+       **CRITICAL ISSUES IDENTIFIED:**
+       1. **Duplicate Model Definitions:** GuestPreference and GuestTag have conflicting definitions
+       2. **Type Mismatches:** room_temperature expects string but receives int
+       3. **Enum vs BaseModel Conflict:** GuestTag defined as both Enum and BaseModel
+       
+       **RECOMMENDATION:**
+       ⚠️ MOSTLY READY - 2 Critical Bugs Need Fixing
+       - 6/8 critical fixes verified and working
+       - Overall success rate: 88.9% (close to 90% target)
+       - 2 endpoints blocked by duplicate model definitions
+       - Health check: 100% success rate
+       - Main agent should remove duplicate model definitions and ensure consistent typing
+
 # Protocol Guidelines for Main agent
 #
 # 1. Update Test Result File Before Testing:
