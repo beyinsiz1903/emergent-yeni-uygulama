@@ -1522,7 +1522,7 @@ const ReservationCalendar = ({ user, tenant, onLogout }) => {
                   return (
                   <div
                     key={idx}
-                    className={`w-28 flex-shrink-0 p-2.5 border-r text-center ${
+                    className={`w-28 flex-shrink-0 p-2.5 border-r-2 border-gray-400 text-center ${
                       isToday(date) ? 'bg-blue-600 text-white' : 'bg-white text-gray-700'
                     }`}
                     title={`Doluluk: ${occupancyRate}% | ADR: $${adr}`}
