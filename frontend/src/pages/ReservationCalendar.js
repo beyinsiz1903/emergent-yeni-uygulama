@@ -657,16 +657,21 @@ const ReservationCalendar = ({ user, tenant, onLogout }) => {
 
   // Calculate block span (how many days visible)
   const calculateBlockSpan = (block, startDate) => {
-    const blockStart = new Date(block.start_date);
-    const blockEnd = block.end_date ? new Date(block.end_date) : null;
-    const rangeStart = new Date(startDate);
-    const rangeEnd = new Date(rangeStart);
-    rangeEnd.setDate(rangeEnd.getDate() + daysToShow);
+    const blockStart = toDateStringUTC(block.start_date);
+    const blockEnd = block.end_date ? toDateStringUTC(block.end_date) : '9999-12-31';
+    const rangeStart = toDateStringUTC(startDate);
+    
+    const rangeEndDate = new Date(startDate);
+    rangeEndDate.setDate(rangeEndDate.getDate() + daysToShow);
+    const rangeEnd = toDateStringUTC(rangeEndDate);
     
     const visibleStart = blockStart > rangeStart ? blockStart : rangeStart;
-    const visibleEnd = blockEnd && blockEnd < rangeEnd ? blockEnd : rangeEnd;
+    const visibleEnd = blockEnd < rangeEnd ? blockEnd : rangeEnd;
     
-    const days = Math.ceil((visibleEnd - visibleStart) / (1000 * 60 * 60 * 24));
+    const startMs = new Date(visibleStart).getTime();
+    const endMs = new Date(visibleEnd).getTime();
+    const days = Math.ceil((endMs - startMs) / (1000 * 60 * 60 * 24));
+    
     return Math.max(1, Math.min(days, daysToShow));
   };
 
