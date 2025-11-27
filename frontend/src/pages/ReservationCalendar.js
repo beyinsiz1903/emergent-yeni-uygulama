@@ -2923,16 +2923,18 @@ const ReservationCalendar = ({ user, tenant, onLogout }) => {
                                         <Clock className="w-3 h-3 mr-1" />
                                         {calculateBookingSpan(booking, currentDate)}n
                                       </div>
-                                  </div>
-                                  {booking.company_name && (
-                                    <div className="text-xs opacity-90 flex items-center truncate">
-                                      <Building2 className="w-3 h-3 mr-1" />
-                                      {booking.company_name}
-                                    </div>
+                                      {booking.company_name && (
+                                        <div className="text-xs opacity-90 flex items-center truncate">
+                                          <Building2 className="w-3 h-3 mr-1" />
+                                          {booking.company_name}
+                                        </div>
+                                      )}
+                                    </>
                                   )}
                                   
-                                  {/* Status indicators - top right */}
-                                  <div className="absolute top-1 right-1 flex flex-col space-y-1 items-end">
+                                  {/* Status indicators - top right - Only in detailed mode */}
+                                  {viewMode === 'detailed' && (
+                                    <div className="absolute top-1 right-1 flex flex-col space-y-1 items-end">
                                     {/* AI Recommendation Badge */}
                                     {showAIPanel && getAIRecommendation(booking.id) && (
                                       <div className="bg-gradient-to-r from-purple-600 to-blue-600 text-white text-[8px] font-bold px-1 py-0.5 rounded animate-pulse" title="AI Recommendation Available">
