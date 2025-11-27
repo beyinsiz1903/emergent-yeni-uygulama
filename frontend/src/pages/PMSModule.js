@@ -320,7 +320,9 @@ const PMSModule = ({ user, tenant, onLogout }) => {
         axios.get('/pms/rooms?limit=100', { timeout: 15000 }), // Limit rooms for initial load
         axios.get('/pms/guests?limit=100', { timeout: 15000 }), // Limit guests to 100
         axios.get(`/pms/bookings?start_date=${today}&end_date=${nextWeekStr}&limit=200`, { timeout: 15000 }), // Only next 7 days
-      // Group bookings by group_booking_id for multi-room view
+        axios.get('/companies?limit=50', { timeout: 15000 }) // Limit companies to 50
+      ]);
+
       const rawBookings = bookingsRes.data || [];
       const grouped = [];
       const seenGroupIds = new Set();
