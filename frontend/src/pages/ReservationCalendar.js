@@ -236,8 +236,6 @@ const ReservationCalendar = ({ user, tenant, onLogout }) => {
     }
   };
 
-  // Handle cell click - Open new booking dialog
-  const handleCellClick = (roomId, date) => {
   // Deterministic color for group bookings
   const getGroupColor = (booking) => {
     if (!booking || !booking.group_booking_id) return '#2563eb'; // default blue
@@ -253,6 +251,9 @@ const ReservationCalendar = ({ user, tenant, onLogout }) => {
     setGroupColorMap(prev => ({ ...prev, [groupId]: color }));
     return color;
   };
+
+  // Handle cell click - Open new booking dialog
+  const handleCellClick = (roomId, date) => {
 
     const room = rooms.find(r => r.id === roomId);
     if (!room) return;
