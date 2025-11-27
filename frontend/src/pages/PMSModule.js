@@ -757,7 +757,7 @@ const PMSModule = ({ user, tenant, onLogout }) => {
   const handleCreateBooking = async (e) => {
     e.preventDefault();
 
-    // Check for rate override on main room
+    // Rate override kontrolü (ana form)
     if (newBooking.base_rate > 0 && newBooking.base_rate !== newBooking.total_amount) {
       if (!newBooking.override_reason) {
         toast.error('Please provide a reason for rate override');
@@ -765,9 +765,8 @@ const PMSModule = ({ user, tenant, onLogout }) => {
       }
     }
 
-    // Basic validation
-    if (!newBooking.guest_id || !newBooking.room_id) {
-      toast.error('Please select guest and room');
+    if (!newBooking.guest_id) {
+      toast.error('Please select guest');
       return;
     }
 
@@ -776,24 +775,35 @@ const PMSModule = ({ user, tenant, onLogout }) => {
       return;
     }
 
+    // Multi-room validasyonu
+    if (!multiRoomBooking || multiRoomBooking.length === 0) {
+      toast.error('Please add at least one room');
+      return;
+    }
+
+    const invalidRoom = multiRoomBooking.find(r => !r.room_id);
+    if (invalidRoom) {
+      toast.error('Please select room for each line');
+      return;
+    }
+
     try {
-      // Use multi-room booking endpoint even for single-room bookings
+      const roomsPayload = multiRoomBooking.map(room => ({
+        room_id: room.room_id,
+        adults: room.adults,
+        children: room.children,
+        children_ages: room.children_ages || [],
+        total_amount: room.total_amount,
+        base_rate: room.base_rate,
+        rate_plan: room.rate_plan || newBooking.rate_type || 'Standard',
+        package_code: room.package_code || null
+      }));
+
       const payload = {
         guest_id: newBooking.guest_id,
         arrival_date: newBooking.check_in,
         departure_date: newBooking.check_out,
-        rooms: [
-          {
-            room_id: newBooking.room_id,
-            adults: newBooking.adults,
-            children: newBooking.children,
-            children_ages: newBooking.children_ages,
-            total_amount: newBooking.total_amount,
-            base_rate: newBooking.base_rate,
-            rate_plan: newBooking.rate_type || 'Standard',
-            package_code: null
-          }
-        ],
+        rooms: roomsPayload,
         company_id: newBooking.company_id || null,
         channel: newBooking.channel || 'direct',
         special_requests: undefined
@@ -826,6 +836,18 @@ const PMSModule = ({ user, tenant, onLogout }) => {
         billing_contact_person: '',
         override_reason: ''
       });
+      setMultiRoomBooking([
+        {
+          room_id: '',
+          adults: 1,
+          children: 0,
+          children_ages: [],
+          total_amount: 0,
+          base_rate: 0,
+          rate_plan: '',
+          package_code: null
+        }
+      ]);
     } catch (error) {
       toast.error(error.response?.data?.detail || 'Failed to create booking');
     }
