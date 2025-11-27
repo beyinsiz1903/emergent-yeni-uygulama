@@ -672,13 +672,15 @@ const ReservationCalendar = ({ user, tenant, onLogout }) => {
 
   // Check if booking starts on this date
   const isBookingStart = (booking, date) => {
+    // Create new Date objects to avoid mutation
     const checkIn = new Date(booking.check_in);
     const current = new Date(date);
     
-    checkIn.setHours(0, 0, 0, 0);
-    current.setHours(0, 0, 0, 0);
+    // Compare only dates (year, month, day)
+    const checkInDate = new Date(checkIn.getFullYear(), checkIn.getMonth(), checkIn.getDate());
+    const currentDate = new Date(current.getFullYear(), current.getMonth(), current.getDate());
 
-    return checkIn.getTime() === current.getTime();
+    return checkInDate.getTime() === currentDate.getTime();
   };
 
   const getStatusColor = (status) => {
