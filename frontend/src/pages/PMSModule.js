@@ -3879,7 +3879,7 @@ const PMSModule = ({ user, tenant, onLogout }) => {
                           <Input
                             type="number"
                             step="0.01"
-                            value={room.base_rate}
+                            value={room.base_rate === 0 ? '' : room.base_rate}
                             onChange={(e) => updateMultiRoomField(index, 'base_rate', e.target.value)}
                           />
                         </div>
@@ -3888,7 +3888,7 @@ const PMSModule = ({ user, tenant, onLogout }) => {
                           <Input
                             type="number"
                             step="0.01"
-                            value={room.total_amount}
+                            value={room.total_amount === 0 ? '' : room.total_amount}
                             onChange={(e) => updateMultiRoomField(index, 'total_amount', e.target.value)}
                           />
                         </div>
