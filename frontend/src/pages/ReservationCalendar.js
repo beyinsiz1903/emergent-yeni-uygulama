@@ -86,6 +86,11 @@ const ReservationCalendar = ({ user, tenant, onLogout }) => {
   const [draggingBooking, setDraggingBooking] = useState(null);
   const [dragOverCell, setDragOverCell] = useState(null);
   
+  // Resize state for extending/shortening bookings
+  const [resizingBooking, setResizingBooking] = useState(null);
+  const [resizeDirection, setResizeDirection] = useState(null); // 'start' or 'end'
+  const [resizePreview, setResizePreview] = useState(null);
+  
   // Filter states
   const [filters, setFilters] = useState({
     roomType: '',
