@@ -438,6 +438,28 @@ const PMSModule = ({ user, tenant, onLogout }) => {
     } catch (error) {
       // Permission denied is okay
       if (error.response?.status !== 403) {
+  // Cached rate plans and packages to avoid refetching on every change
+  const [ratePlans, setRatePlans] = useState([]);
+  const [packages, setPackages] = useState([]);
+
+  const loadRateData = async (channel, companyId, stayDate) => {
+    try {
+      const params = {};
+      if (channel) params.channel = channel;
+      if (companyId) params.company_id = companyId;
+      if (stayDate) params.stay_date = stayDate;
+      const [rpRes, pkgRes] = await Promise.all([
+        axios.get('/rates/rate-plans', { params }),
+        axios.get('/rates/packages')
+      ]);
+      setRatePlans(rpRes.data || []);
+      setPackages(pkgRes.data || []);
+    } catch (error) {
+      console.error('Failed to load rate plans/packages', error);
+      toast.error('Failed to load rate plans');
+    }
+  };
+
         console.error('Failed to load audit logs:', error);
       }
     }
