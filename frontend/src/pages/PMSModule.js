@@ -2666,7 +2666,16 @@ const PMSModule = ({ user, tenant, onLogout }) => {
                 <CardTitle>Group Revenue by Company</CardTitle>
               </CardHeader>
               <CardContent>
-                <GroupRevenueByCompany reports={reports} />
+                <GroupRevenueByCompany />
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Pickup Pace Report</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <PickupPaceReport />
               </CardContent>
             </Card>
 
