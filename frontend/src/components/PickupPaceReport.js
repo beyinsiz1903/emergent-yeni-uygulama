@@ -9,7 +9,15 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
 
 const PickupPaceReport = () => {
-  const [targetDate, setTargetDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [targetDate, setTargetDate] = useState(() => {
+    try {
+      const stored = localStorage.getItem('pickup_target_date');
+      if (stored) return stored;
+    } catch (e) {
+      console.warn('Unable to read pickup_target_date from localStorage', e);
+    }
+    return new Date().toISOString().slice(0, 10);
+  });
   const [lookbackDays, setLookbackDays] = useState(90);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
