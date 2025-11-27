@@ -131,8 +131,23 @@ const ReservationCalendar = ({ user, tenant, onLogout }) => {
         rooms: roomsRes.data?.length || 0,
         bookings: bookingsRes.data?.length || 0,
         guests: guestsRes.data?.length || 0,
-        bookingsSample: bookingsRes.data?.[0]
+        bookingsSample: bookingsRes.data?.[0],
+        dateRange: {
+          start: startDate.toISOString().split('T')[0],
+          end: endDate.toISOString().split('T')[0]
+        }
       });
+      
+      // Log first 3 bookings with details
+      if (bookingsRes.data && bookingsRes.data.length > 0) {
+        console.log('📋 First 3 Bookings:', bookingsRes.data.slice(0, 3).map(b => ({
+          id: b.id?.substring(0, 8),
+          guest: b.guest_name,
+          room: b.room_number,
+          roomId: b.room_id?.substring(0, 8),
+          dates: `${b.check_in?.split('T')[0]} → ${b.check_out?.split('T')[0]}`
+        })));
+      }
       
       setRooms(roomsRes.data || []);
       setBookings(bookingsRes.data || []);
