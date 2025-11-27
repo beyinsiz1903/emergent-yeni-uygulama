@@ -6622,9 +6622,21 @@ async def get_bookings(
     
     bookings_raw = await db.bookings.find(query, projection).skip(offset).limit(limit).to_list(limit)
     
-    # Fix enum mismatches
+    # Enrich bookings with guest_name and room_number
     bookings = []
     for booking in bookings_raw:
+        # Add guest_name if not present
+        if not booking.get('guest_name') and booking.get('guest_id'):
+            guest = await db.guests.find_one({'id': booking['guest_id']}, {'name': 1, '_id': 0})
+            if guest:
+                booking['guest_name'] = guest.get('name', 'Unknown Guest')
+        
+        # Add room_number if not present
+        if not booking.get('room_number') and booking.get('room_id'):
+            room = await db.rooms.find_one({'id': booking['room_id']}, {'room_number': 1, '_id': 0})
+            if room:
+                booking['room_number'] = room.get('room_number', 'N/A')
+        
         # Map rate_type values
         if 'rate_type' in booking:
             rate_map = {
