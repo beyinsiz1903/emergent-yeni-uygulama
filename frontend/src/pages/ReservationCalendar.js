@@ -238,6 +238,22 @@ const ReservationCalendar = ({ user, tenant, onLogout }) => {
 
   // Handle cell click - Open new booking dialog
   const handleCellClick = (roomId, date) => {
+  // Deterministic color for group bookings
+  const getGroupColor = (booking) => {
+    if (!booking || !booking.group_booking_id) return '#2563eb'; // default blue
+    const groupId = booking.group_booking_id;
+    if (groupColorMap[groupId]) return groupColorMap[groupId];
+    const palette = ['#2563eb', '#0891b2', '#7c3aed', '#db2777', '#059669', '#ea580c'];
+    let hash = 0;
+    for (let i = 0; i < groupId.length; i++) {
+      hash = groupId.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    const idx = Math.abs(hash) % palette.length;
+    const color = palette[idx];
+    setGroupColorMap(prev => ({ ...prev, [groupId]: color }));
+    return color;
+  };
+
     const room = rooms.find(r => r.id === roomId);
     if (!room) return;
     
