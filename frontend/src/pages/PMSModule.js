@@ -828,6 +828,9 @@ const PMSModule = ({ user, tenant, onLogout }) => {
       return;
     }
 
+    // Load rate data for this booking window
+    await loadRateData(newBooking.channel, newBooking.company_id, newBooking.check_in);
+
     // Multi-room validasyonu
     if (!multiRoomBooking || multiRoomBooking.length === 0) {
       toast.error('Please add at least one room');
