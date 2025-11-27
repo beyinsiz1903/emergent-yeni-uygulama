@@ -1456,8 +1456,8 @@ const ReservationCalendar = ({ user, tenant, onLogout }) => {
 
         {/* Calendar Grid - Removed Card wrapper to prevent sticky behavior */}
         <div className="bg-white rounded-lg shadow-sm border">
-          {/* Date Header Row - Forced to scroll with page - MULTIPLE OVERRIDES */}
-          <div className="!relative overflow-x-auto border-b" style={{ position: 'relative', zIndex: 1 }}>
+          {/* Date Header Row - Forced to scroll with page - NO OVERFLOW */}
+          <div className="!relative border-b" style={{ position: 'relative', zIndex: 1 }}>
             <div className="!relative min-w-max" style={{ position: 'relative', zIndex: 1 }}>
               <div 
                 className="!relative flex bg-white" 
