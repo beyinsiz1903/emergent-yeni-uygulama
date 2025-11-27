@@ -6613,6 +6613,69 @@ async def get_bookings(
                 return bookings
 
     # Fallback: Build query
+    query = {'tenant_id': current_user.tenant_id}
+    
+    if start_date or end_date:
+        # For calendar view, we need bookings that overlap with the date range
+        # A booking overlaps if: check_in < end_date AND check_out > start_date
+        date_filter = {}
+        if start_date and end_date:
+            # Booking must checkout after start_date AND checkin before end_date
+            query['$and'] = [
+                {'check_out': {'$gt': start_date}},  # checkout after range start
+                {'check_in': {'$lt': end_date}}      # checkin before range end
+            ]
+        elif start_date:
+            # At least checkout after start_date
+            query['check_out'] = {'$gt': start_date}
+        elif end_date:
+            # At least checkin before end_date
+            query['check_in'] = {'$lt': end_date}
+    
+    if status:
+        query['status'] = status
+    
+    # Execute query with pagination
+    cursor = db.bookings.find(query).sort('check_in', -1).skip(offset).limit(limit)
+    bookings_raw = await cursor.to_list(length=limit)
+    
+    # Process bookings
+    bookings = []
+    for booking in bookings_raw:
+        # Add guest_name if not present
+        if not booking.get('guest_name') and booking.get('guest_id'):
+            guest = await db.guests.find_one({'id': booking['guest_id']}, {'first_name': 1, 'last_name': 1, '_id': 0})
+            if guest:
+                first_name = guest.get('first_name', '')
+                last_name = guest.get('last_name', '')
+                booking['guest_name'] = f"{first_name} {last_name}".strip() or 'Unknown Guest'
+        
+        # Add room_number if not present
+        if not booking.get('room_number') and booking.get('room_id'):
+            room = await db.rooms.find_one({'id': booking['room_id']}, {'room_number': 1, '_id': 0})
+            if room:
+                booking['room_number'] = room.get('room_number', 'Unknown Room')
+        
+        # Map rate_type values
+        if 'rate_type' in booking:
+            rate_map = {
+                'advance_purchase': 'promotional',
+                'member': 'promotional'
+            }
+            if booking['rate_type'] in rate_map:
+                booking['rate_type'] = rate_map[booking['rate_type']]
+        
+        # Map market_segment values  
+        if 'market_segment' in booking:
+            segment_map = {
+                'business': 'corporate'
+            }
+            if booking['market_segment'] in segment_map:
+                booking['market_segment'] = segment_map[booking['market_segment']]
+        
+        bookings.append(booking)
+    
+    return bookings
 
 class RatePlanFilter(BaseModel):
     channel: Optional[ChannelType] = None
