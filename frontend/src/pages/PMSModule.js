@@ -4679,20 +4679,57 @@ const PMSModule = ({ user, tenant, onLogout }) => {
                   </CardContent>
                 </Card>
 
-                {/* Channel Distribution */}
+                {/* Channel Distribution - Enhanced with Pie Chart */}
                 {guest360Data.stats?.channel_distribution && (
                   <Card>
                     <CardHeader>
                       <CardTitle className="text-lg">Channel Distribution</CardTitle>
+                      <CardDescription>Booking sources breakdown</CardDescription>
                     </CardHeader>
                     <CardContent>
-                      <div className="flex gap-4 flex-wrap">
-                        {Object.entries(guest360Data.stats.channel_distribution).map(([channel, count]) => (
-                          <div key={channel} className="text-center">
-                            <div className="text-2xl font-bold">{count}</div>
-                            <div className="text-xs text-gray-600 capitalize">{channel}</div>
-                          </div>
-                        ))}
+                      <div className="grid grid-cols-2 gap-4">
+                        {/* Pie Chart */}
+                        <div>
+                          <ResponsiveContainer width="100%" height={200}>
+                            <PieChart>
+                              <Pie
+                                data={Object.entries(guest360Data.stats.channel_distribution).map(([channel, count]) => ({
+                                  name: channel.charAt(0).toUpperCase() + channel.slice(1),
+                                  value: count
+                                }))}
+                                cx="50%"
+                                cy="50%"
+                                labelLine={false}
+                                label={({name, percent}) => `${name} ${(percent * 100).toFixed(0)}%`}
+                                outerRadius={80}
+                                fill="#8884d8"
+                                dataKey="value"
+                              >
+                                {Object.keys(guest360Data.stats.channel_distribution).map((entry, index) => {
+                                  const colors = ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899'];
+                                  return <Cell key={`cell-${index}`} fill={colors[index % colors.length]} />;
+                                })}
+                              </Pie>
+                              <Tooltip />
+                            </PieChart>
+                          </ResponsiveContainer>
+                        </div>
+                        
+                        {/* Stats */}
+                        <div className="flex flex-col justify-center gap-3">
+                          {Object.entries(guest360Data.stats.channel_distribution).map(([channel, count], index) => {
+                            const colors = ['bg-blue-500', 'bg-green-500', 'bg-orange-500', 'bg-purple-500', 'bg-pink-500'];
+                            return (
+                              <div key={channel} className="flex items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                  <div className={`w-3 h-3 ${colors[index % colors.length]} rounded`}></div>
+                                  <span className="text-sm capitalize">{channel}</span>
+                                </div>
+                                <span className="font-bold">{count}</span>
+                              </div>
+                            );
+                          })}
+                        </div>
                       </div>
                     </CardContent>
                   </Card>
