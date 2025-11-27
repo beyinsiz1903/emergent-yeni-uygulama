@@ -25,6 +25,9 @@ import {
 } from 'lucide-react';
 
 const ReservationCalendar = ({ user, tenant, onLogout }) => {
+  // Debug toggle - set to true only when debugging booking display issues
+  const DEBUG_ROOMS = false;
+  
   const [currentDate, setCurrentDate] = useState(new Date());
   const [rooms, setRooms] = useState([]);
   const [bookings, setBookings] = useState([]);
