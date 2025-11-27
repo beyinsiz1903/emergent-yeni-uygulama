@@ -3163,10 +3163,9 @@ const ReservationCalendar = ({ user, tenant, onLogout }) => {
             onViewFolio={async (bookingId) => {
               try {
                 console.log('🔍 Fetching folio for booking:', bookingId);
-                console.log('📡 API URL:', axios.defaults.baseURL + `/folio/booking/${bookingId}`);
                 
                 // Fetch folio data
-                const folioRes = await axios.get(`/api/folio/booking/${bookingId}`);
+                const folioRes = await axios.get(`/folio/booking/${bookingId}`);
                 
                 console.log('✅ Folio response:', folioRes.data);
                 
@@ -3177,7 +3176,7 @@ const ReservationCalendar = ({ user, tenant, onLogout }) => {
                   console.log('📄 Loading charges for folio:', folio.id);
                   
                   // Fetch folio charges
-                  const chargesRes = await axios.get(`/api/folio/${folio.id}/charges`);
+                  const chargesRes = await axios.get(`/folio/${folio.id}/charges`);
                   setFolioCharges(chargesRes.data.charges || []);
                   
                   // Close sidebar and open folio dialog
