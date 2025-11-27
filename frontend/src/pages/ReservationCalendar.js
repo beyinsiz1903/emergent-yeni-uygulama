@@ -504,16 +504,23 @@ const ReservationCalendar = ({ user, tenant, onLogout }) => {
     const oldRoom = rooms.find(r => r.id === oldRoomId);
     const newRoom = rooms.find(r => r.id === newRoomId);
     
+    // Check if moving within same room type - ALWAYS ask for reason
+    const isSameRoomType = oldRoom?.room_type === newRoom?.room_type;
+    
     setMoveData({
       booking: draggingBooking,
       oldRoom: oldRoom?.room_number,
       newRoom: newRoom?.room_number,
+      oldRoomType: oldRoom?.room_type,
+      newRoomType: newRoom?.room_type,
+      isSameRoomType: isSameRoomType,
       oldCheckIn: draggingBooking.check_in,
       newCheckIn: newCheckIn.toISOString().split('T')[0],
       newCheckOut: newCheckOut.toISOString().split('T')[0],
       newRoomId: newRoomId
     });
     
+    // ALWAYS show reason dialog for all room moves
     setShowMoveReasonDialog(true);
     setDraggingBooking(null);
   };
