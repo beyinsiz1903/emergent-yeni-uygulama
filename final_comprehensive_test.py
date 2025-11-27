@@ -15,7 +15,7 @@ import aiohttp
 import json
 import time
 
-BACKEND_URL = "https://reservation-display.preview.emergentagent.com/api"
+BACKEND_URL = "https://hotel-system-review.preview.emergentagent.com/api"
 TEST_EMAIL = "admin@hotel.com"
 TEST_PASSWORD = "admin123"
 

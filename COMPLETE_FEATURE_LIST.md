@@ -218,7 +218,7 @@
 ## 📋 QUICK START GUIDE
 
 **Login:**
-- URL: https://reservation-display.preview.emergentagent.com
+- URL: https://hotel-system-review.preview.emergentagent.com
 - Demo: demo@hotel.com / demo123
 
 **New User Registration:**
