@@ -6596,8 +6596,29 @@ async def get_bookings(
     if status:
         query['status'] = status
     
-    # Minimal projection
-    projection = {'_id': 0, 'id': 1, 'tenant_id': 1, 'guest_id': 1, 'room_id': 1, 'check_in': 1, 'check_out': 1, 'status': 1, 'total_amount': 1}
+    # Extended projection for reservation calendar display
+    # Include all necessary fields for calendar visualization
+    projection = {
+        '_id': 0,
+        'id': 1,
+        'tenant_id': 1,
+        'guest_id': 1,
+        'guest_name': 1,
+        'room_id': 1,
+        'room_number': 1,
+        'check_in': 1,
+        'check_out': 1,
+        'status': 1,
+        'total_amount': 1,
+        'rate_type': 1,
+        'market_segment': 1,
+        'channel': 1,
+        'adults': 1,
+        'children': 1,
+        'special_requests': 1,
+        'confirmation_number': 1,
+        'guests_count': 1
+    }
     
     bookings_raw = await db.bookings.find(query, projection).skip(offset).limit(limit).to_list(limit)
     
