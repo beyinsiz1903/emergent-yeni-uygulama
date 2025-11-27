@@ -627,6 +627,217 @@ const Dashboard = ({ user, tenant, onLogout }) => {
             )}
 
             {/* Modules Grid - Categorized with Accordion */}
+
+
+            {/* Analytics & Charts Section */}
+            <div className="space-y-4">
+              <h2 className="text-xl md:text-2xl font-bold" style={{ fontFamily: 'Space Grotesk' }}>
+                Analytics & Insights
+              </h2>
+              
+              {/* Occupancy & Revenue Charts */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                {/* Occupancy Trend */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg">Occupancy Trend (30 Days)</CardTitle>
+                    <CardDescription>Daily occupancy percentage</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <ResponsiveContainer width="100%" height={250}>
+                      <AreaChart data={occupancyData}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis 
+                          dataKey="date" 
+                          tick={{ fontSize: 10 }}
+                          tickFormatter={(value) => new Date(value).getDate()}
+                        />
+                        <YAxis tick={{ fontSize: 10 }} />
+                        <Tooltip 
+                          labelFormatter={(value) => new Date(value).toLocaleDateString()}
+                          formatter={(value) => `${value.toFixed(1)}%`}
+                        />
+                        <Area 
+                          type="monotone" 
+                          dataKey="occupancy_rate" 
+                          stroke="#3b82f6" 
+                          fill="#3b82f6" 
+                          fillOpacity={0.3}
+                          name="Occupancy"
+                        />
+                      </AreaChart>
+                    </ResponsiveContainer>
+                  </CardContent>
+                </Card>
+
+                {/* Revenue Trend */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg">Revenue Trend (30 Days)</CardTitle>
+                    <CardDescription>Daily revenue breakdown</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <ResponsiveContainer width="100%" height={250}>
+                      <BarChart data={revenueData}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis 
+                          dataKey="date" 
+                          tick={{ fontSize: 10 }}
+                          tickFormatter={(value) => new Date(value).getDate()}
+                        />
+                        <YAxis tick={{ fontSize: 10 }} />
+                        <Tooltip 
+                          labelFormatter={(value) => new Date(value).toLocaleDateString()}
+                          formatter={(value) => `$${value.toFixed(0)}`}
+                        />
+                        <Legend wrapperStyle={{ fontSize: '12px' }} />
+                        <Bar dataKey="room_revenue" fill="#10b981" name="Room" />
+                        <Bar dataKey="fnb_revenue" fill="#f59e0b" name="F&B" />
+                        <Bar dataKey="other_revenue" fill="#6366f1" name="Other" />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Booking Trends & ADR */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                {/* Booking Trends */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg">Booking Trends</CardTitle>
+                    <CardDescription>Daily bookings & ADR performance</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <ResponsiveContainer width="100%" height={250}>
+                      <LineChart data={trendData}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis 
+                          dataKey="date" 
+                          tick={{ fontSize: 10 }}
+                          tickFormatter={(value) => new Date(value).getDate()}
+                        />
+                        <YAxis yAxisId="left" tick={{ fontSize: 10 }} />
+                        <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 10 }} />
+                        <Tooltip 
+                          labelFormatter={(value) => new Date(value).toLocaleDateString()}
+                        />
+                        <Legend wrapperStyle={{ fontSize: '12px' }} />
+                        <Line 
+                          yAxisId="left"
+                          type="monotone" 
+                          dataKey="bookings" 
+                          stroke="#8b5cf6" 
+                          strokeWidth={2}
+                          name="Bookings"
+                        />
+                        <Line 
+                          yAxisId="right"
+                          type="monotone" 
+                          dataKey="adr" 
+                          stroke="#10b981" 
+                          strokeWidth={2}
+                          name="ADR ($)"
+                        />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </CardContent>
+                </Card>
+
+                {/* RevPAR & Performance */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg">RevPAR Performance</CardTitle>
+                    <CardDescription>Revenue per available room</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <ResponsiveContainer width="100%" height={250}>
+                      <AreaChart data={trendData}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis 
+                          dataKey="date" 
+                          tick={{ fontSize: 10 }}
+                          tickFormatter={(value) => new Date(value).getDate()}
+                        />
+                        <YAxis tick={{ fontSize: 10 }} />
+                        <Tooltip 
+                          labelFormatter={(value) => new Date(value).toLocaleDateString()}
+                          formatter={(value) => `$${value.toFixed(2)}`}
+                        />
+                        <Area 
+                          type="monotone" 
+                          dataKey="revpar" 
+                          stroke="#f59e0b" 
+                          fill="#f59e0b" 
+                          fillOpacity={0.4}
+                          name="RevPAR"
+                        />
+                      </AreaChart>
+                    </ResponsiveContainer>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Occupancy Heatmap */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">30-Day Occupancy Heatmap</CardTitle>
+                  <CardDescription>Visual representation of daily occupancy levels</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-10 gap-1">
+                    {occupancyData.slice(0, 30).map((day, index) => {
+                      const rate = day.occupancy_rate || 0;
+                      const color = 
+                        rate >= 90 ? 'bg-red-600' :
+                        rate >= 80 ? 'bg-orange-500' :
+                        rate >= 70 ? 'bg-yellow-500' :
+                        rate >= 60 ? 'bg-green-500' :
+                        rate >= 50 ? 'bg-blue-500' :
+                        'bg-gray-300';
+                      
+                      return (
+                        <div
+                          key={index}
+                          className={`${color} rounded p-2 text-center text-white text-xs font-semibold cursor-pointer hover:scale-110 transition-transform`}
+                          title={`${new Date(day.date).toLocaleDateString()}: ${rate.toFixed(1)}% occupied`}
+                        >
+                          {new Date(day.date).getDate()}
+                          <div className="text-[10px]">{rate.toFixed(0)}%</div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <div className="flex justify-center gap-4 mt-4 text-xs">
+                    <div className="flex items-center gap-1">
+                      <div className="w-3 h-3 bg-gray-300 rounded"></div>
+                      <span>&lt;50%</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <div className="w-3 h-3 bg-blue-500 rounded"></div>
+                      <span>50-60%</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <div className="w-3 h-3 bg-green-500 rounded"></div>
+                      <span>60-70%</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <div className="w-3 h-3 bg-yellow-500 rounded"></div>
+                      <span>70-80%</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <div className="w-3 h-3 bg-orange-500 rounded"></div>
+                      <span>80-90%</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <div className="w-3 h-3 bg-red-600 rounded"></div>
+                      <span>&gt;90%</span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
             <div className="space-y-4">
               <h2 className="text-xl md:text-2xl font-bold mb-4" style={{ fontFamily: 'Space Grotesk' }}>{t('dashboard.yourModules')}</h2>
               
