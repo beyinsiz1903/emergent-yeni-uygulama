@@ -2937,11 +2937,13 @@ const ReservationCalendar = ({ user, tenant, onLogout }) => {
         {/* Calendar Grid */}
         <Card>
           <CardContent className="p-0">
-            {/* Date Header Row - Outside scroll container */}
-            <div className="overflow-x-auto">
+            {/* STRUCTURE: Header outside, Grid inside scroll container */}
+            
+            {/* Date Header Row - OUTSIDE scroll, so it scrolls with page */}
+            <div className="overflow-x-auto border-b">
               <div className="min-w-max">
                 <div 
-                  className="flex border-b bg-white shadow-sm" 
+                  className="flex bg-white shadow-sm" 
                   data-testid="calendar-date-header"
                 >
                 <div className="w-32 flex-shrink-0 p-3 border-r font-bold text-gray-700 text-xs uppercase tracking-wider">
