@@ -573,7 +573,24 @@ const ReservationCalendar = ({ user, tenant, onLogout }) => {
     const checkOutDate = new Date(checkOut.getFullYear(), checkOut.getMonth(), checkOut.getDate());
     const currentDate = new Date(current.getFullYear(), current.getMonth(), current.getDate());
 
-    return currentDate >= checkInDate && currentDate < checkOutDate;
+    const result = currentDate >= checkInDate && currentDate < checkOutDate;
+    
+    // Debug first booking check
+    if (!window.debuggedDateCheck) {
+      window.debuggedDateCheck = true;
+      console.log('\n📅 isBookingOnDate DEBUG (First Call):');
+      console.log('  Booking check-in (raw):', booking.check_in);
+      console.log('  Booking check-out (raw):', booking.check_out);
+      console.log('  Current date (raw):', date.toISOString());
+      console.log('  checkInDate:', checkInDate.toISOString().split('T')[0]);
+      console.log('  checkOutDate:', checkOutDate.toISOString().split('T')[0]);
+      console.log('  currentDate:', currentDate.toISOString().split('T')[0]);
+      console.log('  currentDate >= checkInDate:', currentDate >= checkInDate);
+      console.log('  currentDate < checkOutDate:', currentDate < checkOutDate);
+      console.log('  Result:', result);
+    }
+
+    return result;
   };
 
   // Get booking for room on specific date
