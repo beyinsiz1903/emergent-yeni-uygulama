@@ -1616,15 +1616,15 @@ const ReservationCalendar = ({ user, tenant, onLogout }) => {
                                 onDragStart={(e) => handleDragStart(e, booking)}
                                 onDragEnd={handleDragEnd}
                                 onDoubleClick={() => handleBookingDoubleClick(booking)}
-                                className={`absolute top-2 left-1 rounded ${getSegmentColor(
+                                className={`absolute top-1.5 left-1 rounded-xl ${getSegmentColor(
                                   booking.market_segment || booking.rate_type
-                                )} text-white text-xs overflow-hidden shadow-md hover:shadow-xl transition-all cursor-move z-20 group ${
-                                  draggingBooking?.id === booking.id ? 'opacity-50' : ''
-                                } ${hasConflict(room.id, date) ? 'border-4 border-red-500 animate-pulse' : ''}
-                                ${showDeluxePanel && isGroupBooking(booking.id) ? 'border-2 border-amber-500' : ''}`}
+                                )} text-white text-xs overflow-hidden shadow-lg hover:shadow-2xl transition-all cursor-move z-20 group border-2 border-white/30 ${
+                                  draggingBooking?.id === booking.id ? 'opacity-50 scale-95' : ''
+                                } ${hasConflict(room.id, date) ? 'ring-2 ring-red-500 animate-pulse' : ''}
+                                ${showDeluxePanel && isGroupBooking(booking.id) ? 'ring-2 ring-amber-400' : ''}`}
                                 style={{
-                                  width: `${calculateBookingSpan(booking, currentDate) * 96 - 8}px`,
-                                  height: '70px',
+                                  width: `${calculateBookingSpan(booking, currentDate) * 112 - 8}px`,
+                                  height: '68px',
                                   backgroundImage: showDeluxePanel && isGroupBooking(booking.id) 
                                     ? 'repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(251, 191, 36, 0.2) 10px, rgba(251, 191, 36, 0.2) 20px)' 
                                     : 'none'
