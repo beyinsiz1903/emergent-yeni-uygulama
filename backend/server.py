@@ -6608,6 +6608,126 @@ async def get_bookings(
                     if 'market_segment' in booking:
                         segment_map = {'business': 'corporate'}
                         if booking['market_segment'] in segment_map:
+
+class RatePlanFilter(BaseModel):
+    channel: Optional[ChannelType] = None
+    company_id: Optional[str] = None
+    date: Optional[date] = None
+
+@api_router.get("/rates/rate-plans", response_model=List[RatePlan])
+async def list_rate_plans(
+    channel: Optional[ChannelType] = None,
+    company_id: Optional[str] = None,
+    stay_date: Optional[str] = None,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    current_user = await get_current_user(credentials)
+    query: Dict[str, Any] = {"tenant_id": current_user.tenant_id, "is_active": True}
+
+    if channel:
+        query["$or"] = [
+            {"channel_restrictions": {"$size": 0}},
+            {"channel_restrictions": channel.value},
+        ]
+    if company_id:
+        query["company_ids"] = company_id
+    if stay_date:
+        try:
+            d = datetime.fromisoformat(stay_date).date()
+            or_filters = []
+            or_filters.append({"valid_from": None})
+            or_filters.append({"valid_to": None})
+            query["$and"] = [
+                {"$or": [
+                    {"valid_from": {"$lte": d.isoformat()}},
+                    {"valid_from": None},
+                ]},
+                {"$or": [
+                    {"valid_to": {"$gte": d.isoformat()}},
+                    {"valid_to": None},
+                ]},
+            ]
+        except Exception:
+            pass
+
+    cursor = db.rate_plans.find(query).sort("name", 1)
+    results: List[RatePlan] = []
+    async for doc in cursor:
+        # Normalize date strings to actual date
+        if "valid_from" in doc and isinstance(doc["valid_from"], str):
+            try:
+                doc["valid_from"] = datetime.fromisoformat(doc["valid_from"]).date().isoformat()
+            except Exception:
+                pass
+        if "valid_to" in doc and isinstance(doc["valid_to"], str):
+            try:
+                doc["valid_to"] = datetime.fromisoformat(doc["valid_to"]).date().isoformat()
+            except Exception:
+                pass
+        results.append(RatePlan(**doc))
+    return results
+
+class RatePlanCreate(BaseModel):
+    name: str
+    code: str
+    type: RateType = RateType.BAR
+    currency: str = "EUR"
+    base_price: float
+    market_segment: Optional[MarketSegment] = None
+    channel_restrictions: List[ChannelType] = []
+    company_ids: List[str] = []
+    valid_from: Optional[date] = None
+    valid_to: Optional[date] = None
+    days_of_week: List[int] = []
+    min_stay: Optional[int] = None
+    max_stay: Optional[int] = None
+    cancellation_policy: Optional[CancellationPolicyType] = None
+
+@api_router.post("/rates/rate-plans", response_model=RatePlan)
+async def create_rate_plan(
+    payload: RatePlanCreate,
+    current_user: User = Depends(get_current_user)
+):
+    data = payload.model_dump()
+    data["tenant_id"] = current_user.tenant_id
+    if data.get("valid_from"):
+        data["valid_from"] = data["valid_from"].isoformat()
+    if data.get("valid_to"):
+        data["valid_to"] = data["valid_to"].isoformat()
+    rate_plan = RatePlan(**data)
+    doc = rate_plan.model_dump()
+    await db.rate_plans.insert_one(doc)
+    return rate_plan
+
+class PackageCreate(BaseModel):
+    name: str
+    code: str
+    description: Optional[str] = None
+    included_services: List[str] = []
+    price_type: str = "per_room"
+    additional_amount: float = 0.0
+    linked_rate_plan_ids: List[str] = []
+
+@api_router.get("/rates/packages", response_model=List[Package])
+async def list_packages(credentials: HTTPAuthorizationCredentials = Depends(security)):
+    current_user = await get_current_user(credentials)
+    cursor = db.packages.find({"tenant_id": current_user.tenant_id, "is_active": True}).sort("name", 1)
+    results: List[Package] = []
+    async for doc in cursor:
+        results.append(Package(**doc))
+    return results
+
+@api_router.post("/rates/packages", response_model=Package)
+async def create_package(
+    payload: PackageCreate,
+    current_user: User = Depends(get_current_user)
+):
+    data = payload.model_dump()
+    data["tenant_id"] = current_user.tenant_id
+    package = Package(**data)
+    await db.packages.insert_one(package.model_dump())
+    return package
+
                             booking['market_segment'] = segment_map[booking['market_segment']]
                     bookings.append(booking)
                 return bookings
