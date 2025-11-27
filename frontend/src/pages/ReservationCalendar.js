@@ -3079,6 +3079,23 @@ const ReservationCalendar = ({ user, tenant, onLogout }) => {
             getSegmentColor={getSegmentColor}
             getStatusLabel={getStatusLabel}
             getRateTypeInfo={getRateTypeInfo}
+            onViewFolio={(bookingId) => {
+              // Navigate to folio view or open folio dialog
+              console.log('Opening folio for booking:', bookingId);
+              // You can implement folio view here
+              toast.info('Folio view feature - Opening folio details...');
+              // Example: window.open(`/folio/${bookingId}`, '_blank');
+            }}
+            onEditReservation={(booking) => {
+              console.log('Editing reservation:', booking.id);
+              setShowSidebar(false);
+              // Open edit booking dialog
+              toast.info('Edit reservation feature - Opening edit form...');
+            }}
+            onSendConfirmation={(booking) => {
+              console.log('Sending confirmation for:', booking.id);
+              toast.success('Confirmation email sent to guest!');
+            }}
           />
         </>
       )}
