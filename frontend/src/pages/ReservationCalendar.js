@@ -2823,11 +2823,11 @@ const ReservationCalendar = ({ user, tenant, onLogout }) => {
                         return (
                           <div
                             key={idx}
-                            className={`w-24 flex-shrink-0 border-r relative cursor-pointer hover:bg-gray-100 transition-colors ${
-                              isToday(date) ? 'bg-blue-50' : ''
-                            } ${isDragOver ? 'bg-green-100 border-2 border-green-500' : ''}
-                            ${roomBlock ? 'bg-gray-200 bg-opacity-50' : ''}`}
-                            style={{ height: '80px' }}
+                            className={`w-24 flex-shrink-0 border-r border-gray-100 relative cursor-pointer hover:bg-gray-50 transition-colors ${
+                              isToday(date) ? 'bg-blue-50/50' : 'bg-white'
+                            } ${isDragOver ? 'bg-green-50 ring-2 ring-green-400' : ''}
+                            ${roomBlock ? 'bg-gray-100/50' : ''}`}
+                            style={{ height: viewMode === 'simplified' ? '60px' : '80px' }}
                             onClick={() => !booking && !roomBlock && handleCellClick(room.id, date)}
                             onDragOver={(e) => handleDragOver(e, room.id, date)}
                             onDragLeave={handleDragLeave}
