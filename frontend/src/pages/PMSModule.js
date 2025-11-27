@@ -3820,6 +3820,51 @@ const PMSModule = ({ user, tenant, onLogout }) => {
 
                       <div className="grid grid-cols-2 gap-3 pt-2 border-t mt-2">
                         <div>
+                          <Label className="text-xs">Rate Plan</Label>
+                          <Select
+                            value={room.rate_plan || ''}
+                            onValueChange={(v) => {
+                              // Set rate plan and suggest base rate from selected plan
+                              const selected = ratePlans.find(rp => rp.code === v || rp.id === v);
+                              updateMultiRoomField(index, 'rate_plan', v);
+                              if (selected && selected.base_price) {
+                                updateMultiRoomField(index, 'base_rate', selected.base_price);
+                                if (!room.total_amount || room.total_amount === 0) {
+                                  updateMultiRoomField(index, 'total_amount', selected.base_price);
+                                }
+                              }
+                            }}
+                          >
+                            <SelectTrigger><SelectValue placeholder="Select rate plan" /></SelectTrigger>
+                            <SelectContent>
+                              {ratePlans.map(rp => (
+                                <SelectItem key={rp.id} value={rp.code || rp.id}>
+                                  {rp.name} ({rp.code}) - {rp.currency} {rp.base_price}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div>
+                          <Label className="text-xs">Package</Label>
+                          <Select
+                            value={room.package_code || ''}
+                            onValueChange={(v) => updateMultiRoomField(index, 'package_code', v)}
+                          >
+                            <SelectTrigger><SelectValue placeholder="No package" /></SelectTrigger>
+                            <SelectContent>
+                              {packages.map(pkg => (
+                                <SelectItem key={pkg.id} value={pkg.code}>
+                                  {pkg.name} ({pkg.code})
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-3 pt-2">
+                        <div>
                           <Label className="text-xs">Base Rate</Label>
                           <Input
                             type="number"
