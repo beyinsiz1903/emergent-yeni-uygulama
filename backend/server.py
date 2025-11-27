@@ -6200,6 +6200,124 @@ async def close_folio(
     
     return {"message": "Folio closed successfully"}
 
+@api_router.post("/payment/{payment_id}/void")
+async def void_payment(
+    payment_id: str,
+    void_reason: str = "Voided by staff",
+    current_user: User = Depends(get_current_user)
+):
+    """Void a payment"""
+    payment = await db.payments.find_one({
+        'id': payment_id,
+        'tenant_id': current_user.tenant_id
+    })
+    
+    if not payment:
+        raise HTTPException(status_code=404, detail="Payment not found")
+    
+    if payment.get('voided'):
+        raise HTTPException(status_code=400, detail="Payment already voided")
+    
+    # Update payment
+    await db.payments.update_one(
+        {'id': payment_id},
+        {'$set': {
+            'voided': True,
+            'voided_by': current_user.id,
+            'voided_at': datetime.now(timezone.utc).isoformat(),
+            'void_reason': void_reason
+        }}
+    )
+    
+    # Recalculate folio balance
+    folio_id = payment['folio_id']
+    balance = await calculate_folio_balance(folio_id, current_user.tenant_id)
+    await db.folios.update_one(
+        {'id': folio_id},
+        {'$set': {'balance': balance}}
+    )
+    
+    return {"message": "Payment voided successfully"}
+
+@api_router.get("/folio/{folio_id}/activity-log")
+async def get_folio_activity_log(
+    folio_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Get activity log for a folio"""
+    folio = await db.folios.find_one({
+        'id': folio_id,
+        'tenant_id': current_user.tenant_id
+    }, {'_id': 0})
+    
+    if not folio:
+        raise HTTPException(status_code=404, detail="Folio not found")
+    
+    # Get all activities
+    activities = []
+    
+    # Charges
+    charges = await db.folio_charges.find({
+        'folio_id': folio_id,
+        'tenant_id': current_user.tenant_id
+    }, {'_id': 0}).to_list(1000)
+    
+    for charge in charges:
+        activities.append({
+            'type': 'charge',
+            'action': 'voided' if charge.get('voided') else 'added',
+            'timestamp': charge.get('posted_at'),
+            'description': charge.get('description'),
+            'amount': charge.get('total', charge.get('amount', 0)),
+            'user': charge.get('posted_by'),
+            'details': charge
+        })
+    
+    # Payments
+    payments = await db.payments.find({
+        'folio_id': folio_id,
+        'tenant_id': current_user.tenant_id
+    }, {'_id': 0}).to_list(1000)
+    
+    for payment in payments:
+        activities.append({
+            'type': 'payment',
+            'action': 'voided' if payment.get('voided') else 'processed',
+            'timestamp': payment.get('voided_at') if payment.get('voided') else payment.get('processed_at'),
+            'description': f"{payment.get('method', 'Payment')} - {payment.get('payment_type', '')}",
+            'amount': payment.get('amount', 0),
+            'user': payment.get('voided_by') if payment.get('voided') else payment.get('processed_by'),
+            'details': payment
+        })
+    
+    # Operations (transfers, etc)
+    operations = await db.folio_operations.find({
+        '$or': [
+            {'from_folio_id': folio_id},
+            {'to_folio_id': folio_id}
+        ],
+        'tenant_id': current_user.tenant_id
+    }, {'_id': 0}).to_list(1000)
+    
+    for op in operations:
+        activities.append({
+            'type': 'operation',
+            'action': op.get('operation_type'),
+            'timestamp': op.get('performed_at'),
+            'description': f"Operation: {op.get('operation_type')}",
+            'user': op.get('performed_by'),
+            'details': op
+        })
+    
+    # Sort by timestamp
+    activities.sort(key=lambda x: x['timestamp'] if x['timestamp'] else '', reverse=True)
+    
+    return {
+        'folio': folio,
+        'activities': activities,
+        'total_count': len(activities)
+    }
+
 # Removed - will be added before parametric routes
 
 
