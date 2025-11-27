@@ -106,15 +106,15 @@ const LoadingFallback = () => (
 );
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
-const API = `${BACKEND_URL}/api`;
 
 console.log('🔍 Backend Configuration:', {
   BACKEND_URL,
-  API,
-  fullUrl: `${API}/auth/login`
+  usingRelativeURL: true,
+  baseURL: '/api'
 });
 
-axios.defaults.baseURL = API;
+// Use relative URL for same-origin requests (better for container routing)
+axios.defaults.baseURL = '/api';
 axios.defaults.timeout = 30000;
 
 // Setup axios interceptor for token and caching
