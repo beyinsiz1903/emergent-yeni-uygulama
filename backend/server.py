@@ -40279,21 +40279,6 @@ async def create_multi_room_booking(
 
     return created_bookings
 
-            'contact_phone': booking.get('contact_phone'),
-            'special_requirements': booking.get('special_requirements', ''),
-            'notes': booking.get('notes', '')
-        })
-    
-    return {
-        'group_bookings': group_bookings,
-        'count': len(group_bookings),
-        'by_type': {
-            'wedding': len([g for g in group_bookings if g['group_type'] == 'wedding']),
-            'meeting': len([g for g in group_bookings if g['group_type'] == 'meeting']),
-            'conference': len([g for g in group_bookings if g['group_type'] == 'conference'])
-        }
-    }
-
 
 class GroupBookingCreate(BaseModel):
     group_name: str
