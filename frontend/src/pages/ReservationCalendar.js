@@ -2991,7 +2991,7 @@ const ReservationCalendar = ({ user, tenant, onLogout }) => {
             {/* Room Rows - INSIDE separate scroll container */}
             <div className="overflow-x-auto">
               <div className="min-w-max">
-              {rooms.length === 0 ? (
+                {rooms.length === 0 ? (
                 <div className="p-12 text-center text-gray-500">
                   <CalendarIcon className="w-12 h-12 mx-auto mb-4 opacity-50" />
                   <p>No rooms available</p>
