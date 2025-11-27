@@ -3131,7 +3131,148 @@ const ReservationCalendar = ({ user, tenant, onLogout }) => {
               
               {/* Charges List */}
               <div>
-                <h3 className="text-lg font-semibold mb-3">Charges</h3>
+                <div className="flex justify-between items-center mb-3">
+                  <h3 className="text-lg font-semibold">Charges</h3>
+                  {selectedBookingFolio?.status !== 'closed' && (
+                    <Button 
+                      size="sm" 
+                      variant="outline"
+                      onClick={() => {
+                        setChargeForm({
+                          category: 'room',
+                          description: '',
+                          quantity: 1,
+                          unit_price: '',
+                          notes: ''
+                        });
+                        setShowChargeForm(!showChargeForm);
+                      }}
+                    >
+                      <Plus className="w-4 h-4 mr-2" />
+                      Add Charge
+                    </Button>
+                  )}
+                </div>
+                
+                {/* Charge Form */}
+                {showChargeForm && (
+                  <Card className="mb-4 border-orange-200 bg-orange-50">
+                    <CardContent className="p-4">
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <Label>Category *</Label>
+                          <select
+                            className="w-full border rounded-md p-2"
+                            value={chargeForm.category}
+                            onChange={(e) => setChargeForm({...chargeForm, category: e.target.value})}
+                          >
+                            <option value="room">Room Charge</option>
+                            <option value="fnb">Food & Beverage</option>
+                            <option value="minibar">Minibar</option>
+                            <option value="laundry">Laundry</option>
+                            <option value="spa">Spa & Wellness</option>
+                            <option value="telephone">Telephone</option>
+                            <option value="parking">Parking</option>
+                            <option value="other">Other</option>
+                          </select>
+                        </div>
+                        <div>
+                          <Label>Description *</Label>
+                          <Input
+                            value={chargeForm.description}
+                            onChange={(e) => setChargeForm({...chargeForm, description: e.target.value})}
+                            placeholder="Charge description..."
+                            autoFocus
+                          />
+                        </div>
+                        <div>
+                          <Label>Quantity *</Label>
+                          <Input
+                            type="number"
+                            min="1"
+                            value={chargeForm.quantity}
+                            onChange={(e) => setChargeForm({...chargeForm, quantity: parseInt(e.target.value) || 1})}
+                          />
+                        </div>
+                        <div>
+                          <Label>Unit Price *</Label>
+                          <Input
+                            type="number"
+                            step="0.01"
+                            value={chargeForm.unit_price}
+                            onChange={(e) => setChargeForm({...chargeForm, unit_price: e.target.value})}
+                            placeholder="0.00"
+                          />
+                        </div>
+                        <div className="col-span-2">
+                          <Label>Notes</Label>
+                          <Input
+                            value={chargeForm.notes}
+                            onChange={(e) => setChargeForm({...chargeForm, notes: e.target.value})}
+                            placeholder="Additional notes..."
+                          />
+                        </div>
+                      </div>
+                      <div className="flex gap-2 mt-4">
+                        <Button 
+                          size="sm"
+                          onClick={async () => {
+                            try {
+                              if (!chargeForm.description || !chargeForm.unit_price) {
+                                toast.error('Please fill in all required fields');
+                                return;
+                              }
+                              
+                              const amount = parseFloat(chargeForm.unit_price) * chargeForm.quantity;
+                              const tax_rate = 0.18; // %18 KDV
+                              const tax_amount = amount * tax_rate;
+                              const total = amount + tax_amount;
+                              
+                              await axios.post(`/folio/${selectedBookingFolio.id}/charge`, {
+                                charge_category: chargeForm.category,
+                                description: chargeForm.description,
+                                quantity: chargeForm.quantity,
+                                unit_price: parseFloat(chargeForm.unit_price),
+                                amount: amount,
+                                tax_rate: tax_rate,
+                                tax_amount: tax_amount,
+                                total: total,
+                                notes: chargeForm.notes || undefined
+                              });
+                              
+                              toast.success('Charge added successfully');
+                              
+                              // Reload folio details
+                              const detailsRes = await axios.get(`/folio/${selectedBookingFolio.id}`);
+                              setFolioCharges(detailsRes.data.charges || []);
+                              setFolioPayments(detailsRes.data.payments || []);
+                              setSelectedBookingFolio({...selectedBookingFolio, balance: detailsRes.data.balance});
+                              
+                              setShowChargeForm(false);
+                              setChargeForm({ category: 'room', description: '', quantity: 1, unit_price: '', notes: '' });
+                            } catch (error) {
+                              toast.error('Failed to add charge');
+                              console.error(error);
+                            }
+                          }}
+                        >
+                          Save Charge
+                        </Button>
+                        <Button 
+                          size="sm" 
+                          variant="outline"
+                          onClick={() => {
+                            setShowChargeForm(false);
+                            setChargeForm({ category: 'room', description: '', quantity: 1, unit_price: '', notes: '' });
+                          }}
+                        >
+                          Cancel
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+                
                 <div className="space-y-2 max-h-96 overflow-y-auto">
                   {folioCharges.length === 0 ? (
                     <div className="text-center text-gray-400 py-8">No charges posted</div>
@@ -3139,20 +3280,48 @@ const ReservationCalendar = ({ user, tenant, onLogout }) => {
                     folioCharges.map((charge) => (
                       <Card key={charge.id} className={charge.voided ? 'opacity-50' : ''}>
                         <CardContent className="p-4">
-                          <div className="flex justify-between">
-                            <div>
+                          <div className="flex justify-between items-start">
+                            <div className="flex-1">
                               <div className="font-semibold">{charge.description}</div>
                               <div className="text-sm text-gray-600">
-                                {charge.charge_category?.toUpperCase()}
+                                {charge.charge_category?.toUpperCase()} • Qty: {charge.quantity || 1} × ${charge.unit_price?.toFixed(2) || '0.00'}
                               </div>
                               <div className="text-xs text-gray-500">
                                 {new Date(charge.date || charge.posted_at).toLocaleDateString()}
                               </div>
                             </div>
-                            <div className="text-right">
-                              <div className="font-bold">${charge.amount?.toFixed(2) || '0.00'}</div>
-                              {charge.voided && (
-                                <div className="text-xs text-red-600">VOIDED</div>
+                            <div className="text-right flex items-start gap-2">
+                              <div>
+                                <div className="font-bold">${charge.total?.toFixed(2) || charge.amount?.toFixed(2) || '0.00'}</div>
+                                {charge.voided && (
+                                  <div className="text-xs text-red-600">VOIDED</div>
+                                )}
+                              </div>
+                              {!charge.voided && selectedBookingFolio?.status !== 'closed' && (
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className="h-6 w-6 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"
+                                  onClick={async () => {
+                                    if (window.confirm('Are you sure you want to void this charge?')) {
+                                      try {
+                                        await axios.post(`/folio/${selectedBookingFolio.id}/void-charge/${charge.id}`);
+                                        toast.success('Charge voided successfully');
+                                        
+                                        // Reload folio details
+                                        const detailsRes = await axios.get(`/folio/${selectedBookingFolio.id}`);
+                                        setFolioCharges(detailsRes.data.charges || []);
+                                        setFolioPayments(detailsRes.data.payments || []);
+                                        setSelectedBookingFolio({...selectedBookingFolio, balance: detailsRes.data.balance});
+                                      } catch (error) {
+                                        toast.error('Failed to void charge');
+                                        console.error(error);
+                                      }
+                                    }
+                                  }}
+                                >
+                                  <XCircle className="w-4 h-4" />
+                                </Button>
                               )}
                             </div>
                           </div>
