@@ -3398,7 +3398,22 @@ const ReservationCalendar = ({ user, tenant, onLogout }) => {
                     folioCharges.map((charge) => (
                       <Card key={charge.id} className={charge.voided ? 'opacity-50' : ''}>
                         <CardContent className="p-4">
-                          <div className="flex justify-between items-start">
+                          <div className="flex gap-3 items-start">
+                            {/* Checkbox for transfer */}
+                            {!charge.voided && selectedBookingFolio?.status !== 'closed' && (
+                              <input
+                                type="checkbox"
+                                className="mt-1 w-4 h-4 cursor-pointer"
+                                checked={selectedChargesForTransfer.includes(charge.id)}
+                                onChange={(e) => {
+                                  if (e.target.checked) {
+                                    setSelectedChargesForTransfer([...selectedChargesForTransfer, charge.id]);
+                                  } else {
+                                    setSelectedChargesForTransfer(selectedChargesForTransfer.filter(id => id !== charge.id));
+                                  }
+                                }}
+                              />
+                            )}
                             <div className="flex-1">
                               <div className="font-semibold">{charge.description}</div>
                               <div className="text-sm text-gray-600">
