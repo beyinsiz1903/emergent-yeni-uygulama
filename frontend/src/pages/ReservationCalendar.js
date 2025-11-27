@@ -246,20 +246,55 @@ const ReservationCalendar = ({ user, tenant, onLogout }) => {
     const handleMouseUp = async () => {
       if (resizePreview && resizingBooking) {
         try {
-          const updateData = {};
+          const updateData = {
+            guest_id: resizingBooking.guest_id,
+            room_id: resizingBooking.room_id,
+            guests_count: resizingBooking.guests_count || 2,
+            adults: resizingBooking.adults || 2,
+            children: resizingBooking.children || 0,
+            status: resizingBooking.status || 'confirmed'
+          };
           
           if (resizeDirection === 'start') {
-            updateData.check_in = resizePreview.date.toISOString();
+            // Changing check-in date
+            updateData.check_in = resizePreview.date.toISOString().split('T')[0];
+            updateData.check_out = resizingBooking.check_out;
           } else {
-            updateData.check_out = resizePreview.date.toISOString();
+            // Changing check-out date
+            updateData.check_in = resizingBooking.check_in;
+            const newCheckOut = new Date(resizePreview.date);
+            newCheckOut.setDate(newCheckOut.getDate() + 1); // Add 1 day for checkout
+            updateData.check_out = newCheckOut.toISOString().split('T')[0];
           }
           
+          // Recalculate total amount based on new dates
+          const checkIn = new Date(updateData.check_in);
+          const checkOut = new Date(updateData.check_out);
+          const nights = Math.ceil((checkOut - checkIn) / (1000 * 60 * 60 * 24));
+          const room = rooms.find(r => r.id === resizingBooking.room_id);
+          updateData.total_amount = (room?.base_price || 100) * nights;
+          
+          console.log('🔄 Rezervasyon uzunluğu değiştiriliyor:', {
+            bookingId: resizingBooking.id,
+            direction: resizeDirection,
+            newCheckIn: updateData.check_in,
+            newCheckOut: updateData.check_out,
+            nights: nights,
+            totalAmount: updateData.total_amount
+          });
+          
           await axios.put(`/pms/bookings/${resizingBooking.id}`, updateData);
-          toast.success(`Booking ${resizeDirection === 'start' ? 'check-in' : 'check-out'} date updated`);
+          
+          if (resizeDirection === 'start') {
+            toast.success(`✅ Giriş tarihi değiştirildi: ${updateData.check_in}`);
+          } else {
+            toast.success(`✅ Çıkış tarihi değiştirildi: ${updateData.check_out} (${nights} gece)`);
+          }
+          
           loadCalendarData();
         } catch (error) {
-          toast.error('Failed to resize booking');
-          console.error(error);
+          toast.error('Rezervasyon uzunluğu değiştirilemedi');
+          console.error('Resize error:', error);
         }
       }
       
@@ -275,7 +310,7 @@ const ReservationCalendar = ({ user, tenant, onLogout }) => {
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
     };
-  }, [resizingBooking, resizeDirection, resizePreview]);
+  }, [resizingBooking, resizeDirection, resizePreview, rooms]);
 
 
   // Real-time updates - Poll every 60 seconds for new bookings (optimized for performance)
