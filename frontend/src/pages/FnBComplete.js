@@ -31,8 +31,11 @@ const FnBComplete = () => {
         </div>
       </div>
 
-      <Tabs defaultValue="recipes">
-        <TabsList className="grid w-full grid-cols-4">
+      <Tabs defaultValue="outlet-sales">
+        <TabsList className="grid w-full grid-cols-5">
+          <TabsTrigger value="outlet-sales">
+            <ChefHat className="w-4 h-4 mr-2" />Outlet Sales
+          </TabsTrigger>
           <TabsTrigger value="recipes">
             <ChefHat className="w-4 h-4 mr-2" />Recipes
           </TabsTrigger>
