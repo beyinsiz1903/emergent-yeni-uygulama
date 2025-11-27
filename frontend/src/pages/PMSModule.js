@@ -3910,30 +3910,23 @@ const PMSModule = ({ user, tenant, onLogout }) => {
                 </div>
               </div>
 
-              {/* Adults and Children */}
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label>Adults *</Label>
-                  <Input 
-                    type="number" 
-                    min="1" 
-                    value={newBooking.adults} 
-                    onChange={(e) => {
-                      const adults = parseInt(e.target.value) || 1;
-                      setNewBooking({...newBooking, adults, guests_count: adults + newBooking.children});
-                    }} 
-                    required 
-                  />
-                </div>
-                <div>
-                  <Label>Children</Label>
-                  <Input 
-                    type="number" 
-                    min="0" 
-                    value={newBooking.children} 
-                    onChange={(e) => handleChildrenChange(e.target.value)} 
-                  />
-                </div>
+              {/* Adults and Children for summary (kept for compatibility but hidden) */}
+              <div className="hidden">
+                <Input 
+                  type="number" 
+                  min="1" 
+                  value={newBooking.adults} 
+                  onChange={(e) => {
+                    const adults = parseInt(e.target.value) || 1;
+                    setNewBooking({...newBooking, adults, guests_count: adults + newBooking.children});
+                  }} 
+                />
+                <Input 
+                  type="number" 
+                  min="0" 
+                  value={newBooking.children} 
+                  onChange={(e) => handleChildrenChange(e.target.value)} 
+                />
               </div>
 
               {/* Children Ages - Show only if children > 0 */}
