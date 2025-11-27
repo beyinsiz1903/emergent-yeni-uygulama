@@ -141,8 +141,8 @@ const ReservationCalendar = ({ user, tenant, onLogout }) => {
         }
       });
       
-      // Log first 3 bookings with details
-      if (bookingsRes.data && bookingsRes.data.length > 0) {
+      // Detailed booking logs only if DEBUG_ROOMS is enabled
+      if (DEBUG_ROOMS && bookingsRes.data && bookingsRes.data.length > 0) {
         console.log('📋 First 3 Bookings:', bookingsRes.data.slice(0, 3).map(b => ({
           id: b.id?.substring(0, 8),
           guest: b.guest_name,
