@@ -726,17 +726,19 @@ const ReservationCalendar = ({ user, tenant, onLogout }) => {
 
   // Check if booking is arrival/stayover/departure for current date
   const getBookingStatus = (booking, date) => {
+    // Create new Date objects to avoid mutation
     const checkIn = new Date(booking.check_in);
     const checkOut = new Date(booking.check_out);
     const current = new Date(date);
     
-    checkIn.setHours(0, 0, 0, 0);
-    checkOut.setHours(0, 0, 0, 0);
-    current.setHours(0, 0, 0, 0);
+    // Normalize to date only
+    const checkInDate = new Date(checkIn.getFullYear(), checkIn.getMonth(), checkIn.getDate());
+    const checkOutDate = new Date(checkOut.getFullYear(), checkOut.getMonth(), checkOut.getDate());
+    const currentDate = new Date(current.getFullYear(), current.getMonth(), current.getDate());
     
-    if (checkIn.getTime() === current.getTime()) return 'arrival';
-    if (checkOut.getTime() === current.getTime()) return 'departure';
-    if (current > checkIn && current < checkOut) return 'stayover';
+    if (checkInDate.getTime() === currentDate.getTime()) return 'arrival';
+    if (checkOutDate.getTime() === currentDate.getTime()) return 'departure';
+    if (currentDate > checkInDate && currentDate < checkOutDate) return 'stayover';
     return null;
   };
 
