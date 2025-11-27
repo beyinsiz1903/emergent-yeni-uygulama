@@ -118,6 +118,13 @@ const ReservationCalendar = ({ user, tenant, onLogout }) => {
         axios.get('/pms/room-blocks?status=active').catch(() => ({ data: { blocks: [] } }))
       ]);
 
+      console.log('📊 Calendar Data Loaded:', {
+        rooms: roomsRes.data?.length || 0,
+        bookings: bookingsRes.data?.length || 0,
+        guests: guestsRes.data?.length || 0,
+        bookingsSample: bookingsRes.data?.[0]
+      });
+      
       setRooms(roomsRes.data || []);
       setBookings(bookingsRes.data || []);
       setGuests(guestsRes.data || []);
