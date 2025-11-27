@@ -6583,18 +6583,28 @@ async def get_bookings(
     query = {'tenant_id': current_user.tenant_id}
     
     if start_date or end_date:
+        # For calendar view, we need bookings that overlap with the date range
+        # A booking overlaps if: check_in < end_date AND check_out > start_date
         date_filter = {}
-        if start_date:
-            date_filter['$gte'] = start_date
-        if end_date:
-            date_filter['$lte'] = end_date
-        query['check_in'] = date_filter
+        if start_date and end_date:
+            # Booking must checkout after start_date AND checkin before end_date
+            query['$and'] = [
+                {'check_out': {'$gt': start_date}},  # checkout after range start
+                {'check_in': {'$lt': end_date}}      # checkin before range end
+            ]
+        elif start_date:
+            # At least checkout after start_date
+            query['check_out'] = {'$gt': start_date}
+        elif end_date:
+            # At least checkin before end_date
+            query['check_in'] = {'$lt': end_date}
     else:
         today = datetime.now(timezone.utc)
-        query['check_in'] = {
-            '$gte': (today - timedelta(days=2)).isoformat(),
-            '$lte': (today + timedelta(days=5)).isoformat()
-        }
+        # Default: show bookings from 2 days ago to 5 days ahead
+        query['$and'] = [
+            {'check_out': {'$gt': (today - timedelta(days=2)).isoformat()}},
+            {'check_in': {'$lt': (today + timedelta(days=5)).isoformat()}}
+        ]
     
     if status:
         query['status'] = status
