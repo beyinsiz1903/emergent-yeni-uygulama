@@ -148,6 +148,82 @@ const MobileDashboard = ({ user, onLogout }) => {
           </CardContent>
         </Card>
 
+
+        {/* Quick Actions Bar */}
+        <div className="grid grid-cols-4 gap-2 mb-4">
+          <Button 
+            variant="outline" 
+            className="flex flex-col items-center py-4 h-auto"
+            onClick={() => navigate('/reservation-calendar')}
+          >
+            <Home className="w-6 h-6 mb-1" />
+            <span className="text-xs">Calendar</span>
+          </Button>
+          <Button 
+            variant="outline" 
+            className="flex flex-col items-center py-4 h-auto"
+            onClick={() => navigate('/pms')}
+          >
+            <Users className="w-6 h-6 mb-1" />
+            <span className="text-xs">PMS</span>
+          </Button>
+          <Button 
+            variant="outline" 
+            className="flex flex-col items-center py-4 h-auto"
+            onClick={() => navigate('/invoices')}
+          >
+            <DollarSign className="w-6 h-6 mb-1" />
+            <span className="text-xs">Invoices</span>
+          </Button>
+          <Button 
+            variant="outline" 
+            className="flex flex-col items-center py-4 h-auto relative"
+            onClick={() => navigate('/mobile/gm')}
+          >
+            <BarChart3 className="w-6 h-6 mb-1" />
+            <span className="text-xs">Reports</span>
+          </Button>
+        </div>
+
+        {/* Today's Notifications */}
+        <Card className="mb-4 border-orange-200 bg-orange-50">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center gap-2">
+              🔔 Today's Alerts
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            <div className="flex items-center justify-between p-2 bg-white rounded">
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
+                <span className="text-sm">12 rooms need cleaning</span>
+              </div>
+              <Button size="sm" variant="ghost" onClick={() => navigate('/mobile/housekeeping')}>
+                View
+              </Button>
+            </div>
+            <div className="flex items-center justify-between p-2 bg-white rounded">
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                <span className="text-sm">8 arrivals expected</span>
+              </div>
+              <Button size="sm" variant="ghost" onClick={() => navigate('/mobile/frontdesk')}>
+                View
+              </Button>
+            </div>
+            <div className="flex items-center justify-between p-2 bg-white rounded">
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                <span className="text-sm">5 pending requests</span>
+              </div>
+              <Button size="sm" variant="ghost" onClick={() => navigate('/mobile/maintenance')}>
+                View
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
+
         {/* Departments Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {availableDepartments.map((dept) => {
