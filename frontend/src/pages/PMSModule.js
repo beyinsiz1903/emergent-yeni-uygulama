@@ -320,6 +320,38 @@ const PMSModule = ({ user, tenant, onLogout }) => {
         axios.get('/pms/rooms?limit=100', { timeout: 15000 }), // Limit rooms for initial load
         axios.get('/pms/guests?limit=100', { timeout: 15000 }), // Limit guests to 100
         axios.get(`/pms/bookings?start_date=${today}&end_date=${nextWeekStr}&limit=200`, { timeout: 15000 }), // Only next 7 days
+      // Group bookings by group_booking_id for multi-room view
+      const rawBookings = bookingsRes.data || [];
+      const grouped = [];
+      const seenGroupIds = new Set();
+
+      // First, handle grouped bookings (with group_booking_id)
+      rawBookings
+        .filter(b => b.group_booking_id)
+        .forEach(b => {
+          if (seenGroupIds.has(b.group_booking_id)) return;
+          const sameGroup = rawBookings.filter(x => x.group_booking_id === b.group_booking_id);
+          seenGroupIds.add(b.group_booking_id);
+          grouped.push({
+            type: 'group',
+            group_booking_id: b.group_booking_id,
+            master_booking: b,
+            bookings: sameGroup
+          });
+        });
+
+      // Then add single bookings (no group id)
+      rawBookings
+        .filter(b => !b.group_booking_id)
+        .forEach(b => {
+          grouped.push({
+            type: 'single',
+            booking: b
+          });
+        });
+
+      setGroupedBookings(grouped);
+
         axios.get('/companies?limit=50', { timeout: 15000 }) // Limit companies to 50
       ]);
       setRooms(roomsRes.data);
