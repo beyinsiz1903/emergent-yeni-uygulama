@@ -481,29 +481,62 @@ const ReservationCalendar = ({ user, tenant, onLogout }) => {
     const bookingSpan = Math.max(1, Math.ceil((checkOut - checkIn) / (1000 * 60 * 60 * 24)));
     const bookingWidth = bookingSpan * 96; // 96px per day
     
-    // Create custom drag image showing full booking length
+    // Create custom drag image showing full booking length with INLINE STYLES
     const dragPreview = document.createElement('div');
-    dragPreview.className = 'bg-blue-600 text-white rounded-lg shadow-2xl border-2 border-blue-300 flex';
-    dragPreview.style.position = 'absolute';
-    dragPreview.style.top = '-1000px';
-    dragPreview.style.width = `${bookingWidth}px`;
-    dragPreview.style.height = '60px';
+    dragPreview.style.cssText = `
+      position: absolute;
+      top: -1000px;
+      left: 0;
+      width: ${bookingWidth}px;
+      height: 60px;
+      background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
+      border-radius: 8px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+      border: 3px solid #60a5fa;
+      display: flex;
+      overflow: hidden;
+      font-family: system-ui, -apple-system, sans-serif;
+    `;
     
-    // Create cells for each day
+    // Create cells for each day with inline styles
     let cellsHTML = '';
     for (let i = 0; i < bookingSpan; i++) {
+      const borderStyle = i < bookingSpan - 1 ? 'border-right: 2px solid rgba(255,255,255,0.3);' : '';
       cellsHTML += `
-        <div class="flex-1 border-r border-blue-400 flex items-center justify-center text-xs font-bold">
-          ${i === 0 ? booking.guest_name?.substring(0, 10) || 'Misafir' : ''}
+        <div style="
+          flex: 1;
+          ${borderStyle}
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 11px;
+          font-weight: bold;
+          color: white;
+          padding: 4px;
+        ">
+          ${i === 0 ? (booking.guest_name?.substring(0, 10) || 'Misafir') : ''}
         </div>
       `;
     }
     
     dragPreview.innerHTML = `
-      <div class="flex w-full h-full">
+      <div style="display: flex; width: 100%; height: 45px; align-items: center;">
         ${cellsHTML}
       </div>
-      <div class="absolute bottom-0 left-0 right-0 bg-blue-900 text-white text-xs px-2 py-1 font-bold text-center">
+      <div style="
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background: rgba(0,0,0,0.7);
+        color: white;
+        font-size: 10px;
+        padding: 2px 8px;
+        font-weight: bold;
+        text-align: center;
+        height: 15px;
+        line-height: 15px;
+      ">
         ${bookingSpan} Gece • $${booking.total_amount?.toFixed(0) || '0'}
       </div>
     `;
@@ -512,7 +545,11 @@ const ReservationCalendar = ({ user, tenant, onLogout }) => {
     e.dataTransfer.setDragImage(dragPreview, bookingWidth / 2, 30);
     
     setTimeout(() => {
-      document.body.removeChild(dragPreview);
+      try {
+        document.body.removeChild(dragPreview);
+      } catch (err) {
+        console.log('Drag preview already removed');
+      }
     }, 0);
   };
 
