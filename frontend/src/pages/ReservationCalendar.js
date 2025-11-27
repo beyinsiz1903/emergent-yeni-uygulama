@@ -110,9 +110,15 @@ const ReservationCalendar = ({ user, tenant, onLogout }) => {
   const loadCalendarData = async () => {
     setLoading(true);
     try {
+      // Calculate date range for calendar view
+      const startDate = new Date(currentDate);
+      startDate.setDate(startDate.getDate() - 7); // 1 week before
+      const endDate = new Date(currentDate);
+      endDate.setDate(endDate.getDate() + daysToShow + 7); // Show range + 1 week after
+      
       const [roomsRes, bookingsRes, guestsRes, companiesRes, blocksRes] = await Promise.all([
         axios.get('/pms/rooms'),
-        axios.get('/pms/bookings'),
+        axios.get(`/pms/bookings?start_date=${startDate.toISOString().split('T')[0]}&end_date=${endDate.toISOString().split('T')[0]}&limit=500`),
         axios.get('/pms/guests').catch(() => ({ data: [] })),
         axios.get('/companies').catch(() => ({ data: [] })),
         axios.get('/pms/room-blocks?status=active').catch(() => ({ data: { blocks: [] } }))
