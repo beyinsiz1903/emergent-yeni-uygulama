@@ -1127,7 +1127,15 @@ const PMSModule = ({ user, tenant, onLogout }) => {
                       </CardTitle>
                     </CardHeader>
                     <CardContent>
-                      <p className="text-sm text-gray-700">{aiPatterns.analysis}</p>
+                      {aiPatterns.insights && Array.isArray(aiPatterns.insights) ? (
+                        <div className="space-y-1">
+                          {aiPatterns.insights.map((insight, idx) => (
+                            <p key={idx} className="text-sm text-gray-700">{insight}</p>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-sm text-gray-700">Guest pattern analysis available</p>
+                      )}
                       <div className="text-xs text-gray-500 mt-2">{t('ai.poweredBy')}</div>
                     </CardContent>
                   </Card>
