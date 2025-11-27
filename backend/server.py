@@ -1321,6 +1321,7 @@ class Booking(BaseModel):
     base_rate: Optional[float] = None
     paid_amount: float = 0.0
     status: BookingStatus = BookingStatus.PENDING
+    group_booking_id: Optional[str] = None
     channel: ChannelType = ChannelType.DIRECT
     rate_plan: Optional[str] = "Standard"
     special_requests: Optional[str] = None
