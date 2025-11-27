@@ -3297,9 +3297,9 @@ const ReservationCalendar = ({ user, tenant, onLogout }) => {
                                   Ref: {payment.reference}
                                 </div>
                               )}
-                              {payment.processed_by && (
+                              {(payment.processed_by_name || payment.processed_by) && (
                                 <div className="text-xs text-gray-500">
-                                  👤 Processed by: {payment.processed_by}
+                                  👤 Processed by: {payment.processed_by_name || payment.processed_by}
                                 </div>
                               )}
                               {payment.notes && (
