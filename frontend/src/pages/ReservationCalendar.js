@@ -2705,8 +2705,11 @@ const ReservationCalendar = ({ user, tenant, onLogout }) => {
                 </div>
               ) : (
                 (() => {
-                  // Group rooms by type
-                  const groupedRooms = rooms.reduce((acc, room) => {
+                  // Apply filters first
+                  const roomsToShow = filteredRooms;
+                  
+                  // Group filtered rooms by type
+                  const groupedRooms = roomsToShow.reduce((acc, room) => {
                     const type = room.room_type || 'standard';
                     if (!acc[type]) acc[type] = [];
                     acc[type].push(room);
