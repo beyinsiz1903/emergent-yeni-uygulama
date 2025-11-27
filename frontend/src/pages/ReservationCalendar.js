@@ -618,11 +618,12 @@ const ReservationCalendar = ({ user, tenant, onLogout }) => {
       const blockEnd = block.end_date ? new Date(block.end_date) : new Date('9999-12-31');
       const current = new Date(date);
       
-      blockStart.setHours(0, 0, 0, 0);
-      blockEnd.setHours(0, 0, 0, 0);
-      current.setHours(0, 0, 0, 0);
+      // Normalize to date only
+      const blockStartDate = new Date(blockStart.getFullYear(), blockStart.getMonth(), blockStart.getDate());
+      const blockEndDate = new Date(blockEnd.getFullYear(), blockEnd.getMonth(), blockEnd.getDate());
+      const currentDate = new Date(current.getFullYear(), current.getMonth(), current.getDate());
       
-      return current >= blockStart && current <= blockEnd;
+      return currentDate >= blockStartDate && currentDate <= blockEndDate;
     });
   };
 
@@ -630,9 +631,11 @@ const ReservationCalendar = ({ user, tenant, onLogout }) => {
   const isBlockStart = (block, date) => {
     const blockStart = new Date(block.start_date);
     const current = new Date(date);
-    blockStart.setHours(0, 0, 0, 0);
-    current.setHours(0, 0, 0, 0);
-    return blockStart.getTime() === current.getTime();
+    
+    const blockStartDate = new Date(blockStart.getFullYear(), blockStart.getMonth(), blockStart.getDate());
+    const currentDate = new Date(current.getFullYear(), current.getMonth(), current.getDate());
+    
+    return blockStartDate.getTime() === currentDate.getTime();
   };
 
   // Calculate block span (how many days visible)
