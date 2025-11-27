@@ -1502,14 +1502,50 @@ const ReservationCalendar = ({ user, tenant, onLogout }) => {
                 })}
               </div>
 
-              {/* Room Rows */}
+              {/* Room Rows - Grouped by Type */}
               {rooms.length === 0 ? (
                 <div className="p-12 text-center text-gray-500">
                   <CalendarIcon className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                  <p>No rooms available</p>
+                  <p>Oda bulunamadı</p>
                 </div>
               ) : (
-                rooms.map((room) => (
+                (() => {
+                  // Group rooms by type
+                  const groupedRooms = rooms.reduce((acc, room) => {
+                    const type = room.room_type || 'standard';
+                    if (!acc[type]) acc[type] = [];
+                    acc[type].push(room);
+                    return acc;
+                  }, {});
+                  
+                  // Sort room types
+                  const roomTypeOrder = ['suite', 'deluxe', 'superior', 'standard', 'economy'];
+                  const sortedTypes = Object.keys(groupedRooms).sort((a, b) => {
+                    const aIndex = roomTypeOrder.indexOf(a.toLowerCase());
+                    const bIndex = roomTypeOrder.indexOf(b.toLowerCase());
+                    if (aIndex === -1 && bIndex === -1) return a.localeCompare(b);
+                    if (aIndex === -1) return 1;
+                    if (bIndex === -1) return -1;
+                    return aIndex - bIndex;
+                  });
+                  
+                  return sortedTypes.map((roomType) => (
+                    <div key={roomType}>
+                      {/* Room Type Header */}
+                      <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border-b-2 border-blue-200">
+                        <div className="flex items-center px-4 py-2.5">
+                          <Building2 className="w-4 h-4 mr-2 text-blue-600" />
+                          <span className="font-bold text-sm text-blue-900 tracking-wide uppercase">
+                            {roomType}
+                          </span>
+                          <span className="ml-3 text-xs text-blue-600 font-semibold bg-blue-100 px-2 py-0.5 rounded-full">
+                            {groupedRooms[roomType].length} oda
+                          </span>
+                        </div>
+                      </div>
+                      
+                      {/* Rooms of this type */}
+                      {groupedRooms[roomType].map((room) => (
                   <div key={room.id} className="flex border-b hover:bg-gray-50">
                     {/* Room Cell */}
                     <div className="w-32 flex-shrink-0 p-3 border-r">
