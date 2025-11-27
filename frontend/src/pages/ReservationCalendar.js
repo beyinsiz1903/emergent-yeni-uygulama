@@ -3161,6 +3161,15 @@ const ReservationCalendar = ({ user, tenant, onLogout }) => {
             <div className="space-y-4">
               {/* Folio Summary */}
               <div className="bg-gradient-to-r from-blue-50 to-purple-50 p-6 rounded-lg">
+                <div className="flex justify-between items-start mb-4">
+                  <div>
+                    <div className="text-lg font-semibold">Folio #{selectedBookingFolio?.folio_number}</div>
+                    <div className="text-sm text-gray-600">Created: {new Date(selectedBookingFolio?.created_at).toLocaleDateString()}</div>
+                  </div>
+                  <Badge variant={selectedBookingFolio?.status === 'closed' ? 'secondary' : 'default'}>
+                    {selectedBookingFolio?.status === 'closed' ? '🔒 Closed' : '✓ Open'}
+                  </Badge>
+                </div>
                 <div className="grid grid-cols-3 gap-4">
                   <div>
                     <div className="text-sm text-gray-600">Guest</div>
