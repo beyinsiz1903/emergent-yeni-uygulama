@@ -3177,6 +3177,11 @@ const ReservationCalendar = ({ user, tenant, onLogout }) => {
                   
                   // Fetch full folio details (includes charges and payments)
                   const detailsRes = await axios.get(`/folio/${folio.id}`);
+                  
+                  console.log('✅ Folio details response:', detailsRes.data);
+                  console.log('💰 Charges found:', detailsRes.data.charges?.length || 0);
+                  console.log('💳 Payments found:', detailsRes.data.payments?.length || 0);
+                  
                   setFolioCharges(detailsRes.data.charges || []);
                   
                   // Close sidebar and open folio dialog
