@@ -560,36 +560,41 @@ const ReservationCalendar = ({ user, tenant, onLogout }) => {
 
   const dateRange = getDateRange();
 
-  // Check if booking overlaps with date
-  const isBookingOnDate = (booking, date) => {
-    // Create new Date objects to avoid mutation
-    const checkIn = new Date(booking.check_in);
-    const checkOut = new Date(booking.check_out);
-    const current = new Date(date);
-    
-    // Normalize to midnight (create new dates to avoid mutation)
-    const checkInDate = new Date(checkIn.getFullYear(), checkIn.getMonth(), checkIn.getDate());
-    const checkOutDate = new Date(checkOut.getFullYear(), checkOut.getMonth(), checkOut.getDate());
-    const currentDate = new Date(current.getFullYear(), current.getMonth(), current.getDate());
-
-    const result = currentDate >= checkInDate && currentDate < checkOutDate;
-    
-    // Debug first booking check
-    if (!window.debuggedDateCheck) {
-      window.debuggedDateCheck = true;
-      console.log('\n📅 isBookingOnDate DEBUG (First Call):');
-      console.log('  Booking check-in (raw):', booking.check_in);
-      console.log('  Booking check-out (raw):', booking.check_out);
-      console.log('  Current date (raw):', date.toISOString());
-      console.log('  checkInDate:', checkInDate.toISOString().split('T')[0]);
-      console.log('  checkOutDate:', checkOutDate.toISOString().split('T')[0]);
-      console.log('  currentDate:', currentDate.toISOString().split('T')[0]);
-      console.log('  currentDate >= checkInDate:', currentDate >= checkInDate);
-      console.log('  currentDate < checkOutDate:', currentDate < checkOutDate);
-      console.log('  Result:', result);
+  // Utility: Convert any date value to YYYY-MM-DD string (timezone-safe)
+  const toDateStringUTC = (value) => {
+    if (typeof value === 'string') {
+      return value.slice(0, 10); // YYYY-MM-DD
     }
+    
+    const d = new Date(value);
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
 
-    return result;
+  // Check if room is occupied on specific day
+  const isRoomOccupiedOnDay = (roomId, day, bookings) => {
+    const dayStr = toDateStringUTC(day);
+
+    return bookings.some(b => {
+      if (b.room_id !== roomId) return false;
+
+      const checkIn = toDateStringUTC(b.check_in);
+      const checkOut = toDateStringUTC(b.check_out);
+
+      // Day is in range if: checkIn <= day < checkOut
+      return dayStr >= checkIn && dayStr < checkOut;
+    });
+  };
+
+  // Check if booking overlaps with date (OLD FUNCTION - keeping for compatibility)
+  const isBookingOnDate = (booking, date) => {
+    const dayStr = toDateStringUTC(date);
+    const checkIn = toDateStringUTC(booking.check_in);
+    const checkOut = toDateStringUTC(booking.check_out);
+    
+    return dayStr >= checkIn && dayStr < checkOut;
   };
 
   // Get booking for room on specific date
