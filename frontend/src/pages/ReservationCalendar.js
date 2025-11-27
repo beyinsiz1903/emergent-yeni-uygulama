@@ -3662,6 +3662,87 @@ const ReservationCalendar = ({ user, tenant, onLogout }) => {
                 </div>
               </div>
               
+              {/* Activity Log - Collapsible */}
+              {showActivityLog && (
+                <div className="border-t pt-4">
+                  <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+                    <History className="w-5 h-5" />
+                    Activity Log
+                  </h3>
+                  <div className="bg-gray-50 p-4 rounded-lg max-h-96 overflow-y-auto">
+                    <div className="space-y-2">
+                      {(() => {
+                        const activities = [];
+                        
+                        // Add charges to timeline
+                        folioCharges.forEach(charge => {
+                          activities.push({
+                            type: 'charge',
+                            timestamp: charge.posted_at,
+                            icon: '💰',
+                            color: charge.voided ? 'text-gray-500' : 'text-orange-600',
+                            title: charge.voided ? 'Charge Voided' : 'Charge Added',
+                            description: charge.description,
+                            amount: charge.total || charge.amount,
+                            user: charge.posted_by
+                          });
+                        });
+                        
+                        // Add payments to timeline
+                        folioPayments.forEach(payment => {
+                          activities.push({
+                            type: 'payment',
+                            timestamp: payment.processed_at,
+                            icon: payment.voided ? '🚫' : '💳',
+                            color: payment.voided ? 'text-gray-500' : 'text-green-600',
+                            title: payment.voided ? 'Payment Voided' : 'Payment Processed',
+                            description: `${payment.method} - ${payment.reference || 'No ref'}`,
+                            amount: -payment.amount,
+                            user: payment.voided ? payment.voided_by : payment.processed_by_name || payment.processed_by,
+                            extra: payment.void_reason
+                          });
+                        });
+                        
+                        // Sort by timestamp (newest first)
+                        activities.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+                        
+                        return activities.length === 0 ? (
+                          <div className="text-center text-gray-400 py-8">No activity recorded</div>
+                        ) : (
+                          activities.map((activity, index) => (
+                            <div key={index} className="flex gap-3 pb-3 border-b last:border-0">
+                              <div className="text-2xl">{activity.icon}</div>
+                              <div className="flex-1">
+                                <div className={`font-semibold ${activity.color}`}>{activity.title}</div>
+                                <div className="text-sm text-gray-600">{activity.description}</div>
+                                <div className="text-xs text-gray-500">
+                                  {new Date(activity.timestamp).toLocaleString('tr-TR', {
+                                    year: 'numeric',
+                                    month: 'short',
+                                    day: 'numeric',
+                                    hour: '2-digit',
+                                    minute: '2-digit'
+                                  })}
+                                  {activity.user && ` • by ${activity.user}`}
+                                </div>
+                                {activity.extra && (
+                                  <div className="text-xs text-gray-500 italic mt-1">
+                                    {activity.extra}
+                                  </div>
+                                )}
+                              </div>
+                              <div className={`font-bold ${activity.color}`}>
+                                {activity.amount > 0 ? '+' : ''}${activity.amount?.toFixed(2)}
+                              </div>
+                            </div>
+                          ))
+                        );
+                      })()}
+                    </div>
+                  </div>
+                </div>
+              )}
+              
               {/* Totals Summary */}
               <div className="border-t pt-4 bg-gray-50 p-4 rounded-lg">
                 <div className="space-y-2">
