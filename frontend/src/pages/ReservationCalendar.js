@@ -1132,6 +1132,220 @@ const ReservationCalendar = ({ user, tenant, onLogout }) => {
         </div>
 
         {/* Conflict Alert */}
+
+        {/* Quick Stats Panel */}
+        <div className="grid grid-cols-6 gap-4 mb-4">
+          <Card>
+            <CardContent className="p-4">
+              <div className="text-xs text-gray-600">Occupancy</div>
+              <div className="text-2xl font-bold text-blue-600">{quickStats.occupancyRate}%</div>
+              <div className="text-xs text-gray-500">{quickStats.occupiedRooms}/{quickStats.totalRooms} rooms</div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4">
+              <div className="text-xs text-gray-600">Available</div>
+              <div className="text-2xl font-bold text-green-600">{quickStats.availableRooms}</div>
+              <div className="text-xs text-gray-500">rooms ready</div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4">
+              <div className="text-xs text-gray-600">Arrivals</div>
+              <div className="text-2xl font-bold text-orange-600">{quickStats.arrivals}</div>
+              <div className="text-xs text-gray-500">today</div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4">
+              <div className="text-xs text-gray-600">Departures</div>
+              <div className="text-2xl font-bold text-purple-600">{quickStats.departures}</div>
+              <div className="text-xs text-gray-500">today</div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4">
+              <div className="text-xs text-gray-600">Today Revenue</div>
+              <div className="text-2xl font-bold text-green-600">${quickStats.todayRevenue}</div>
+              <div className="text-xs text-gray-500">estimated</div>
+            </CardContent>
+          </Card>
+          <Card className="cursor-pointer hover:bg-gray-50" onClick={() => setFilters({...filters, showFilters: !filters.showFilters})}>
+            <CardContent className="p-4 flex flex-col items-center justify-center">
+              <Filter className={`w-6 h-6 mb-1 ${filters.showFilters ? 'text-blue-600' : 'text-gray-600'}`} />
+              <div className="text-xs font-semibold">{filters.showFilters ? 'Hide Filters' : 'Show Filters'}</div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Advanced Filters Panel */}
+        {filters.showFilters && (
+          <Card className="mb-4 border-blue-200 bg-blue-50">
+            <CardContent className="p-4">
+              <div className="grid grid-cols-4 gap-4">
+                <div>
+                  <Label className="text-xs">Room Type</Label>
+                  <select
+                    className="w-full border rounded-md p-2 text-sm"
+                    value={filters.roomType}
+                    onChange={(e) => setFilters({...filters, roomType: e.target.value})}
+                  >
+                    <option value="">All Types</option>
+                    <option value="suite">Suite</option>
+                    <option value="deluxe">Deluxe</option>
+                    <option value="superior">Superior</option>
+                    <option value="standard">Standard</option>
+                    <option value="economy">Economy</option>
+                  </select>
+                </div>
+                <div>
+                  <Label className="text-xs">Room Status</Label>
+                  <select
+                    className="w-full border rounded-md p-2 text-sm"
+                    value={filters.roomStatus}
+                    onChange={(e) => setFilters({...filters, roomStatus: e.target.value})}
+                  >
+                    <option value="">All Status</option>
+                    <option value="available">Available</option>
+                    <option value="occupied">Occupied</option>
+                    <option value="dirty">Dirty</option>
+                    <option value="cleaning">Cleaning</option>
+                    <option value="inspected">Inspected</option>
+                    <option value="out_of_order">Out of Order</option>
+                  </select>
+                </div>
+                <div>
+                  <Label className="text-xs">Booking Status</Label>
+                  <select
+                    className="w-full border rounded-md p-2 text-sm"
+                    value={filters.bookingStatus}
+                    onChange={(e) => setFilters({...filters, bookingStatus: e.target.value})}
+                  >
+                    <option value="">All Status</option>
+                    <option value="confirmed">Confirmed</option>
+                    <option value="guaranteed">Guaranteed</option>
+                    <option value="checked_in">Checked In</option>
+                    <option value="checked_out">Checked Out</option>
+                  </select>
+                </div>
+                <div>
+                  <Label className="text-xs">Market Segment</Label>
+                  <select
+                    className="w-full border rounded-md p-2 text-sm"
+                    value={filters.marketSegment}
+                    onChange={(e) => setFilters({...filters, marketSegment: e.target.value})}
+                  >
+                    <option value="">All Segments</option>
+                    <option value="leisure">Leisure</option>
+                    <option value="corporate">Corporate</option>
+                    <option value="group">Group</option>
+                    <option value="government">Government</option>
+                  </select>
+                </div>
+              </div>
+              <div className="mt-3 flex justify-end">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setFilters({
+                    roomType: '',
+                    roomStatus: '',
+                    bookingStatus: '',
+                    marketSegment: '',
+                    showFilters: true
+                  })}
+                >
+                  Clear All Filters
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Bulk Actions Toolbar */}
+        {bulkActionMode && (
+          <Card className="mb-4 border-purple-200 bg-purple-50">
+            <CardContent className="p-4">
+              <div className="flex justify-between items-center">
+                <div className="flex items-center gap-4">
+                  <div className="font-semibold">
+                    {selectedBookings.length} booking(s) selected
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => {
+                      setSelectedBookings([]);
+                      setBulkActionMode(false);
+                    }}
+                  >
+                    Cancel Selection
+                  </Button>
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    size="sm"
+                    disabled={selectedBookings.length === 0}
+                    onClick={async () => {
+                      if (window.confirm(`Check-in ${selectedBookings.length} bookings?`)) {
+                        try {
+                          let success = 0;
+                          for (const bookingId of selectedBookings) {
+                            try {
+                              await axios.post(`/frontdesk/checkin/${bookingId}`);
+                              success++;
+                            } catch (error) {
+                              console.error(`Failed to check-in ${bookingId}:`, error);
+                            }
+                          }
+                          toast.success(`${success}/${selectedBookings.length} bookings checked in`);
+                          setSelectedBookings([]);
+                          setBulkActionMode(false);
+                          loadCalendarData();
+                        } catch (error) {
+                          toast.error('Bulk check-in failed');
+                        }
+                      }
+                    }}
+                  >
+                    <CheckCircle className="w-4 h-4 mr-2" />
+                    Bulk Check-In
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={selectedBookings.length === 0}
+                    onClick={async () => {
+                      if (window.confirm(`Check-out ${selectedBookings.length} bookings?`)) {
+                        try {
+                          let success = 0;
+                          for (const bookingId of selectedBookings) {
+                            try {
+                              await axios.post(`/frontdesk/checkout/${bookingId}`);
+                              success++;
+                            } catch (error) {
+                              console.error(`Failed to check-out ${bookingId}:`, error);
+                            }
+                          }
+                          toast.success(`${success}/${selectedBookings.length} bookings checked out`);
+                          setSelectedBookings([]);
+                          setBulkActionMode(false);
+                          loadCalendarData();
+                        } catch (error) {
+                          toast.error('Bulk check-out failed');
+                        }
+                      }
+                    }}
+                  >
+                    <XCircle className="w-4 h-4 mr-2" />
+                    Bulk Check-Out
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {conflicts.length > 0 && (
           <Card className="border-red-500 bg-red-50">
             <CardContent className="py-4">
