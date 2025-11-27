@@ -866,6 +866,81 @@ const ReservationCalendar = ({ user, tenant, onLogout }) => {
     return null;
   };
 
+  // Filtered rooms and bookings based on active filters
+  const filteredRooms = useMemo(() => {
+    let filtered = [...rooms];
+    
+    if (filters.roomType) {
+      filtered = filtered.filter(r => r.room_type === filters.roomType);
+    }
+    
+    if (filters.roomStatus) {
+      filtered = filtered.filter(r => r.status === filters.roomStatus);
+    }
+    
+    return filtered;
+  }, [rooms, filters.roomType, filters.roomStatus]);
+
+  const filteredBookings = useMemo(() => {
+    let filtered = [...bookings];
+    
+    if (filters.bookingStatus) {
+      filtered = filtered.filter(b => b.status === filters.bookingStatus);
+    }
+    
+    if (filters.marketSegment) {
+      filtered = filtered.filter(b => b.market_segment === filters.marketSegment);
+    }
+    
+    return filtered;
+  }, [bookings, filters.bookingStatus, filters.marketSegment]);
+
+  // Quick stats
+  const quickStats = useMemo(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    const todayBookings = bookings.filter(b => {
+      const checkIn = new Date(b.check_in);
+      const checkOut = new Date(b.check_out);
+      checkIn.setHours(0, 0, 0, 0);
+      checkOut.setHours(0, 0, 0, 0);
+      return checkIn <= today && checkOut > today && b.status !== 'cancelled';
+    });
+    
+    const arrivals = bookings.filter(b => {
+      const checkIn = new Date(b.check_in);
+      checkIn.setHours(0, 0, 0, 0);
+      return checkIn.getTime() === today.getTime();
+    });
+    
+    const departures = bookings.filter(b => {
+      const checkOut = new Date(b.check_out);
+      checkOut.setHours(0, 0, 0, 0);
+      return checkOut.getTime() === today.getTime();
+    });
+    
+    const occupiedRooms = todayBookings.length;
+    const totalRooms = rooms.length;
+    const occupancyRate = totalRooms > 0 ? (occupiedRooms / totalRooms * 100).toFixed(1) : 0;
+    
+    const todayRevenue = todayBookings.reduce((sum, b) => {
+      const nights = Math.ceil((new Date(b.check_out) - new Date(b.check_in)) / (1000 * 60 * 60 * 24));
+      return sum + (b.total_amount || 0) / (nights || 1);
+    }, 0);
+    
+    return {
+      occupiedRooms,
+      totalRooms,
+      occupancyRate,
+      availableRooms: totalRooms - occupiedRooms,
+      arrivals: arrivals.length,
+      departures: departures.length,
+      todayRevenue: todayRevenue.toFixed(2)
+    };
+  }, [bookings, rooms]);
+
+
   const getStatusLabel = (status) => {
     const labels = {
       confirmed: 'Confirmed',
