@@ -227,6 +227,57 @@ const ReservationCalendar = ({ user, tenant, onLogout }) => {
     loadCalendarData();
   }, [loadCalendarData]);
 
+
+  // Resize booking with mouse drag
+  useEffect(() => {
+    if (!resizingBooking) return;
+    
+    const handleMouseMove = (e) => {
+      // Calculate which cell we're over
+      const cells = document.elementsFromPoint(e.clientX, e.clientY);
+      const timelineCell = cells.find(el => el.dataset.date && el.dataset.roomId);
+      
+      if (timelineCell) {
+        const newDate = new Date(timelineCell.dataset.date);
+        setResizePreview({ date: newDate, direction: resizeDirection });
+      }
+    };
+    
+    const handleMouseUp = async () => {
+      if (resizePreview && resizingBooking) {
+        try {
+          const updateData = {};
+          
+          if (resizeDirection === 'start') {
+            updateData.check_in = resizePreview.date.toISOString();
+          } else {
+            updateData.check_out = resizePreview.date.toISOString();
+          }
+          
+          await axios.put(`/pms/bookings/${resizingBooking.id}`, updateData);
+          toast.success(`Booking ${resizeDirection === 'start' ? 'check-in' : 'check-out'} date updated`);
+          loadCalendarData();
+        } catch (error) {
+          toast.error('Failed to resize booking');
+          console.error(error);
+        }
+      }
+      
+      setResizingBooking(null);
+      setResizeDirection(null);
+      setResizePreview(null);
+    };
+    
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+    
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [resizingBooking, resizeDirection, resizePreview]);
+
+
   // Real-time updates - Poll every 60 seconds for new bookings (optimized for performance)
   useEffect(() => {
     if (!showAIPanel && !showDeluxePanel && !showConflictSolutions) {
