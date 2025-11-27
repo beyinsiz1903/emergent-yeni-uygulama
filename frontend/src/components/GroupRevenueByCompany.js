@@ -42,7 +42,6 @@ const GroupRevenueByCompany = () => {
 
   useEffect(() => {
     loadGroups();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const companies = useMemo(() => {
