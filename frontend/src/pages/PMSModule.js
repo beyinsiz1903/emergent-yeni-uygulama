@@ -51,7 +51,6 @@ const PMSModule = ({ user, tenant, onLogout }) => {
   const [aiPrediction, setAiPrediction] = useState(null);
   const [aiPatterns, setAiPatterns] = useState(null);
   const [openDialog, setOpenDialog] = useState(null);
-  const [showNewBookingDialog, setShowNewBookingDialog] = useState(false);
   const [selectedBooking, setSelectedBooking] = useState(null);
   const [selectedCompany, setSelectedCompany] = useState(null);
   const [selectedGuest, setSelectedGuest] = useState(null);
