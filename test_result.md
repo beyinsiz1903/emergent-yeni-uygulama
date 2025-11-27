@@ -163,7 +163,7 @@
        **COMPREHENSIVE VERIFICATION COMPLETED:**
        
        ✅ **PAGE LOADING:**
-       - Landing page loads successfully at https://api-inspection.preview.emergentagent.com/
+       - Landing page loads successfully at https://guest-calendar.preview.emergentagent.com/
        - Page title: "Emergent | Fullstack App"
        - No critical loading errors
        
@@ -684,7 +684,7 @@
        🏆 FINAL COMPREHENSIVE VALIDATION COMPLETED - PRODUCTION READY ✅
        
        **TEST OBJECTIVE:** 100% validation for production deployment
-       **BASE URL:** https://api-inspection.preview.emergentagent.com
+       **BASE URL:** https://guest-calendar.preview.emergentagent.com
        **LOGIN:** demo@hotel.com / demo123
        
        **COMPREHENSIVE TEST RESULTS:**
@@ -5174,7 +5174,7 @@ agent_communication:
       - This blocks access to ALL application features and modules
       
       🔍 TECHNICAL FINDINGS:
-      - Frontend URL working: https://api-inspection.preview.emergentagent.com
+      - Frontend URL working: https://guest-calendar.preview.emergentagent.com
       - Auth page renders correctly with proper form fields and styling
       - Backend error detected: ValueError in daily flash report endpoint (Invalid isoformat string: 'invalid-date')
       - Frontend shows no visible error messages to users
@@ -9824,7 +9824,7 @@ agent_communication:
         **COMPREHENSIVE VERIFICATION COMPLETED:**
         
         ✅ **AUTH PAGE NAVIGATION:**
-        - Successfully navigated to https://api-inspection.preview.emergentagent.com/auth
+        - Successfully navigated to https://guest-calendar.preview.emergentagent.com/auth
         - Page loaded without errors
         - All UI elements rendered correctly
         
@@ -12041,7 +12041,7 @@ agent_communication:
        🎯 COMPREHENSIVE FRONTEND TESTING COMPLETED - PRODUCTION READY!
        
        **TEST EXECUTION DATE:** November 26, 2025
-       **BASE URL:** https://api-inspection.preview.emergentagent.com
+       **BASE URL:** https://guest-calendar.preview.emergentagent.com
        **CREDENTIALS:** demo@hotel.com / demo123
        
        ═══════════════════════════════════════════════════════════════════════════

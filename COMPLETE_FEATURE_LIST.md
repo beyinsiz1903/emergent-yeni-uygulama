@@ -218,7 +218,7 @@
 ## 📋 QUICK START GUIDE
 
 **Login:**
-- URL: https://api-inspection.preview.emergentagent.com
+- URL: https://guest-calendar.preview.emergentagent.com
 - Demo: demo@hotel.com / demo123
 
 **New User Registration:**
