@@ -2801,9 +2801,13 @@ const ReservationCalendar = ({ user, tenant, onLogout }) => {
                         <div key={room.id} className="flex border-b hover:bg-gray-50">
                           {/* Room Cell */}
                           <div className="w-32 flex-shrink-0 p-3 border-r bg-white">
-                            <div className="font-semibold">{room.room_number}</div>
-                            <div className="text-xs text-gray-600 capitalize">{room.room_type}</div>
-                            <div className="text-xs text-gray-500">Floor {room.floor}</div>
+                            <div className="flex items-center gap-2">
+                              <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                              <div className="font-semibold text-sm">{room.room_number}</div>
+                            </div>
+                            <div className="text-[10px] text-gray-500 ml-4 mt-0.5">
+                              {room.room_type} • Floor {room.floor}
+                            </div>
                           </div>
 
                     {/* Timeline Cells */}
