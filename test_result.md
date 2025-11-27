@@ -10618,7 +10618,7 @@ metadata:
 
 test_plan:
   current_focus:
-    - "All 5-star hotel features tested and working"
+    - "Folio system enhancements tested and working - 100% success"
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
