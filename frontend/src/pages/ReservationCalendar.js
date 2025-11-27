@@ -98,6 +98,9 @@ const ReservationCalendar = ({ user, tenant, onLogout }) => {
   const [selectedBookings, setSelectedBookings] = useState([]);
   const [bulkActionMode, setBulkActionMode] = useState(false);
   
+  // View mode - simplified or detailed
+  const [viewMode, setViewMode] = useState('simplified'); // 'simplified' or 'detailed'
+  
   // Hover tooltip state for ADR/BAR display
   const [hoveredCell, setHoveredCell] = useState(null);
   const [cellRates, setCellRates] = useState({});
