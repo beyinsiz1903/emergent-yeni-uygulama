@@ -1463,8 +1463,7 @@ const PMSModule = ({ user, tenant, onLogout }) => {
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
-                              // Open new booking dialog with pre-selected room
-                              setShowNewBookingDialog(true);
+                              setOpenDialog('booking');
                               setNewBooking(prev => ({...prev, room_id: room.id, room_number: room.room_number}));
                             }}
                             className="w-6 h-6 bg-blue-600 hover:bg-blue-700 text-white rounded-full flex items-center justify-center transition-all hover:scale-110 shadow-md"
