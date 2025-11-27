@@ -8116,6 +8116,13 @@ async def cancel_room_block(
 async def get_occupancy_report(start_date: str, end_date: str, current_user: User = Depends(get_current_user)):
     start = datetime.fromisoformat(start_date)
     end = datetime.fromisoformat(end_date)
+
+    # Normalize to timezone-aware UTC datetimes to avoid naive/aware comparison issues
+    if start.tzinfo is None:
+        start = start.replace(tzinfo=timezone.utc)
+    if end.tzinfo is None:
+        end = end.replace(tzinfo=timezone.utc)
+
     total_rooms = await db.rooms.count_documents({'tenant_id': current_user.tenant_id})
     bookings = await db.bookings.find({'tenant_id': current_user.tenant_id, 'status': {'$in': ['confirmed', 'checked_in', 'checked_out']},
                                        '$or': [{'check_in': {'$gte': start.isoformat(), '$lte': end.isoformat()}},
