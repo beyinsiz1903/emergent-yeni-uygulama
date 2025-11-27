@@ -1154,6 +1154,9 @@ frontend:
       - working: true
         agent: "testing"
         comment: "✅ CRITICAL FIX SUCCESSFUL - Fixed 'Cannot access loadCalendarData before initialization' error by moving useCallback function definition before useEffect usage. Calendar now renders properly with title 'Reservation Calendar', occupancy overview visible, all 5 API endpoints working (100% success rate): /api/pms/rooms, /api/pms/bookings, /api/pms/guests, /api/companies, /api/pms/room-blocks. Load time: 0.67s (excellent performance). Calendar grid shows dates, room blocks, and interactive elements. JavaScript error completely resolved."
+      - working: true
+        agent: "testing"
+        comment: "✅ COMPREHENSIVE FRESH SESSION TEST COMPLETED - Tested with fresh browser session (cleared cache/storage). CONSOLE LOGS VERIFIED: (1) 📊 Calendar Data Loaded: 31 bookings, 50 rooms, 120 guests ✅, (2) 📋 First 3 Bookings logged correctly ✅, (3) 🔬 getBookingForRoomOnDate DEBUG working for all rooms ✅, (4) 📅 isBookingOnDate DEBUG showing date comparisons ✅, (5) 🔍 ROOM 101 DEBUG - Date 0 (Nov 27): Booking found YES (John Brown, check-in 2025-11-27, check-out 2025-11-28) ✅, Date 1 (Nov 28): Booking found YES (Anna Davis, check-in 2025-11-27, check-out 2025-11-29) ✅, Date 2 (Nov 29): Booking found NO (correct - checkout date) ✅. VISUAL VERIFICATION: Room 101, 103, 114, 121, 141 all visible ✅, Blue booking bars visible in calendar grid ✅, Today's column (Nov 27) highlighted with bookings ✅, Date headers showing NOV 27, 28, 29, 30, DEC 1, 2, 3 ✅. DATE OBJECTS MATCH LABELS: Date 0 = Nov 27 ✅, Date 1 = Nov 28 ✅, Date 2 = Nov 29 ✅. Room 101 has 2 bookings visible on Nov 27-28 as expected. All debug logs generating correctly. Calendar fully functional with correct booking display logic."
 
   - task: "Hotel PMS Frontend Performance Optimization - PMS Module"
     implemented: true
