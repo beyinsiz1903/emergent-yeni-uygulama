@@ -6741,6 +6741,7 @@ class RatePlanCreate(BaseModel):
     type: RateType = RateType.BAR
     currency: str = "EUR"
     base_price: float
+    room_type: str = "Standard"  # Default room type
     market_segment: Optional[MarketSegment] = None
     channel_restrictions: List[ChannelType] = []
     company_ids: List[str] = []
