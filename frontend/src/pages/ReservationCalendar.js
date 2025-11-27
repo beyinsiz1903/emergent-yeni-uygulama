@@ -3081,12 +3081,33 @@ const ReservationCalendar = ({ user, tenant, onLogout }) => {
             getSegmentColor={getSegmentColor}
             getStatusLabel={getStatusLabel}
             getRateTypeInfo={getRateTypeInfo}
-            onViewFolio={(bookingId) => {
-              // Navigate to folio view or open folio dialog
-              console.log('Opening folio for booking:', bookingId);
-              // You can implement folio view here
-              toast.info('Folio view feature - Opening folio details...');
-              // Example: window.open(`/folio/${bookingId}`, '_blank');
+            onViewFolio={async (bookingId) => {
+              try {
+                console.log('Fetching folio for booking:', bookingId);
+                
+                // Fetch folio data
+                const folioRes = await axios.get(`/folio/booking/${bookingId}`);
+                
+                if (folioRes.data && folioRes.data.length > 0) {
+                  const folio = folioRes.data[0];
+                  setSelectedBookingFolio(folio);
+                  
+                  // Fetch folio charges
+                  const chargesRes = await axios.get(`/folio/${folio.id}/charges`);
+                  setFolioCharges(chargesRes.data.charges || []);
+                  
+                  // Close sidebar and open folio dialog
+                  setShowSidebar(false);
+                  setShowFolioDialog(true);
+                  
+                  toast.success('Folio loaded successfully');
+                } else {
+                  toast.info('No folio found for this booking');
+                }
+              } catch (error) {
+                console.error('Error loading folio:', error);
+                toast.error('Failed to load folio');
+              }
             }}
             onEditReservation={(booking) => {
               console.log('Editing reservation:', booking.id);
