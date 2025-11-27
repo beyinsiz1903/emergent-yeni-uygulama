@@ -80,8 +80,16 @@ const PickupPaceReport = () => {
         </div>
       </div>
 
+      {/* If no bookings for this arrival date, show helpful message */}
+      {!loading && data && summary && summary.total_bookings === 0 && (
+        <div className="text-sm text-gray-600 py-3">
+          Seçtiğiniz giriş tarihinde henüz rezervasyon yok. Lütfen dolu bir varış tarihi seçin veya
+          Reservation Calendar üzerinden dolu bir günü kontrol ederek burada aynı tarihi seçin.
+        </div>
+      )}
+
       {/* Summary */}
-      {summary && (
+      {summary && summary.total_bookings > 0 && (
         <div className="grid grid-cols-4 gap-4 mb-2 text-sm">
           <Card>
             <CardContent className="py-3">
