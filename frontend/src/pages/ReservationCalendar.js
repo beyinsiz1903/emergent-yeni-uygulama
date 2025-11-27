@@ -2938,8 +2938,8 @@ const ReservationCalendar = ({ user, tenant, onLogout }) => {
         <Card>
           <CardContent className="p-0 overflow-auto max-h-[600px]">
             <div className="min-w-max">
-              {/* Date Header Row - Modern Sticky Header */}
-              <div className="flex border-b bg-white sticky top-0 z-30 shadow-md">
+              {/* Date Header Row - Modern Header (Non-sticky) */}
+              <div className="flex border-b bg-white shadow-sm">
                 <div className="w-32 flex-shrink-0 p-3 border-r font-bold text-gray-700 text-xs uppercase tracking-wider">
                   Odalar
                 </div>
