@@ -2937,8 +2937,8 @@ const ReservationCalendar = ({ user, tenant, onLogout }) => {
         <Card>
           <CardContent className="p-0 overflow-x-auto">
             <div className="min-w-max">
-              {/* Date Header Row - Non-sticky with daily rates */}
-              <div className="flex border-b bg-gray-50">
+              {/* Date Header Row - Sticky with daily rates */}
+              <div className="flex border-b bg-gray-50 sticky top-0 z-30 shadow-sm">
                 <div className="w-32 flex-shrink-0 p-3 border-r font-semibold">
                   Room
                 </div>
