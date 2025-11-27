@@ -1459,7 +1459,7 @@ const ReservationCalendar = ({ user, tenant, onLogout }) => {
           <CardContent className="p-0 overflow-x-auto">
             <div className="min-w-max">
               {/* Date Header Row */}
-              <div className="flex border-b bg-gray-50 sticky top-0 z-10">
+              <div className="flex border-b bg-gray-50">
                 <div className="w-32 flex-shrink-0 p-3 border-r font-semibold">
                   Room
                 </div>
