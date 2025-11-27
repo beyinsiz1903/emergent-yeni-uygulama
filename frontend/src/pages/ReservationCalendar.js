@@ -1508,6 +1508,19 @@ const ReservationCalendar = ({ user, tenant, onLogout }) => {
                     <div className="text-xs text-gray-600">High Demand</div>
                   </div>
                   <div className="text-center">
+                <div className="mt-3 text-right">
+                  <Button
+                    size="xs"
+                    variant="outline"
+                    onClick={() => {
+                      const target = currentDate.toISOString().split('T')[0];
+                      openPickupPaceForDate(target);
+                    }}
+                  >
+                    Open Pickup Pace (Reports)
+                  </Button>
+                </div>
+
                     <div className="text-xl font-bold text-purple-600">
                       {Math.round(availabilityHeatmap.reduce((sum, h) => sum + h.occupancy_pct, 0) / availabilityHeatmap.length)}%
                     </div>
