@@ -1413,6 +1413,10 @@ class Payment(BaseModel):
     method: PaymentMethod
     payment_type: PaymentType
     status: PaymentStatus = PaymentStatus.PAID
+    voided: bool = False
+    voided_by: Optional[str] = None
+    voided_at: Optional[datetime] = None
+    void_reason: Optional[str] = None
     reference: Optional[str] = None
     notes: Optional[str] = None
     processed_by: Optional[str] = None
