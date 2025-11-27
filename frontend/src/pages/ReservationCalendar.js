@@ -47,10 +47,20 @@ const ReservationCalendar = ({ user, tenant, onLogout }) => {
   const [folioCharges, setFolioCharges] = useState([]);
   const [folioPayments, setFolioPayments] = useState([]);
   const [showPaymentForm, setShowPaymentForm] = useState(false);
+  const [showChargeForm, setShowChargeForm] = useState(false);
+  const [showTransferDialog, setShowTransferDialog] = useState(false);
+  const [showActivityLog, setShowActivityLog] = useState(false);
   const [paymentForm, setPaymentForm] = useState({
     amount: '',
     method: 'card',
     reference: '',
+    notes: ''
+  });
+  const [chargeForm, setChargeForm] = useState({
+    category: 'room',
+    description: '',
+    quantity: 1,
+    unit_price: '',
     notes: ''
   });
   const [selectedDate, setSelectedDate] = useState(null);
