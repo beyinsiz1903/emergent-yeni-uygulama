@@ -681,17 +681,50 @@ const PMSModule = ({ user, tenant, onLogout }) => {
 
   const handleCreateBooking = async (e) => {
     e.preventDefault();
-    
-    // Check for rate override
+
+    // Check for rate override on main room
     if (newBooking.base_rate > 0 && newBooking.base_rate !== newBooking.total_amount) {
       if (!newBooking.override_reason) {
         toast.error('Please provide a reason for rate override');
         return;
       }
     }
-    
+
+    // Basic validation
+    if (!newBooking.guest_id || !newBooking.room_id) {
+      toast.error('Please select guest and room');
+      return;
+    }
+
+    if (!newBooking.check_in || !newBooking.check_out) {
+      toast.error('Please select check-in and check-out dates');
+      return;
+    }
+
     try {
-      await axios.post('/pms/bookings', newBooking);
+      // Use multi-room booking endpoint even for single-room bookings
+      const payload = {
+        guest_id: newBooking.guest_id,
+        arrival_date: newBooking.check_in,
+        departure_date: newBooking.check_out,
+        rooms: [
+          {
+            room_id: newBooking.room_id,
+            adults: newBooking.adults,
+            children: newBooking.children,
+            children_ages: newBooking.children_ages,
+            total_amount: newBooking.total_amount,
+            base_rate: newBooking.base_rate,
+            rate_plan: newBooking.rate_type || 'Standard',
+            package_code: null
+          }
+        ],
+        company_id: newBooking.company_id || null,
+        channel: newBooking.channel || 'direct',
+        special_requests: undefined
+      };
+
+      await axios.post('/pms/bookings/multi-room', payload);
       toast.success('Booking created successfully');
       setOpenDialog(null);
       loadData();
