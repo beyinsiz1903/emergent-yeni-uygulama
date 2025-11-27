@@ -1602,35 +1602,122 @@ const PMSModule = ({ user, tenant, onLogout }) => {
               </Card>
             )}
 
+            {/* Task Priority Filter & Stats */}
+            <div className="grid grid-cols-4 gap-4">
+              <Card className="cursor-pointer hover:shadow-lg transition" onClick={() => toast.info('Showing all tasks')}>
+                <CardContent className="p-4 text-center">
+                  <div className="text-2xl font-bold text-gray-700">{housekeepingTasks.length}</div>
+                  <div className="text-xs text-gray-600">Total Tasks</div>
+                </CardContent>
+              </Card>
+              <Card className="cursor-pointer hover:shadow-lg transition border-red-200">
+                <CardContent className="p-4 text-center">
+                  <div className="text-2xl font-bold text-red-600">
+                    {housekeepingTasks.filter(t => t.priority === 'high').length}
+                  </div>
+                  <div className="text-xs text-gray-600">High Priority</div>
+                </CardContent>
+              </Card>
+              <Card className="cursor-pointer hover:shadow-lg transition border-yellow-200">
+                <CardContent className="p-4 text-center">
+                  <div className="text-2xl font-bold text-yellow-600">
+                    {housekeepingTasks.filter(t => t.status === 'in_progress').length}
+                  </div>
+                  <div className="text-xs text-gray-600">In Progress</div>
+                </CardContent>
+              </Card>
+              <Card className="cursor-pointer hover:shadow-lg transition border-green-200">
+                <CardContent className="p-4 text-center">
+                  <div className="text-2xl font-bold text-green-600">
+                    {housekeepingTasks.filter(t => t.status === 'completed').length}
+                  </div>
+                  <div className="text-xs text-gray-600">Completed Today</div>
+                </CardContent>
+              </Card>
+            </div>
+
             <div className="space-y-4">
-              {housekeepingTasks.map((task) => (
-                <Card key={task.id}>
-                  <CardContent className="pt-6">
-                    <div className="flex justify-between items-center">
-                      <div>
-                        <div className="font-bold">Room {task.room?.room_number}</div>
-                        <div className="text-sm text-gray-600 capitalize">{task.task_type} - {task.priority} priority</div>
-                        {task.notes && <div className="text-sm text-gray-500">{task.notes}</div>}
-                      </div>
-                      <div className="space-x-2">
-                        {task.status === 'pending' && (
-                          <Button size="sm" onClick={() => handleUpdateHKTask(task.id, 'in_progress')}>
-                            Start
-                          </Button>
-                        )}
-                        {task.status === 'in_progress' && (
-                          <Button size="sm" onClick={() => handleUpdateHKTask(task.id, 'completed')}>
-                            Complete
-                          </Button>
-                        )}
-                        <span className={`px-3 py-1 rounded text-xs ${task.status === 'completed' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>
-                          {task.status}
-                        </span>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+              {housekeepingTasks.length === 0 ? (
+                <div className="text-center py-12 text-gray-400">
+                  <ClipboardList className="w-16 h-16 mx-auto mb-4 opacity-50" />
+                  <p>No housekeeping tasks</p>
+                </div>
+              ) : (
+                housekeepingTasks
+                  .sort((a, b) => {
+                    // Sort by priority first
+                    const priorityOrder = { high: 0, medium: 1, low: 2 };
+                    const priorityDiff = (priorityOrder[a.priority] || 1) - (priorityOrder[b.priority] || 1);
+                    if (priorityDiff !== 0) return priorityDiff;
+                    
+                    // Then by status
+                    const statusOrder = { pending: 0, in_progress: 1, completed: 2 };
+                    return (statusOrder[a.status] || 0) - (statusOrder[b.status] || 0);
+                  })
+                  .map((task) => (
+                    <Card key={task.id} className={`${
+                      task.priority === 'high' ? 'border-l-4 border-l-red-500' :
+                      task.priority === 'medium' ? 'border-l-4 border-l-yellow-500' :
+                      'border-l-4 border-l-green-500'
+                    }`}>
+                      <CardContent className="pt-6">
+                        <div className="flex justify-between items-start">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-2">
+                              <div className="font-bold text-lg">Room {task.room?.room_number}</div>
+                              <Badge variant={
+                                task.priority === 'high' ? 'destructive' :
+                                task.priority === 'medium' ? 'default' :
+                                'outline'
+                              }>
+                                {task.priority?.toUpperCase()} PRIORITY
+                              </Badge>
+                              <Badge variant="outline" className="text-xs">
+                                {task.task_type}
+                              </Badge>
+                            </div>
+                            <div className="text-sm text-gray-600 capitalize mb-1">
+                              Assigned to: {task.assigned_to || 'Unassigned'}
+                            </div>
+                            {task.notes && (
+                              <div className="text-sm text-gray-500 bg-gray-50 p-2 rounded mt-2">
+                                💬 {task.notes}
+                              </div>
+                            )}
+                            {task.estimated_duration && (
+                              <div className="text-xs text-gray-500 mt-2">
+                                ⏱️ Estimated: {task.estimated_duration} minutes
+                              </div>
+                            )}
+                          </div>
+                          <div className="space-x-2 flex items-center gap-2">
+                            {task.status === 'pending' && (
+                              <Button size="sm" onClick={() => handleUpdateHKTask(task.id, 'in_progress')}>
+                                <Clock className="w-4 h-4 mr-2" />
+                                Start
+                              </Button>
+                            )}
+                            {task.status === 'in_progress' && (
+                              <Button size="sm" variant="default" className="bg-green-600" onClick={() => handleUpdateHKTask(task.id, 'completed')}>
+                                <CheckCircle className="w-4 h-4 mr-2" />
+                                Complete
+                              </Button>
+                            )}
+                            <span className={`px-3 py-2 rounded-lg text-sm font-semibold ${
+                              task.status === 'completed' ? 'bg-green-100 text-green-700' : 
+                              task.status === 'in_progress' ? 'bg-blue-100 text-blue-700' :
+                              'bg-gray-100 text-gray-700'
+                            }`}>
+                              {task.status === 'completed' ? '✅ Done' : 
+                               task.status === 'in_progress' ? '🔄 Working' :
+                               '⏸️ Pending'}
+                            </span>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))
+              )}
             </div>
           </TabsContent>
 
