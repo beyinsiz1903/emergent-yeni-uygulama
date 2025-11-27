@@ -3560,12 +3560,12 @@ const ReservationCalendar = ({ user, tenant, onLogout }) => {
                     <div className="text-center text-gray-400 py-8">No payments recorded</div>
                   ) : (
                     folioPayments.map((payment) => (
-                      <Card key={payment.id} className="border-green-200 bg-green-50">
+                      <Card key={payment.id} className={`${payment.voided ? 'opacity-50 border-gray-300 bg-gray-100' : 'border-green-200 bg-green-50'}`}>
                         <CardContent className="p-4">
                           <div className="flex justify-between items-start">
                             <div className="flex-1">
                               <div className="flex items-center gap-2 mb-1">
-                                <div className="font-semibold text-green-700">
+                                <div className={`font-semibold ${payment.voided ? 'text-gray-600' : 'text-green-700'}`}>
                                   {payment.method === 'card' ? '💳 Credit Card' : 
                                    payment.method === 'cash' ? '💵 Cash' :
                                    payment.method === 'bank_transfer' ? '🏦 Bank Transfer' :
@@ -3574,6 +3574,11 @@ const ReservationCalendar = ({ user, tenant, onLogout }) => {
                                 <Badge variant="outline" className="text-xs">
                                   {payment.payment_type}
                                 </Badge>
+                                {payment.voided && (
+                                  <Badge variant="destructive" className="text-xs">
+                                    VOIDED
+                                  </Badge>
+                                )}
                               </div>
                               <div className="text-sm text-gray-600 mb-1">
                                 📅 {new Date(payment.processed_at).toLocaleString('tr-TR', {
@@ -3589,9 +3594,19 @@ const ReservationCalendar = ({ user, tenant, onLogout }) => {
                                   Ref: {payment.reference}
                                 </div>
                               )}
-                              {(payment.processed_by_name || payment.processed_by) && (
+                              {(payment.processed_by_name || payment.processed_by) && !payment.voided && (
                                 <div className="text-xs text-gray-500">
                                   👤 Processed by: {payment.processed_by_name || payment.processed_by}
+                                </div>
+                              )}
+                              {payment.voided && payment.voided_by && (
+                                <div className="text-xs text-red-600">
+                                  ❌ Voided by: {payment.voided_by}
+                                </div>
+                              )}
+                              {payment.voided && payment.void_reason && (
+                                <div className="text-xs text-red-600 italic">
+                                  Reason: {payment.void_reason}
                                 </div>
                               )}
                               {payment.notes && (
@@ -3600,13 +3615,44 @@ const ReservationCalendar = ({ user, tenant, onLogout }) => {
                                 </div>
                               )}
                             </div>
-                            <div className="text-right">
-                              <div className="text-xl font-bold text-green-600">
-                                -${payment.amount?.toFixed(2) || '0.00'}
+                            <div className="text-right flex items-start gap-2">
+                              <div>
+                                <div className={`text-xl font-bold ${payment.voided ? 'text-gray-500 line-through' : 'text-green-600'}`}>
+                                  -${payment.amount?.toFixed(2) || '0.00'}
+                                </div>
+                                <div className="text-xs text-gray-500">
+                                  {payment.status || 'PAID'}
+                                </div>
                               </div>
-                              <div className="text-xs text-gray-500">
-                                {payment.status || 'PAID'}
-                              </div>
+                              {!payment.voided && selectedBookingFolio?.status !== 'closed' && (
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className="h-6 w-6 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"
+                                  onClick={async () => {
+                                    const reason = window.prompt('Void reason:', 'Voided by staff');
+                                    if (reason !== null) {
+                                      try {
+                                        await axios.post(`/payment/${payment.id}/void`, null, {
+                                          params: { void_reason: reason }
+                                        });
+                                        toast.success('Payment voided successfully');
+                                        
+                                        // Reload folio details
+                                        const detailsRes = await axios.get(`/folio/${selectedBookingFolio.id}`);
+                                        setFolioCharges(detailsRes.data.charges || []);
+                                        setFolioPayments(detailsRes.data.payments || []);
+                                        setSelectedBookingFolio({...selectedBookingFolio, balance: detailsRes.data.balance});
+                                      } catch (error) {
+                                        toast.error('Failed to void payment');
+                                        console.error(error);
+                                      }
+                                    }
+                                  }}
+                                >
+                                  <XCircle className="w-4 h-4" />
+                                </Button>
+                              )}
                             </div>
                           </div>
                         </CardContent>
