@@ -1460,15 +1460,7 @@ const ReservationCalendar = ({ user, tenant, onLogout }) => {
           <div className="overflow-x-auto">
             <div className="min-w-max">
               <div 
-                className="flex bg-white sticky top-0 z-50 shadow-sm border-b" 
-                style={{ 
-                  position: 'relative',
-                  top: 'auto',
-                  left: 'auto',
-                  right: 'auto',
-                  bottom: 'auto',
-                  zIndex: 1
-                }}
+                className="flex bg-white sticky top-0 z-50 shadow-sm border-b"
               >
                 <div className="w-40 flex-shrink-0 p-3 border-r font-bold text-gray-800 text-sm">
                   ODALAR
