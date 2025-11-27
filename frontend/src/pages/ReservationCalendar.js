@@ -552,8 +552,7 @@ const ReservationCalendar = ({ user, tenant, onLogout }) => {
     start.setHours(0, 0, 0, 0);
 
     for (let i = 0; i < daysToShow; i++) {
-      const date = new Date(start);
-      date.setDate(date.getDate() + i);  // Use date.getDate(), not start.getDate()
+      const date = new Date(start.getTime() + i * 24 * 60 * 60 * 1000);  // Add i days in milliseconds
       dates.push(date);
     }
     return dates;
