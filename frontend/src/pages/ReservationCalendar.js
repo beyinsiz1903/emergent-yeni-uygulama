@@ -3218,29 +3218,29 @@ const ReservationCalendar = ({ user, tenant, onLogout }) => {
                                 
                                 {/* Resize Handles - Left (check-in) and Right (check-out) */}
                                 <div 
-                                  className="absolute left-0 top-0 bottom-0 w-2 bg-white/20 hover:bg-white/40 cursor-ew-resize group/resize"
+                                  className="absolute left-0 top-0 bottom-0 w-3 bg-white/30 hover:bg-yellow-300/80 cursor-ew-resize group/resize border-r-2 border-white/40 hover:border-yellow-400 transition-all z-30"
                                   onMouseDown={(e) => {
                                     e.stopPropagation();
                                     setResizingBooking(booking);
                                     setResizeDirection('start');
                                   }}
-                                  title="Drag to change check-in date"
+                                  title="Giriş tarihini değiştirmek için sürükle"
                                 >
-                                  <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover/resize:opacity-100">
-                                    <div className="w-1 h-8 bg-white rounded"></div>
+                                  <div className="absolute inset-0 flex items-center justify-center opacity-60 group-hover/resize:opacity-100">
+                                    <div className="w-1 h-10 bg-white rounded shadow-lg"></div>
                                   </div>
                                 </div>
                                 <div 
-                                  className="absolute right-0 top-0 bottom-0 w-2 bg-white/20 hover:bg-white/40 cursor-ew-resize group/resize"
+                                  className="absolute right-0 top-0 bottom-0 w-3 bg-white/30 hover:bg-yellow-300/80 cursor-ew-resize group/resize border-l-2 border-white/40 hover:border-yellow-400 transition-all z-30"
                                   onMouseDown={(e) => {
                                     e.stopPropagation();
                                     setResizingBooking(booking);
                                     setResizeDirection('end');
                                   }}
-                                  title="Drag to change check-out date"
+                                  title="Çıkış tarihini değiştirmek için sürükle"
                                 >
-                                  <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover/resize:opacity-100">
-                                    <div className="w-1 h-8 bg-white rounded"></div>
+                                  <div className="absolute inset-0 flex items-center justify-center opacity-60 group-hover/resize:opacity-100">
+                                    <div className="w-1 h-10 bg-white rounded shadow-lg"></div>
                                   </div>
                                 </div>
 
