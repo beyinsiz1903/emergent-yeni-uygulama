@@ -48883,6 +48883,57 @@ async def get_occupancy_trend(
     }
 
 
+@api_router.get("/analytics/revenue-trend")
+async def get_revenue_trend(
+    days: int = 30,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Get revenue trend for the last N days"""
+    current_user = await get_current_user(credentials)
+    
+    end_date = datetime.now(timezone.utc)
+    start_date = end_date - timedelta(days=days)
+    
+    # Get all folios in date range
+    folios = await db.folios.find({
+        'tenant_id': current_user.tenant_id,
+        'created_at': {
+            '$gte': start_date.isoformat(),
+            '$lte': end_date.isoformat()
+        }
+    }).to_list(length=10000)
+    
+    # Calculate daily revenue
+    trend_data = []
+    current = start_date
+    
+    while current <= end_date:
+        # Sum revenue for this date
+        daily_revenue = 0
+        for folio in folios:
+            folio_date = datetime.fromisoformat(folio['created_at'].replace('Z', '+00:00'))
+            if folio_date.date() == current.date():
+                daily_revenue += folio.get('total_charges', 0)
+        
+        trend_data.append({
+            'date': current.strftime('%Y-%m-%d'),
+            'revenue': round(daily_revenue, 2)
+        })
+        
+        current += timedelta(days=1)
+    
+    total_revenue = sum(d['revenue'] for d in trend_data)
+    average_daily = round(total_revenue / len(trend_data), 2) if trend_data else 0
+    
+    return {
+        'success': True,
+        'days': days,
+        'trend': trend_data,
+        'total_revenue': round(total_revenue, 2),
+        'average_daily_revenue': average_daily
+    }
+
+
 # Include router at the very end after ALL endpoints are defined
 app.include_router(api_router)
 
