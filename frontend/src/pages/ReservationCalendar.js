@@ -1607,7 +1607,7 @@ const ReservationCalendar = ({ user, tenant, onLogout }) => {
                         return (
                           <div
                             key={idx}
-                            className={`w-28 flex-shrink-0 border-r border-gray-200 relative cursor-pointer transition-all ${
+                            className={`w-28 flex-shrink-0 border-r-2 border-b-2 border-gray-400 relative cursor-pointer transition-all ${
                               isToday(date) ? 'bg-blue-50/80 shadow-inner' : 'bg-white hover:bg-gray-50'
                             } ${isDragOver ? 'bg-emerald-50 ring-2 ring-emerald-400 shadow-lg' : ''}
                             ${roomBlock ? 'bg-gray-100/60 border-dashed' : ''}`}
