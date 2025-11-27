@@ -4415,6 +4415,111 @@ const PMSModule = ({ user, tenant, onLogout }) => {
                   </CardContent>
                 </Card>
 
+
+                {/* Loyalty Progress Card */}
+                <Card className="bg-gradient-to-r from-purple-50 to-pink-50 border-purple-200">
+                  <CardHeader>
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      <Crown className="w-5 h-5 text-purple-600" />
+                      Loyalty Program Status
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <div className="text-2xl font-bold">
+                          {guest360Data.profile?.loyalty_points || guest360Data.guest?.loyalty_points || 0} pts
+                        </div>
+                        <div className="text-sm text-gray-600">Current Balance</div>
+                      </div>
+                      <div className={`px-4 py-2 rounded-lg font-bold text-lg ${
+                        guest360Data.profile?.loyalty_status === 'vip' ? 'bg-purple-600 text-white' :
+                        guest360Data.profile?.loyalty_status === 'gold' ? 'bg-yellow-500 text-white' :
+                        guest360Data.profile?.loyalty_status === 'silver' ? 'bg-gray-400 text-white' :
+                        'bg-blue-500 text-white'
+                      }`}>
+                        {(guest360Data.profile?.loyalty_status || guest360Data.guest?.loyalty_tier || 'standard').toUpperCase()}
+                      </div>
+                    </div>
+                    
+                    {/* Progress to Next Tier */}
+                    <div>
+                      <div className="flex justify-between text-sm mb-1">
+                        <span className="text-gray-600">Progress to Next Tier</span>
+                        <span className="font-semibold">
+                          {(() => {
+                            const currentPoints = guest360Data.profile?.loyalty_points || guest360Data.guest?.loyalty_points || 0;
+                            const currentStatus = guest360Data.profile?.loyalty_status || guest360Data.guest?.loyalty_tier || 'standard';
+                            const thresholds = { standard: 1000, silver: 2500, gold: 5000, vip: 10000 };
+                            const nextTier = 
+                              currentStatus === 'standard' ? 'silver' :
+                              currentStatus === 'silver' ? 'gold' :
+                              currentStatus === 'gold' ? 'vip' :
+                              null;
+                            
+                            if (!nextTier) return 'MAX TIER';
+                            const needed = thresholds[nextTier] - currentPoints;
+                            return needed > 0 ? `${needed} pts to ${nextTier.toUpperCase()}` : 'Eligible for upgrade!';
+                          })()}
+                        </span>
+                      </div>
+                      <div className="w-full bg-gray-200 rounded-full h-3">
+                        <div 
+                          className="bg-gradient-to-r from-purple-600 to-pink-600 h-3 rounded-full transition-all"
+                          style={{ 
+                            width: `${(() => {
+                              const currentPoints = guest360Data.profile?.loyalty_points || guest360Data.guest?.loyalty_points || 0;
+                              const currentStatus = guest360Data.profile?.loyalty_status || guest360Data.guest?.loyalty_tier || 'standard';
+                              const thresholds = { standard: 1000, silver: 2500, gold: 5000, vip: 10000 };
+                              const current = thresholds[currentStatus] || 0;
+                              const nextTier = 
+                                currentStatus === 'standard' ? 'silver' :
+                                currentStatus === 'silver' ? 'gold' :
+                                currentStatus === 'gold' ? 'vip' :
+                                null;
+                              
+                              if (!nextTier) return 100;
+                              const next = thresholds[nextTier];
+                              const progress = ((currentPoints - current) / (next - current)) * 100;
+                              return Math.min(Math.max(progress, 0), 100);
+                            })()}%` 
+                          }}
+                        ></div>
+                      </div>
+                    </div>
+                    
+                    {/* Tier Benefits */}
+                    <div className="text-xs space-y-1">
+                      <div className="font-semibold mb-2">Current Benefits:</div>
+                      {guest360Data.profile?.loyalty_status === 'vip' || guest360Data.guest?.loyalty_tier === 'vip' ? (
+                        <>
+                          <div className="flex items-center gap-2">✨ Suite Upgrades</div>
+                          <div className="flex items-center gap-2">🎁 Welcome Gifts</div>
+                          <div className="flex items-center gap-2">🍾 Complimentary Services</div>
+                          <div className="flex items-center gap-2">⚡ Priority Check-in/out</div>
+                        </>
+                      ) : guest360Data.profile?.loyalty_status === 'gold' || guest360Data.guest?.loyalty_tier === 'gold' ? (
+                        <>
+                          <div className="flex items-center gap-2">🔄 Free Room Upgrade</div>
+                          <div className="flex items-center gap-2">☕ Complimentary Breakfast</div>
+                          <div className="flex items-center gap-2">📅 Late Check-out</div>
+                        </>
+                      ) : guest360Data.profile?.loyalty_status === 'silver' || guest360Data.guest?.loyalty_tier === 'silver' ? (
+                        <>
+                          <div className="flex items-center gap-2">💰 10% Discount</div>
+                          <div className="flex items-center gap-2">🎯 Points on Stays</div>
+                        </>
+                      ) : (
+                        <>
+                          <div className="flex items-center gap-2">⭐ Earn Points</div>
+                          <div className="flex items-center gap-2">📧 Exclusive Offers</div>
+                        </>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+
+
                 {/* Stats Dashboard */}
                 <div className="grid grid-cols-4 gap-4">
                   <Card>
