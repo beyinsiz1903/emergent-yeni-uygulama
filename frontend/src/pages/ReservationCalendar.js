@@ -552,9 +552,28 @@ const ReservationCalendar = ({ user, tenant, onLogout }) => {
 
   // Get booking for room on specific date
   const getBookingForRoomOnDate = (roomId, date) => {
-    return bookings.find(booking => 
+    const found = bookings.find(booking => 
       booking.room_id === roomId && isBookingOnDate(booking, date)
     );
+    
+    // Debug: Log first call
+    if (window.debugCalendar === undefined) {
+      window.debugCalendar = true;
+      console.log('🔍 getBookingForRoomOnDate Debug:', {
+        totalBookings: bookings.length,
+        searchingForRoom: roomId,
+        searchingForDate: date.toISOString().split('T')[0],
+        found: !!found,
+        allBookings: bookings.slice(0, 3).map(b => ({
+          room_id: b.room_id,
+          check_in: b.check_in,
+          check_out: b.check_out,
+          guest_name: b.guest_name
+        }))
+      });
+    }
+    
+    return found;
   };
 
   // Get room block for room on specific date
