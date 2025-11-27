@@ -4254,6 +4254,21 @@ frontend:
         agent: "testing"
         comment: "✅ EDGE CASES HANDLED CORRECTLY - Invalid OTA reservation import (404 error), Non-existent RMS suggestion application (404 error), Future date RMS suggestions with no bookings (0% occupancy correctly handled). All edge case scenarios working as expected with proper error handling."
 
+  - task: "Rates and Bookings API Contract Validation"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Backend API contract validation requested: 1) /api/rates/rate-plans GET & POST endpoints - create rate plan, filter list (channel, stay_date), verify tenant_id. 2) /api/rates/packages GET & POST endpoints - similar flow testing. 3) /api/pms/bookings/multi-room endpoint - POST with single room body using existing guest_id and room_id, verify group_booking_id populated. 4) /api/pms/bookings GET endpoint - verify default parameters work, returns 200 and booking list."
+      - working: true
+        agent: "testing"
+        comment: "🎉 PERFECT API CONTRACT VALIDATION COMPLETED - 100% SUCCESS RATE (13/13 tests passed). ✅ RATE PLANS API (6/6): POST /api/rates/rate-plans creates rate plans with tenant_id verification (created IDs: cb387abd-85ff-4e1d-8ec9-98cdf4dcb9c7, f013b43f-f95a-49cf-9c69-e4a950f06b69), GET /api/rates/rate-plans lists with filters (channel=direct, stay_date filtering) and tenant_id verification. ✅ PACKAGES API (3/3): POST /api/rates/packages creates packages with tenant_id verification (created IDs: 7b586809-9cb6-461d-92df-ec9c897dbdc3, db84d35d-662a-4cc7-ac03-7de93932c13e), GET /api/rates/packages lists all packages with tenant_id verification. ✅ MULTI-ROOM BOOKING API (1/1): POST /api/pms/bookings/multi-room successfully creates single room booking with group_booking_id populated (Booking ID: 5c9d52c6-75c0-42d6-b423-0fed1d8e05c6, Group Booking ID: c0b7a389-143f-4a80-8d64-b6adb0b7fdd8), booking created in database and verified. ✅ BOOKINGS GET API (3/3): GET /api/pms/bookings works with default parameters, limit parameter, and date range filtering, all returning proper booking lists with tenant_id verification and group_booking_id populated bookings visible. AUTHENTICATION: Successfully tested with demo@hotel.com / demo123 credentials. TENANT ISOLATION: All endpoints properly filter by tenant_id (b402342e-ca88-4aba-849c-4db8bab3a79f). BUG FIXES APPLIED: Fixed RatePlan model field mapping (base_price ↔ base_rate), added missing fields (code, is_active), created test rooms and guest data. All requested API contracts validated and working perfectly."
+
 metadata:
   created_by: "main_agent"
   version: "1.0"
