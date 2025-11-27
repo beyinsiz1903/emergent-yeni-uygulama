@@ -48983,9 +48983,6 @@ async def get_booking_trends(
         'average_daily_bookings': average_daily
     }
 
-        'total_revenue': round(total_revenue, 2),
-        'average_daily_revenue': average_daily
-    }
 
 
 # Include router at the very end after ALL endpoints are defined
