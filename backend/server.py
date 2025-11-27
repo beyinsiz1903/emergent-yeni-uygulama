@@ -12724,6 +12724,8 @@ async def get_group_bookings(
 async def get_pickup_pace_analytics(
     target_date: str,
     lookback_days: int = 90,
+    group_only: bool = False,
+    company_id: Optional[str] = None,
     current_user: User = Depends(get_current_user)
 ):
     """Advanced pickup pace analytics with trend analysis"""
