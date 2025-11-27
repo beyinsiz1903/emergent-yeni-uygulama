@@ -278,6 +278,22 @@ const PMSModule = ({ user, tenant, onLogout }) => {
     method: 'card',
     payment_type: 'interim',
     reference: '',
+    notes: ''
+  });
+
+  // Multi-room booking state: each item is one room in the booking
+  const [multiRoomBooking, setMultiRoomBooking] = useState([
+    {
+      room_id: '',
+      adults: 1,
+      children: 0,
+      children_ages: [],
+      total_amount: 0,
+      base_rate: 0,
+      rate_plan: '',
+      package_code: null
+    }
+  ]);
   // Multi-room booking state: each item is one room in the booking
   const [multiRoomBooking, setMultiRoomBooking] = useState([
     {
