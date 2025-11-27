@@ -1714,8 +1714,24 @@ const PMSModule = ({ user, tenant, onLogout }) => {
                 const currentGuest = currentBooking ? guests.find(g => g.id === currentBooking.guest_id) : null;
                 
                 return (
-                <Card key={room.id} className={`${roomBlock ? 'border-2 border-red-400' : ''} ${currentBooking ? 'border-l-4 border-l-blue-500' : ''}`}>
+                <Card key={room.id} className={`${roomBlock ? 'border-2 border-red-400' : ''} ${currentBooking ? 'border-l-4 border-l-blue-500' : ''} ${selectedRooms.includes(room.id) ? 'ring-2 ring-purple-500' : ''}`}>
                   <CardHeader className="relative pb-2">
+                    {/* Bulk Selection Checkbox */}
+                    {bulkRoomMode && (
+                      <input
+                        type="checkbox"
+                        className="absolute top-2 right-2 w-5 h-5 cursor-pointer z-20"
+                        checked={selectedRooms.includes(room.id)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSelectedRooms([...selectedRooms, room.id]);
+                          } else {
+                            setSelectedRooms(selectedRooms.filter(id => id !== room.id));
+                          }
+                        }}
+                      />
+                    )}
+                    
                     {/* New Booking + Button */}
                     <button
                       onClick={(e) => {
