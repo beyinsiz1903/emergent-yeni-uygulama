@@ -10896,6 +10896,75 @@ agent_communication:
       
       **PRODUCTION READINESS: ✅ READY FOR PRODUCTION**
 
+  - agent: "testing"
+    message: |
+      ✅ FOLIO AUTO-CREATION TEST COMPLETED - 100% SUCCESS
+      
+      **TEST OBJECTIVE:**
+      Verify fix for "No folio found for this booking" issue when clicking guest reservations in calendar
+      
+      **TEST RESULTS: 6/6 TESTS PASSED (100% SUCCESS RATE)**
+      
+      ✅ **TEST 1: Create New Booking**
+      - POST /api/pms/bookings - HTTP 200 ✅
+      - Booking created successfully with ID: f0c44443-e29f-4c53-8801-f857120b7cb5
+      - Used credentials: demo@hotel.com / demo123
+      
+      ✅ **TEST 2: Verify Folio Exists**
+      - GET /api/folio/booking/{booking_id} - HTTP 200 ✅
+      - Folio found immediately after booking creation
+      - Folio ID: 6f5d9914-a7e6-41c7-8586-ab4798469b4c
+      - Folio Number: F-2025-00362
+      
+      ✅ **TEST 3: Verify Folio Fields**
+      - All required fields present: folio_number, folio_type, booking_id, guest_id ✅
+      - Folio type correctly set to 'guest' ✅
+      - Booking ID matches ✅
+      - Guest ID present ✅
+      
+      ✅ **TEST 4: Verify Folio Number Format**
+      - Format: F-YYYY-##### ✅
+      - Example: F-2025-00362 ✅
+      - Year part: 2025 (4 digits) ✅
+      - Number part: 00362 (5 digits) ✅
+      
+      ✅ **TEST 5: Existing Booking Folio Retrieval**
+      - Tested existing booking: c62ff978-23a9-4c05-b0bf-0c3d7b43b2ee
+      - Folio retrieved successfully: F-2025-00023 ✅
+      
+      ✅ **TEST 6: Multiple Booking Tests**
+      - Created second test booking: bed62fe0-f2a5-4c7b-b741-bfcea4d039c1
+      - Folio auto-created: F-2025-00361 ✅
+      - Verified folio immediately available ✅
+      
+      **CODE VERIFICATION:**
+      - Folio auto-creation logic found at lines 6405-6416 in /app/backend/server.py
+      - Logic executes immediately after booking creation
+      - Folio number generated using generate_folio_number() function
+      - Folio type set to FolioType.GUEST
+      - Guest ID properly linked
+      
+      **DATABASE ANALYSIS:**
+      - Total bookings: 300
+      - Total folios: 362
+      - Bookings without folios: 20 (old bookings created before auto-creation feature)
+      - All NEW bookings have folios ✅
+      
+      **FINAL VERDICT:**
+      🎉 FIX CONFIRMED: "No folio found" issue is RESOLVED!
+      
+      **VERIFIED:**
+      ✓ New bookings automatically create folios
+      ✓ Folios are immediately available after booking creation
+      ✓ No more "No folio found" errors for new bookings
+      ✓ Folio number format is correct (F-YYYY-#####)
+      ✓ All required fields are present
+      ✓ Existing bookings can retrieve folios successfully
+      
+      **NOTE:**
+      20 old bookings (created before auto-creation feature) don't have folios. This is expected and doesn't affect new bookings. Consider running a migration script to create folios for these old bookings if needed.
+      
+      **PRODUCTION READINESS: ✅ READY - Folio auto-creation working perfectly**
 
   - agent: "testing"
     message: |
