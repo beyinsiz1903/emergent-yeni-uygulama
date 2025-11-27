@@ -3578,7 +3578,7 @@ const ReservationCalendar = ({ user, tenant, onLogout }) => {
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-600">Total Charges:</span>
                     <span className="font-semibold">
-                      ${folioCharges.reduce((sum, c) => sum + (c.total || c.amount || 0), 0).toFixed(2)}
+                      ${folioCharges.filter(c => !c.voided).reduce((sum, c) => sum + (c.total || c.amount || 0), 0).toFixed(2)}
                     </span>
                   </div>
                   <div className="flex justify-between text-sm">
@@ -3587,17 +3587,22 @@ const ReservationCalendar = ({ user, tenant, onLogout }) => {
                       -${folioPayments.reduce((sum, p) => sum + (p.amount || 0), 0).toFixed(2)}
                     </span>
                   </div>
-                  <div className="border-t pt-2 flex justify-between text-xl font-bold">
-                    <span>Outstanding Balance:</span>
-                    <span className={`${
+                  <div className="border-t-2 border-gray-300 pt-3 mt-2 flex justify-between items-center">
+                    <span className="text-xl font-bold">Outstanding Balance:</span>
+                    <span className={`text-3xl font-bold ${
                       (selectedBookingFolio?.balance || 0) > 0 ? 'text-red-600' : 'text-green-600'
                     }`}>
                       ${selectedBookingFolio?.balance?.toFixed(2) || '0.00'}
                     </span>
                   </div>
                   {(selectedBookingFolio?.balance || 0) === 0 && folioCharges.length > 0 && (
-                    <div className="text-center text-green-600 text-sm font-semibold pt-2">
+                    <div className="text-center text-green-600 text-sm font-semibold pt-2 bg-green-100 py-2 rounded">
                       ✓ Fully Paid
+                    </div>
+                  )}
+                  {(selectedBookingFolio?.balance || 0) > 0 && (
+                    <div className="text-center text-orange-600 text-sm font-semibold pt-2 bg-orange-100 py-2 rounded">
+                      ⚠ Payment Required
                     </div>
                   )}
                 </div>
