@@ -498,10 +498,10 @@ const ReservationCalendar = ({ user, tenant, onLogout }) => {
       font-family: system-ui, -apple-system, sans-serif;
     `;
     
-    // Create cells for each day with inline styles
+    // Create cells for each day with inline styles - More aesthetic layout
     let cellsHTML = '';
     for (let i = 0; i < bookingSpan; i++) {
-      const borderStyle = i < bookingSpan - 1 ? 'border-right: 2px solid rgba(255,255,255,0.3);' : '';
+      const borderStyle = i < bookingSpan - 1 ? 'border-right: 2px solid rgba(255,255,255,0.4);' : '';
       cellsHTML += `
         <div style="
           flex: 1;
@@ -509,35 +509,49 @@ const ReservationCalendar = ({ user, tenant, onLogout }) => {
           display: flex;
           align-items: center;
           justify-content: center;
-          font-size: 11px;
-          font-weight: bold;
+          font-size: 10px;
+          font-weight: 600;
           color: white;
           padding: 4px;
+          text-shadow: 0 1px 2px rgba(0,0,0,0.3);
         ">
-          ${i === 0 ? (booking.guest_name?.substring(0, 10) || 'Misafir') : ''}
+          ${i === Math.floor(bookingSpan / 2) ? '📅' : ''}
         </div>
       `;
     }
     
     dragPreview.innerHTML = `
-      <div style="display: flex; width: 100%; height: 45px; align-items: center;">
-        ${cellsHTML}
-      </div>
-      <div style="
-        position: absolute;
-        bottom: 0;
-        left: 0;
-        right: 0;
-        background: rgba(0,0,0,0.7);
-        color: white;
-        font-size: 10px;
-        padding: 2px 8px;
-        font-weight: bold;
-        text-align: center;
-        height: 15px;
-        line-height: 15px;
-      ">
-        ${bookingSpan} Gece • $${booking.total_amount?.toFixed(0) || '0'}
+      <div style="display: flex; flex-direction: column; width: 100%; height: 100%;">
+        <div style="
+          flex: 1;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 13px;
+          font-weight: bold;
+          color: white;
+          padding: 8px;
+          text-align: center;
+          text-shadow: 0 2px 4px rgba(0,0,0,0.4);
+        ">
+          ${booking.guest_name || 'Misafir'}
+        </div>
+        <div style="display: flex; height: 20px;">
+          ${cellsHTML}
+        </div>
+        <div style="
+          background: rgba(0,0,0,0.8);
+          color: #fbbf24;
+          font-size: 11px;
+          padding: 3px 8px;
+          font-weight: bold;
+          text-align: center;
+          height: 18px;
+          line-height: 14px;
+          letter-spacing: 0.5px;
+        ">
+          ${bookingSpan} Gece • $${booking.total_amount?.toFixed(0) || '0'}
+        </div>
       </div>
     `;
     
