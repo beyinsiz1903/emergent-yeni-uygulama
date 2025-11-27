@@ -2967,13 +2967,13 @@ const ReservationCalendar = ({ user, tenant, onLogout }) => {
                   return (
                   <div
                     key={idx}
-                    className={`w-24 flex-shrink-0 p-2 border-r text-center text-sm ${
-                      isToday(date) ? 'bg-blue-50 font-bold text-blue-600' : getHeatmapColor(intensity)
+                    className={`w-24 flex-shrink-0 p-2.5 border-r text-center ${
+                      isToday(date) ? 'bg-blue-600 text-white' : 'bg-white text-gray-700'
                     }`}
                     title={`Occupancy intensity: ${intensity} | ADR: $${adr.toFixed(0)}`}
                   >
-                    <div className="font-semibold">{formatDateWithDay(date)}</div>
-                    <div className="text-[10px] text-gray-600 mt-0.5 font-bold">
+                    <div className="text-[11px] font-bold uppercase tracking-wide">{formatDateWithDay(date)}</div>
+                    <div className={`text-[10px] mt-1 font-semibold ${isToday(date) ? 'text-blue-100' : 'text-gray-500'}`}>
                       ${adr > 0 ? adr.toFixed(0) : '-'}
                     </div>
                   </div>
