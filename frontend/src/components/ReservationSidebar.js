@@ -360,13 +360,43 @@ const ReservationSidebar = ({
 
         {/* Action Buttons */}
         <div className="space-y-2 pb-6">
-          <Button className="w-full" size="lg">
+          <Button 
+            className="w-full" 
+            size="lg"
+            onClick={() => {
+              if (onViewFolio) {
+                onViewFolio(booking.id);
+              } else {
+                console.log('View folio for booking:', booking.id);
+              }
+            }}
+          >
             View Full Folio
           </Button>
-          <Button variant="outline" className="w-full">
+          <Button 
+            variant="outline" 
+            className="w-full"
+            onClick={() => {
+              if (onEditReservation) {
+                onEditReservation(booking);
+              } else {
+                console.log('Edit reservation:', booking.id);
+              }
+            }}
+          >
             Edit Reservation
           </Button>
-          <Button variant="outline" className="w-full">
+          <Button 
+            variant="outline" 
+            className="w-full"
+            onClick={() => {
+              if (onSendConfirmation) {
+                onSendConfirmation(booking);
+              } else {
+                console.log('Send confirmation for:', booking.id);
+              }
+            }}
+          >
             Send Confirmation
           </Button>
         </div>
