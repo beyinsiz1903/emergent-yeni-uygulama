@@ -6402,6 +6402,19 @@ async def create_booking(booking_data: BookingCreate, current_user: User = Depen
     booking_dict['created_at'] = booking_dict['created_at'].isoformat()
     await db.bookings.insert_one(booking_dict)
     
+    # Auto-create folio for the booking
+    folio_number = await generate_folio_number(current_user.tenant_id)
+    folio = Folio(
+        tenant_id=current_user.tenant_id,
+        booking_id=booking.id,
+        folio_number=folio_number,
+        folio_type=FolioType.GUEST,
+        guest_id=booking_data.guest_id
+    )
+    folio_dict = folio.model_dump()
+    folio_dict['created_at'] = folio_dict['created_at'].isoformat()
+    await db.folios.insert_one(folio_dict)
+    
     # Note: Room status should be updated during check-in, not booking creation
     # Room remains in its current status (available/dirty/etc.) until guest checks in
     
