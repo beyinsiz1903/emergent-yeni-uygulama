@@ -111,11 +111,11 @@ const ReservationCalendar = ({ user, tenant, onLogout }) => {
     setLoading(true);
     try {
       const [roomsRes, bookingsRes, guestsRes, companiesRes, blocksRes] = await Promise.all([
-        axios.get('/api/pms/rooms'),
-        axios.get('/api/pms/bookings'),
-        axios.get('/api/pms/guests').catch(() => ({ data: [] })),
-        axios.get('/api/companies').catch(() => ({ data: [] })),
-        axios.get('/api/pms/room-blocks?status=active').catch(() => ({ data: { blocks: [] } }))
+        axios.get('/pms/rooms'),
+        axios.get('/pms/bookings'),
+        axios.get('/pms/guests').catch(() => ({ data: [] })),
+        axios.get('/companies').catch(() => ({ data: [] })),
+        axios.get('/pms/room-blocks?status=active').catch(() => ({ data: { blocks: [] } }))
       ]);
 
       setRooms(roomsRes.data || []);
