@@ -6627,9 +6627,11 @@ async def get_bookings(
     for booking in bookings_raw:
         # Add guest_name if not present
         if not booking.get('guest_name') and booking.get('guest_id'):
-            guest = await db.guests.find_one({'id': booking['guest_id']}, {'name': 1, '_id': 0})
+            guest = await db.guests.find_one({'id': booking['guest_id']}, {'first_name': 1, 'last_name': 1, '_id': 0})
             if guest:
-                booking['guest_name'] = guest.get('name', 'Unknown Guest')
+                first_name = guest.get('first_name', '')
+                last_name = guest.get('last_name', '')
+                booking['guest_name'] = f"{first_name} {last_name}".strip() or 'Unknown Guest'
         
         # Add room_number if not present
         if not booking.get('room_number') and booking.get('room_id'):
