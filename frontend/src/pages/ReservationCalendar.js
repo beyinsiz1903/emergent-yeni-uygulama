@@ -38,6 +38,8 @@ const ReservationCalendar = ({ user, tenant, onLogout }) => {
   const [daysToShow, setDaysToShow] = useState(14); // 2 weeks view
   
   // Dialog states
+  const [groupColorMap, setGroupColorMap] = useState({});
+
   const [showNewBookingDialog, setShowNewBookingDialog] = useState(false);
   const [showDetailsDialog, setShowDetailsDialog] = useState(false);
   const [showSidebar, setShowSidebar] = useState(false);
