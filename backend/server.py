@@ -6037,6 +6037,7 @@ async def post_payment_to_folio(
     
     payment_dict = payment.model_dump()
     payment_dict['processed_at'] = payment_dict['processed_at'].isoformat()
+    payment_dict['processed_by_name'] = current_user.name  # Add user name
     await db.payments.insert_one(payment_dict)
     
     # Update folio balance
