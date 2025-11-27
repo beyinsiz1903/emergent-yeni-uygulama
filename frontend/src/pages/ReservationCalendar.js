@@ -3811,6 +3811,109 @@ const ReservationCalendar = ({ user, tenant, onLogout }) => {
         </Dialog>
       )}
 
+      {/* Transfer Charges Dialog */}
+      {showTransferDialog && (
+        <Dialog open={showTransferDialog} onOpenChange={setShowTransferDialog}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>Transfer Charges to Another Folio</DialogTitle>
+              <DialogDescription>
+                Select destination folio to transfer {selectedChargesForTransfer.length} selected charge(s)
+              </DialogDescription>
+            </DialogHeader>
+            
+            <div className="space-y-4">
+              {/* Selected Charges Summary */}
+              <div className="bg-blue-50 p-4 rounded-lg">
+                <div className="text-sm font-semibold mb-2">Selected Charges:</div>
+                {folioCharges.filter(c => selectedChargesForTransfer.includes(c.id)).map(charge => (
+                  <div key={charge.id} className="text-sm flex justify-between py-1">
+                    <span>{charge.description}</span>
+                    <span className="font-semibold">${charge.total?.toFixed(2)}</span>
+                  </div>
+                ))}
+                <div className="border-t mt-2 pt-2 flex justify-between font-bold">
+                  <span>Total to Transfer:</span>
+                  <span>
+                    ${folioCharges
+                      .filter(c => selectedChargesForTransfer.includes(c.id))
+                      .reduce((sum, c) => sum + (c.total || c.amount || 0), 0)
+                      .toFixed(2)}
+                  </span>
+                </div>
+              </div>
+
+              {/* Destination Selection */}
+              <div>
+                <Label>Transfer to Guest/Booking *</Label>
+                <select
+                  className="w-full border rounded-md p-2"
+                  onChange={async (e) => {
+                    if (e.target.value) {
+                      try {
+                        // Get folio for selected booking
+                        const folioRes = await axios.get(`/folio/booking/${e.target.value}`);
+                        
+                        if (folioRes.data && folioRes.data.length > 0) {
+                          const targetFolio = folioRes.data[0];
+                          
+                          if (window.confirm(`Transfer ${selectedChargesForTransfer.length} charges to ${targetFolio.folio_number}?`)) {
+                            await axios.post('/folio/transfer', {
+                              operation_type: 'transfer',
+                              from_folio_id: selectedBookingFolio.id,
+                              to_folio_id: targetFolio.id,
+                              charge_ids: selectedChargesForTransfer
+                            });
+                            
+                            toast.success('Charges transferred successfully');
+                            
+                            // Reload folio details
+                            const detailsRes = await axios.get(`/folio/${selectedBookingFolio.id}`);
+                            setFolioCharges(detailsRes.data.charges || []);
+                            setFolioPayments(detailsRes.data.payments || []);
+                            setSelectedBookingFolio({...selectedBookingFolio, balance: detailsRes.data.balance});
+                            
+                            setSelectedChargesForTransfer([]);
+                            setShowTransferDialog(false);
+                          }
+                        } else {
+                          toast.error('No folio found for selected booking');
+                        }
+                      } catch (error) {
+                        toast.error('Failed to transfer charges');
+                        console.error(error);
+                      }
+                    }
+                  }}
+                >
+                  <option value="">-- Select booking --</option>
+                  {bookings
+                    .filter(b => b.id !== selectedBooking?.id && b.status !== 'cancelled')
+                    .map(booking => (
+                      <option key={booking.id} value={booking.id}>
+                        {booking.guest_name} - Room {rooms.find(r => r.id === booking.room_id)?.room_number || '?'} ({booking.status})
+                      </option>
+                    ))}
+                </select>
+              </div>
+
+              <div className="flex justify-end gap-2">
+                <Button 
+                  variant="outline"
+                  onClick={() => {
+                    setShowTransferDialog(false);
+                    setSelectedChargesForTransfer([]);
+                  }}
+                >
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
+
+
       {/* Reservation Details Sidebar - Opera Navigator Style */}
       {showSidebar && (
         <>
