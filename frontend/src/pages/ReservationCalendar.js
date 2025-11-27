@@ -1456,10 +1456,10 @@ const ReservationCalendar = ({ user, tenant, onLogout }) => {
 
         {/* Calendar Grid */}
         <Card>
-          <CardContent className="p-0 overflow-x-auto">
+          {/* Date Header Row - OUTSIDE scroll container so it scrolls with page */}
+          <div className="overflow-x-auto border-b">
             <div className="min-w-max">
-              {/* Date Header Row - Modern Design (Non-Sticky - Forced) */}
-              <div className="flex border-b bg-white shadow-sm" style={{ position: 'static' }}>
+              <div className="flex bg-white shadow-sm" style={{ position: 'static' }}>
                 <div className="w-40 flex-shrink-0 p-3 border-r font-bold text-gray-800 text-sm">
                   ODALAR
                 </div>
