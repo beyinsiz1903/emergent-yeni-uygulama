@@ -3720,7 +3720,7 @@ const PMSModule = ({ user, tenant, onLogout }) => {
             </DialogHeader>
             <form onSubmit={handleCreateBooking} className="space-y-6">
               {/* Guest selection */}
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-4 items-end">
                 <div>
                   <Label>Guest *</Label>
                   <Select value={newBooking.guest_id} onValueChange={(v) => setNewBooking({...newBooking, guest_id: v})}>
@@ -3729,6 +3729,16 @@ const PMSModule = ({ user, tenant, onLogout }) => {
                       {guests.map(g => <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>)}
                     </SelectContent>
                   </Select>
+                </div>
+                <div className="flex justify-end">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setOpenDialog('guest')}
+                  >
+                    Register New Guest
+                  </Button>
                 </div>
               </div>
 
