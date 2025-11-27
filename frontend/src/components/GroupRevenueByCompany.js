@@ -169,7 +169,19 @@ const GroupRevenueByCompany = () => {
             return (
               <div
                 key={row.company_id}
-                className="grid grid-cols-5 text-xs border-b last:border-b-0 hover:bg-blue-50/40"
+                className="grid grid-cols-5 text-xs border-b last:border-b-0 hover:bg-blue-50/40 cursor-pointer"
+                onClick={() => {
+                  // Drill-down: set pickup target to a representative date within the period
+                  try {
+                    const today = new Date();
+                    const target = endDate || today.toISOString().slice(0, 10);
+                    localStorage.setItem('pickup_target_date', target);
+                    localStorage.setItem('pickup_company_id', row.company_id);
+                  } catch (e) {
+                    console.warn('Unable to persist pickup drilldown context', e);
+                  }
+                  window.open('/pms?tab=reports', '_blank');
+                }}
               >
                 <div className="px-3 py-2 font-medium truncate">{row.company_name}</div>
                 <div className="px-3 py-2 text-right">{row.group_count}</div>
