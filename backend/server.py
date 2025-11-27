@@ -40168,6 +40168,9 @@ async def get_group_bookings(
             'status': booking.get('status'),
             'contact_person': booking.get('contact_person'),
             'contact_email': booking.get('contact_email'),
+        })
+    
+    return group_bookings
 
 class MultiRoomBookingCreate(BaseModel):
     guest_id: Optional[str] = None
