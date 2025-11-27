@@ -1494,7 +1494,7 @@ const ReservationCalendar = ({ user, tenant, onLogout }) => {
               <div 
                 className="flex bg-white"
               >
-                <div className="w-40 flex-shrink-0 p-3 border-r-2 border-gray-400 font-bold text-gray-800 text-sm">
+                <div className="w-32 flex-shrink-0 p-2 border-r-2 border-gray-400 font-bold text-gray-800 text-xs">
                   ODALAR
                 </div>
                 {dateRange.map((date, idx) => {
