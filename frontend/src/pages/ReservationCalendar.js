@@ -1189,6 +1189,12 @@ const ReservationCalendar = ({ user, tenant, onLogout }) => {
               <div className="text-xs font-semibold">{filters.showFilters ? 'Hide Filters' : 'Show Filters'}</div>
             </CardContent>
           </Card>
+          <Card className="cursor-pointer hover:bg-gray-50" onClick={() => setViewMode(viewMode === 'simplified' ? 'detailed' : 'simplified')}>
+            <CardContent className="p-4 flex flex-col items-center justify-center">
+              <Monitor className={`w-6 h-6 mb-1 ${viewMode === 'simplified' ? 'text-green-600' : 'text-blue-600'}`} />
+              <div className="text-xs font-semibold">{viewMode === 'simplified' ? '✨ Minimal' : '📊 Detailed'}</div>
+            </CardContent>
+          </Card>
         </div>
 
         {/* Advanced Filters Panel */}
