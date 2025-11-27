@@ -1522,13 +1522,13 @@ const ReservationCalendar = ({ user, tenant, onLogout }) => {
                   return (
                   <div
                     key={idx}
-                    className={`w-28 flex-shrink-0 p-2.5 border-r-2 border-gray-400 text-center ${
+                    className={`w-24 flex-shrink-0 p-1.5 border-r-2 border-gray-400 text-center ${
                       isToday(date) ? 'bg-blue-600 text-white' : 'bg-white text-gray-700'
                     }`}
                     title={`Doluluk: ${occupancyRate}% | ADR: $${adr}`}
                   >
-                    <div className="text-xs font-bold uppercase tracking-wide">{formatDateWithDay(date)}</div>
-                    <div className={`text-[10px] mt-1 font-semibold ${isToday(date) ? 'text-blue-100' : 'text-gray-500'}`}>
+                    <div className="text-[10px] font-bold uppercase tracking-wide">{formatDateWithDay(date)}</div>
+                    <div className={`text-[9px] mt-0.5 font-semibold ${isToday(date) ? 'text-blue-100' : 'text-gray-500'}`}>
                       ${adr > 0 ? adr : '-'} · %{occupancyRate}
                     </div>
                   </div>
