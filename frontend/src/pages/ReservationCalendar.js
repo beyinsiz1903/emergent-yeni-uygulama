@@ -2936,7 +2936,7 @@ const ReservationCalendar = ({ user, tenant, onLogout }) => {
 
         {/* Calendar Grid */}
         <Card>
-          <CardContent className="p-0 overflow-auto max-h-[600px]">
+          <CardContent className="p-0 overflow-x-auto">
             <div className="min-w-max">
               {/* Date Header Row - Modern Header (Non-sticky) */}
               <div className="flex border-b bg-white shadow-sm">
