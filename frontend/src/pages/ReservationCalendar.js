@@ -1105,6 +1105,16 @@ const ReservationCalendar = ({ user, tenant, onLogout }) => {
             <p className="text-gray-600 mt-1">Timeline view of all bookings</p>
           </div>
           <div className="flex items-center space-x-2">
+            <Button 
+              variant={bulkActionMode ? "default" : "outline"}
+              onClick={() => {
+                setBulkActionMode(!bulkActionMode);
+                setSelectedBookings([]);
+              }}
+            >
+              <CheckSquare className="w-4 h-4 mr-2" />
+              Bulk Actions
+            </Button>
             <Button onClick={() => setShowFindRoomDialog(true)}>
               <Search className="w-4 h-4 mr-2" />
               Find Room
