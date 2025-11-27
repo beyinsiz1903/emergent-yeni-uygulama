@@ -2378,21 +2378,54 @@ const ReservationCalendar = ({ user, tenant, onLogout }) => {
                 })}
               </div>
 
-              {/* Room Rows */}
+              {/* Room Rows - Grouped by Room Type */}
               {rooms.length === 0 ? (
                 <div className="p-12 text-center text-gray-500">
                   <CalendarIcon className="w-12 h-12 mx-auto mb-4 opacity-50" />
                   <p>No rooms available</p>
                 </div>
               ) : (
-                rooms.map((room) => (
-                  <div key={room.id} className="flex border-b hover:bg-gray-50">
-                    {/* Room Cell */}
-                    <div className="w-32 flex-shrink-0 p-3 border-r">
-                      <div className="font-semibold">{room.room_number}</div>
-                      <div className="text-xs text-gray-600 capitalize">{room.room_type}</div>
-                      <div className="text-xs text-gray-500">Floor {room.floor}</div>
-                    </div>
+                (() => {
+                  // Group rooms by type
+                  const groupedRooms = rooms.reduce((acc, room) => {
+                    const type = room.room_type || 'standard';
+                    if (!acc[type]) acc[type] = [];
+                    acc[type].push(room);
+                    return acc;
+                  }, {});
+
+                  // Sort room types
+                  const roomTypeOrder = ['suite', 'deluxe', 'superior', 'standard', 'economy'];
+                  const sortedTypes = Object.keys(groupedRooms).sort((a, b) => {
+                    const aIndex = roomTypeOrder.indexOf(a.toLowerCase());
+                    const bIndex = roomTypeOrder.indexOf(b.toLowerCase());
+                    if (aIndex === -1 && bIndex === -1) return a.localeCompare(b);
+                    if (aIndex === -1) return 1;
+                    if (bIndex === -1) return -1;
+                    return aIndex - bIndex;
+                  });
+
+                  return sortedTypes.map((roomType) => (
+                    <div key={roomType}>
+                      {/* Room Type Header */}
+                      <div className="sticky left-0 z-10 bg-gradient-to-r from-blue-600 to-blue-500 text-white">
+                        <div className="flex items-center p-3 border-b border-blue-400">
+                          <Building2 className="w-5 h-5 mr-2" />
+                          <span className="font-bold text-lg uppercase tracking-wide">
+                            {roomType} ({groupedRooms[roomType].length} rooms)
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Rooms of this type */}
+                      {groupedRooms[roomType].map((room) => (
+                        <div key={room.id} className="flex border-b hover:bg-gray-50">
+                          {/* Room Cell */}
+                          <div className="w-32 flex-shrink-0 p-3 border-r bg-white">
+                            <div className="font-semibold">{room.room_number}</div>
+                            <div className="text-xs text-gray-600 capitalize">{room.room_type}</div>
+                            <div className="text-xs text-gray-500">Floor {room.floor}</div>
+                          </div>
 
                     {/* Timeline Cells */}
                     <div className="flex relative" style={{ width: `${daysToShow * 96}px` }}>
