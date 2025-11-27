@@ -1585,13 +1585,13 @@ const ReservationCalendar = ({ user, tenant, onLogout }) => {
                       {/* Rooms of this type */}
                       {groupedRooms[roomType].map((room) => (
                   <div key={room.id} className="flex border-b-2 border-gray-400 hover:bg-blue-50/20 transition-colors">
-                    {/* Room Cell - Clean Modern Design */}
-                    <div className="w-40 flex-shrink-0 p-3 border-r-2 border-gray-400 bg-white">
-                      <div className="flex items-center gap-2">
-                        <div className="w-2 h-2 bg-emerald-500 rounded-full"></div>
-                        <div className="font-bold text-sm text-gray-900">{room.room_number}</div>
+                    {/* Room Cell - Compact Modern Design */}
+                    <div className="w-32 flex-shrink-0 p-2 border-r-2 border-gray-400 bg-white">
+                      <div className="flex items-center gap-1.5">
+                        <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full"></div>
+                        <div className="font-bold text-xs text-gray-900">{room.room_number}</div>
                       </div>
-                      <div className="text-[11px] text-gray-500 mt-1 ml-4 font-medium">Kat {room.floor}</div>
+                      <div className="text-[10px] text-gray-500 mt-0.5 ml-3 font-medium">Kat {room.floor}</div>
                     </div>
 
                     {/* Timeline Cells */}
