@@ -3084,6 +3084,36 @@ const ReservationCalendar = ({ user, tenant, onLogout }) => {
                                     ⚠️ CONFLICT
                                   </div>
                                 )}
+
+                                
+                                {/* Resize Handles - Left (check-in) and Right (check-out) */}
+                                <div 
+                                  className="absolute left-0 top-0 bottom-0 w-2 bg-white/20 hover:bg-white/40 cursor-ew-resize group/resize"
+                                  onMouseDown={(e) => {
+                                    e.stopPropagation();
+                                    setResizingBooking(booking);
+                                    setResizeDirection('start');
+                                  }}
+                                  title="Drag to change check-in date"
+                                >
+                                  <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover/resize:opacity-100">
+                                    <div className="w-1 h-8 bg-white rounded"></div>
+                                  </div>
+                                </div>
+                                <div 
+                                  className="absolute right-0 top-0 bottom-0 w-2 bg-white/20 hover:bg-white/40 cursor-ew-resize group/resize"
+                                  onMouseDown={(e) => {
+                                    e.stopPropagation();
+                                    setResizingBooking(booking);
+                                    setResizeDirection('end');
+                                  }}
+                                  title="Drag to change check-out date"
+                                >
+                                  <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover/resize:opacity-100">
+                                    <div className="w-1 h-8 bg-white rounded"></div>
+                                  </div>
+                                </div>
+
                               </div>
                             )}
                           </div>
