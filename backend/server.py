@@ -12738,6 +12738,12 @@ async def get_pickup_pace_analytics(
         'check_in': target.isoformat(),
         'status': {'$in': ['confirmed', 'guaranteed', 'checked_in']}
     }, {'_id': 0}).to_list(10000)
+
+    # Optional filters: group-only and company
+    if group_only:
+        bookings = [b for b in bookings if b.get('group_booking_id')]
+    if company_id:
+        bookings = [b for b in bookings if b.get('company_id') == company_id]
     
     # Build daily pickup timeline
     daily_pickup = {}
