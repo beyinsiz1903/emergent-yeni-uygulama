@@ -3713,6 +3713,9 @@ const PMSModule = ({ user, tenant, onLogout }) => {
                         value={newBooking.billing_tax_number} 
                         onChange={(e) => setNewBooking({...newBooking, billing_tax_number: e.target.value})}
                       />
+
+              {/* Multi-room section placeholder: future enhancement */}
+
                     </div>
                     <div>
                       <Label>Contact Person</Label>
