@@ -6732,6 +6732,7 @@ async def create_package(
     package = Package(**data)
     await db.packages.insert_one(package.model_dump())
     return package
+
     query = {'tenant_id': current_user.tenant_id}
     
     if start_date or end_date:
