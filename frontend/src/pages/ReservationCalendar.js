@@ -2997,7 +2997,7 @@ const ReservationCalendar = ({ user, tenant, onLogout }) => {
                   <p>No rooms available</p>
                 </div>
               ) : (
-                ((() => {
+                (() => {
                   // Apply filters first
                   const roomsToShow = filteredRooms;
                   
