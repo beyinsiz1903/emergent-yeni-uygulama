@@ -3162,17 +3162,22 @@ const ReservationCalendar = ({ user, tenant, onLogout }) => {
             getRateTypeInfo={getRateTypeInfo}
             onViewFolio={async (bookingId) => {
               try {
-                console.log('Fetching folio for booking:', bookingId);
+                console.log('🔍 Fetching folio for booking:', bookingId);
+                console.log('📡 API URL:', axios.defaults.baseURL + `/folio/booking/${bookingId}`);
                 
                 // Fetch folio data
-                const folioRes = await axios.get(`/folio/booking/${bookingId}`);
+                const folioRes = await axios.get(`/api/folio/booking/${bookingId}`);
+                
+                console.log('✅ Folio response:', folioRes.data);
                 
                 if (folioRes.data && folioRes.data.length > 0) {
                   const folio = folioRes.data[0];
                   setSelectedBookingFolio(folio);
                   
+                  console.log('📄 Loading charges for folio:', folio.id);
+                  
                   // Fetch folio charges
-                  const chargesRes = await axios.get(`/folio/${folio.id}/charges`);
+                  const chargesRes = await axios.get(`/api/folio/${folio.id}/charges`);
                   setFolioCharges(chargesRes.data.charges || []);
                   
                   // Close sidebar and open folio dialog
@@ -3181,11 +3186,18 @@ const ReservationCalendar = ({ user, tenant, onLogout }) => {
                   
                   toast.success('Folio loaded successfully');
                 } else {
+                  console.warn('⚠️ No folio found in response');
                   toast.info('No folio found for this booking');
                 }
               } catch (error) {
-                console.error('Error loading folio:', error);
-                toast.error('Failed to load folio');
+                console.error('❌ Error loading folio:', error);
+                console.error('❌ Error details:', {
+                  message: error.message,
+                  response: error.response?.data,
+                  status: error.response?.status,
+                  url: error.config?.url
+                });
+                toast.error(`Failed to load folio: ${error.response?.data?.detail || error.message}`);
               }
             }}
             onEditReservation={(booking) => {
