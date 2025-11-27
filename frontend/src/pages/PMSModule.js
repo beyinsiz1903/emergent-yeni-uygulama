@@ -354,8 +354,6 @@ const PMSModule = ({ user, tenant, onLogout }) => {
 
       setGroupedBookings(grouped);
 
-        axios.get('/companies?limit=50', { timeout: 15000 }) // Limit companies to 50
-      ]);
       setRooms(roomsRes.data);
       setGuests(guestsRes.data);
       setBookings(bookingsRes.data);
