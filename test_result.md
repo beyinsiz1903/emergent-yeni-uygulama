@@ -10535,6 +10535,21 @@ backend:
         agent: "testing"
         comment: "✅ GROUP SALES API 100% FUNCTIONAL - All endpoints tested successfully: (1) POST /api/groups/create-block returns HTTP 200, successfully created test group with all fields (group_name, organization, contact_name, contact_email, contact_phone, check_in, check_out, total_rooms=15, group_rate=120, room_type=Standard, cutoff_date, billing_type=master_account), (2) GET /api/groups/blocks returns HTTP 200, called 3 times during testing, returns array of blocks with id, group_name, organization, check_in, total_rooms, rooms_picked_up, group_rate, status fields, (3) Group details endpoint working (modal opened successfully showing group information). All API responses have proper structure and data."
 
+  - task: "Folio Auto-Creation for New Bookings"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: "NA"
+        agent: "user"
+        comment: "User reported issue: 'No folio found for this booking' when clicking on guest reservations in the calendar. Expected: New bookings should automatically have folios created and be immediately available."
+      - working: true
+        agent: "testing"
+        comment: "✅ FOLIO AUTO-CREATION WORKING PERFECTLY - Comprehensive testing completed with 6/6 tests passed (100% success rate). VERIFIED: (1) POST /api/pms/bookings creates booking and returns HTTP 200 ✅, (2) Folio automatically created on booking creation (lines 6405-6416 in server.py) ✅, (3) GET /api/folio/booking/{booking_id} returns HTTP 200 immediately after booking creation ✅, (4) Folio has all required fields: folio_number, folio_type=guest, booking_id, guest_id ✅, (5) Folio number follows F-YYYY-##### format (e.g., F-2025-00362) ✅, (6) Existing bookings can retrieve folios successfully ✅. TESTED WITH: demo@hotel.com / demo123 credentials. Created test booking (ID: f0c44443-e29f-4c53-8801-f857120b7cb5) and verified folio (ID: 6f5d9914-a7e6-41c7-8586-ab4798469b4c, Number: F-2025-00362) was immediately available. Also verified existing bookings have folios. NOTE: Found 20 old bookings without folios (created before auto-creation feature was implemented), but all NEW bookings correctly create folios. FIX CONFIRMED: 'No folio found' issue is RESOLVED for new bookings!"
+
 metadata:
   created_by: "testing_agent"
   version: "1.1"
