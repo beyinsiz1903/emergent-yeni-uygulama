@@ -3100,10 +3100,62 @@ const ReservationCalendar = ({ user, tenant, onLogout }) => {
         <Dialog open={showFolioDialog} onOpenChange={setShowFolioDialog}>
           <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>Guest Folio - Booking #{selectedBooking?.id?.slice(0, 8)}</DialogTitle>
-              <DialogDescription>
-                View all charges, payments, and balance details for this reservation
-              </DialogDescription>
+              <div className="flex justify-between items-start">
+                <div>
+                  <DialogTitle>Guest Folio - Booking #{selectedBooking?.id?.slice(0, 8)}</DialogTitle>
+                  <DialogDescription>
+                    View all charges, payments, and balance details for this reservation
+                  </DialogDescription>
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={async () => {
+                      try {
+                        const response = await axios.get(`/folio/${selectedBookingFolio.id}/excel`, {
+                          responseType: 'blob'
+                        });
+                        const url = window.URL.createObjectURL(new Blob([response.data]));
+                        const link = document.createElement('a');
+                        link.href = url;
+                        link.setAttribute('download', `folio-${selectedBookingFolio.folio_number}.xlsx`);
+                        document.body.appendChild(link);
+                        link.click();
+                        link.remove();
+                        toast.success('Folio downloaded');
+                      } catch (error) {
+                        toast.error('Failed to download folio');
+                        console.error(error);
+                      }
+                    }}
+                  >
+                    <Download className="w-4 h-4 mr-2" />
+                    Export
+                  </Button>
+                  {selectedBookingFolio?.status === 'open' && (selectedBookingFolio?.balance || 0) === 0 && (
+                    <Button
+                      size="sm"
+                      variant="default"
+                      onClick={async () => {
+                        if (window.confirm('Are you sure you want to close this folio? This action cannot be undone.')) {
+                          try {
+                            await axios.post(`/folio/${selectedBookingFolio.id}/close`);
+                            toast.success('Folio closed successfully');
+                            setSelectedBookingFolio({...selectedBookingFolio, status: 'closed'});
+                          } catch (error) {
+                            toast.error('Failed to close folio');
+                            console.error(error);
+                          }
+                        }
+                      }}
+                    >
+                      <Lock className="w-4 h-4 mr-2" />
+                      Close Folio
+                    </Button>
+                  )}
+                </div>
+              </div>
             </DialogHeader>
             
             <div className="space-y-4">
