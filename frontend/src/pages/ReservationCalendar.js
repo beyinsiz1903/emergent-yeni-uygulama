@@ -1667,15 +1667,32 @@ const ReservationCalendar = ({ user, tenant, onLogout }) => {
                         const booking = getBookingForRoomOnDate(room.id, date);
                         const isStart = booking && isBookingStart(booking, date);
                         
-                        // Debug logging for first room and first 3 dates
+                        // AGGRESSIVE DEBUG - Log everything for first room
                         if (room.room_number === '101' && idx < 3) {
-                          console.log(`🔍 Room 101, Date ${idx}:`, {
-                            date: date.toISOString().split('T')[0],
-                            hasBooking: !!booking,
-                            isStart: isStart,
-                            bookingId: booking?.id?.substring(0, 8),
-                            bookingGuest: booking?.guest_name
-                          });
+                          const dateStr = date.toISOString().split('T')[0];
+                          console.log(`\n🔍 ROOM 101 DEBUG - Date ${idx} (${dateStr}):`);
+                          console.log('  Room ID:', room.id);
+                          console.log('  Date object:', date);
+                          console.log('  Total bookings in state:', bookings.length);
+                          console.log('  Booking found:', booking ? 'YES' : 'NO');
+                          
+                          if (booking) {
+                            console.log('  ✅ Booking Details:');
+                            console.log('    - Guest:', booking.guest_name);
+                            console.log('    - Room #:', booking.room_number);
+                            console.log('    - Check-in:', booking.check_in);
+                            console.log('    - Check-out:', booking.check_out);
+                            console.log('    - Is Start:', isStart);
+                          } else {
+                            console.log('  ❌ No booking found');
+                            console.log('  Checking bookings with this room_id:', 
+                              bookings.filter(b => b.room_id === room.id).map(b => ({
+                                guest: b.guest_name,
+                                checkIn: b.check_in?.split('T')[0],
+                                checkOut: b.check_out?.split('T')[0]
+                              }))
+                            );
+                          }
                         }
                         
                         const roomBlock = getRoomBlockForDate(room.id, date);
