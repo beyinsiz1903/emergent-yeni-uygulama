@@ -3173,11 +3173,11 @@ const ReservationCalendar = ({ user, tenant, onLogout }) => {
                   const folio = folioRes.data[0];
                   setSelectedBookingFolio(folio);
                   
-                  console.log('📄 Loading charges for folio:', folio.id);
+                  console.log('📄 Loading full folio details for:', folio.id);
                   
-                  // Fetch folio charges
-                  const chargesRes = await axios.get(`/folio/${folio.id}/charges`);
-                  setFolioCharges(chargesRes.data.charges || []);
+                  // Fetch full folio details (includes charges and payments)
+                  const detailsRes = await axios.get(`/folio/${folio.id}`);
+                  setFolioCharges(detailsRes.data.charges || []);
                   
                   // Close sidebar and open folio dialog
                   setShowSidebar(false);
