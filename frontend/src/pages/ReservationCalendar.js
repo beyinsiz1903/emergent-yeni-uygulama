@@ -2826,7 +2826,24 @@ const ReservationCalendar = ({ user, tenant, onLogout }) => {
                               >
                                 {/* Main booking info */}
                                 <div className="p-2 h-[48px] relative">
-                                  <div className="font-semibold truncate pr-8 flex items-center gap-1">
+                                  {/* Bulk Selection Checkbox */}
+                                  {bulkActionMode && (
+                                    <input
+                                      type="checkbox"
+                                      className="absolute top-1 left-1 w-4 h-4 cursor-pointer z-10"
+                                      checked={selectedBookings.includes(booking.id)}
+                                      onChange={(e) => {
+                                        e.stopPropagation();
+                                        if (e.target.checked) {
+                                          setSelectedBookings([...selectedBookings, booking.id]);
+                                        } else {
+                                          setSelectedBookings(selectedBookings.filter(id => id !== booking.id));
+                                        }
+                                      }}
+                                      onClick={(e) => e.stopPropagation()}
+                                    />
+                                  )}
+                                  <div className={`font-semibold truncate pr-8 flex items-center gap-1 ${bulkActionMode ? 'pl-6' : ''}`}>
                                     {(booking.rate_type === 'promotional' || booking.rate_type === 'promo') && (
                                       <span className="text-yellow-300 animate-pulse">🎉</span>
                                     )}
