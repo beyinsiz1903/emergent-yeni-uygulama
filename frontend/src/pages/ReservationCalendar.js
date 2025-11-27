@@ -1456,11 +1456,11 @@ const ReservationCalendar = ({ user, tenant, onLogout }) => {
 
         {/* Calendar Grid - Removed Card wrapper to prevent sticky behavior */}
         <div className="bg-white rounded-lg shadow-sm border">
-          {/* Date Header Row - NO SCROLL CONTAINER - MUST MOVE WITH PAGE */}
-          <div className="border-b" style={{ position: 'relative', zIndex: 1 }} data-scroll-test="date-header">
-            <div className="min-w-max" style={{ position: 'relative', zIndex: 1 }}>
+          {/* Date Header Row - STICKY within calendar scroll */}
+          <div className="overflow-x-auto">
+            <div className="min-w-max">
               <div 
-                className="flex bg-white" 
+                className="flex bg-white sticky top-0 z-50 shadow-sm border-b" 
                 style={{ 
                   position: 'relative',
                   top: 'auto',
