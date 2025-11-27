@@ -2888,57 +2888,56 @@ const ReservationCalendar = ({ user, tenant, onLogout }) => {
                                 }}
                                 title={`Double-click for details | Drag to move\n${booking.guest_name || 'Guest'} - ${booking.market_segment || 'Standard'}${showDeluxePanel && isGroupBooking(booking.id) ? `\n👥 GROUP: ${getGroupInfo(booking.id)?.company_name}` : ''}`}
                               >
+                                {/* Bulk Selection Checkbox */}
+                                {bulkActionMode && (
+                                  <input
+                                    type="checkbox"
+                                    className="absolute top-1 left-1 w-4 h-4 cursor-pointer z-10"
+                                    checked={selectedBookings.includes(booking.id)}
+                                    onChange={(e) => {
+                                      e.stopPropagation();
+                                      if (e.target.checked) {
+                                        setSelectedBookings([...selectedBookings, booking.id]);
+                                      } else {
+                                        setSelectedBookings(selectedBookings.filter(id => id !== booking.id));
+                                      }
+                                    }}
+                                    onClick={(e) => e.stopPropagation()}
+                                  />
+                                )}
+                                
                                 {/* Main booking info */}
-                                <div className="p-2 h-[48px] relative">
-                                  {/* Bulk Selection Checkbox */}
-                                  {bulkActionMode && (
-                                    <input
-                                      type="checkbox"
-                                      className="absolute top-1 left-1 w-4 h-4 cursor-pointer z-10"
-                                      checked={selectedBookings.includes(booking.id)}
-                                      onChange={(e) => {
-                                        e.stopPropagation();
-                                        if (e.target.checked) {
-                                          setSelectedBookings([...selectedBookings, booking.id]);
-                                        } else {
-                                          setSelectedBookings(selectedBookings.filter(id => id !== booking.id));
-                                        }
-                                      }}
-                                      onClick={(e) => e.stopPropagation()}
-                                    />
-                                  )}
-                                  
-                                  {viewMode === 'simplified' ? (
-                                    /* Simplified View - Clean & Minimal */
-                                    <div className={`${bulkActionMode ? 'pl-6' : ''} h-full flex flex-col justify-center`}>
-                                      <div className="font-semibold text-sm truncate leading-tight">
-                                        {booking.guest_name || 'Guest'}
-                                      </div>
-                                      <div className="text-xs font-bold text-white/90 mt-0.5">
-                                        ${booking.total_amount?.toFixed(0) || '0'}
-                                      </div>
+                                {viewMode === 'simplified' ? (
+                                  /* Simplified View - Clean & Minimal */
+                                  <div className={`p-2 h-full flex flex-col justify-center ${bulkActionMode ? 'pl-6' : ''}`}>
+                                    <div className="font-semibold text-sm truncate leading-tight">
+                                      {booking.guest_name || 'Guest'}
                                     </div>
-                                  ) : (
-                                    /* Detailed View - Full Info */
-                                    <>
-                                      <div className={`font-semibold truncate pr-8 flex items-center gap-1 ${bulkActionMode ? 'pl-6' : ''}`}>
-                                        {(booking.rate_type === 'promotional' || booking.rate_type === 'promo') && (
-                                          <span className="text-yellow-300 animate-pulse">🎉</span>
-                                        )}
-                                        {booking.guest_name || 'Guest'}
-                                      </div>
-                                      <div className="text-xs opacity-90 flex items-center mt-1">
-                                        <Clock className="w-3 h-3 mr-1" />
-                                        {calculateBookingSpan(booking, currentDate)}n
-                                      </div>
-                                      {booking.company_name && (
-                                        <div className="text-xs opacity-90 flex items-center truncate">
-                                          <Building2 className="w-3 h-3 mr-1" />
-                                          {booking.company_name}
-                                        </div>
+                                    <div className="text-xs font-bold text-white/90 mt-0.5">
+                                      ${booking.total_amount?.toFixed(0) || '0'}
+                                    </div>
+                                  </div>
+                                ) : (
+                                  /* Detailed View - Full Info */
+                                  <div className="p-2 relative">
+                                    <div className={`font-semibold truncate pr-8 flex items-center gap-1 ${bulkActionMode ? 'pl-6' : ''}`}>
+                                      {(booking.rate_type === 'promotional' || booking.rate_type === 'promo') && (
+                                        <span className="text-yellow-300 animate-pulse">🎉</span>
                                       )}
-                                    </>
-                                  )}
+                                      {booking.guest_name || 'Guest'}
+                                    </div>
+                                    <div className="text-xs opacity-90 flex items-center mt-1">
+                                      <Clock className="w-3 h-3 mr-1" />
+                                      {calculateBookingSpan(booking, currentDate)}n
+                                    </div>
+                                    {booking.company_name && (
+                                      <div className="text-xs opacity-90 flex items-center truncate">
+                                        <Building2 className="w-3 h-3 mr-1" />
+                                        {booking.company_name}
+                                      </div>
+                                    )}
+                                  </div>
+                                )}
                                   
                                   {/* Status indicators - top right - Only in detailed mode */}
                                   {viewMode === 'detailed' && (
