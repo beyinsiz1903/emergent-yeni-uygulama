@@ -1690,8 +1690,8 @@ const ReservationCalendar = ({ user, tenant, onLogout }) => {
                         const booking = getBookingForRoomOnDate(room.id, date);
                         const isStart = booking && isBookingStart(booking, date);
                         
-                        // AGGRESSIVE DEBUG - Log everything for first room
-                        if (room.room_number === '101' && idx < 3) {
+                        // Debug logging - only if DEBUG_ROOMS enabled
+                        if (DEBUG_ROOMS && room.room_number === '101' && idx < 3) {
                           console.log(`\n🔍 ROOM 101 DEBUG - Date ${idx} (${dayStr}):`);
                           console.log('  Room ID:', room.id);
                           console.log('  Date string:', dayStr);
