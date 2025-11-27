@@ -25,6 +25,11 @@ const Dashboard = ({ user, tenant, onLogout }) => {
   const [loading, setLoading] = useState(!dashboardCache.stats);
   const [aiBriefing, setAiBriefing] = useState(dashboardCache.aiBriefing);
   const [loadingAI, setLoadingAI] = useState(false);
+  const [occupancyData, setOccupancyData] = useState([]);
+  const [revenueData, setRevenueData] = useState([]);
+  const [trendData, setTrendData] = useState([]);
+  const [heatmapData, setHeatmapData] = useState([]);
+
 
   const loadAIBriefing = useCallback(async () => {
     setLoadingAI(true);
