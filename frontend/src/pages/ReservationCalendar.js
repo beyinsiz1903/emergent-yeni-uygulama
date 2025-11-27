@@ -3063,6 +3063,85 @@ const ReservationCalendar = ({ user, tenant, onLogout }) => {
         </DialogContent>
       </Dialog>
 
+      {/* Folio View Dialog */}
+      {showFolioDialog && selectedBookingFolio && (
+        <Dialog open={showFolioDialog} onOpenChange={setShowFolioDialog}>
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Guest Folio - Booking #{selectedBooking?.id?.slice(0, 8)}</DialogTitle>
+            </DialogHeader>
+            
+            <div className="space-y-4">
+              {/* Folio Summary */}
+              <div className="bg-gradient-to-r from-blue-50 to-purple-50 p-6 rounded-lg">
+                <div className="grid grid-cols-3 gap-4">
+                  <div>
+                    <div className="text-sm text-gray-600">Guest</div>
+                    <div className="font-bold">{selectedBooking?.guest_name || 'N/A'}</div>
+                  </div>
+                  <div>
+                    <div className="text-sm text-gray-600">Room</div>
+                    <div className="font-bold">
+                      {rooms.find(r => r.id === selectedBooking?.room_id)?.room_number || 'N/A'}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-sm text-gray-600">Balance</div>
+                    <div className="text-2xl font-bold text-blue-600">
+                      ${selectedBookingFolio?.balance?.toFixed(2) || '0.00'}
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Charges List */}
+              <div>
+                <h3 className="text-lg font-semibold mb-3">Charges</h3>
+                <div className="space-y-2 max-h-96 overflow-y-auto">
+                  {folioCharges.length === 0 ? (
+                    <div className="text-center text-gray-400 py-8">No charges posted</div>
+                  ) : (
+                    folioCharges.map((charge) => (
+                      <Card key={charge.id} className={charge.voided ? 'opacity-50' : ''}>
+                        <CardContent className="p-4">
+                          <div className="flex justify-between">
+                            <div>
+                              <div className="font-semibold">{charge.description}</div>
+                              <div className="text-sm text-gray-600">
+                                {charge.charge_category?.toUpperCase()}
+                              </div>
+                              <div className="text-xs text-gray-500">
+                                {new Date(charge.date || charge.posted_at).toLocaleDateString()}
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <div className="font-bold">${charge.amount?.toFixed(2) || '0.00'}</div>
+                              {charge.voided && (
+                                <div className="text-xs text-red-600">VOIDED</div>
+                              )}
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))
+                  )}
+                </div>
+              </div>
+              
+              {/* Totals */}
+              <div className="border-t pt-4">
+                <div className="flex justify-between text-lg font-bold">
+                  <span>Total Balance:</span>
+                  <span className="text-blue-600">
+                    ${selectedBookingFolio?.balance?.toFixed(2) || '0.00'}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
+
       {/* Reservation Details Sidebar - Opera Navigator Style */}
       {showSidebar && (
         <>
