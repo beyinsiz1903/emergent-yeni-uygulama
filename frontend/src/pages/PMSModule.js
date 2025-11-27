@@ -4491,27 +4491,85 @@ const PMSModule = ({ user, tenant, onLogout }) => {
                   </CardContent>
                 </Card>
 
-                {/* Booking History */}
+                {/* Booking History - Enhanced Timeline */}
                 <Card>
                   <CardHeader>
-                    <CardTitle className="text-lg">Recent Bookings</CardTitle>
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      <Calendar className="w-5 h-5" />
+                      Stay History Timeline
+                    </CardTitle>
+                    <CardDescription>
+                      {guest360Data.profile?.total_stays || 0} total stays • 
+                      ${(guest360Data.profile?.total_spending || 0).toFixed(0)} lifetime value
+                    </CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <div className="space-y-2 max-h-48 overflow-y-auto">
-                      {guest360Data.recent_bookings?.map((booking, idx) => (
-                        <div key={idx} className="flex justify-between items-center p-2 bg-gray-50 rounded text-sm">
-                          <div>
-                            <div className="font-semibold">
-                              {new Date(booking.check_in).toLocaleDateString()} - {new Date(booking.check_out).toLocaleDateString()}
+                    <div className="space-y-3 max-h-96 overflow-y-auto">
+                      {guest360Data.recent_bookings && guest360Data.recent_bookings.length > 0 ? (
+                        guest360Data.recent_bookings.map((booking, idx) => {
+                          const nights = Math.ceil((new Date(booking.check_out) - new Date(booking.check_in)) / (1000 * 60 * 60 * 24));
+                          const adr = nights > 0 ? (booking.total_amount / nights).toFixed(0) : 0;
+                          
+                          return (
+                            <div key={idx} className="relative pl-8 pb-4 border-l-2 border-blue-300 last:border-0">
+                              {/* Timeline Dot */}
+                              <div className={`absolute left-[-9px] top-0 w-4 h-4 rounded-full ${
+                                booking.status === 'checked_out' ? 'bg-green-500' :
+                                booking.status === 'checked_in' ? 'bg-blue-500' :
+                                booking.status === 'confirmed' ? 'bg-yellow-500' :
+                                'bg-gray-400'
+                              } border-2 border-white`}></div>
+                              
+                              <div className="bg-gray-50 p-3 rounded-lg hover:bg-gray-100 transition">
+                                <div className="flex justify-between items-start mb-2">
+                                  <div>
+                                    <div className="font-semibold text-base">
+                                      {new Date(booking.check_in).toLocaleDateString('tr-TR', {
+                                        day: 'numeric',
+                                        month: 'long',
+                                        year: 'numeric'
+                                      })}
+                                    </div>
+                                    <div className="text-xs text-gray-600">
+                                      {nights} nights • Room {booking.room_number || '?'}
+                                    </div>
+                                  </div>
+                                  <Badge variant={
+                                    booking.status === 'checked_out' ? 'secondary' :
+                                    booking.status === 'checked_in' ? 'default' :
+                                    'outline'
+                                  }>
+                                    {booking.status}
+                                  </Badge>
+                                </div>
+                                
+                                <div className="grid grid-cols-3 gap-2 text-xs">
+                                  <div>
+                                    <div className="text-gray-600">Total</div>
+                                    <div className="font-bold text-green-600">${booking.total_amount?.toFixed(2)}</div>
+                                  </div>
+                                  <div>
+                                    <div className="text-gray-600">ADR</div>
+                                    <div className="font-bold">${adr}</div>
+                                  </div>
+                                  <div>
+                                    <div className="text-gray-600">Channel</div>
+                                    <div className="font-bold capitalize">{booking.ota_channel || booking.channel || 'Direct'}</div>
+                                  </div>
+                                </div>
+                                
+                                {booking.special_requests && (
+                                  <div className="mt-2 text-xs text-gray-600 italic">
+                                    💬 "{booking.special_requests}"
+                                  </div>
+                                )}
+                              </div>
                             </div>
-                            <div className="text-xs text-gray-600">Status: {booking.status}</div>
-                          </div>
-                          <div className="text-right">
-                            <div className="font-bold text-green-600">${booking.total_amount}</div>
-                            <div className="text-xs text-gray-600">{booking.ota_channel || 'Direct'}</div>
-                          </div>
-                        </div>
-                      ))}
+                          );
+                        })
+                      ) : (
+                        <div className="text-center text-gray-400 py-8">No booking history available</div>
+                      )}
                     </div>
                   </CardContent>
                 </Card>
