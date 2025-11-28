@@ -1180,6 +1180,21 @@ frontend:
         comment: "✅ EXCELLENT PERFORMANCE - PMS Module working perfectly. Load time: 1.01s (target <2s ✅). All optimizations implemented and functional: rooms pagination (limit=100), bookings pagination (limit=200), 7-day date filtering, 15s timeout. All tabs responsive (1.5-1.7s switching). 26 API requests optimized correctly. AI insights loading successfully. Performance targets exceeded."
 
 backend:
+  - task: "Groups Blocks Endpoint Filter Testing"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Implemented new filter parameters for GET /api/groups/blocks endpoint: status filter, date_range filters (today, this_month, custom), combined filters. Expected to filter group blocks by status and check_in date field."
+      - working: true
+        agent: "testing"
+        comment: "✅ GROUPS BLOCKS FILTER TESTING COMPLETED - 100% SUCCESS! All 6 test scenarios passed: (1) No parameters: Returns 8 blocks (10.5ms), (2) Status filter (tentative): Returns 4 blocks with correct status (13.8ms), (3) Date range filter (today): Returns 2 blocks for 2025-11-28 (13.6ms), (4) Date range filter (this_month): Returns 7 blocks for November 2025 (11.8ms), (5) Custom date range (2025-11-01 to 2025-11-30): Returns 7 blocks within range (8.2ms), (6) Combined filters (status=definite AND date_range=this_month): Returns 3 blocks matching both criteria (8.9ms). Response structure verified: {blocks: [...], total: number}. Date filtering works correctly against check_in field (YYYY-MM-DD format). Status filtering supports tentative, definite, cancelled. Combined filters use AND logic. All requests return HTTP 200 with excellent response times (8-14ms)."
+
   - task: "Opera Cloud Parity - Night Audit Module (11 endpoints)"
     implemented: true
     working: false
