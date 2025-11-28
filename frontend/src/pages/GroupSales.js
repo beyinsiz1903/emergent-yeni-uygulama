@@ -12,8 +12,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Users, Plus, FileText, DollarSign, Calendar, TrendingUp, Mail, Phone, Home } from 'lucide-react';
 
-const GroupSales = () => {
-  const navigate = useNavigate();
 const StatusBadge = ({ status }) => {
   const colors = {
     tentative: 'bg-yellow-100 text-yellow-800',
