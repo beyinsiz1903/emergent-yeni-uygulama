@@ -2149,10 +2149,16 @@ def create_excel_workbook(title: str, headers: List[str], data: List[List[Any]],
     # Auto-adjust column widths
     for col in ws.columns:
         max_length = 0
-        column = col[0].column_letter
+        # Handle merged cells by checking if column_letter exists
+        try:
+            column = col[0].column_letter
+        except AttributeError:
+            # Skip merged cells
+            continue
+            
         for cell in col:
             try:
-                if len(str(cell.value)) > max_length:
+                if hasattr(cell, 'value') and len(str(cell.value)) > max_length:
                     max_length = len(str(cell.value))
             except:
                 pass
