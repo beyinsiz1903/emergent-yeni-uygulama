@@ -218,7 +218,7 @@
 ## 📋 QUICK START GUIDE
 
 **Login:**
-- URL: https://hotel-system-review.preview.emergentagent.com
+- URL: https://event-filter-system-1.preview.emergentagent.com
 - Demo: demo@hotel.com / demo123
 
 **New User Registration:**
