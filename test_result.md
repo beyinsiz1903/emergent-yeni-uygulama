@@ -12121,6 +12121,37 @@ agent_communication:
 agent_communication:
   - agent: "testing"
     message: |
+      🏨 GROUPS BLOCKS ENDPOINT FILTER TESTING COMPLETED - 100% SUCCESS!
+      
+      **TEST OBJECTIVE:** Verify new filter parameters for /api/groups/blocks endpoint
+      **BASE URL:** https://event-filter-system-1.preview.emergentagent.com/api
+      **AUTHENTICATION:** demo@hotel.com / demo123 ✅
+      
+      **COMPREHENSIVE FILTER TESTING RESULTS (6/6 PASSED - 100% SUCCESS):**
+      
+      ✅ **Test 1 - No Parameters:** Returns all 8 group blocks (10.5ms)
+      ✅ **Test 2 - Status Filter (tentative):** Returns 4 blocks with status='tentative' (13.8ms)
+      ✅ **Test 3 - Date Range Filter (today):** Returns 2 blocks for 2025-11-28 (13.6ms)
+      ✅ **Test 4 - Date Range Filter (this_month):** Returns 7 blocks for November 2025 (11.8ms)
+      ✅ **Test 5 - Custom Date Range:** Returns 7 blocks within 2025-11-01 to 2025-11-30 (8.2ms)
+      ✅ **Test 6 - Combined Filters:** Returns 3 blocks with status=definite AND date_range=this_month (8.9ms)
+      
+      **FILTER FUNCTIONALITY VERIFIED:**
+      - Status filtering: tentative (4 blocks), definite (3 blocks), cancelled (1 block)
+      - Date filtering: Works against check_in field (YYYY-MM-DD format)
+      - Today filter: Matches current date (2025-11-28)
+      - This month filter: Matches current month/year (2025-11)
+      - Custom range filter: Supports start_date and end_date parameters
+      - Combined filters: Uses AND logic for multiple criteria
+      
+      **RESPONSE STRUCTURE:** All requests return HTTP 200 with {blocks: [...], total: number}
+      **PERFORMANCE:** Excellent response times (8-14ms range)
+      **DATA INTEGRITY:** All blocks belong to correct tenant, filtering logic accurate
+      
+      **CONCLUSION:** All new filter parameters working perfectly. The endpoint correctly filters group blocks by status and date ranges as specified in the requirements.
+
+  - agent: "testing"
+    message: |
       🎯 UTC TIMEZONE FIX - FINAL VERIFICATION COMPLETED - 100% SUCCESS!
       
       **TEST OBJECTIVE:** Verify UTC timezone fix for Reservation Calendar (GMT+3 date shift bug)
