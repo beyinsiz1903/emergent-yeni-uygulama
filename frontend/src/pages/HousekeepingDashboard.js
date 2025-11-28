@@ -70,6 +70,17 @@ const HousekeepingDashboard = ({ user, tenant, onLogout }) => {
               <div>
                 <h4 className="font-semibold text-gray-900 mb-1">🧹 Housekeeping Management</h4>
                 <p className="text-sm text-gray-600">
+        {/* Detailed Reports Inline */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Detailed Room & Staff Reports</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <HousekeepingDetailedReports />
+          </CardContent>
+        </Card>
+
+
                   Complete housekeeping operations: staff management, room assignments, task tracking, 
                   and performance monitoring all in one place.
                 </p>
