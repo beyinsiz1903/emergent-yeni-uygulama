@@ -62,6 +62,17 @@ const HousekeepingDashboard = ({ user, tenant, onLogout }) => {
 
         {/* Info Banner */}
         <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200">
+        {/* Detailed Reports Inline */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Detailed Room & Staff Reports</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <HousekeepingDetailedReports />
+          </CardContent>
+        </Card>
+
+
           <CardContent className="p-4">
             <div className="flex items-start space-x-3">
               <div className="bg-blue-100 p-2 rounded-full">
