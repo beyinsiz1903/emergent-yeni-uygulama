@@ -21,9 +21,6 @@ const StatusBadge = ({ status }) => {
     cancelled: 'bg-red-100 text-red-800'
   };
 
-const GroupSales = () => {
-  const navigate = useNavigate();
-
   const labels = {
     tentative: 'Opsiyonel',
     definite: 'Kesin',
@@ -31,6 +28,16 @@ const GroupSales = () => {
     completed: 'Tamamlandı',
     cancelled: 'İptal'
   };
+
+  return (
+    <span className={`px-2 py-1 rounded-full text-xs font-medium ${colors[status] || 'bg-gray-100 text-gray-800'}`}>
+      {labels[status] || status}
+    </span>
+  );
+};
+
+const GroupSales = () => {
+  const navigate = useNavigate();
 
   const [loading, setLoading] = useState(false);
   const [groups, setGroups] = useState([]);
