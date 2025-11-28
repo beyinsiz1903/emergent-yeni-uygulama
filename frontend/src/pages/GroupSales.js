@@ -32,13 +32,6 @@ const GroupSales = () => {
     cancelled: 'İptal'
   };
 
-  return (
-    <span className={`px-3 py-1 rounded-full text-xs font-semibold ${colors[status] || 'bg-gray-100'}`}>
-      {labels[status] || status}
-    </span>
-  );
-};
-
   const [loading, setLoading] = useState(false);
   const [groups, setGroups] = useState([]);
   const [selectedGroup, setSelectedGroup] = useState(null);
