@@ -67,7 +67,6 @@ const GroupSales = () => {
 
   useEffect(() => {
     loadGroups();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [statusFilter, dateFilter, customStart, customEnd]);
 
   const loadGroups = async () => {
