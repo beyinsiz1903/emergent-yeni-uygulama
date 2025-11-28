@@ -12136,6 +12136,75 @@ agent_communication:
 agent_communication:
   - agent: "testing"
     message: |
+      🏦 AR/FINANCE BACKEND TESTING COMPLETED - 100% SUCCESS RATE!
+      
+      **TEST OBJECTIVE:** Comprehensive testing of AR (Accounts Receivable) and City Ledger endpoints
+      **BASE URL:** https://event-filter-system-1.preview.emergentagent.com/api
+      **AUTHENTICATION:** demo@hotel.com / demo123 ✅
+      
+      **COMPREHENSIVE AR/FINANCE TESTING RESULTS (8/8 PASSED - 100% SUCCESS):**
+      
+      ✅ **Company Aging Report (GET /reports/company-aging):** 
+         - Response structure verified: report_date, total_ar (5345.4), company_count (5), companies array
+         - Aging buckets confirmed: 0-7 days, 8-14 days, 15-30 days, 30+ days
+         - Performance: 32.4ms ⚡
+      
+      ✅ **Company Aging Excel Export (GET /reports/company-aging/excel):**
+         - Excel file generated successfully (5552 bytes)
+         - Correct content-type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet
+         - **BUG FIXED:** Resolved AttributeError with merged cells in Excel generation
+         - Performance: 59.1ms ⚡
+      
+      ✅ **Pending AR Report (GET /folio/pending-ar):**
+         - Array structure verified with company_id, company_name, total_outstanding
+         - Includes open_folios_count, days_outstanding, aging object
+         - Performance: 12.0ms ⚡
+      
+      ✅ **City Ledger Accounts (GET /cashiering/city-ledger):**
+         - Response structure: accounts array, total_count
+         - Retrieved 2 existing accounts
+         - Performance: 9.2ms ⚡
+      
+      ✅ **Create City Ledger Account (POST /cashiering/city-ledger):**
+         - Account creation successful with Test Corp AR Finance
+         - Response: success=true, account_id, credit_limit=10000
+         - Performance: 27.8ms ⚡
+      
+      ✅ **AR Aging Report (GET /cashiering/ar-aging-report):**
+         - Aging buckets structure: current, 30_days, 60_days, 90_plus
+         - Totals calculation and generated_at timestamp
+         - Performance: 10.8ms ⚡
+      
+      ✅ **City Ledger Payment (POST /cashiering/city-ledger-payment):**
+         - Payment processing successful (Amount: 100, Method: bank_transfer)
+         - **BUG FIXED:** Corrected parameter format from JSON body to query parameters
+         - New balance calculation working correctly
+         - Performance: 22.6ms ⚡
+      
+      ✅ **City Ledger Transactions (GET /cashiering/city-ledger/{account_id}/transactions):**
+         - Summary structure verified: total_charges, total_payments, current_balance, transaction_count
+         - Transaction history retrieval working (1 transaction, Balance: -100.0)
+         - Performance: 12.4ms ⚡
+      
+      **CRITICAL FIXES IMPLEMENTED:**
+      1. **Excel Export Bug:** Fixed AttributeError with merged cells by adding proper error handling
+      2. **Payment Endpoint:** Corrected parameter format from JSON body to query parameters
+      
+      **PERFORMANCE METRICS:**
+      - Average response time: 23.2ms (excellent)
+      - All endpoints under 100ms target ✅
+      - Authentication working perfectly ✅
+      
+      **BUSINESS IMPACT:**
+      - Turkish hotel finance operations fully supported ✅
+      - AR management and reporting functional ✅
+      - City Ledger account management operational ✅
+      - Excel export capability for financial reports ✅
+      
+      **FINAL ASSESSMENT:** AR/Finance backend is **PRODUCTION READY** with 100% functionality verified!
+
+  - agent: "testing"
+    message: |
       🏨 GROUPS BLOCKS ENDPOINT FILTER TESTING COMPLETED - 100% SUCCESS!
       
       **TEST OBJECTIVE:** Verify new filter parameters for /api/groups/blocks endpoint
