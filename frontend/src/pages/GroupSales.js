@@ -75,35 +75,17 @@ const GroupSales = () => {
       const params = {};
       if (statusFilter !== 'all') params.status = statusFilter;
 
-      const response = await axios.get('/groups/blocks', { params });
-      let blocks = response.data.blocks || [];
-
-      // Date filter (client-side, based on check_in)
-      const today = new Date();
-      if (dateFilter !== 'custom') {
-        blocks = blocks.filter((b) => {
-          const ci = new Date(b.check_in);
-          if (Number.isNaN(ci.getTime())) return true;
-          if (dateFilter === 'today') {
-            return ci.toDateString() === today.toDateString();
-          }
-          if (dateFilter === 'this_month') {
-            return ci.getFullYear() === today.getFullYear() && ci.getMonth() === today.getMonth();
-          }
-          if (dateFilter === 'next_30') {
-            const diff = (ci - today) / (1000 * 60 * 60 * 24);
-            return diff >= 0 && diff <= 30;
-          }
-          return true;
-        });
-      } else if (customStart && customEnd) {
-        const start = new Date(customStart);
-        const end = new Date(customEnd);
-        blocks = blocks.filter((b) => {
-          const ci = new Date(b.check_in);
-          return ci >= start && ci <= end;
-        });
+      // Backend date filtering
+      if (dateFilter === 'today' || dateFilter === 'this_month') {
+        params.date_range = dateFilter;
+      } else if (dateFilter === 'custom' && customStart && customEnd) {
+        params.date_range = 'custom';
+        params.start_date = customStart;
+        params.end_date = customEnd;
       }
+
+      const response = await axios.get('/groups/blocks', { params });
+      const blocks = response.data.blocks || [];
 
       setGroups(blocks);
     } catch (error) {
