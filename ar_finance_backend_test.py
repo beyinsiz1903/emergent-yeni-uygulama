@@ -333,7 +333,8 @@ class ARFinanceBackendTester:
             self.log_result("City Ledger Payment", False, 0, "No account_id provided")
             return False
         
-        payment_data = {
+        # Use query parameters instead of JSON body
+        params = {
             "account_id": account_id,
             "amount": 100,
             "payment_method": "bank_transfer"
@@ -341,7 +342,7 @@ class ARFinanceBackendTester:
         
         start_time = time.time()
         try:
-            response = self.session.post(f"{BASE_URL}/cashiering/city-ledger-payment", json=payment_data)
+            response = self.session.post(f"{BASE_URL}/cashiering/city-ledger-payment", params=params)
             response_time = (time.time() - start_time) * 1000
             
             if response.status_code == 200:
