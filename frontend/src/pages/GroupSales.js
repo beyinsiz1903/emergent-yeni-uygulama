@@ -24,7 +24,6 @@ const StatusBadge = ({ status }) => {
 const GroupSales = () => {
   const navigate = useNavigate();
 
-
   const labels = {
     tentative: 'Opsiyonel',
     definite: 'Kesin',
