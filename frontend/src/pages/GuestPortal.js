@@ -47,6 +47,8 @@ const GuestPortal = ({ user, onLogout }) => {
   const [pastBookings, setPastBookings] = useState([]);
   const [loyaltyPrograms, setLoyaltyPrograms] = useState([]);
   const [totalPoints, setTotalPoints] = useState(0);
+  const [globalTier, setGlobalTier] = useState('bronze');
+  const [upcomingRewards, setUpcomingRewards] = useState([]);
   const [notificationPrefs, setNotificationPrefs] = useState(null);
   const [loading, setLoading] = useState(true);
   const [openDialog, setOpenDialog] = useState(null);
@@ -77,12 +79,19 @@ const GuestPortal = ({ user, onLogout }) => {
         axios.get('/guest/my-cleaning-requests').catch(() => ({ data: { requests: [] } }))
       ]);
 
+      const loyaltyData = loyaltyRes.data || {};
+      const programs = loyaltyData.loyalty_programs || [];
+
       setActiveBookings(bookingsRes.data.active_bookings);
       setPastBookings(bookingsRes.data.past_bookings);
-      setLoyaltyPrograms(loyaltyRes.data.loyalty_programs);
-      setTotalPoints(loyaltyRes.data.total_points);
+      setLoyaltyPrograms(programs);
+      setTotalPoints(loyaltyData.total_points || 0);
+      setGlobalTier(loyaltyData.global_tier || 'bronze');
+      setUpcomingRewards(loyaltyData.upcoming_rewards || []);
       setNotificationPrefs(prefsRes.data);
       setCleaningRequests(cleaningRes.data.requests || []);
+
+      await loadTierBenefits(programs);
     } catch (error) {
       toast.error('Failed to load data');
     } finally {
@@ -159,6 +168,22 @@ const GuestPortal = ({ user, onLogout }) => {
   const getTierStars = (tier) => {
     const count = tier === 'platinum' ? 4 : tier === 'gold' ? 3 : tier === 'silver' ? 2 : 1;
     return Array(count).fill(0).map((_, i) => <Star key={i} className="w-3 h-3 fill-current" />);
+  };
+
+  const getGlobalTierColor = (tier) => {
+    switch(tier) {
+      case 'platinum': return 'bg-purple-100 text-purple-700 border-purple-200';
+      case 'gold': return 'bg-yellow-100 text-yellow-700 border-yellow-200';
+      case 'silver': return 'bg-gray-100 text-gray-700 border-gray-200';
+      default: return 'bg-orange-100 text-orange-700 border-orange-200';
+    }
+  };
+
+  const getNextTierInfo = (points) => {
+    if (points >= 10000) return { nextTier: null, pointsNeeded: 0, threshold: 10000 };
+    if (points >= 5000) return { nextTier: 'platinum', pointsNeeded: 10000 - points, threshold: 10000 };
+    if (points >= 1000) return { nextTier: 'gold', pointsNeeded: 5000 - points, threshold: 5000 };
+    return { nextTier: 'silver', pointsNeeded: 1000 - points, threshold: 1000 };
   };
 
   const navigation = [
@@ -251,7 +276,7 @@ const GuestPortal = ({ user, onLogout }) => {
                 </div>
 
                 {/* Quick Stats */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                   <Card>
                     <CardHeader className="pb-2">
                       <CardTitle className="text-sm font-medium text-gray-600">Active Bookings</CardTitle>
@@ -285,6 +310,19 @@ const GuestPortal = ({ user, onLogout }) => {
                         <Hotel className="w-8 h-8 mr-3 text-purple-500" />
                         <div className="text-3xl font-bold">{loyaltyPrograms.length}</div>
                       </div>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-sm font-medium text-gray-600">Global Tier</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="flex items-center">
+                        <span className={`px-4 py-1 rounded-full text-sm font-semibold border ${getGlobalTierColor(globalTier)}`}>
+                          {globalTier.charAt(0).toUpperCase() + globalTier.slice(1)}
+                        </span>
+                      </div>
+                      <p className="text-xs text-gray-500 mt-2">Status across all hotels</p>
                     </CardContent>
                   </Card>
                 </div>
@@ -489,171 +527,220 @@ const GuestPortal = ({ user, onLogout }) => {
                   <p className="text-gray-600">Your points across all hotels</p>
                 </div>
 
-                <Card className="bg-gradient-to-r from-blue-500 to-purple-600 text-white">
-                  <CardContent className="pt-6 pb-6">
-                    <div className="text-center">
-                      <div className="text-6xl font-bold mb-2">{totalPoints}</div>
-                      <div className="text-xl">Total Points</div>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                {/* Cleaning Request Section */}
-                {activeBookings.length > 0 && (
-                  <Card className="bg-gradient-to-r from-teal-50 to-cyan-50 border-teal-200">
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <Sparkles className="w-6 h-6 text-teal-600" />
-                        Oda Temizlik Hizmeti
-                      </CardTitle>
-                      <CardDescription>
-                        Otel odanızın temizlenmesini talep edin
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="font-semibold">Oda: {activeBookings[0]?.room_number}</p>
-                          <p className="text-sm text-gray-600">Aktif Konaklama</p>
-                        </div>
-                        <Button 
-                          onClick={() => setCleaningRequestModalOpen(true)}
-                          className="bg-teal-600 hover:bg-teal-700"
-                        >
-                          <Sparkles className="w-4 h-4 mr-2" />
-                          Temizlik Talep Et
-                        </Button>
-                      </div>
-
-                      {/* Recent Cleaning Requests */}
-                      {cleaningRequests.length > 0 && (
-                        <div className="border-t pt-4 space-y-2">
-                          <p className="text-sm font-semibold">Son Talepleriniz:</p>
-                          {cleaningRequests.slice(0, 3).map((req) => (
-                            <div key={req.id} className="flex items-center justify-between p-2 bg-white rounded border">
-                              <div className="flex items-center gap-2">
-                                {req.status === 'pending' && <Clock className="w-4 h-4 text-orange-500" />}
-                                {req.status === 'in_progress' && <AlertCircle className="w-4 h-4 text-blue-500" />}
-                                {req.status === 'completed' && <CheckCircle className="w-4 h-4 text-green-500" />}
-                                <span className="text-sm">
-                                  {req.request_type === 'urgent' ? 'Acil' : 'Normal'} Temizlik
-                                </span>
-                              </div>
-                              <span className={`text-xs px-2 py-1 rounded ${
-                                req.status === 'pending' ? 'bg-orange-100 text-orange-700' :
-                                req.status === 'in_progress' ? 'bg-blue-100 text-blue-700' :
-                                'bg-green-100 text-green-700'
-                              }`}>
-                                {req.status === 'pending' ? 'Bekliyor' :
-                                 req.status === 'in_progress' ? 'Yapılıyor' : 'Tamamlandı'}
-                              </span>
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                  <Card className="bg-gradient-to-r from-blue-500 to-purple-600 text-white">
+                    <CardContent className="pt-6 pb-6 text-center">
+                      <div className="text-5xl font-bold mb-2">{totalPoints}</div>
+                      <div className="text-lg uppercase tracking-wide">Total Points</div>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardContent className="pt-6">
+                      <p className="text-sm text-gray-500 mb-2">Global Tier</p>
+                      <span className={`px-4 py-2 rounded-full text-sm font-semibold border inline-flex items-center gap-2 ${getGlobalTierColor(globalTier)}`}>
+                        {getTierStars(globalTier)}
+                        <span className="capitalize">{globalTier}</span>
+                      </span>
+                      <p className="text-xs text-gray-500 mt-3">Status across all hotels</p>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardContent className="pt-6">
+                      <p className="text-sm text-gray-500 mb-2">Next Tier Progress</p>
+                      {(() => {
+                        const { nextTier, pointsNeeded, threshold } = getNextTierInfo(totalPoints);
+                        if (!nextTier) {
+                          return <p className="text-sm text-green-600 font-medium">You're at the highest tier 🎉</p>;
+                        }
+                        const earned = threshold - pointsNeeded;
+                        const progress = Math.min(100, Math.round((earned / threshold) * 100));
+                        return (
+                          <>
+                            <div className="flex justify-between text-xs text-gray-500">
+                              <span>{nextTier.toUpperCase()} Tier</span>
+                              <span>{pointsNeeded} pts to go</span>
                             </div>
-                          ))}
-                        </div>
-                      )}
+                            <div className="w-full bg-gray-200 h-2 rounded-full mt-2">
+                              <div className="bg-blue-500 h-2 rounded-full" style={{ width: `${progress}%` }}></div>
+                            </div>
+                          </>
+                        );
+                      })()}
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardContent className="pt-6">
+                      <p className="text-sm text-gray-500 mb-2">Hotels Visited</p>
+                      <div className="text-3xl font-bold text-purple-600">{loyaltyPrograms.length}</div>
+                      <p className="text-xs text-gray-500 mt-1">Across RoomOps collection</p>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                {upcomingRewards.length > 0 && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Upcoming Rewards</CardTitle>
+                      <CardDescription>You're getting close to these perks</CardDescription>
+                    </CardHeader>
+                    <CardContent className="grid md:grid-cols-3 gap-4">
+                      {upcomingRewards.map((reward) => {
+                        const totalRequired = reward.points_required;
+                        const remaining = Math.max(0, reward.points_remaining);
+                        const achieved = totalRequired - remaining;
+                        const progress = Math.min(100, Math.round((achieved / totalRequired) * 100));
+                        return (
+                          <div key={reward.name} className="border rounded-lg p-4">
+                            <p className="text-sm text-gray-500">{reward.name}</p>
+                            <div className="text-2xl font-bold text-blue-600 mt-1">{totalRequired.toLocaleString()} pts</div>
+                            <p className="text-xs text-gray-500 mt-1">{remaining.toLocaleString()} pts remaining</p>
+                            <div className="w-full bg-gray-200 h-2 rounded-full mt-3">
+                              <div className="bg-gradient-to-r from-blue-500 to-purple-500 h-2 rounded-full" style={{ width: `${progress}%` }}></div>
+                            </div>
+                          </div>
+                        );
+                      })}
                     </CardContent>
                   </Card>
                 )}
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {loyaltyPrograms.map((program) => (
-                    <Card key={program.id}>
-                      <CardHeader>
-                        <div className="flex justify-between items-start">
+                  {loyaltyPrograms.map((program) => {
+                    const benefits = (program.tier_benefits && program.tier_benefits.length)
+                      ? program.tier_benefits
+                      : getTierBenefits(program.tier);
+                    return (
+                      <Card key={program.id}>
+                        <CardHeader>
+                          <div className="flex justify-between items-start">
+                            <div>
+                              <CardTitle>{program.hotel_name || program.hotel?.property_name || 'Hotel'}</CardTitle>
+                              <CardDescription className="text-xs">{program.hotel?.address || program.hotel_id}</CardDescription>
+                            </div>
+                            <Award className="w-6 h-6 text-yellow-500" />
+                          </div>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm text-gray-600">Tier</span>
+                            <div className={`px-3 py-1 rounded-full text-xs font-medium flex items-center space-x-1 border ${getTierColor(program.tier)}`}>
+                              {getTierStars(program.tier)}
+                              <span className="ml-1 capitalize">{program.tier}</span>
+                            </div>
+                          </div>
+
+                          <div className="text-center py-4 border-t border-b">
+                            <div className="text-4xl font-bold text-blue-600">{program.points}</div>
+                            <div className="text-sm text-gray-600 mt-1">Available Points</div>
+                          </div>
+
+                          <div className="space-y-3 text-sm">
+                            <div className="flex justify-between">
+                              <span className="text-gray-600">Lifetime Points</span>
+                              <span className="font-medium">{program.lifetime_points}</span>
+                            </div>
+                            {program.points_to_next_tier > 0 && (
+                              <div>
+                                <div className="flex justify-between text-xs text-gray-500 mb-1">
+                                  <span>Next: {program.next_tier?.toUpperCase()}</span>
+                                  <span>{program.points_to_next_tier} pts left</span>
+                                </div>
+                                <div className="w-full bg-gray-200 h-1 rounded-full">
+                                  <div
+                                    className="bg-blue-500 h-1 rounded-full"
+                                    style={{
+                                      width: `${Math.min(100, Math.round((program.points / (program.points + program.points_to_next_tier)) * 100))}%`
+                                    }}
+                                  ></div>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+
                           <div>
-                            <CardTitle>{program.hotel?.property_name}</CardTitle>
-                            <CardDescription>{program.hotel?.address}</CardDescription>
+                            <p className="text-xs text-gray-500 mb-2">Benefits</p>
+                            <ul className="text-xs text-gray-700 space-y-1">
+                              {benefits.slice(0, 4).map((benefit, idx) => (
+                                <li key={idx} className="flex items-center gap-2">
+                                  <CheckCircle className="w-3 h-3 text-green-500" />
+                                  <span>{benefit}</span>
+                                </li>
+                              ))}
+                            </ul>
                           </div>
-                          <Award className="w-6 h-6 text-yellow-500" />
-                        </div>
-                      </CardHeader>
-                      <CardContent className="space-y-4">
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm text-gray-600">Tier</span>
-                          <div className={`px-3 py-1 rounded-full text-xs font-medium flex items-center space-x-1 border ${getTierColor(program.tier)}`}>
-                            {getTierStars(program.tier)}
-                            <span className="ml-1 capitalize">{program.tier}</span>
-                          </div>
-                        </div>
 
-                        <div className="text-center py-4 border-t border-b">
-                          <div className="text-4xl font-bold text-blue-600">{program.points}</div>
-                          <div className="text-sm text-gray-600 mt-1">Available Points</div>
-                        </div>
-
-                        <div className="text-sm">
-                          <div className="flex justify-between">
-                            <span className="text-gray-600">Lifetime Points</span>
-                            <span className="font-medium">{program.lifetime_points}</span>
+                          <div className="flex justify-between items-center pt-2">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => viewProgramDetails(program)}
+                            >
+                              View Activity
+                            </Button>
+                            <p className="text-xs text-gray-500">
+                              {(program.recent_transactions?.length || 0)} recent transactions
+                            </p>
                           </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
                 </div>
 
-                {/* Cleaning Request Modal */}
-                <Dialog open={cleaningRequestModalOpen} onOpenChange={setCleaningRequestModalOpen}>
-                  <DialogContent>
+                <Dialog open={openDialog === 'details'} onOpenChange={(open) => setOpenDialog(open ? 'details' : null)}>
+                  <DialogContent className="max-w-2xl">
                     <DialogHeader>
-                      <DialogTitle className="flex items-center gap-2">
-                        <Sparkles className="w-5 h-5 text-teal-600" />
-                        Oda Temizlik Talebi
-                      </DialogTitle>
+                      <DialogTitle>Loyalty Activity</DialogTitle>
                       <DialogDescription>
-                        Otel odanızın temizlenmesini talep edin
+                        {selectedProgram?.hotel_name || selectedProgram?.hotel?.property_name || 'Hotel'} · {selectedProgram?.tier?.toUpperCase()}
                       </DialogDescription>
                     </DialogHeader>
-                    <div className="space-y-4">
-                      <div>
-                        <Label>Temizlik Türü</Label>
-                        <Select value={cleaningRequestType} onValueChange={setCleaningRequestType}>
-                          <SelectTrigger>
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="regular">Normal Temizlik</SelectItem>
-                            <SelectItem value="urgent">Acil Temizlik</SelectItem>
-                            <SelectItem value="turndown">Akşam Servisi</SelectItem>
-                            <SelectItem value="do_not_disturb">Rahatsız Etmeyin</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
+                    {selectedProgram ? (
+                      <div className="space-y-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <Card>
+                            <CardContent className="pt-4">
+                              <p className="text-xs text-gray-500">Points Balance</p>
+                              <p className="text-3xl font-bold text-blue-600">{selectedProgram.points}</p>
+                              <p className="text-xs text-gray-500 mt-1">Lifetime: {selectedProgram.lifetime_points}</p>
+                            </CardContent>
+                          </Card>
+                          <Card>
+                            <CardContent className="pt-4">
+                              <p className="text-xs text-gray-500">Next Tier</p>
+                              {selectedProgram.next_tier ? (
+                                <>
+                                  <p className="text-lg font-semibold capitalize">{selectedProgram.next_tier}</p>
+                                  <p className="text-xs text-gray-500">{selectedProgram.points_to_next_tier} pts to go</p>
+                                </>
+                              ) : (
+                                <p className="text-sm text-green-600">Already at top tier 🎉</p>
+                              )}
+                            </CardContent>
+                          </Card>
+                        </div>
 
-                      <div>
-                        <Label>Özel Notlar (Opsiyonel)</Label>
-                        <Textarea
-                          value={cleaningNotes}
-                          onChange={(e) => setCleaningNotes(e.target.value)}
-                          placeholder="Ek talepleriniz varsa buraya yazabilirsiniz..."
-                          rows={3}
-                        />
+                        <div>
+                          <p className="text-xs text-gray-500 mb-2">Recent Transactions</p>
+                          <div className="space-y-2 max-h-64 overflow-y-auto pr-2">
+                            {transactions.length === 0 && <p className="text-sm text-gray-500">No transactions yet</p>}
+                            {transactions.map((txn) => (
+                              <div key={txn.id} className="border rounded p-2 flex justify-between text-sm">
+                                <div>
+                                  <p className="font-medium capitalize">{txn.transaction_type}</p>
+                                  <p className="text-xs text-gray-500">{new Date(txn.created_at).toLocaleString()}</p>
+                                </div>
+                                <div className={`font-semibold ${txn.transaction_type === 'redeemed' ? 'text-red-500' : 'text-green-600'}`}>
+                                  {txn.transaction_type === 'redeemed' ? '-' : '+'}{txn.points}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
                       </div>
-
-                      <div className="bg-teal-50 border border-teal-200 rounded p-3">
-                        <p className="text-sm text-teal-800">
-                          {cleaningRequestType === 'urgent' 
-                            ? '⚡ Acil temizlik: 30-60 dakika içinde'
-                            : '⏰ Normal temizlik: 2-3 saat içinde'}
-                        </p>
-                      </div>
-
-                      <div className="flex gap-2">
-                        <Button 
-                          variant="outline" 
-                          onClick={() => setCleaningRequestModalOpen(false)}
-                          className="flex-1"
-                        >
-                          İptal
-                        </Button>
-                        <Button 
-                          onClick={handleCleaningRequest}
-                          className="flex-1 bg-teal-600 hover:bg-teal-700"
-                        >
-                          Talep Gönder
-                        </Button>
-                      </div>
-                    </div>
+                    ) : (
+                      <p className="text-sm text-gray-500">Select a program to view details.</p>
+                    )}
                   </DialogContent>
                 </Dialog>
               </div>
