@@ -13331,6 +13331,26 @@ async def get_guest_360(
         'tenant_id': current_user.tenant_id
     }, {'_id': 0}).sort('created_at', -1).to_list(10)
     
+    automations_cursor = (
+        db.loyalty_automation_runs.find(
+            {
+                'tenant_id': current_user.tenant_id,
+                'targets.guest_id': guest_id,
+            },
+            {'_id': 0}
+        )
+        .sort('created_at', -1)
+        .limit(10)
+    )
+    automation_runs = await automations_cursor.to_list(10)
+    loyalty_automations = []
+    for run in automation_runs:
+        created_at = run.get('created_at')
+        processed_at = run.get('processed_at')
+        run['created_at'] = created_at.isoformat() if isinstance(created_at, datetime) else created_at
+        run['processed_at'] = processed_at.isoformat() if isinstance(processed_at, datetime) else processed_at
+        loyalty_automations.append(run)
+
     return {
         'guest': guest,
         'profile': profile,
@@ -13344,7 +13364,8 @@ async def get_guest_360(
             'channel_distribution': channel_mix
         },
         'recent_bookings': bookings[:10],
-        'recent_upsells': upsell_offers
+        'recent_upsells': upsell_offers,
+        'loyalty_automations': loyalty_automations,
     }
 
 @api_router.post("/crm/guest/add-tag")
