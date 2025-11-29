@@ -12,6 +12,9 @@ import logging
 from typing import List, Dict, Any, Optional
 from uuid import uuid4
 
+from email_service import email_service
+from whatsapp_service import whatsapp_service
+
 logger = logging.getLogger(__name__)
 
 # MongoDB connection for tasks
@@ -491,14 +494,25 @@ async def _deliver_loyalty_automation(db, run: Dict[str, Any]) -> int:
     actor = run.get('initiated_by') or 'loyalty_manager'
     summary = run.get('summary', {})
     action_id = run.get('action_id')
+    tenant_id = run.get('tenant_id')
     now = datetime.now(timezone.utc).isoformat()
+
+    guest_map: Dict[str, Dict[str, Any]] = {}
+    guest_ids = [target.get('guest_id') for target in targets if target.get('guest_id')]
+    if guest_ids:
+        cursor = db.guests.find(
+            {'tenant_id': tenant_id, 'id': {'$in': guest_ids}},
+            {'_id': 0}
+        )
+        docs = await cursor.to_list(len(guest_ids))
+        guest_map = {doc.get('id'): doc for doc in docs}
 
     created = 0
     for target in targets:
         message = _build_loyalty_message(action_id, target, summary)
         notification = {
             'id': str(uuid4()),
-            'tenant_id': run.get('tenant_id'),
+            'tenant_id': tenant_id,
             'user': actor,
             'type': 'loyalty_automation',
             'campaign_id': run.get('id'),
@@ -515,6 +529,11 @@ async def _deliver_loyalty_automation(db, run: Dict[str, Any]) -> int:
             'created_at': now,
         }
         await db.notifications.insert_one(notification)
+
+        guest = guest_map.get(target.get('guest_id'))
+        await _send_loyalty_email(guest, run, message)
+        await _send_loyalty_whatsapp(guest, message)
+
         created += 1
 
     return created
@@ -551,6 +570,25 @@ def _format_date(value: Any) -> Optional[str]:
         return datetime.fromisoformat(str(value).replace('Z', '+00:00')).date().isoformat()
     except ValueError:
         return str(value)
+
+
+async def _send_loyalty_email(guest: Optional[Dict[str, Any]], run: Dict[str, Any], message: str) -> bool:
+    if not guest or not guest.get('email'):
+        return False
+    subject = f"{run.get('title') or 'Syroce Loyalty Alert'}"
+    return await email_service.send_loyalty_message(
+        email=guest['email'],
+        subject=subject,
+        message=message,
+        guest_name=guest.get('name')
+    )
+
+
+async def _send_loyalty_whatsapp(guest: Optional[Dict[str, Any]], message: str) -> bool:
+    phone = guest.get('phone') if guest else None
+    if not phone:
+        return False
+    return await whatsapp_service.send_loyalty_message(phone, message)
 
 
 @celery_app.task(name='celery_tasks.cleanup_old_cache')

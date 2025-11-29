@@ -306,5 +306,48 @@ Destek: info@syroce.com
             print("="*60 + "\n")
             return True
 
+    async def send_loyalty_message(self, email: str, subject: str, message: str, guest_name: str | None = None) -> bool:
+        """Send generic loyalty automation email."""
+        html_content = f"""
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="UTF-8">
+            <style>
+                body {{ font-family: Arial, sans-serif; line-height: 1.6; color: #333; }}
+                .container {{ max-width: 600px; margin: 0 auto; padding: 24px; background: #f9f6ff; border-radius: 12px; }}
+                .title {{ font-size: 20px; font-weight: 600; color: #5b21b6; }}
+                .message {{ margin-top: 16px; font-size: 15px; }}
+                .footer {{ margin-top: 32px; font-size: 12px; color: #888; }}
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <div class="title">Syroce Loyalty Center</div>
+                <div class="message">
+                    <p>Merhaba{f' {guest_name}' if guest_name else ''},</p>
+                    <p>{message}</p>
+                </div>
+                <div class="footer">
+                    © {datetime.now().year} Syroce • Loyalty Automation
+                </div>
+            </div>
+        </body>
+        </html>
+        """
+        text_content = f"Merhaba {guest_name or ''},\n\n{message}\n\nSyroce Loyalty"
+
+        if self.mode == "production" and self.smtp_username and self.smtp_password:
+            return self._send_email_smtp(email, subject, html_content, text_content)
+        else:
+            print("\n" + "="*60)
+            print("💌 LOYALTY E-POSTA (MOCK)")
+            print("="*60)
+            print(f"Alıcı: {email}")
+            print(f"Konu: {subject}")
+            print(f"Mesaj: {message}")
+            print("="*60 + "\n")
+            return True
+
 # Global email service instance
 email_service = EmailService()

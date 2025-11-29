@@ -93,5 +93,23 @@ Kabul etmek için 'EVET' yazın.
         
         return True
 
+    async def send_loyalty_message(self, phone: str, message: str) -> bool:
+        """Generic loyalty automation WhatsApp message"""
+        if not phone:
+            return False
+        formatted_message = f"""
+🌟 *Syroce Loyalty Center*
+
+{message}
+
+Syroce Ekibi
+"""
+        if self.mode == "production":
+            # TODO: integrate WhatsApp Business API
+            pass
+        else:
+            print(f"\n📱 WhatsApp Loyalty to {phone}\n{formatted_message}\n")
+        return True
+
 # Global instance
 whatsapp_service = WhatsAppService()
