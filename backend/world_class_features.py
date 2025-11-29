@@ -385,6 +385,16 @@ async def get_redemption_catalog(
     """Get points redemption catalog"""
     return await service.get_redemption_catalog(current_user.tenant_id)
 
+
+@world_class_router.get("/loyalty/insights")
+async def get_loyalty_insights(
+    lookback_days: int = 90,
+    current_user = Depends(require_current_user),
+    service: LoyaltyService = Depends(get_loyalty_service)
+):
+    """Get loyalty analytics overview for GM dashboards"""
+    return await service.get_insights(current_user.tenant_id, lookback_days)
+
 # ============= GUEST SERVICES (8 ENDPOINTS) =============
 
 @world_class_router.post("/guest-services/wakeup-call")

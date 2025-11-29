@@ -85,6 +85,7 @@ const ReputationCenter = lazy(() => import("@/pages/ReputationCenter"));
 const MultiProperty = lazy(() => import("@/pages/MultiProperty"));
 const PaymentGateway = lazy(() => import("@/pages/PaymentGateway"));
 const AdvancedLoyalty = lazy(() => import("@/pages/AdvancedLoyalty"));
+const LoyaltyInsights = lazy(() => import("@/pages/LoyaltyInsights"));
 const GDSIntegration = lazy(() => import("@/pages/GDSIntegration"));
 const StaffManagement = lazy(() => import("@/pages/StaffManagement"));
 const GuestJourney = lazy(() => import("@/pages/GuestJourney"));
@@ -956,6 +957,7 @@ function App() {
           <Route path="/multi-property" element={isAuthenticated ? <Suspense fallback={<LoadingFallback />}><MultiProperty user={user} tenant={tenant} onLogout={handleLogout} /></Suspense> : <Navigate to="/auth" replace />} />
           <Route path="/payment-gateway" element={isAuthenticated ? <Suspense fallback={<LoadingFallback />}><PaymentGateway user={user} tenant={tenant} onLogout={handleLogout} /></Suspense> : <Navigate to="/auth" replace />} />
           <Route path="/advanced-loyalty" element={isAuthenticated ? <Suspense fallback={<LoadingFallback />}><AdvancedLoyalty user={user} tenant={tenant} onLogout={handleLogout} /></Suspense> : <Navigate to="/auth" replace />} />
+          <Route path="/loyalty-insights" element={isAuthenticated ? <Suspense fallback={<LoadingFallback />}><LoyaltyInsights /></Suspense> : <Navigate to="/auth" replace />} />
           <Route path="/gds-integration" element={isAuthenticated ? <Suspense fallback={<LoadingFallback />}><GDSIntegration user={user} tenant={tenant} onLogout={handleLogout} /></Suspense> : <Navigate to="/auth" replace />} />
           <Route path="/staff-management" element={isAuthenticated ? <Suspense fallback={<LoadingFallback />}><StaffManagement user={user} tenant={tenant} onLogout={handleLogout} /></Suspense> : <Navigate to="/auth" replace />} />
           <Route path="/guest-journey" element={isAuthenticated ? <Suspense fallback={<LoadingFallback />}><GuestJourney user={user} tenant={tenant} onLogout={handleLogout} /></Suspense> : <Navigate to="/auth" replace />} />

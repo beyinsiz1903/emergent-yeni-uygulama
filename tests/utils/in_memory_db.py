@@ -58,6 +58,8 @@ class InMemoryCollection:
                 for op, operand in expected.items():
                     if op == "$ne" and value == operand:
                         return False
+                    if op in {"$lt", "$gt", "$lte", "$gte"} and value is None:
+                        return False
                     if op == "$lt" and not (value < operand):
                         return False
                     if op == "$gt" and not (value > operand):

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
@@ -14,6 +15,7 @@ import { Award, Plus, TrendingUp, TrendingDown, Star, Users, Gift, Crown } from 
 
 const LoyaltyModule = ({ user, tenant, onLogout }) => {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const [programs, setPrograms] = useState([]);
   const [guests, setGuests] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -165,74 +167,80 @@ const LoyaltyModule = ({ user, tenant, onLogout }) => {
   return (
     <Layout user={user} tenant={tenant} onLogout={onLogout} currentModule="loyalty">
       <div className="p-6 space-y-6">
-        <div className="flex justify-between items-center">
+        <div className="flex flex-wrap justify-between items-center gap-3">
           <div>
             <h1 className="text-4xl font-bold mb-2" style={{ fontFamily: 'Space Grotesk' }}>{t('loyalty.title')}</h1>
             <p className="text-gray-600">{t('loyalty.subtitle')}</p>
           </div>
-          <Dialog open={openDialog === 'transaction'} onOpenChange={(open) => setOpenDialog(open ? 'transaction' : null)}>
-            <DialogTrigger asChild>
-              <Button data-testid="add-points-btn" size="lg">
-                <Plus className="w-4 h-4 mr-2" />
-                {t('loyalty.awardPoints')}
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Award or Redeem Points</DialogTitle>
-                <DialogDescription>Manage guest loyalty points</DialogDescription>
-              </DialogHeader>
-              <form onSubmit={handleCreateTransaction} className="space-y-4">
-                <div>
-                  <Label htmlFor="transaction-guest">Guest</Label>
-                  <Select value={newTransaction.guest_id} onValueChange={(v) => setNewTransaction({...newTransaction, guest_id: v})}>
-                    <SelectTrigger id="transaction-guest" data-testid="transaction-guest-select">
-                      <SelectValue placeholder="Select guest" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {guests.map(g => (
-                        <SelectItem key={g.id} value={g.id}>{g.name} - {g.email}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label htmlFor="transaction-type">Type</Label>
-                  <Select value={newTransaction.transaction_type} onValueChange={(v) => setNewTransaction({...newTransaction, transaction_type: v})}>
-                    <SelectTrigger id="transaction-type">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="earned">Earned (Add Points)</SelectItem>
-                      <SelectItem value="redeemed">Redeemed (Use Points)</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label htmlFor="points">Points</Label>
-                  <Input
-                    id="points"
-                    type="number"
-                    min="1"
-                    value={newTransaction.points}
-                    onChange={(e) => setNewTransaction({...newTransaction, points: parseInt(e.target.value)})}
-                    required
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="description">Description</Label>
-                  <Input
-                    id="description"
-                    value={newTransaction.description}
-                    onChange={(e) => setNewTransaction({...newTransaction, description: e.target.value})}
-                    placeholder="e.g., Stay completed, Welcome bonus, etc."
-                    required
-                  />
-                </div>
-                <Button type="submit" className="w-full" data-testid="submit-transaction-btn">Submit Transaction</Button>
-              </form>
-            </DialogContent>
-          </Dialog>
+          <div className="flex items-center gap-3">
+            <Button variant="outline" onClick={() => navigate('/loyalty-insights')}>
+              <TrendingUp className="w-4 h-4 mr-2" />
+              Loyalty Insights
+            </Button>
+            <Dialog open={openDialog === 'transaction'} onOpenChange={(open) => setOpenDialog(open ? 'transaction' : null)}>
+              <DialogTrigger asChild>
+                <Button data-testid="add-points-btn" size="lg">
+                  <Plus className="w-4 h-4 mr-2" />
+                  {t('loyalty.awardPoints')}
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Award or Redeem Points</DialogTitle>
+                  <DialogDescription>Manage guest loyalty points</DialogDescription>
+                </DialogHeader>
+                <form onSubmit={handleCreateTransaction} className="space-y-4">
+                  <div>
+                    <Label htmlFor="transaction-guest">Guest</Label>
+                    <Select value={newTransaction.guest_id} onValueChange={(v) => setNewTransaction({...newTransaction, guest_id: v})}>
+                      <SelectTrigger id="transaction-guest" data-testid="transaction-guest-select">
+                        <SelectValue placeholder="Select guest" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {guests.map(g => (
+                          <SelectItem key={g.id} value={g.id}>{g.name} - {g.email}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label htmlFor="transaction-type">Type</Label>
+                    <Select value={newTransaction.transaction_type} onValueChange={(v) => setNewTransaction({...newTransaction, transaction_type: v})}>
+                      <SelectTrigger id="transaction-type">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="earned">Earned (Add Points)</SelectItem>
+                        <SelectItem value="redeemed">Redeemed (Use Points)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label htmlFor="points">Points</Label>
+                    <Input
+                      id="points"
+                      type="number"
+                      min="1"
+                      value={newTransaction.points}
+                      onChange={(e) => setNewTransaction({...newTransaction, points: parseInt(e.target.value)})}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="description">Description</Label>
+                    <Input
+                      id="description"
+                      value={newTransaction.description}
+                      onChange={(e) => setNewTransaction({...newTransaction, description: e.target.value})}
+                      placeholder="e.g., Stay completed, Welcome bonus, etc."
+                      required
+                    />
+                  </div>
+                  <Button type="submit" className="w-full" data-testid="submit-transaction-btn">Submit Transaction</Button>
+                </form>
+              </DialogContent>
+            </Dialog>
+          </div>
         </div>
 
         <Tabs defaultValue="enrolled" className="w-full">

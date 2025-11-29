@@ -38,6 +38,9 @@ DEFAULT_TIER_BENEFITS = {
 
 
 class LoyaltyService:
+    POSITIVE_TRANSACTION_TYPES = {"earned", "bonus", "adjustment_credit", "manual_credit"}
+    NEGATIVE_TRANSACTION_TYPES = {"redeemed", "expired", "adjustment_debit", "manual_debit"}
+
     def __init__(self, db):
         self.db = db
 
@@ -107,8 +110,8 @@ class LoyaltyService:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Points must be positive")
 
         tx_type = transaction_type.lower()
-        positive_types = {"earned", "bonus", "adjustment_credit", "manual_credit"}
-        negative_types = {"redeemed", "expired", "adjustment_debit", "manual_debit"}
+        positive_types = self.POSITIVE_TRANSACTION_TYPES
+        negative_types = self.NEGATIVE_TRANSACTION_TYPES
 
         if tx_type not in positive_types | negative_types:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unsupported transaction type")
@@ -388,6 +391,232 @@ class LoyaltyService:
                 {'item': 'Airport Transfer', 'points_required': 2500, 'value': 40.0},
             ]
         return {'catalog': catalog}
+
+    # ------------------------------------------------------------------
+    # Analytics & Insights
+    # ------------------------------------------------------------------
+    async def get_insights(self, tenant_id: str, lookback_days: int = 90) -> Dict[str, Any]:
+        lookback_days = max(30, min(lookback_days, 365))
+        now = datetime.now(timezone.utc)
+        lookback_start = now - timedelta(days=lookback_days)
+
+        programs_cursor = self.db.loyalty_programs.find({'tenant_id': tenant_id}, {'_id': 0})
+        programs = await programs_cursor.to_list(5000)
+
+        transactions_cursor = self.db.loyalty_transactions.find(
+            {'tenant_id': tenant_id, 'created_at': {'$gte': lookback_start}},
+            {'_id': 0}
+        )
+        transactions = await transactions_cursor.to_list(20000)
+
+        transfers_cursor = self.db.loyalty_partner_transfers.find(
+            {'tenant_id': tenant_id, 'created_at': {'$gte': lookback_start}},
+            {'_id': 0}
+        ).sort('created_at', -1)
+        transfers = await transfers_cursor.to_list(200)
+
+        promotions_cursor = self.db.loyalty_promotions.find(
+            {'tenant_id': tenant_id, 'status': {'$in': ['active', 'scheduled']}},
+            {'_id': 0}
+        ).sort('created_at', -1)
+        promotions = await promotions_cursor.to_list(20)
+
+        guest_ids = {program.get('guest_id') for program in programs if program.get('guest_id')}
+        guest_map: Dict[str, Dict[str, Any]] = {}
+        if guest_ids:
+            guests_cursor = self.db.guests.find(
+                {'tenant_id': tenant_id, 'id': {'$in': list(guest_ids)}},
+                {'_id': 0}
+            )
+            guests = await guests_cursor.to_list(5000)
+            guest_map = {guest.get('id'): guest for guest in guests}
+
+        total_members = len(programs)
+        active_threshold = now - timedelta(days=30)
+        churn_threshold = now - timedelta(days=60)
+
+        active_members = 0
+        points_outstanding = 0
+        tier_breakdown: Dict[str, int] = {}
+        churn_candidates = []
+
+        for program in programs:
+            points = program.get('points', 0)
+            tier = (program.get('tier') or 'bronze').lower()
+            last_activity = self._ensure_datetime(program.get('last_activity'))
+
+            points_outstanding += points
+            tier_breakdown[tier] = tier_breakdown.get(tier, 0) + 1
+
+            if last_activity and last_activity >= active_threshold:
+                active_members += 1
+
+            if not last_activity or last_activity < churn_threshold:
+                days_inactive = (now - last_activity).days if last_activity else lookback_days
+                guest = guest_map.get(program.get('guest_id'), {})
+                churn_candidates.append({
+                    'guest_id': program.get('guest_id'),
+                    'guest_name': guest.get('name'),
+                    'tier': tier,
+                    'points': points,
+                    'days_inactive': days_inactive,
+                    'last_activity': last_activity.isoformat() if last_activity else None
+                })
+
+        tier_breakdown_list = []
+        for tier, count in sorted(tier_breakdown.items(), key=lambda item: item[1], reverse=True):
+            percentage = round((count / total_members) * 100, 1) if total_members else 0
+            tier_breakdown_list.append({
+                'tier': tier,
+                'count': count,
+                'percentage': percentage
+            })
+
+        trend_map: Dict[str, Dict[str, Any]] = {}
+        earned_total = 0
+        redeemed_total = 0
+        for txn in transactions:
+            created_at = self._ensure_datetime(txn.get('created_at'))
+            if not created_at:
+                continue
+            period = created_at.strftime('%Y-%m')
+            bucket = trend_map.setdefault(period, {'period': period, 'earned': 0, 'redeemed': 0})
+            tx_type = (txn.get('transaction_type') or '').lower()
+            points = txn.get('points', 0)
+            if tx_type in self.POSITIVE_TRANSACTION_TYPES:
+                bucket['earned'] += points
+                earned_total += points
+            elif tx_type in self.NEGATIVE_TRANSACTION_TYPES:
+                bucket['redeemed'] += points
+                redeemed_total += points
+        points_trend = [trend_map[key] for key in sorted(trend_map.keys())]
+
+        sorted_programs = sorted(programs, key=lambda prog: prog.get('points', 0), reverse=True)[:5]
+        top_members = []
+        for program in sorted_programs:
+            guest = guest_map.get(program.get('guest_id'), {})
+            points = program.get('points', 0)
+            tier = program.get('tier') or guest.get('loyalty_tier') or 'bronze'
+            last_activity = self._ensure_datetime(program.get('last_activity'))
+            next_tier, points_needed = self._next_tier_progress(points, tier)
+            top_members.append({
+                'guest_id': program.get('guest_id'),
+                'guest_name': guest.get('name'),
+                'tier': tier,
+                'points': points,
+                'lifetime_points': program.get('lifetime_points', 0),
+                'last_activity': last_activity.isoformat() if last_activity else None,
+                'next_tier': next_tier,
+                'points_to_next_tier': points_needed
+            })
+
+        churn_risk = sorted(churn_candidates, key=lambda item: item['days_inactive'], reverse=True)[:5]
+        for item in churn_risk:
+            days = item['days_inactive']
+            if days >= 90:
+                item['risk_level'] = 'high'
+            elif days >= 60:
+                item['risk_level'] = 'medium'
+            else:
+                item['risk_level'] = 'low'
+
+        expiring_points = await self.get_expiring_points(tenant_id, days=45)
+
+        points_to_partner = sum(t.get('points', 0) for t in transfers if t.get('direction') == 'to_partner')
+        points_from_partner = sum(t.get('points', 0) for t in transfers if t.get('direction') == 'from_partner')
+        recent_transfers = []
+        for transfer in transfers[:5]:
+            created_at = self._ensure_datetime(transfer.get('created_at'))
+            recent_transfers.append({
+                'guest_id': transfer.get('guest_id'),
+                'partner': transfer.get('partner'),
+                'direction': transfer.get('direction'),
+                'points': transfer.get('points', 0),
+                'created_at': created_at.isoformat() if created_at else None
+            })
+        partner_activity = {
+            'total_transfers': len(transfers),
+            'points_to_partner': points_to_partner,
+            'points_from_partner': points_from_partner,
+            'recent_transfers': recent_transfers
+        }
+
+        active_promotions = []
+        for promo in promotions:
+            created_at = self._ensure_datetime(promo.get('created_at'))
+            active_promotions.append({
+                'id': promo.get('id'),
+                'offer': promo.get('offer'),
+                'target_tier': promo.get('target_tier', 'all'),
+                'valid_until': promo.get('valid_until'),
+                'status': promo.get('status'),
+                'created_at': created_at.isoformat() if created_at else None
+            })
+
+        redemption_rate = round((redeemed_total / earned_total) * 100, 2) if earned_total else 0.0
+        active_rate = round((active_members / total_members) * 100, 2) if total_members else 0.0
+        avg_points = round(points_outstanding / total_members, 2) if total_members else 0.0
+
+        recommendations = []
+        total_points_at_risk = expiring_points.get('total_points_at_risk', 0)
+        if total_points_at_risk:
+            recommendations.append({
+                'id': 'expiring_points',
+                'title': 'Puan kaybını önleyin',
+                'description': f"{total_points_at_risk} puan 45 gün içerisinde risk altında.",
+                'priority': 'high' if total_points_at_risk > 5000 else 'medium',
+                'category': 'retention'
+            })
+        if churn_risk:
+            high_risk = sum(1 for item in churn_risk if item['risk_level'] == 'high')
+            recommendations.append({
+                'id': 'reactivate_members',
+                'title': 'Pasif üyeler için kampanya',
+                'description': f"{len(churn_risk)} üye 60+ gündür aktif değil.",
+                'priority': 'high' if high_risk else 'medium',
+                'category': 'engagement'
+            })
+        if redemption_rate < 25 and earned_total:
+            recommendations.append({
+                'id': 'boost_redemptions',
+                'title': 'Kullanımı teşvik edin',
+                'description': f"Son dönemde kullanım oranı %{redemption_rate:.1f}. Redeem bonusu önerilir.",
+                'priority': 'medium',
+                'category': 'monetization'
+            })
+        if points_from_partner == 0 and points_to_partner > 0:
+            recommendations.append({
+                'id': 'partner_activation',
+                'title': 'Partner kazanımlarını artırın',
+                'description': 'Partnerlerden gelen puan yok. Ortak kampanya önerilir.',
+                'priority': 'low',
+                'category': 'partnerships'
+            })
+
+        summary = {
+            'total_members': total_members,
+            'active_members': active_members,
+            'active_rate': active_rate,
+            'points_outstanding': points_outstanding,
+            'points_earned': earned_total,
+            'points_redeemed': redeemed_total,
+            'redemption_rate': redemption_rate,
+            'average_points_per_member': avg_points
+        }
+
+        return {
+            'generated_at': now.isoformat(),
+            'lookback_days': lookback_days,
+            'summary': summary,
+            'tier_breakdown': tier_breakdown_list,
+            'points_trend': points_trend,
+            'top_members': top_members,
+            'churn_risk': churn_risk,
+            'expiring_points': expiring_points,
+            'partner_activity': partner_activity,
+            'active_promotions': active_promotions,
+            'recommended_actions': recommendations
+        }
 
     # ------------------------------------------------------------------
     # Internal helpers

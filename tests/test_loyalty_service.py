@@ -170,3 +170,97 @@ async def test_get_member_benefits_includes_next_tier_progress():
     assert benefits["next_tier"] == "gold"
     assert benefits["points_to_next_tier"] == 5000 - 3200
     assert "Late checkout" in benefits["tier_benefits"]
+
+
+@pytest.mark.asyncio
+async def test_get_insights_returns_coherent_summary():
+    tenant_id = "tenant-4"
+    now = datetime.now(timezone.utc)
+
+    service = build_service({
+        "guests": [
+            {"id": "guest-10", "tenant_id": tenant_id, "name": "VIP Guest", "loyalty_points": 9000, "loyalty_tier": "gold"},
+            {"id": "guest-11", "tenant_id": tenant_id, "name": "Sleeper Member", "loyalty_points": 800, "loyalty_tier": "silver"},
+        ],
+        "loyalty_programs": [
+            {
+                "id": "member-10",
+                "tenant_id": tenant_id,
+                "guest_id": "guest-10",
+                "tier": "gold",
+                "points": 9000,
+                "lifetime_points": 15000,
+                "last_activity": now - timedelta(days=5)
+            },
+            {
+                "id": "member-11",
+                "tenant_id": tenant_id,
+                "guest_id": "guest-11",
+                "tier": "silver",
+                "points": 800,
+                "lifetime_points": 2500,
+                "last_activity": now - timedelta(days=90),
+                "points_expire_at": now + timedelta(days=20)
+            },
+        ],
+        "loyalty_transactions": [
+            {
+                "id": "txn-1",
+                "tenant_id": tenant_id,
+                "guest_id": "guest-10",
+                "points": 1200,
+                "transaction_type": "earned",
+                "created_at": now - timedelta(days=10)
+            },
+            {
+                "id": "txn-2",
+                "tenant_id": tenant_id,
+                "guest_id": "guest-10",
+                "points": 600,
+                "transaction_type": "redeemed",
+                "created_at": now - timedelta(days=8)
+            },
+            {
+                "id": "txn-3",
+                "tenant_id": tenant_id,
+                "guest_id": "guest-11",
+                "points": 400,
+                "transaction_type": "earned",
+                "created_at": now - timedelta(days=50)
+            },
+        ],
+        "loyalty_partner_transfers": [
+            {
+                "id": "transfer-1",
+                "tenant_id": tenant_id,
+                "guest_id": "guest-10",
+                "partner": "AirlineX",
+                "direction": "to_partner",
+                "points": 200,
+                "created_at": now - timedelta(days=2)
+            }
+        ],
+        "loyalty_promotions": [
+            {
+                "id": "promo-1",
+                "tenant_id": tenant_id,
+                "target_tier": "gold",
+                "offer": "Double points weekends",
+                "status": "active",
+                "valid_until": (now + timedelta(days=30)).date().isoformat(),
+                "created_at": now - timedelta(days=1)
+            }
+        ]
+    })
+
+    insights = await service.get_insights(tenant_id, lookback_days=90)
+
+    assert insights["summary"]["total_members"] == 2
+    assert insights["summary"]["points_outstanding"] == 9800
+    assert insights["summary"]["points_earned"] == 1600
+    assert len(insights["tier_breakdown"]) >= 1
+    assert insights["top_members"][0]["guest_id"] == "guest-10"
+    assert insights["churn_risk"][0]["guest_id"] == "guest-11"
+    assert insights["partner_activity"]["points_to_partner"] == 200
+    assert insights["active_promotions"][0]["offer"] == "Double points weekends"
+    assert len(insights["recommended_actions"]) >= 1
