@@ -887,6 +887,139 @@ async def create_meeting_rooms_and_events(tenant_id):
 
     print(f"Created {len(event_bookings)} event bookings, {len(room_bookings)} room bookings")
 
+async def create_loyalty_data(tenant_id):
+    """Create loyalty members, transactions, benefits and catalog"""
+    print("Creating loyalty data...")
+
+    existing_members = await db.loyalty_programs.count_documents({'tenant_id': tenant_id})
+    if existing_members >= 10:
+        print("Loyalty data already exists. Skipping...")
+        return
+
+    guests = await db.guests.find({'tenant_id': tenant_id}).to_list(length=200)
+    if not guests:
+        print("No guests found for loyalty seeding")
+        return
+
+    tier_options = ['bronze', 'silver', 'gold', 'platinum']
+    programs = []
+    transactions = []
+    now = datetime.now(timezone.utc)
+
+    for guest in guests[:10]:
+        tier = random.choice(tier_options)
+        base_points = {
+            'bronze': random.randint(200, 900),
+            'silver': random.randint(1200, 4000),
+            'gold': random.randint(5500, 9000),
+            'platinum': random.randint(11000, 15000)
+        }[tier]
+        expire_at = now + timedelta(days=random.randint(30, 180))
+        last_activity = now - timedelta(days=random.randint(1, 90))
+
+        program = {
+            'id': str(uuid.uuid4()),
+            'tenant_id': tenant_id,
+            'guest_id': guest['id'],
+            'tier': tier,
+            'points': base_points,
+            'lifetime_points': base_points + random.randint(500, 5000),
+            'last_activity': last_activity,
+            'points_expire_at': expire_at
+        }
+        programs.append(program)
+
+        for _ in range(2):
+            txn_points = random.randint(200, 1200)
+            transaction = {
+                'id': str(uuid.uuid4()),
+                'tenant_id': tenant_id,
+                'guest_id': guest['id'],
+                'points': txn_points,
+                'transaction_type': random.choice(['earned', 'bonus']),
+                'description': 'Room stay bonus',
+                'created_at': last_activity - timedelta(days=random.randint(5, 40))
+            }
+            transactions.append(transaction)
+
+    if programs:
+        await db.loyalty_programs.insert_many(programs)
+        print(f"Created {len(programs)} loyalty members")
+    if transactions:
+        await db.loyalty_transactions.insert_many(transactions)
+        print(f"Created {len(transactions)} loyalty transactions")
+
+    tier_benefits_existing = await db.loyalty_tier_benefits.count_documents({'tenant_id': tenant_id})
+    if tier_benefits_existing == 0:
+        tier_docs = [
+            {
+                'tenant_id': tenant_id,
+                'tier_name': 'bronze',
+                'benefits': ['Free Wi-Fi', 'Welcome drink'],
+                'points_required': 0,
+                'updated_at': now
+            },
+            {
+                'tenant_id': tenant_id,
+                'tier_name': 'silver',
+                'benefits': ['Late checkout (12pm)', 'Free breakfast', 'Free Wi-Fi'],
+                'points_required': 1000,
+                'updated_at': now
+            },
+            {
+                'tenant_id': tenant_id,
+                'tier_name': 'gold',
+                'benefits': ['Late checkout (1pm)', 'Free breakfast', 'Priority upgrade', 'Welcome amenity'],
+                'points_required': 5000,
+                'updated_at': now
+            },
+            {
+                'tenant_id': tenant_id,
+                'tier_name': 'platinum',
+                'benefits': ['Late checkout (2pm)', 'Suite upgrade', 'Airport transfer', 'Spa package'],
+                'points_required': 10000,
+                'updated_at': now
+            }
+        ]
+        await db.loyalty_tier_benefits.insert_many(tier_docs)
+        print("Inserted default loyalty tier benefits")
+
+    promotion_exists = await db.loyalty_promotions.count_documents({'tenant_id': tenant_id})
+    if promotion_exists == 0:
+        promotions = [
+            {
+                'id': str(uuid.uuid4()),
+                'tenant_id': tenant_id,
+                'target_tier': 'gold',
+                'offer': 'Double points on weekend stays',
+                'valid_until': (now + timedelta(days=60)).date().isoformat(),
+                'status': 'active',
+                'created_at': now
+            },
+            {
+                'id': str(uuid.uuid4()),
+                'tenant_id': tenant_id,
+                'target_tier': 'all',
+                'offer': 'Refer a friend bonus 500 pts',
+                'valid_until': (now + timedelta(days=90)).date().isoformat(),
+                'status': 'active',
+                'created_at': now
+            }
+        ]
+        await db.loyalty_promotions.insert_many(promotions)
+        print("Seeded loyalty promotions")
+
+    catalog_exists = await db.loyalty_redemption_catalog.count_documents({'tenant_id': tenant_id})
+    if catalog_exists == 0:
+        catalog_items = [
+            {'tenant_id': tenant_id, 'item': 'Free Night', 'points_required': 12000, 'value': 180.0},
+            {'tenant_id': tenant_id, 'item': 'Room Upgrade', 'points_required': 6000, 'value': 90.0},
+            {'tenant_id': tenant_id, 'item': 'Spa Credit', 'points_required': 3500, 'value': 50.0},
+            {'tenant_id': tenant_id, 'item': 'Airport Transfer', 'points_required': 2500, 'value': 40.0},
+        ]
+        await db.loyalty_redemption_catalog.insert_many(catalog_items)
+        print("Seeded loyalty redemption catalog")
+
 async def create_message_templates(tenant_id):
     """Create message templates"""
     print("Creating message templates...")
@@ -988,6 +1121,7 @@ async def main():
     await create_housekeeping_tasks(tenant_id)
     await create_pos_menu_and_orders(tenant_id)
     await create_meeting_rooms_and_events(tenant_id)
+    await create_loyalty_data(tenant_id)
     await create_message_templates(tenant_id)
     await create_competitors(tenant_id)
     

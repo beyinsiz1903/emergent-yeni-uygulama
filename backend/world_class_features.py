@@ -17,6 +17,7 @@ from meeting_events_models import (
     BanquetEventOrderCreate,
 )
 from meeting_events_service import MeetingEventsService
+from loyalty_service import LoyaltyService
 
 # Create separate router
 world_class_router = APIRouter(prefix="/api")
@@ -37,6 +38,12 @@ def get_meeting_events_service(
     db = Depends(require_database)
 ) -> MeetingEventsService:
     return MeetingEventsService(db)
+
+
+def get_loyalty_service(
+    db = Depends(require_database)
+) -> LoyaltyService:
+    return LoyaltyService(db)
 
 # ============================================================================
 # AŞAMA 1: OPERA CLOUD'U %100 GEÇMEK - EKSİK ÖZELLIKLER
@@ -284,103 +291,93 @@ class LoyaltyTier(str, Enum):
     DIAMOND = "diamond"
 
 @world_class_router.post("/loyalty/upgrade-tier")
-async def upgrade_loyalty_tier(guest_id: str, new_tier: str, current_user = Depends(lambda: None)):
+async def upgrade_loyalty_tier(
+    guest_id: str,
+    new_tier: str,
+    current_user = Depends(require_current_user),
+    service: LoyaltyService = Depends(get_loyalty_service)
+):
     """Upgrade guest loyalty tier"""
+    result = await service.upgrade_tier(current_user.tenant_id, guest_id, new_tier, current_user.name)
     return {
         'success': True,
-        'guest_id': guest_id,
-        'new_tier': new_tier,
-        'benefits': ['Free breakfast', 'Room upgrade', 'Late checkout'],
-        'message': f'Guest upgraded to {new_tier} tier'
+        'member': result
     }
 
 @world_class_router.get("/loyalty/tier-benefits/{tier}")
-async def get_tier_benefits(tier: str, current_user = Depends(lambda: None)):
+async def get_tier_benefits(
+    tier: str,
+    current_user = Depends(require_current_user),
+    service: LoyaltyService = Depends(get_loyalty_service)
+):
     """Get benefits for loyalty tier"""
-    benefits_map = {
-        'bronze': ['5% discount', 'Welcome drink'],
-        'silver': ['10% discount', 'Free breakfast', 'Late checkout'],
-        'gold': ['15% discount', 'Free breakfast', 'Room upgrade', 'Spa credit'],
-        'platinum': ['20% discount', 'Suite upgrade', 'Airport transfer', 'Spa package'],
-        'diamond': ['25% discount', 'Complimentary suite', 'Butler service', 'All amenities']
-    }
-    
-    return {
-        'tier': tier,
-        'benefits': benefits_map.get(tier, []),
-        'points_required': {'bronze': 0, 'silver': 1000, 'gold': 5000, 'platinum': 15000, 'diamond': 50000}.get(tier, 0)
-    }
+    return await service.get_tier_benefits(current_user.tenant_id, tier)
 
 @world_class_router.post("/loyalty/points/expire")
-async def set_point_expiration(guest_id: str, expiration_months: int, current_user = Depends(lambda: None)):
+async def set_point_expiration(
+    guest_id: str,
+    expiration_months: int,
+    current_user = Depends(require_current_user),
+    service: LoyaltyService = Depends(get_loyalty_service)
+):
     """Set point expiration rule for guest"""
-    return {
-        'success': True,
-        'guest_id': guest_id,
-        'expiration_date': (datetime.now() + timedelta(days=expiration_months*30)).strftime("%Y-%m-%d"),
-        'message': f'Points will expire in {expiration_months} months'
-    }
+    result = await service.set_point_expiration(current_user.tenant_id, guest_id, expiration_months)
+    return {'success': True, **result}
 
 @world_class_router.get("/loyalty/points/expiring")
-async def get_expiring_points(days: int = 30, current_user = Depends(lambda: None)):
+async def get_expiring_points(
+    days: int = 30,
+    current_user = Depends(require_current_user),
+    service: LoyaltyService = Depends(get_loyalty_service)
+):
     """Get points expiring in next N days"""
-    return {
-        'expiring_soon': [
-            {
-                'guest_id': str(uuid.uuid4()),
-                'guest_name': 'John Doe',
-                'points_expiring': 1500,
-                'expiration_date': '2025-12-31'
-            }
-        ],
-        'total_points_at_risk': 1500
-    }
+    return await service.get_expiring_points(current_user.tenant_id, days)
 
 @world_class_router.post("/loyalty/partner-points/transfer")
-async def transfer_partner_points(transfer_data: dict, current_user = Depends(lambda: None)):
+async def transfer_partner_points(
+    transfer_data: dict,
+    current_user = Depends(require_current_user),
+    service: LoyaltyService = Depends(get_loyalty_service)
+):
     """Transfer points to/from partner loyalty program"""
-    return {
-        'success': True,
-        'points_transferred': transfer_data.get('points', 0),
-        'partner_program': transfer_data.get('partner', 'airline'),
-        'conversion_rate': 1.5,
-        'message': 'Points transferred successfully'
+    payload = {
+        'guest_id': transfer_data['guest_id'],
+        'partner': transfer_data.get('partner'),
+        'points': transfer_data.get('points', 0),
+        'direction': transfer_data.get('direction', 'to_partner'),
+        'conversion_rate': transfer_data.get('conversion_rate', 1.0)
     }
+    return await service.transfer_partner_points(current_user.tenant_id, payload)
 
 @world_class_router.get("/loyalty/member-activity/{guest_id}")
-async def get_member_activity(guest_id: str, current_user = Depends(lambda: None)):
+async def get_member_activity(
+    guest_id: str,
+    current_user = Depends(require_current_user),
+    service: LoyaltyService = Depends(get_loyalty_service)
+):
     """Get detailed member activity log"""
-    return {
-        'guest_id': guest_id,
-        'activities': [
-            {'date': '2025-11-01', 'action': 'points_earned', 'points': 500, 'reason': 'Stay completed'},
-            {'date': '2025-10-15', 'action': 'tier_upgrade', 'from': 'silver', 'to': 'gold'},
-            {'date': '2025-09-20', 'action': 'points_redeemed', 'points': -1000, 'reason': 'Free night'}
-        ]
-    }
+    return await service.get_member_activity(current_user.tenant_id, guest_id)
 
 @world_class_router.post("/loyalty/special-promotion")
-async def create_loyalty_promotion(promo_data: dict, current_user = Depends(lambda: None)):
+async def create_loyalty_promotion(
+    promo_data: dict,
+    current_user = Depends(require_current_user),
+    service: LoyaltyService = Depends(get_loyalty_service)
+):
     """Create targeted loyalty promotion"""
+    promotion = await service.create_promotion(current_user.tenant_id, promo_data, current_user.name)
     return {
         'success': True,
-        'promotion_id': str(uuid.uuid4()),
-        'target_tier': promo_data.get('target_tier'),
-        'offer': promo_data.get('offer'),
-        'valid_until': promo_data.get('valid_until')
+        'promotion': promotion
     }
 
 @world_class_router.get("/loyalty/redemption-catalog")
-async def get_redemption_catalog(current_user = Depends(lambda: None)):
+async def get_redemption_catalog(
+    current_user = Depends(require_current_user),
+    service: LoyaltyService = Depends(get_loyalty_service)
+):
     """Get points redemption catalog"""
-    return {
-        'catalog': [
-            {'item': 'Free Night', 'points_required': 10000, 'value': 150.0},
-            {'item': 'Room Upgrade', 'points_required': 5000, 'value': 75.0},
-            {'item': 'Spa Package', 'points_required': 3000, 'value': 50.0},
-            {'item': 'Airport Transfer', 'points_required': 2000, 'value': 30.0}
-        ]
-    }
+    return await service.get_redemption_catalog(current_user.tenant_id)
 
 # ============= GUEST SERVICES (8 ENDPOINTS) =============
 

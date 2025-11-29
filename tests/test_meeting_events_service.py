@@ -1,6 +1,5 @@
 import asyncio
 from datetime import datetime, timezone, timedelta
-from types import SimpleNamespace
 from pathlib import Path
 import sys
 
@@ -13,90 +12,11 @@ from fastapi import HTTPException
 
 from meeting_events_models import MeetingRoomCreate, MeetingRoomBookingCreate
 from meeting_events_service import MeetingEventsService
-
-
-class InMemoryCursor:
-    def __init__(self, items):
-        self._items = items
-
-    def sort(self, key, direction):
-        reverse = direction == -1
-        self._items.sort(key=lambda item: item.get(key), reverse=reverse)
-        return self
-
-    async def to_list(self, length):
-        return self._items[:length]
-
-
-class InMemoryCollection:
-    def __init__(self, initial=None):
-        self.documents = list(initial or [])
-
-    async def insert_one(self, document):
-        self.documents.append(document)
-        return document
-
-    async def insert_many(self, documents):
-        self.documents.extend(documents)
-        return documents
-
-    async def count_documents(self, query):
-        return sum(1 for doc in self.documents if self._matches(doc, query))
-
-    async def find_one(self, query, projection=None):
-        for doc in self.documents:
-            if self._matches(doc, query):
-                return self._project(doc, projection)
-        return None
-
-    def find(self, query, projection=None):
-        items = [self._project(doc, projection) for doc in self.documents if self._matches(doc, query)]
-        return InMemoryCursor(items)
-
-    async def update_one(self, query, update):
-        for doc in self.documents:
-            if self._matches(doc, query):
-                for op, values in update.items():
-                    if op == "$set":
-                        doc.update(values)
-                return SimpleNamespace(matched_count=1)
-        return SimpleNamespace(matched_count=0)
-
-    def _matches(self, document, query):
-        for key, expected in query.items():
-            value = document.get(key)
-            if isinstance(expected, dict):
-                for op, operand in expected.items():
-                    if op == "$ne" and value == operand:
-                        return False
-                    if op == "$lt" and not (value < operand):
-                        return False
-                    if op == "$gt" and not (value > operand):
-                        return False
-                    if op == "$gte" and not (value >= operand):
-                        return False
-                    if op == "$lte" and not (value <= operand):
-                        return False
-                    if op == "$in" and value not in operand:
-                        return False
-            else:
-                if value != expected:
-                    return False
-        return True
-
-    @staticmethod
-    def _project(document, projection):
-        if not projection:
-            return dict(document)
-        result = dict(document)
-        excluded = [key for key, flag in projection.items() if flag == 0]
-        for key in excluded:
-            result.pop(key, None)
-        return result
+from tests.utils.in_memory_db import InMemoryCollection, build_in_memory_db
 
 
 def build_service(initial_rooms=None, initial_room_bookings=None):
-    db = SimpleNamespace(
+    db = build_in_memory_db(
         meeting_rooms=InMemoryCollection(initial_rooms),
         meeting_room_bookings=InMemoryCollection(initial_room_bookings),
         event_bookings=InMemoryCollection(),
