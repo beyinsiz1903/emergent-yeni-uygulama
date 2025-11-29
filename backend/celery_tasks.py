@@ -535,9 +535,10 @@ async def _deliver_loyalty_automation(db, run: Dict[str, Any]) -> tuple[int, int
         await db.notifications.insert_one(notification)
 
         guest = guest_map.get(target.get('guest_id'))
-        if await _send_loyalty_email(guest, run, message):
+        preferences = (guest or {}).get('communication_preferences', {'email': True, 'whatsapp': True})
+        if preferences.get('email') and await _send_loyalty_email(guest, run, message):
             emails_sent += 1
-        if await _send_loyalty_whatsapp(guest, message):
+        if preferences.get('whatsapp') and await _send_loyalty_whatsapp(guest, message):
             whatsapp_sent += 1
 
         created += 1

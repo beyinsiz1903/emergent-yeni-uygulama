@@ -13351,6 +13351,11 @@ async def get_guest_360(
         run['processed_at'] = processed_at.isoformat() if isinstance(processed_at, datetime) else processed_at
         loyalty_automations.append(run)
 
+    communication_preferences = guest.get('communication_preferences', {
+        'email': True,
+        'whatsapp': True,
+    })
+
     return {
         'guest': guest,
         'profile': profile,
@@ -13366,6 +13371,7 @@ async def get_guest_360(
         'recent_bookings': bookings[:10],
         'recent_upsells': upsell_offers,
         'loyalty_automations': loyalty_automations,
+        'communication_preferences': communication_preferences,
     }
 
 @api_router.post("/crm/guest/add-tag")
@@ -13407,6 +13413,30 @@ async def add_guest_note(
         raise HTTPException(status_code=404, detail="Guest not found")
     
     return {'message': 'Note added successfully', 'note': note_obj}
+
+
+@api_router.post("/crm/guest/communication-preferences")
+async def update_guest_communication_preferences(
+    guest_id: str,
+    preferences: Dict[str, bool],
+    current_user: User = Depends(get_current_user)
+):
+    """Update guest communication preferences (email/whatsapp)"""
+    allowed_keys = {'email', 'whatsapp'}
+    sanitized = {k: bool(v) for k, v in preferences.items() if k in allowed_keys}
+
+    if not sanitized:
+        raise HTTPException(status_code=400, detail="No valid communication preference provided")
+
+    result = await db.guests.update_one(
+        {'id': guest_id, 'tenant_id': current_user.tenant_id},
+        {'$set': {'communication_preferences': sanitized}}
+    )
+
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Guest not found")
+
+    return {'message': 'Communication preferences updated', 'communication_preferences': sanitized}
 
 @api_router.post("/ai/upsell/generate")
 async def generate_upsell_offers(
