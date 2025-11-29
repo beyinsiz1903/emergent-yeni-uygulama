@@ -94,6 +94,94 @@ class LoyaltyService:
             'points_required': doc.get('points_required', DEFAULT_TIER_BENEFITS[tier_enum.value]['points_required'])
         }
 
+    async def record_transaction(
+        self,
+        tenant_id: str,
+        guest_id: str,
+        points: int,
+        transaction_type: str,
+        description: str,
+        booking_id: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        if points <= 0:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Points must be positive")
+
+        tx_type = transaction_type.lower()
+        positive_types = {"earned", "bonus", "adjustment_credit", "manual_credit"}
+        negative_types = {"redeemed", "expired", "adjustment_debit", "manual_debit"}
+
+        if tx_type not in positive_types | negative_types:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unsupported transaction type")
+
+        member = await self._get_or_create_member(tenant_id, guest_id)
+        delta = points if tx_type in positive_types else -points
+        new_balance = member.get('points', 0) + delta
+        if new_balance < 0:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Insufficient points")
+
+        update_fields: Dict[str, Any] = {
+            'points': new_balance,
+            'last_activity': datetime.now(timezone.utc)
+        }
+        if delta > 0:
+            update_fields['lifetime_points'] = member.get('lifetime_points', 0) + delta
+
+        await self.db.loyalty_programs.update_one(
+            {'tenant_id': tenant_id, 'guest_id': guest_id},
+            {'$set': update_fields}
+        )
+        await self.db.guests.update_one(
+            {'tenant_id': tenant_id, 'id': guest_id},
+            {'$set': {'loyalty_points': new_balance}}
+        )
+
+        transaction = {
+            'id': str(uuid.uuid4()),
+            'tenant_id': tenant_id,
+            'guest_id': guest_id,
+            'points': points,
+            'transaction_type': tx_type,
+            'description': description,
+            'booking_id': booking_id,
+            'created_at': datetime.now(timezone.utc)
+        }
+        await self.db.loyalty_transactions.insert_one(transaction)
+        serialized = transaction | {'created_at': transaction['created_at'].isoformat()}
+        serialized['balance'] = new_balance
+        return serialized
+
+    async def redeem_points(
+        self,
+        tenant_id: str,
+        guest_id: str,
+        points_to_redeem: int,
+        reward_type: str,
+        actor: str
+    ) -> Dict[str, Any]:
+        transaction = await self.record_transaction(
+            tenant_id=tenant_id,
+            guest_id=guest_id,
+            points=points_to_redeem,
+            transaction_type='redeemed',
+            description=f'{reward_type} redemption by {actor}'
+        )
+        redemption = {
+            'id': str(uuid.uuid4()),
+            'tenant_id': tenant_id,
+            'guest_id': guest_id,
+            'points_redeemed': points_to_redeem,
+            'redemption_type': reward_type,
+            'processed_by': actor,
+            'created_at': datetime.now(timezone.utc)
+        }
+        await self.db.loyalty_redemptions.insert_one(redemption)
+        redemption['created_at'] = redemption['created_at'].isoformat()
+        return {
+            'success': True,
+            'transaction': transaction,
+            'redemption': redemption
+        }
+
     # ------------------------------------------------------------------
     # Points expiration & tracking
     # ------------------------------------------------------------------
@@ -230,6 +318,45 @@ class LoyaltyService:
         summary['activities'] = transactions
         return summary
 
+    async def get_member_details(self, tenant_id: str, guest_id: str) -> Dict[str, Any]:
+        member = await self._get_or_create_member(tenant_id, guest_id)
+        guest = await self._get_guest(tenant_id, guest_id)
+        serialized_member = self._serialize_member(member, guest)
+        transactions_cursor = self.db.loyalty_transactions.find(
+            {'tenant_id': tenant_id, 'guest_id': guest_id},
+            {'_id': 0}
+        ).sort('created_at', -1)
+        transactions = await transactions_cursor.to_list(200)
+        for txn in transactions:
+            created_at = self._ensure_datetime(txn.get('created_at'))
+            if created_at:
+                txn['created_at'] = created_at.isoformat()
+        return {'program': serialized_member, 'transactions': transactions}
+
+    async def get_member_benefits(self, tenant_id: str, guest_id: str) -> Dict[str, Any]:
+        guest = await self._get_guest(tenant_id, guest_id)
+        points = guest.get('loyalty_points', 0)
+        tier = guest.get('loyalty_tier') or self._tier_from_points(points)
+        tier_info = await self.get_tier_benefits(tenant_id, tier)
+        next_tier, points_needed = self._next_tier_progress(points, tier)
+        points_expiry = self._ensure_datetime(
+            guest.get('loyalty_points_expire_at')
+        ) or (datetime.now(timezone.utc) + timedelta(days=365))
+
+        return {
+            'guest_id': guest_id,
+            'guest_name': guest.get('name'),
+            'loyalty_tier': tier,
+            'points_balance': points,
+            'points_expiry_date': points_expiry.date().isoformat(),
+            'next_tier': next_tier,
+            'points_to_next_tier': points_needed,
+            'tier_benefits': tier_info.get('benefits', []),
+            'total_stays': guest.get('total_stays', 0),
+            'lifetime_value': round(guest.get('total_spend', 0.0), 2),
+            'member_since': guest.get('created_at')
+        }
+
     # ------------------------------------------------------------------
     # Promotions & catalog
     # ------------------------------------------------------------------
@@ -325,3 +452,27 @@ class LoyaltyService:
             return datetime.fromisoformat(str(value).replace('Z', '+00:00'))
         except ValueError:
             return None
+
+    def _tier_from_points(self, points: int) -> str:
+        if points >= 10000:
+            return LoyaltyTier.PLATINUM.value
+        if points >= 5000:
+            return LoyaltyTier.GOLD.value
+        if points >= 1000:
+            return LoyaltyTier.SILVER.value
+        return LoyaltyTier.BRONZE.value
+
+    def _next_tier_progress(self, points: int, tier: str) -> tuple[Optional[str], Optional[int]]:
+        tier = tier.lower()
+        thresholds = {
+            'bronze': ('silver', 1000),
+            'silver': ('gold', 5000),
+            'gold': ('platinum', 10000),
+            'platinum': ('diamond', 20000),
+            'diamond': (None, None)
+        }
+        next_tier, required = thresholds.get(tier, (None, None))
+        if not next_tier:
+            return None, None
+        points_needed = max(required - points, 0)
+        return next_tier, points_needed

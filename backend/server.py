@@ -98,6 +98,8 @@ except ImportError as e:
     print(f"⚠️ Desktop enhancements not available: {e}")
     desktop_router = None
 
+from loyalty_service import LoyaltyService
+
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
 
@@ -116,6 +118,11 @@ client = AsyncIOMotorClient(
     maxConnecting=10  # Allow more simultaneous connections
 )
 db = client[os.environ['DB_NAME']]
+
+_loyalty_service = LoyaltyService(db)
+
+def get_loyalty_service_instance():
+    return _loyalty_service
 
 JWT_SECRET = os.environ.get('JWT_SECRET', 'hotel-pms-super-secret-key-change-in-production-2025')
 JWT_ALGORITHM = 'HS256'
@@ -3729,12 +3736,20 @@ async def installment_calc(amount: float, months: int, current_user: User = Depe
 # ============= ADVANCED LOYALTY =============
 
 @api_router.post("/loyalty/points")
-async def add_points(data: dict, current_user: User = Depends(get_current_user)):
-    await db.loyalty_transactions.insert_one({
-        'id': str(uuid.uuid4()), 'guest_id': data['guest_id'], 
-        'points': data['points'], 'created_at': datetime.now(timezone.utc).isoformat()
-    })
-    return {'success': True}
+async def add_points(
+    data: dict,
+    current_user: User = Depends(get_current_user),
+    service: LoyaltyService = Depends(get_loyalty_service_instance)
+):
+    transaction = await service.record_transaction(
+        tenant_id=current_user.tenant_id,
+        guest_id=data['guest_id'],
+        points=int(data['points']),
+        transaction_type=data.get('transaction_type', 'manual_credit'),
+        description=data.get('description', 'Manual points adjustment'),
+        booking_id=data.get('booking_id')
+    )
+    return {'success': True, 'transaction': transaction}
 
 
 
@@ -4543,20 +4558,37 @@ async def kiosk_checkin(checkin_data: dict, current_user: User = Depends(get_cur
 # ============= ADVANCED LOYALTY =============
 
 @api_router.post("/loyalty/earn-points")
-async def earn_points(points_data: dict, current_user: User = Depends(get_current_user)):
+async def earn_points(
+    points_data: dict,
+    current_user: User = Depends(get_current_user),
+    service: LoyaltyService = Depends(get_loyalty_service_instance)
+):
+    transaction = await service.record_transaction(
+        tenant_id=current_user.tenant_id,
+        guest_id=points_data['guest_id'],
+        points=int(points_data['points']),
+        transaction_type='earned',
+        description=points_data.get('description', 'Stay earnings'),
+        booking_id=points_data.get('booking_id')
+    )
+    # Maintain legacy collection for analytics if needed
     await db.loyalty_points_transactions.insert_one({
-        'id': str(uuid.uuid4()), 'guest_id': points_data['guest_id'], 
-        'points': points_data['points'], 'type': 'earn',
-        'created_at': datetime.now(timezone.utc).isoformat()
+        'id': transaction['id'],
+        'guest_id': points_data['guest_id'],
+        'tenant_id': current_user.tenant_id,
+        'points': points_data['points'],
+        'type': 'earn',
+        'created_at': transaction['created_at']
     })
-    return {'success': True, 'message': f'{points_data["points"]} puan kazanıldı'}
+    return {'success': True, 'transaction': transaction}
 
 @api_router.get("/loyalty/member/{guest_id}")
-async def get_loyalty_member(guest_id: str, current_user: User = Depends(get_current_user)):
-    member = await db.loyalty_members.find_one({'guest_id': guest_id}, {'_id': 0})
-    if not member:
-        member = {'guest_id': guest_id, 'total_points': 0, 'tier': 'bronze'}
-    return {'member': member}
+async def get_loyalty_member(
+    guest_id: str,
+    current_user: User = Depends(get_current_user),
+    service: LoyaltyService = Depends(get_loyalty_service_instance)
+):
+    return await service.get_member_details(current_user.tenant_id, guest_id)
 
 @api_router.get("/celebrations/upcoming")
 async def get_upcoming_celebrations(
@@ -7127,26 +7159,36 @@ async def get_loyalty_programs(current_user: User = Depends(get_current_user)):
     return programs
 
 @api_router.post("/loyalty/transactions", response_model=LoyaltyTransaction)
-async def create_loyalty_transaction(transaction_data: LoyaltyTransactionCreate, current_user: User = Depends(get_current_user)):
-    transaction = LoyaltyTransaction(tenant_id=current_user.tenant_id, **transaction_data.model_dump())
-    transaction_dict = transaction.model_dump()
-    transaction_dict['created_at'] = transaction_dict['created_at'].isoformat()
-    await db.loyalty_transactions.insert_one(transaction_dict)
-    
-    if transaction.transaction_type == 'earned':
-        await db.loyalty_programs.update_one({'guest_id': transaction.guest_id, 'tenant_id': current_user.tenant_id},
-                                            {'$inc': {'points': transaction.points, 'lifetime_points': transaction.points}})
-    else:
-        await db.loyalty_programs.update_one({'guest_id': transaction.guest_id, 'tenant_id': current_user.tenant_id},
-                                            {'$inc': {'points': -transaction.points}})
-    return transaction
+async def create_loyalty_transaction(
+    transaction_data: LoyaltyTransactionCreate,
+    current_user: User = Depends(get_current_user),
+    service: LoyaltyService = Depends(get_loyalty_service_instance)
+):
+    transaction = await service.record_transaction(
+        tenant_id=current_user.tenant_id,
+        guest_id=transaction_data.guest_id,
+        points=transaction_data.points,
+        transaction_type=transaction_data.transaction_type,
+        description=transaction_data.description
+    )
+    return LoyaltyTransaction(
+        id=transaction['id'],
+        tenant_id=current_user.tenant_id,
+        guest_id=transaction_data.guest_id,
+        points=transaction_data.points,
+        transaction_type=transaction_data.transaction_type,
+        description=transaction_data.description,
+        created_at=datetime.fromisoformat(transaction['created_at'])
+    )
 
 @api_router.get("/loyalty/guest/{guest_id}")
 @cached(ttl=600, key_prefix="loyalty_guest")  # Cache for 10 min
-async def get_guest_loyalty_by_id(guest_id: str, current_user: User = Depends(get_current_user)):
-    program = await db.loyalty_programs.find_one({'guest_id': guest_id, 'tenant_id': current_user.tenant_id}, {'_id': 0})
-    transactions = await db.loyalty_transactions.find({'guest_id': guest_id, 'tenant_id': current_user.tenant_id}, {'_id': 0}).to_list(1000)
-    return {'program': program, 'transactions': transactions}
+async def get_guest_loyalty_by_id(
+    guest_id: str,
+    current_user: User = Depends(get_current_user),
+    service: LoyaltyService = Depends(get_loyalty_service_instance)
+):
+    return await service.get_member_details(current_user.tenant_id, guest_id)
 
 # ============= MARKETPLACE =============
 
@@ -24596,74 +24638,13 @@ async def get_reviews_by_source(
 @api_router.get("/loyalty/{guest_id}/benefits")
 async def get_loyalty_benefits(
     guest_id: str,
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
+    service: LoyaltyService = Depends(get_loyalty_service_instance)
 ):
     """
     Get loyalty perks and benefits
-    - Late checkout
-    - Free breakfast
-    - Upgrade priority
-    - Points balance and expiration
     """
-    guest = await db.guests.find_one({
-        'id': guest_id,
-        'tenant_id': current_user.tenant_id
-    })
-    
-    if not guest:
-        raise HTTPException(status_code=404, detail="Guest not found")
-    
-    points = guest.get('loyalty_points', 0)
-    total_stays = guest.get('total_stays', 0)
-    total_spend = guest.get('total_spend', 0)
-    
-    # Determine tier
-    if points >= 10000:
-        tier = 'Platinum'
-        tier_benefits = ['Late checkout (2pm)', 'Free breakfast', 'Priority upgrade', 'Welcome amenity', 'Free Wi-Fi', 'Room upgrade (subject to availability)']
-    elif points >= 5000:
-        tier = 'Gold'
-        tier_benefits = ['Late checkout (1pm)', 'Free breakfast', 'Priority upgrade', 'Welcome amenity', 'Free Wi-Fi']
-    elif points >= 1000:
-        tier = 'Silver'
-        tier_benefits = ['Late checkout (12pm)', 'Free breakfast', 'Free Wi-Fi']
-    else:
-        tier = 'Bronze'
-        tier_benefits = ['Free Wi-Fi', 'Welcome drink']
-    
-    # Points to next tier
-    if tier == 'Bronze':
-        next_tier = 'Silver'
-        points_needed = 1000 - points
-    elif tier == 'Silver':
-        next_tier = 'Gold'
-        points_needed = 5000 - points
-    elif tier == 'Gold':
-        next_tier = 'Platinum'
-        points_needed = 10000 - points
-    else:
-        next_tier = None
-        points_needed = 0
-    
-    # Points expiration (1 year from last activity)
-    points_expiry = (datetime.now(timezone.utc) + timedelta(days=365)).date().isoformat()
-    
-    # Calculate Lifetime Value
-    ltv = total_spend
-    
-    return {
-        'guest_id': guest_id,
-        'guest_name': guest.get('name'),
-        'loyalty_tier': tier,
-        'points_balance': points,
-        'points_expiry_date': points_expiry,
-        'next_tier': next_tier,
-        'points_to_next_tier': points_needed if next_tier else None,
-        'tier_benefits': tier_benefits,
-        'total_stays': total_stays,
-        'lifetime_value': round(ltv, 2),
-        'member_since': guest.get('created_at')
-    }
+    return await service.get_member_benefits(current_user.tenant_id, guest_id)
 
 
 class RedeemPointsRequest(BaseModel):
@@ -24674,47 +24655,23 @@ class RedeemPointsRequest(BaseModel):
 async def redeem_loyalty_points(
     guest_id: str,
     request: RedeemPointsRequest,
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
+    service: LoyaltyService = Depends(get_loyalty_service_instance)
 ):
     """Redeem loyalty points"""
-    guest = await db.guests.find_one({
-        'id': guest_id,
-        'tenant_id': current_user.tenant_id
-    })
-    
-    if not guest:
-        raise HTTPException(status_code=404, detail="Guest not found")
-    
-    current_points = guest.get('loyalty_points', 0)
-    
-    if current_points < request.points_to_redeem:
-        raise HTTPException(status_code=400, detail="Insufficient points")
-    
-    # Update points
-    new_balance = current_points - request.points_to_redeem
-    await db.guests.update_one(
-        {'id': guest_id},
-        {'$set': {'loyalty_points': new_balance}}
+    result = await service.redeem_points(
+        tenant_id=current_user.tenant_id,
+        guest_id=guest_id,
+        points_to_redeem=request.points_to_redeem,
+        reward_type=request.reward_type,
+        actor=current_user.name
     )
-    
-    # Create redemption record
-    redemption = {
-        'id': str(uuid.uuid4()),
-        'tenant_id': current_user.tenant_id,
-        'guest_id': guest_id,
-        'points_redeemed': request.points_to_redeem,
-        'redemption_type': request.reward_type,
-        'processed_by': current_user.name,
-        'created_at': datetime.now(timezone.utc).isoformat()
-    }
-    
-    await db.loyalty_redemptions.insert_one(redemption)
-    
+    redemption = result['redemption']
     return {
         'success': True,
         'points_redeemed': request.points_to_redeem,
         'redemption_type': request.reward_type,
-        'new_points_balance': new_balance,
+        'new_points_balance': result['transaction']['balance'],
         'redemption_id': redemption['id']
     }
 
@@ -27798,7 +27755,8 @@ def generate_scheduling_recommendations(capacity_pct, staff_count, total_rooms):
 
 @api_router.post("/ai/loyalty/auto-tier-upgrade")
 async def auto_loyalty_tier_upgrade(
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
+    service: LoyaltyService = Depends(get_loyalty_service_instance)
 ):
     """
     Automatic Loyalty Tier Upgrade
@@ -27840,12 +27798,15 @@ async def auto_loyalty_tier_upgrade(
                 if len(bookings) > 1 and bookings[-2].get('channel') in ['booking_com', 'expedia', 'airbnb']:
                     # Conversion detected!
                     bonus_points = 500
-                    new_points = current_points + bonus_points
-                    
-                    await db.guests.update_one(
-                        {'id': guest_id},
-                        {'$set': {'loyalty_points': new_points}}
+                    tx = await service.record_transaction(
+                        tenant_id=current_user.tenant_id,
+                        guest_id=guest_id,
+                        points=bonus_points,
+                        transaction_type='bonus',
+                        description='OTA to direct conversion bonus',
+                        booking_id=last_booking.get('id')
                     )
+                    new_points = tx['balance']
                     
                     upgrades.append({
                         'guest_id': guest_id,
@@ -27872,11 +27833,13 @@ async def auto_loyalty_tier_upgrade(
                 new_tier = current_tier
             
             if new_tier != current_tier:
-                await db.guests.update_one(
-                    {'id': guest_id},
-                    {'$set': {'loyalty_tier': new_tier}}
+                await service.upgrade_tier(
+                    tenant_id=current_user.tenant_id,
+                    guest_id=guest_id,
+                    new_tier=new_tier,
+                    actor='auto_loyalty_ai'
                 )
-                
+                tier_benefits = await service.get_tier_benefits(current_user.tenant_id, new_tier)
                 upgrades.append({
                     'guest_id': guest_id,
                     'guest_name': guest_name,
@@ -27884,7 +27847,7 @@ async def auto_loyalty_tier_upgrade(
                     'old_tier': current_tier,
                     'new_tier': new_tier,
                     'reason': f'{len(bookings)} stays, {current_points} points earned',
-                    'benefits_unlocked': get_tier_benefits(new_tier)
+                    'benefits_unlocked': tier_benefits.get('benefits', [])
                 })
         
         # Rule 3: Frequency Bonus (Bookings within 90 days)
@@ -27897,12 +27860,15 @@ async def auto_loyalty_tier_upgrade(
                 
                 if days_between <= 90:
                     frequency_bonus = 300
-                    new_points = current_points + frequency_bonus
-                    
-                    await db.guests.update_one(
-                        {'id': guest_id},
-                        {'$set': {'loyalty_points': new_points}}
+                    tx = await service.record_transaction(
+                        tenant_id=current_user.tenant_id,
+                        guest_id=guest_id,
+                        points=frequency_bonus,
+                        transaction_type='bonus',
+                        description='Frequency bonus',
+                        booking_id=last_two[-1].get('id')
                     )
+                    new_points = tx['balance']
                     
                     upgrades.append({
                         'guest_id': guest_id,

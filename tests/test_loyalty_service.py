@@ -22,6 +22,7 @@ def build_service(initial=None):
         loyalty_partner_transfers=InMemoryCollection(initial.get("loyalty_partner_transfers")),
         loyalty_promotions=InMemoryCollection(initial.get("loyalty_promotions")),
         loyalty_redemption_catalog=InMemoryCollection(initial.get("loyalty_redemption_catalog")),
+        loyalty_redemptions=InMemoryCollection(initial.get("loyalty_redemptions")),
     )
     return LoyaltyService(db)
 
@@ -100,3 +101,72 @@ async def test_expiring_points_returns_members_within_window():
     item = response["expiring_soon"][0]
     assert item["guest_id"] == guest_id
     assert item["points_expiring"] == 800
+
+
+@pytest.mark.asyncio
+async def test_record_transaction_updates_balance_and_transactions():
+    tenant_id = "tenant-2"
+    guest_id = "guest-3"
+
+    service = build_service({
+        "guests": [{
+            "id": guest_id,
+            "tenant_id": tenant_id,
+            "name": "Maria Lopez",
+            "loyalty_points": 0,
+            "loyalty_tier": "bronze"
+        }]
+    })
+
+    txn = await service.record_transaction(
+        tenant_id=tenant_id,
+        guest_id=guest_id,
+        points=500,
+        transaction_type="earned",
+        description="Check-in bonus"
+    )
+
+    assert txn["balance"] == 500
+    member = service.db.loyalty_programs.documents[0]
+    assert member["points"] == 500
+
+    redeem = await service.redeem_points(
+        tenant_id=tenant_id,
+        guest_id=guest_id,
+        points_to_redeem=200,
+        reward_type="spa_credit",
+        actor="Front Desk"
+    )
+
+    assert redeem["transaction"]["balance"] == 300
+    assert redeem["redemption"]["redemption_type"] == "spa_credit"
+
+
+@pytest.mark.asyncio
+async def test_get_member_benefits_includes_next_tier_progress():
+    tenant_id = "tenant-3"
+    guest_id = "guest-4"
+
+    service = build_service({
+        "guests": [{
+            "id": guest_id,
+            "tenant_id": tenant_id,
+            "name": "Alex Kim",
+            "loyalty_points": 3200,
+            "loyalty_tier": "silver",
+            "total_spend": 4500.0,
+            "total_stays": 12
+        }],
+        "loyalty_tier_benefits": [{
+            "tenant_id": tenant_id,
+            "tier_name": "silver",
+            "benefits": ["Late checkout", "Breakfast"],
+            "points_required": 1000
+        }]
+    })
+
+    benefits = await service.get_member_benefits(tenant_id, guest_id)
+    assert benefits["loyalty_tier"] == "silver"
+    assert benefits["next_tier"] == "gold"
+    assert benefits["points_to_next_tier"] == 5000 - 3200
+    assert "Late checkout" in benefits["tier_benefits"]
