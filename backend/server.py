@@ -16053,8 +16053,8 @@ async def log_ai_activity(
 
 # Import and include AI endpoints
 try:
-    from ai_endpoints import api_router as ai_router
-    api_router.include_router(ai_router, tags=["AI Intelligence"])
+    from ai_endpoints import api_router as ai_ai_router
+    api_router.include_router(ai_ai_router, tags=["AI Intelligence"])
     print("✅ AI endpoints loaded successfully")
 except ImportError as e:
     print(f"⚠️ AI endpoints not loaded: {e}")
