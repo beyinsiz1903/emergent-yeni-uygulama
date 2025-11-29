@@ -233,10 +233,18 @@ const ReservationCalendar = ({ user, tenant, onLogout }) => {
       const endDate = new Date(currentDate.getTime() + daysToShow * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
       
       const [overbookingRes, roomMovesRes, ratesRes, noShowRes] = await Promise.all([
-        axios.post(`/ai/solve-overbooking`, { date: today }).catch(() => ({ data: { solutions: [] } })),
-        axios.post(`/ai/recommend-room-moves`, { date: today }).catch(() => ({ data: { recommendations: [] } })),
-        axios.post(`/ai/recommend-rates`, { start_date: startDate, end_date: endDate }).catch(() => ({ data: { recommendations: [] } })),
-        axios.post(`/ai/predict-no-shows`, { date: today }).catch(() => ({ data: { predictions: [] } }))
+        axios
+          .post(`/ai/solve-overbooking`, null, { params: { date: today } })
+          .catch(() => ({ data: { solutions: [] } })),
+        axios
+          .post(`/ai/recommend-room-moves`, null, { params: { date: today } })
+          .catch(() => ({ data: { recommendations: [] } })),
+        axios
+          .post(`/ai/recommend-rates`, null, { params: { start_date: startDate, end_date: endDate } })
+          .catch(() => ({ data: { recommendations: [] } })),
+        axios
+          .post(`/ai/predict-no-shows`, null, { params: { date: today } })
+          .catch(() => ({ data: { predictions: [] } }))
       ]);
       
       setAiOverbookingSolutions(overbookingRes.data.solutions || []);
