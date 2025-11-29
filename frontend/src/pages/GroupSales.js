@@ -10,7 +10,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Users, Plus, FileText, DollarSign, Calendar, TrendingUp, Mail, Phone, Home } from 'lucide-react';
+import { Users, Plus, DollarSign, Calendar, Mail, Phone, Home, Activity, PieChart, Loader2 } from 'lucide-react';
 
 const StatusBadge = ({ status }) => {
   const colors = {
@@ -49,6 +49,12 @@ const GroupSales = () => {
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [groupDetails, setGroupDetails] = useState(null);
 
+  const [analytics, setAnalytics] = useState(null);
+  const [analyticsLoading, setAnalyticsLoading] = useState(true);
+  const [analyticsRange, setAnalyticsRange] = useState('60');
+  const [groupPickupInsights, setGroupPickupInsights] = useState(null);
+  const [pickupLoading, setPickupLoading] = useState(false);
+
   const [newGroup, setNewGroup] = useState({
     group_name: '',
     organization: '',
@@ -68,6 +74,10 @@ const GroupSales = () => {
   useEffect(() => {
     loadGroups();
   }, [statusFilter, dateFilter, customStart, customEnd]);
+
+  useEffect(() => {
+    loadEventAnalytics(analyticsRange);
+  }, [analyticsRange]);
 
   const loadGroups = async () => {
     try {
@@ -89,6 +99,21 @@ const GroupSales = () => {
       setGroups(blocks);
     } catch (error) {
       toast.error('Grup listesi yüklenemedi');
+    }
+  };
+
+  const loadEventAnalytics = async (range = '60') => {
+    try {
+      setAnalyticsLoading(true);
+      const lookahead = parseInt(range, 10) || 60;
+      const response = await axios.get('/events/analytics/overview', {
+        params: { lookahead_days: lookahead }
+      });
+      setAnalytics(response.data);
+    } catch (error) {
+      toast.error('Etkinlik analitikleri yüklenemedi');
+    } finally {
+      setAnalyticsLoading(false);
     }
   };
 
@@ -127,8 +152,23 @@ const GroupSales = () => {
       const response = await axios.get(`/groups/block/${blockId}`);
       setGroupDetails(response.data);
       setSelectedGroup(blockId);
+      await loadGroupPickup(blockId);
     } catch (error) {
       toast.error('Grup detayları yüklenemedi');
+    }
+  };
+
+  const loadGroupPickup = async (groupId) => {
+    try {
+      setPickupLoading(true);
+      const response = await axios.get('/events/group-pickup', {
+        params: { group_id: groupId }
+      });
+      setGroupPickupInsights(response.data);
+    } catch (error) {
+      toast.error('Pickup analitiği yüklenemedi');
+    } finally {
+      setPickupLoading(false);
     }
   };
 
@@ -319,6 +359,146 @@ const GroupSales = () => {
         </Dialog>
       </div>
 
+      {/* Event Analytics */}
+      <div className="mt-6 mb-8">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-4">
+          <div>
+            <h2 className="text-2xl font-semibold text-gray-900">Etkinlik Analitikleri</h2>
+            <p className="text-gray-600 text-sm">Önümüzdeki dönem için toplantı & etkinlik performansı</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <Label className="text-xs text-gray-600">Bakış Penceresi</Label>
+            <Select value={analyticsRange} onValueChange={setAnalyticsRange}>
+              <SelectTrigger className="w-32">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="30">30 Gün</SelectItem>
+                <SelectItem value="60">60 Gün</SelectItem>
+                <SelectItem value="90">90 Gün</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        {analyticsLoading ? (
+          <div className="flex items-center justify-center py-10 text-gray-500">
+            <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+            Analitikler yükleniyor...
+          </div>
+        ) : analytics ? (
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <Card>
+                <CardContent className="pt-6">
+                  <p className="text-xs uppercase tracking-wide text-gray-500">Projeksiyon</p>
+                  <p className="text-3xl font-bold text-purple-600 mt-2">€{analytics.projected_revenue?.toLocaleString('tr-TR')}</p>
+                  <p className="text-sm text-gray-500 mt-1">{analytics.total_events} etkinlik • {analytics.window_days} gün</p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="pt-6">
+                  <p className="text-xs uppercase tracking-wide text-gray-500">Ortalama Katılımcı</p>
+                  <p className="text-3xl font-bold text-blue-600 mt-2">{analytics.average_attendance}</p>
+                  <p className="text-sm text-gray-500 mt-1">Etkinlik başına</p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="pt-6">
+                  <p className="text-xs uppercase tracking-wide text-gray-500">Popüler Setup</p>
+                  <p className="text-lg font-semibold text-green-600 mt-2">
+                    {Object.keys(analytics.events_by_setup || {}).sort((a, b) => (analytics.events_by_setup[b] || 0) - (analytics.events_by_setup[a] || 0))[0] || 'Belirtilmedi'}
+                  </p>
+                  <p className="text-sm text-gray-500 mt-1">Setup tipine göre dağılım</p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="pt-6">
+                  <p className="text-xs uppercase tracking-wide text-gray-500">Önerilen Aksiyon</p>
+                  <p className="text-sm text-gray-800 mt-2">
+                    {analytics.total_events > 0 ? 'Yüksek değerli etkinlikler için upsell fırsatlarını tetikle' : 'Yeni M&E kampanyası başlat'}
+                  </p>
+                  <Button variant="outline" size="sm" className="mt-3 w-full">
+                    <Activity className="w-4 h-4 mr-2" />
+                    Aksiyon Planı
+                  </Button>
+                </CardContent>
+              </Card>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <PieChart className="w-4 h-4 text-purple-600" />
+                    En Yüksek Gelirli 5 Etkinlik
+                  </CardTitle>
+                  <p className="text-sm text-gray-500">Gelir ve katılımcı detayları</p>
+                </CardHeader>
+                <CardContent>
+                  {analytics.top_events?.length ? (
+                    <div className="space-y-3">
+                      {analytics.top_events.map((event) => (
+                        <div key={`${event.event_name}-${event.event_date}`} className="flex items-center justify-between border rounded-lg p-3">
+                          <div>
+                            <p className="font-semibold text-gray-900">{event.event_name}</p>
+                            <p className="text-xs text-gray-500">
+                              {new Date(event.event_date).toLocaleDateString('tr-TR')} • {event.expected_attendees} katılımcı
+                            </p>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-sm text-gray-500">Tahmini Gelir</p>
+                            <p className="text-lg font-bold text-green-600">€{Number(event.total_cost).toLocaleString('tr-TR')}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-gray-500">Seçilen döneme ait etkinlik bulunamadı.</p>
+                  )}
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Calendar className="w-4 h-4 text-blue-600" />
+                    Haftalık Zaman Çizelgesi
+                  </CardTitle>
+                  <p className="text-sm text-gray-500">Etkinlik adedi ve gelir</p>
+                </CardHeader>
+                <CardContent>
+                  {analytics.timeline?.length ? (
+                    <div className="space-y-3">
+                      {analytics.timeline.slice(0, 6).map((week) => (
+                        <div key={week.week_start} className="flex items-center justify-between border rounded-lg p-3">
+                          <div>
+                            <p className="font-semibold">{new Date(week.week_start).toLocaleDateString('tr-TR')}</p>
+                            <p className="text-xs text-gray-500">{week.events} etkinlik</p>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-sm text-gray-500">Gelir</p>
+                            <p className="text-lg font-bold text-amber-600">€{Number(week.revenue).toLocaleString('tr-TR')}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-gray-500">Henüz zaman çizelgesi verisi yok.</p>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        ) : (
+          <Card className="border-dashed">
+            <CardContent className="py-10 text-center text-gray-500">
+              Analitik verisi bulunamadı. Daha fazla etkinlik oluşturduğunuzda bu alan otomatik dolacak.
+            </CardContent>
+          </Card>
+        )}
+      </div>
+
       {/* Filters */}
       <div className="mt-4 mb-6 grid grid-cols-1 md:grid-cols-3 gap-4">
         <div>
@@ -446,39 +626,124 @@ const GroupSales = () => {
                 <Card>
                   <CardHeader>
                     <CardTitle>Pickup Durumu</CardTitle>
+                    <p className="text-sm text-gray-500">MeetingEventsService analitiği</p>
                   </CardHeader>
                   <CardContent>
-                    <div className="space-y-4">
-                      <div className="flex items-center justify-between">
-                        <span>Toplam Oda:</span>
-                        <span className="font-bold">{groupDetails.pickup.total_rooms}</span>
+                    {pickupLoading ? (
+                      <div className="flex items-center justify-center py-6 text-gray-500">
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Pickup verisi yükleniyor...
                       </div>
-                      <div className="flex items-center justify-between">
-                        <span>Alınan Oda:</span>
-                        <span className="font-bold text-green-600">{groupDetails.pickup.rooms_picked_up}</span>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <span>Kalan Oda:</span>
-                        <span className="font-bold text-orange-600">{groupDetails.pickup.rooms_remaining}</span>
-                      </div>
-                      
-                      <div className="pt-4 border-t">
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="text-sm font-medium">Pickup Oranı</span>
-                          <span className="text-lg font-bold text-purple-600">
-                            {groupDetails.pickup.pickup_percentage}%
-                          </span>
+                    ) : groupPickupInsights ? (
+                      <>
+                        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                          <div>
+                            <p className="text-xs text-gray-500">Toplam Oda</p>
+                            <p className="text-2xl font-bold">{groupPickupInsights.pickup_summary.total_rooms_blocked}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-gray-500">Alınan Oda</p>
+                            <p className="text-2xl font-bold text-green-600">{groupPickupInsights.pickup_summary.rooms_picked_up}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-gray-500">Pickup Oranı</p>
+                            <p className="text-2xl font-bold text-purple-600">{groupPickupInsights.pickup_summary.pickup_percentage}%</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-gray-500">Tahmini Gelir</p>
+                            <p className="text-xl font-bold text-amber-600">€{groupPickupInsights.pickup_summary.expected_revenue?.toLocaleString('tr-TR')}</p>
+                          </div>
                         </div>
-                        <div className="w-full bg-gray-200 rounded-full h-3">
-                          <div 
-                            className="bg-purple-600 h-3 rounded-full transition-all duration-500"
-                            style={{ width: `${groupDetails.pickup.pickup_percentage}%` }}
-                          />
+                        <div className="mt-4">
+                          <div className="w-full bg-gray-200 rounded-full h-3">
+                            <div
+                              className="bg-purple-600 h-3 rounded-full transition-all duration-500"
+                              style={{ width: `${groupPickupInsights.pickup_summary.pickup_percentage}%` }}
+                            />
+                          </div>
+                          {groupPickupInsights.next_milestone && (
+                            <p className="text-xs text-gray-500 mt-2">
+                              %{groupPickupInsights.next_milestone.target_percentage} seviyesine ulaşmak için {groupPickupInsights.next_milestone.rooms_needed} oda daha gerekli.
+                            </p>
+                          )}
+                        </div>
+                      </>
+                    ) : groupDetails.pickup ? (
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                          <p className="text-xs text-gray-500">Toplam Oda</p>
+                          <p className="text-2xl font-bold">{groupDetails.pickup.total_rooms}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-gray-500">Alınan Oda</p>
+                          <p className="text-2xl font-bold text-green-600">{groupDetails.pickup.rooms_picked_up}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-gray-500">Pickup Oranı</p>
+                          <p className="text-2xl font-bold text-purple-600">{groupDetails.pickup.pickup_percentage}%</p>
                         </div>
                       </div>
-                    </div>
+                    ) : (
+                      <p className="text-sm text-gray-500">Pickup verisi bulunamadı.</p>
+                    )}
                   </CardContent>
                 </Card>
+
+                {groupPickupInsights && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <Card>
+                      <CardHeader>
+                        <CardTitle>Pace Analizi</CardTitle>
+                        <p className="text-sm text-gray-500">Gün bazında pickup hareketi</p>
+                      </CardHeader>
+                      <CardContent>
+                        {groupPickupInsights.pace?.length ? (
+                          <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
+                            {groupPickupInsights.pace.map((entry) => (
+                              <div key={entry.date} className="flex items-center justify-between border rounded-lg p-3">
+                                <span className="font-medium">{new Date(entry.date).toLocaleDateString('tr-TR')}</span>
+                                <span className="text-sm text-gray-600">+{entry.rooms_added} oda</span>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="text-sm text-gray-500">Henüz pace verisi yok.</p>
+                        )}
+                      </CardContent>
+                    </Card>
+
+                    <Card>
+                      <CardHeader>
+                        <CardTitle>Oda Tipi Dağılımı</CardTitle>
+                        <p className="text-sm text-gray-500">Pickup edilen odaların kırılımı</p>
+                      </CardHeader>
+                      <CardContent>
+                        {Object.keys(groupPickupInsights.room_type_distribution || {}).length ? (
+                          <div className="space-y-3">
+                            {Object.entries(groupPickupInsights.room_type_distribution).map(([roomType, count]) => (
+                              <div key={roomType}>
+                                <div className="flex items-center justify-between">
+                                  <span className="capitalize">{roomType}</span>
+                                  <span className="font-semibold">{count} oda</span>
+                                </div>
+                                <div className="w-full bg-gray-100 h-2 rounded-full mt-1">
+                                  <div
+                                    className="bg-green-500 h-2 rounded-full"
+                                    style={{
+                                      width: `${(count / (groupPickupInsights.pickup_summary.rooms_picked_up || 1)) * 100}%`
+                                    }}
+                                  />
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="text-sm text-gray-500">Oda tipi dağılımı bulunamadı.</p>
+                        )}
+                      </CardContent>
+                    </Card>
+                  </div>
+                )}
 
                 <Card>
                   <CardHeader>
