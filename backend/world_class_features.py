@@ -225,17 +225,13 @@ async def get_beo_details(
 
 # Group Pick-up Tracking
 @world_class_router.get("/events/group-pickup")
-async def get_group_pickup(group_id: str, current_user = Depends(lambda: None)):
+async def get_group_pickup(
+    group_id: str,
+    current_user = Depends(require_current_user),
+    service: MeetingEventsService = Depends(get_meeting_events_service)
+):
     """Track group booking pick-up pace"""
-    return {
-        'group_id': group_id,
-        'total_rooms_blocked': 50,
-        'rooms_picked_up': 32,
-        'pickup_percentage': 64.0,
-        'days_until_event': 45,
-        'pickup_pace': 'on_track',  # ahead, on_track, behind
-        'projected_final_pickup': 48
-    }
+    return await service.get_group_pickup(current_user.tenant_id, group_id)
 
 # Event Calendar
 @world_class_router.get("/events/calendar")
@@ -257,6 +253,16 @@ async def get_event_revenue(
 ):
     """Get event revenue report"""
     return await service.get_event_revenue_report(current_user.tenant_id, start_date, end_date)
+
+
+@world_class_router.get("/events/analytics/overview")
+async def get_event_analytics_overview(
+    lookahead_days: int = 60,
+    current_user = Depends(require_current_user),
+    service: MeetingEventsService = Depends(get_meeting_events_service)
+):
+    """Get upcoming event analytics overview"""
+    return await service.get_event_analytics(current_user.tenant_id, lookahead_days)
 
 # AV Equipment Management
 @world_class_router.get("/events/av-equipment")

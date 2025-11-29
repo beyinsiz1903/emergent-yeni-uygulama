@@ -5,7 +5,7 @@ Encapsulates MongoDB operations used by world_class_features endpoints.
 from __future__ import annotations
 
 from datetime import datetime, timezone, timedelta
-from typing import List, Optional, Dict, Any
+from typing import List, Optional, Dict, Any, Tuple
 import uuid
 
 from fastapi import HTTPException, status
@@ -33,6 +33,19 @@ def _to_utc(date_str: str, time_str: str) -> datetime:
 
 
 class MeetingEventsService:
+    # Utilities
+    # ------------------------------------------------------------------
+    def _ensure_datetime(self, value: Any, fallback_tz: timezone = timezone.utc) -> Optional[datetime]:
+        if value is None:
+            return None
+        if isinstance(value, datetime):
+            return value if value.tzinfo else value.replace(tzinfo=fallback_tz)
+        try:
+            dt = datetime.fromisoformat(str(value).replace('Z', '+00:00'))
+            return dt if dt.tzinfo else dt.replace(tzinfo=fallback_tz)
+        except ValueError:
+            return None
+
     """Encapsulates Meeting & Events CRUD logic."""
 
     def __init__(self, db):
@@ -436,3 +449,147 @@ class MeetingEventsService:
             if isinstance(value, datetime):
                 serialized[key] = value.isoformat()
         return serialized
+
+    # ------------------------------------------------------------------
+    # Group Reservations & Analytics
+    # ------------------------------------------------------------------
+    async def get_group_pickup(self, tenant_id: str, group_id: str) -> Dict[str, Any]:
+        group = await self.db.group_reservations.find_one(
+            {'tenant_id': tenant_id, 'id': group_id},
+            {'_id': 0}
+        )
+        if not group:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Group reservation not found")
+
+        bookings = await self.db.bookings.find(
+            {'tenant_id': tenant_id, 'group_id': group_id},
+            {'_id': 0}
+        ).to_list(1000)
+
+        total_rooms = group.get('total_rooms', len(bookings))
+        rooms_picked_up = len(bookings)
+        pickup_percentage = round((rooms_picked_up / total_rooms) * 100, 2) if total_rooms else 0.0
+
+        check_in = self._ensure_datetime(group.get('check_in_date'))
+        days_until_event = (check_in - datetime.now(timezone.utc)).days if check_in else None
+
+        total_revenue = 0.0
+        room_type_distribution: Dict[str, int] = {}
+        pace_map: Dict[str, int] = {}
+
+        for booking in bookings:
+            total_amount = booking.get('total_amount')
+            if total_amount is None:
+                rate = booking.get('base_rate') or booking.get('nightly_rate') or 0
+                total_amount = rate * booking.get('nights', 1)
+            total_revenue += total_amount
+
+            room_type = booking.get('room_type', 'standard')
+            room_type_distribution[room_type] = room_type_distribution.get(room_type, 0) + 1
+
+            created_at = self._ensure_datetime(booking.get('created_at'))
+            if created_at:
+                bucket = created_at.date().isoformat()
+                pace_map[bucket] = pace_map.get(bucket, 0) + 1
+
+        average_rate = round(total_revenue / rooms_picked_up, 2) if rooms_picked_up else 0.0
+        pace = [
+            {'date': date, 'rooms_added': count}
+            for date, count in sorted(pace_map.items())
+        ]
+
+        next_milestone = None
+        for threshold in [0.5, 0.75, 1.0]:
+            target_rooms = int(total_rooms * threshold)
+            if rooms_picked_up < target_rooms:
+                next_milestone = {
+                    'target_percentage': int(threshold * 100),
+                    'rooms_needed': max(0, target_rooms - rooms_picked_up)
+                }
+                break
+
+        return {
+            'group': {
+                'id': group['id'],
+                'name': group.get('group_name'),
+                'group_type': group.get('group_type'),
+                'contact_person': group.get('contact_person'),
+                'check_in_date': group.get('check_in_date'),
+                'check_out_date': group.get('check_out_date'),
+                'status': group.get('status')
+            },
+            'pickup_summary': {
+                'total_rooms_blocked': total_rooms,
+                'rooms_picked_up': rooms_picked_up,
+                'pickup_percentage': pickup_percentage,
+                'expected_revenue': round(total_revenue, 2),
+                'average_rate': average_rate,
+                'days_until_event': days_until_event
+            },
+            'pace': pace,
+            'room_type_distribution': room_type_distribution,
+            'next_milestone': next_milestone
+        }
+
+    async def get_event_analytics(self, tenant_id: str, lookahead_days: int = 60) -> Dict[str, Any]:
+        now = datetime.now(timezone.utc)
+        window_end = now + timedelta(days=lookahead_days)
+
+        events = await self.db.event_bookings.find(
+            {'tenant_id': tenant_id},
+            {'_id': 0}
+        ).to_list(1000)
+
+        upcoming = []
+        for event in events:
+            event_date = self._ensure_datetime(event.get('event_date'))
+            if event_date and now <= event_date <= window_end:
+                event_copy = event.copy()
+                event_copy['event_date'] = event_date
+                upcoming.append(event_copy)
+
+        total_revenue = sum(e.get('total_cost', 0.0) for e in upcoming)
+        total_attendance = sum(e.get('expected_attendees', 0) for e in upcoming)
+        events_by_setup: Dict[str, int] = {}
+
+        for event in upcoming:
+            setup = event.get('setup_type', 'other')
+            events_by_setup[setup] = events_by_setup.get(setup, 0) + 1
+
+        top_events = sorted(
+            upcoming,
+            key=lambda e: e.get('total_cost', 0),
+            reverse=True
+        )[:5]
+
+        weekly_buckets: Dict[str, Dict[str, float]] = {}
+        for event in upcoming:
+            event_date = event['event_date']
+            week_start = (event_date - timedelta(days=event_date.weekday())).date().isoformat()
+            bucket = weekly_buckets.setdefault(week_start, {'events': 0, 'revenue': 0.0})
+            bucket['events'] += 1
+            bucket['revenue'] += event.get('total_cost', 0.0)
+
+        timeline = [
+            {'week_start': week, 'events': data['events'], 'revenue': round(data['revenue'], 2)}
+            for week, data in sorted(weekly_buckets.items())
+        ]
+
+        return {
+            'window_days': lookahead_days,
+            'total_events': len(upcoming),
+            'projected_revenue': round(total_revenue, 2),
+            'average_attendance': round(total_attendance / len(upcoming), 2) if upcoming else 0,
+            'events_by_setup': events_by_setup,
+            'top_events': [
+                {
+                    'event_name': e.get('event_name'),
+                    'event_date': e['event_date'].date().isoformat(),
+                    'expected_attendees': e.get('expected_attendees', 0),
+                    'total_cost': e.get('total_cost', 0.0),
+                    'meeting_room_id': e.get('meeting_room_id')
+                }
+                for e in top_events
+            ],
+            'timeline': timeline
+        }

@@ -887,6 +887,82 @@ async def create_meeting_rooms_and_events(tenant_id):
 
     print(f"Created {len(event_bookings)} event bookings, {len(room_bookings)} room bookings")
 
+async def create_group_reservations(tenant_id):
+    """Create group reservations with pickup data"""
+    print("Creating group reservations...")
+
+    events = await db.event_bookings.find({'tenant_id': tenant_id}).to_list(length=50)
+    rooms = await db.rooms.find({'tenant_id': tenant_id}).to_list(length=200)
+
+    if not events or not rooms:
+        print("No events or rooms available for group reservations")
+        return
+
+    group_docs = []
+    pickup_bookings = []
+
+    for idx, event in enumerate(events[:4]):
+        group_id = str(uuid.uuid4())
+        total_rooms = random.randint(20, 60)
+        picked_rooms = random.randint(int(total_rooms * 0.4), total_rooms)
+
+        check_in_date = event.get('event_date') or (datetime.now(timezone.utc) + timedelta(days=idx * 7)).date().isoformat()
+        check_out_date = event.get('event_date') or (datetime.now(timezone.utc) + timedelta(days=idx * 7 + 3)).date().isoformat()
+
+        group = {
+            'id': group_id,
+            'tenant_id': tenant_id,
+            'group_name': event.get('event_name', f'Group {idx+1}'),
+            'group_type': random.choice(['corporate', 'wedding', 'sports', 'mice']),
+            'contact_person': f"{random.choice(FIRST_NAMES)} {random.choice(LAST_NAMES)}",
+            'contact_email': f"group{idx+1}@client.com",
+            'contact_phone': f"+1-555-{random.randint(1000,9999)}",
+            'check_in_date': check_in_date,
+            'check_out_date': check_out_date,
+            'total_rooms': total_rooms,
+            'adults_per_room': random.randint(1, 2),
+            'special_requests': random.choice(['VIP hospitality suite', 'Airport transfers', 'Private dinner', None]),
+            'status': 'confirmed' if picked_rooms == total_rooms else 'partial',
+            'rooms_assigned': picked_rooms,
+            'created_at': datetime.now(timezone.utc).isoformat(),
+            'created_by': 'demo_seed'
+        }
+        group_docs.append(group)
+
+        for i in range(picked_rooms):
+            room = random.choice(rooms)
+            nights = random.randint(2, 4)
+            check_in_dt = datetime.fromisoformat(check_in_date) if 'T' not in check_in_date else datetime.fromisoformat(check_in_date.replace('Z', '+00:00'))
+            check_out_dt = check_in_dt + timedelta(days=nights)
+            rate = room.get('base_price', 150)
+
+            booking = {
+                'id': str(uuid.uuid4()),
+                'tenant_id': tenant_id,
+                'group_id': group_id,
+                'guest_name': f"{random.choice(FIRST_NAMES)} {random.choice(LAST_NAMES)}",
+                'guest_email': f"guest{i}@{group_id[:6]}.com",
+                'check_in': check_in_dt.isoformat(),
+                'check_out': check_out_dt.isoformat(),
+                'room_id': room.get('id'),
+                'room_type': room.get('room_type', 'Standard'),
+                'nights': nights,
+                'adults': group['adults_per_room'],
+                'children': 0,
+                'status': 'confirmed',
+                'booking_source': 'group',
+                'total_amount': rate * nights,
+                'created_at': datetime.now(timezone.utc) - timedelta(days=random.randint(5, 30))
+            }
+            pickup_bookings.append(booking)
+
+    if group_docs:
+        await db.group_reservations.insert_many(group_docs)
+        print(f"Created {len(group_docs)} group reservations")
+    if pickup_bookings:
+        await db.bookings.insert_many(pickup_bookings)
+        print(f"Created {len(pickup_bookings)} group pickup bookings")
+
 async def create_loyalty_data(tenant_id):
     """Create loyalty members, transactions, benefits and catalog"""
     print("Creating loyalty data...")
@@ -1121,6 +1197,7 @@ async def main():
     await create_housekeeping_tasks(tenant_id)
     await create_pos_menu_and_orders(tenant_id)
     await create_meeting_rooms_and_events(tenant_id)
+    await create_group_reservations(tenant_id)
     await create_loyalty_data(tenant_id)
     await create_message_templates(tenant_id)
     await create_competitors(tenant_id)
