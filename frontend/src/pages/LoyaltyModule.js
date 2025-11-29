@@ -20,6 +20,7 @@ const LoyaltyModule = ({ user, tenant, onLogout }) => {
   const [openDialog, setOpenDialog] = useState(null);
   const [selectedProgram, setSelectedProgram] = useState(null);
   const [transactions, setTransactions] = useState([]);
+  const [tierBenefitsMap, setTierBenefitsMap] = useState({});
 
   const [newTransaction, setNewTransaction] = useState({
     guest_id: '',
@@ -39,11 +40,31 @@ const LoyaltyModule = ({ user, tenant, onLogout }) => {
         axios.get('/pms/guests')
       ]);
       setPrograms(programsRes.data);
+      await loadTierBenefits(programsRes.data);
       setGuests(guestsRes.data);
     } catch (error) {
       toast.error('Failed to load loyalty data');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadTierBenefits = async (programList = []) => {
+    if (!programList.length) return;
+    const uniqueTiers = [...new Set(programList.map((p) => p?.tier || 'bronze'))];
+    const missingTiers = uniqueTiers.filter((tier) => !(tier in tierBenefitsMap));
+    if (!missingTiers.length) return;
+    try {
+      const responses = await Promise.all(
+        missingTiers.map((tier) => axios.get(`/loyalty/tier-benefits/${tier}`))
+      );
+      const fetched = {};
+      responses.forEach((res, idx) => {
+        fetched[missingTiers[idx]] = res.data?.benefits || [];
+      });
+      setTierBenefitsMap((prev) => ({ ...prev, ...fetched }));
+    } catch (error) {
+      console.error('Failed to load tier benefits', error);
     }
   };
 
@@ -116,15 +137,7 @@ const LoyaltyModule = ({ user, tenant, onLogout }) => {
     return Array(count).fill(0).map((_, i) => <Star key={i} className="w-3 h-3 fill-current" />);
   };
 
-  const getTierBenefits = (tier) => {
-    const benefits = {
-      bronze: ['5% discount on stays', 'Birthday bonus points', 'Welcome drink', 'Priority support'],
-      silver: ['10% discount on stays', 'Birthday bonus points', 'Welcome drink', 'Late checkout until 2 PM', 'Room service discount'],
-      gold: ['15% discount on stays', 'Birthday bonus points', 'Complimentary breakfast', 'Late checkout until 4 PM', 'Room upgrade subject to availability', 'Free parking'],
-      platinum: ['20% discount on stays', 'Birthday bonus points', 'Complimentary breakfast', 'Late checkout until 6 PM', 'Guaranteed room upgrade', 'Airport transfer', 'Spa discount 15%', 'VIP concierge']
-    };
-    return benefits[tier] || benefits.bronze;
-  };
+  const getTierBenefits = (tier) => tierBenefitsMap[tier] || [];
 
   const getTotalPoints = () => {
     return programs.reduce((sum, p) => sum + (p?.points || 0), 0);
@@ -136,6 +149,7 @@ const LoyaltyModule = ({ user, tenant, onLogout }) => {
 
   const viewProgramDetails = async (program) => {
     setSelectedProgram(program);
+    await loadTierBenefits([program]);
     await loadTransactions(program.guest_id);
     setOpenDialog('details');
   };
