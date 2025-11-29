@@ -453,7 +453,7 @@ async def _process_loyalty_automations_async():
                 continue
 
             try:
-                created = await _deliver_loyalty_automation(db, run)
+                created, emails_sent, whatsapp_sent = await _deliver_loyalty_automation(db, run)
                 await db.loyalty_automation_runs.update_one(
                     {'id': run.get('id')},
                     {
@@ -461,6 +461,8 @@ async def _process_loyalty_automations_async():
                             'status': 'completed',
                             'processed_at': datetime.now(timezone.utc),
                             'notifications_created': created,
+                            'emails_sent': emails_sent,
+                            'whatsapp_sent': whatsapp_sent,
                         }
                     }
                 )
@@ -485,11 +487,11 @@ async def _process_loyalty_automations_async():
         await client.close()
 
 
-async def _deliver_loyalty_automation(db, run: Dict[str, Any]) -> int:
+async def _deliver_loyalty_automation(db, run: Dict[str, Any]) -> tuple[int, int, int]:
     """Create notifications for each automation target."""
     targets: List[Dict[str, Any]] = run.get('targets') or []
     if not targets:
-        return 0
+        return 0, 0, 0
 
     actor = run.get('initiated_by') or 'loyalty_manager'
     summary = run.get('summary', {})
@@ -508,6 +510,8 @@ async def _deliver_loyalty_automation(db, run: Dict[str, Any]) -> int:
         guest_map = {doc.get('id'): doc for doc in docs}
 
     created = 0
+    emails_sent = 0
+    whatsapp_sent = 0
     for target in targets:
         message = _build_loyalty_message(action_id, target, summary)
         notification = {
@@ -531,12 +535,14 @@ async def _deliver_loyalty_automation(db, run: Dict[str, Any]) -> int:
         await db.notifications.insert_one(notification)
 
         guest = guest_map.get(target.get('guest_id'))
-        await _send_loyalty_email(guest, run, message)
-        await _send_loyalty_whatsapp(guest, message)
+        if await _send_loyalty_email(guest, run, message):
+            emails_sent += 1
+        if await _send_loyalty_whatsapp(guest, message):
+            whatsapp_sent += 1
 
         created += 1
 
-    return created
+    return created, emails_sent, whatsapp_sent
 
 
 def _build_loyalty_message(action_id: str, target: Dict[str, Any], summary: Dict[str, Any]) -> str:

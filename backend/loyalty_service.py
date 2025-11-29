@@ -722,6 +722,8 @@ class LoyaltyService:
             'summary': summary,
             'status': 'queued',
             'created_at': now,
+            'emails_sent': 0,
+            'whatsapp_sent': 0,
         }
         await self.db.loyalty_automation_runs.insert_one(run_doc)
         run_doc['created_at'] = run_doc['created_at'].isoformat()
@@ -744,6 +746,80 @@ class LoyaltyService:
             if created_at:
                 run['created_at'] = created_at.isoformat()
         return {'runs': runs}
+
+    async def get_automation_metrics(self, tenant_id: str, lookback_days: int = 30) -> Dict[str, Any]:
+        lookback_days = max(1, min(lookback_days, 365))
+        now = datetime.now(timezone.utc)
+        since = now - timedelta(days=lookback_days)
+
+        cursor = self.db.loyalty_automation_runs.find(
+            {
+                'tenant_id': tenant_id,
+                'created_at': {'$gte': since}
+            },
+            {'_id': 0}
+        ).sort('created_at', -1)
+        runs = await cursor.to_list(1000)
+
+        summary = {
+            'total_runs': len(runs),
+            'completed_runs': 0,
+            'failed_runs': 0,
+            'notifications_sent': 0,
+            'emails_sent': 0,
+            'whatsapp_sent': 0,
+        }
+
+        actions: Dict[str, Dict[str, Any]] = {}
+        for run in runs:
+            status = run.get('status')
+            if status == 'completed':
+                summary['completed_runs'] += 1
+            elif status == 'failed':
+                summary['failed_runs'] += 1
+            summary['notifications_sent'] += run.get('notifications_created', 0)
+            summary['emails_sent'] += run.get('emails_sent', 0)
+            summary['whatsapp_sent'] += run.get('whatsapp_sent', 0)
+
+            action_id = run.get('action_id')
+            action_stats = actions.setdefault(action_id, {
+                'action_id': action_id,
+                'title': self.AUTOMATION_ACTIONS.get(action_id, {}).get('title', action_id),
+                'runs': 0,
+                'completed': 0,
+                'failed': 0,
+                'notifications': 0,
+                'emails_sent': 0,
+                'whatsapp_sent': 0,
+                'last_run_at': None,
+            })
+            action_stats['runs'] += 1
+            if status == 'completed':
+                action_stats['completed'] += 1
+            if status == 'failed':
+                action_stats['failed'] += 1
+            action_stats['notifications'] += run.get('notifications_created', 0)
+            action_stats['emails_sent'] += run.get('emails_sent', 0)
+            action_stats['whatsapp_sent'] += run.get('whatsapp_sent', 0)
+            created_at = self._ensure_datetime(run.get('created_at'))
+            if created_at:
+                current_last = self._ensure_datetime(action_stats['last_run_at'])
+                if not current_last or created_at > current_last:
+                    action_stats['last_run_at'] = created_at.isoformat()
+
+        actions_list = []
+        for stats in actions.values():
+            runs_count = stats['runs'] or 1
+            stats['completion_rate'] = round((stats['completed'] / runs_count) * 100, 1)
+            if isinstance(stats['last_run_at'], datetime):
+                stats['last_run_at'] = stats['last_run_at'].isoformat()
+            actions_list.append(stats)
+
+        return {
+            'lookback_days': lookback_days,
+            'summary': summary,
+            'actions': sorted(actions_list, key=lambda a: a['runs'], reverse=True),
+        }
 
     # ------------------------------------------------------------------
     # Internal helpers

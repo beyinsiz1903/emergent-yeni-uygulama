@@ -49,6 +49,7 @@ const LoyaltyInsights = () => {
   const [lookback, setLookback] = useState('90');
   const [loading, setLoading] = useState(true);
   const [automationRuns, setAutomationRuns] = useState([]);
+  const [automationMetrics, setAutomationMetrics] = useState(null);
   const [runningAction, setRunningAction] = useState(null);
   const [segments, setSegments] = useState({});
   const navigate = useNavigate();
@@ -64,10 +65,13 @@ const LoyaltyInsights = () => {
   const loadInsights = async (range) => {
     try {
       setLoading(true);
-      const response = await axios.get('/loyalty/insights', {
-        params: { lookback_days: parseInt(range, 10) }
-      });
-      setInsights(response.data);
+      const lookbackValue = parseInt(range, 10);
+      const [insightsRes, metricsRes] = await Promise.all([
+        axios.get('/loyalty/insights', { params: { lookback_days: lookbackValue } }),
+        axios.get('/loyalty/actions/metrics', { params: { lookback_days: lookbackValue } })
+      ]);
+      setInsights(insightsRes.data);
+      setAutomationMetrics(metricsRes.data);
     } catch (error) {
       toast.error('Loyalty analitikleri yüklenemedi');
     } finally {
@@ -304,6 +308,72 @@ const LoyaltyInsights = () => {
           </CardContent>
         </Card>
       </div>
+
+      {automationMetrics && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center justify-between">
+              <span>Automation Performance</span>
+              <Badge variant="outline">
+                {automationMetrics.lookback_days}g lookback
+              </Badge>
+            </CardTitle>
+            <p className="text-sm text-gray-500">Delivery & başarı oranları</p>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="p-3 bg-gray-50 rounded border">
+                <p className="text-xs text-gray-500 uppercase">Total Campaigns</p>
+                <p className="text-2xl font-semibold">{automationMetrics.summary.total_runs}</p>
+              </div>
+              <div className="p-3 bg-gray-50 rounded border">
+                <p className="text-xs text-gray-500 uppercase">Completion Rate</p>
+                <p className="text-2xl font-semibold">
+                  {automationMetrics.summary.total_runs
+                    ? `${((automationMetrics.summary.completed_runs / automationMetrics.summary.total_runs) * 100).toFixed(1)}%`
+                    : '0%'}
+                </p>
+              </div>
+              <div className="p-3 bg-gray-50 rounded border">
+                <p className="text-xs text-gray-500 uppercase">Notifications Sent</p>
+                <p className="text-2xl font-semibold">{automationMetrics.summary.notifications_sent}</p>
+              </div>
+              <div className="p-3 bg-gray-50 rounded border">
+                <p className="text-xs text-gray-500 uppercase">Email / WhatsApp</p>
+                <p className="text-2xl font-semibold">
+                  {automationMetrics.summary.emails_sent} / {automationMetrics.summary.whatsapp_sent}
+                </p>
+              </div>
+            </div>
+            <div className="space-y-2">
+              {automationMetrics.actions.map((action) => (
+                <div key={action.action_id} className="p-3 border rounded bg-white">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="font-semibold">{action.title}</p>
+                      <p className="text-xs text-gray-500">
+                        {action.runs} runs • {action.notifications} notifications
+                      </p>
+                    </div>
+                    <Badge variant="outline">
+                      {action.completion_rate}% success
+                    </Badge>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-2 mt-2">
+                    <div
+                      className="bg-purple-500 h-2 rounded-full"
+                      style={{ width: `${Math.min(action.completion_rate, 100)}%` }}
+                    ></div>
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Last run: {action.last_run_at ? new Date(action.last_run_at).toLocaleString('tr-TR') : 'N/A'}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <Card>

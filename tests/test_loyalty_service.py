@@ -365,3 +365,46 @@ async def test_run_automation_applies_segment_filter():
     stored_run = service.db.loyalty_automation_runs.documents[0]
     assert len(stored_run["targets"]) == 1
     assert stored_run["targets"][0]["guest_id"] == "guest-30"
+
+
+@pytest.mark.asyncio
+async def test_get_automation_metrics_summarizes_runs():
+    tenant_id = "tenant-7"
+    now = datetime.now(timezone.utc)
+    service = build_service({
+        "loyalty_automation_runs": [
+            {
+                "id": "run-1",
+                "tenant_id": tenant_id,
+                "action_id": "expiring_points",
+                "status": "completed",
+                "notifications_created": 3,
+                "emails_sent": 3,
+                "whatsapp_sent": 2,
+                "created_at": now - timedelta(days=5),
+                "processed_at": now - timedelta(days=5),
+                "parameters": {"segment": "expiring"},
+            },
+            {
+                "id": "run-2",
+                "tenant_id": tenant_id,
+                "action_id": "reactivate_members",
+                "status": "failed",
+                "notifications_created": 0,
+                "emails_sent": 0,
+                "whatsapp_sent": 0,
+                "created_at": now - timedelta(days=3),
+                "processed_at": now - timedelta(days=3),
+                "parameters": {"segment": "dormant"},
+            },
+        ]
+    })
+
+    metrics = await service.get_automation_metrics(tenant_id, lookback_days=30)
+    assert metrics["summary"]["total_runs"] == 2
+    assert metrics["summary"]["completed_runs"] == 1
+    assert metrics["summary"]["failed_runs"] == 1
+    assert metrics["summary"]["notifications_sent"] == 3
+    assert metrics["summary"]["emails_sent"] == 3
+    assert metrics["summary"]["whatsapp_sent"] == 2
+    assert len(metrics["actions"]) == 2

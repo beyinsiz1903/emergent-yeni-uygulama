@@ -424,6 +424,16 @@ async def list_loyalty_actions(
     """List recent loyalty automation runs"""
     return await service.list_automation_runs(current_user.tenant_id, limit)
 
+
+@world_class_router.get("/loyalty/actions/metrics")
+async def get_loyalty_action_metrics(
+    lookback_days: int = 30,
+    current_user = Depends(require_current_user),
+    service: LoyaltyService = Depends(get_loyalty_service)
+):
+    """Get loyalty automation performance metrics"""
+    return await service.get_automation_metrics(current_user.tenant_id, lookback_days)
+
 # ============= GUEST SERVICES (8 ENDPOINTS) =============
 
 @world_class_router.post("/guest-services/wakeup-call")
