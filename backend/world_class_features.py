@@ -301,6 +301,7 @@ class LoyaltyAutomationRequest(BaseModel):
     lookback_days: int | None = None
     limit: int | None = None
     notes: Optional[str] = None
+    segment: Optional[str] = None
 
 @world_class_router.post("/loyalty/upgrade-tier")
 async def upgrade_loyalty_tier(

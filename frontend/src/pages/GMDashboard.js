@@ -33,7 +33,9 @@ import {
   Building2,
   Settings,
   RefreshCw,
-  Plus
+  Plus,
+  Star,
+  ShieldCheck
 } from 'lucide-react';
 import FloatingActionButton from '@/components/FloatingActionButton';
 import ExpenseSummaryCard from '@/components/ExpenseSummaryCard';
@@ -48,6 +50,7 @@ const GMDashboard = ({ user, tenant, onLogout }) => {
   const [trendData, setTrendData] = useState(null);
   const [slaConfigs, setSlaConfigs] = useState([]);
   const [delayedTasks, setDelayedTasks] = useState([]);
+  const [loyaltyPulse, setLoyaltyPulse] = useState(null);
 
   useEffect(() => {
     loadDashboardData();
@@ -56,7 +59,7 @@ const GMDashboard = ({ user, tenant, onLogout }) => {
   const loadDashboardData = async () => {
     try {
       // Load daily flash report and other key metrics
-      const [flashResponse, occupancyRes, folioRes, financeRes, costRes, expenseRes, trendRes, slaRes, delayedRes] = await Promise.all([
+      const [flashResponse, occupancyRes, folioRes, financeRes, costRes, expenseRes, trendRes, slaRes, delayedRes, loyaltyRes] = await Promise.all([
         axios.get('/reports/daily-flash', { timeout: 15000 }).catch(() => ({ data: {} })),
         axios.get('/pms/dashboard', { timeout: 15000 }).catch(() => ({ data: {} })),
         axios.get('/folio/dashboard-stats', { timeout: 15000 }).catch(() => ({ data: {} })),
@@ -65,7 +68,8 @@ const GMDashboard = ({ user, tenant, onLogout }) => {
         axios.get('/finance/expense-summary?period=today', { timeout: 15000 }).catch(() => ({ data: {} })),
         axios.get('/analytics/7day-trend', { timeout: 15000 }).catch(() => ({ data: { trend: [] } })),
         axios.get('/settings/sla', { timeout: 15000 }).catch(() => ({ data: { configs: [] } })),
-        axios.get('/tasks/delayed', { timeout: 15000 }).catch(() => ({ data: { delayed_tasks: [] } }))
+        axios.get('/tasks/delayed', { timeout: 15000 }).catch(() => ({ data: { delayed_tasks: [] } })),
+        axios.get('/loyalty/insights', { params: { lookback_days: 60 }, timeout: 15000 }).catch(() => ({ data: {} }))
       ]);
 
       setDashboardData({
@@ -80,6 +84,7 @@ const GMDashboard = ({ user, tenant, onLogout }) => {
       setTrendData(trendRes.data);
       setSlaConfigs(slaRes.data.configs || []);
       setDelayedTasks(delayedRes.data.delayed_tasks || []);
+      setLoyaltyPulse(loyaltyRes.data || null);
     } catch (error) {
       console.error('Failed to load dashboard data:', error);
     } finally {
@@ -151,6 +156,10 @@ const GMDashboard = ({ user, tenant, onLogout }) => {
   const occupancy = dashboardData?.occupancy || {};
   const movements = flash.movements || {};
   const revenue = flash.revenue || {};
+  const loyaltySummary = loyaltyPulse?.summary || {};
+  const loyaltyActions = loyaltyPulse?.recommended_actions || [];
+  const loyaltyExpiring = loyaltyPulse?.expiring_points?.total_points_at_risk || 0;
+  const loyaltyTopAction = loyaltyActions[0];
 
   return (
     <Layout user={user} tenant={tenant} onLogout={onLogout} currentModule="dashboard">
@@ -342,6 +351,77 @@ const GMDashboard = ({ user, tenant, onLogout }) => {
             </CardContent>
           </Card>
         </div>
+
+        {/* Loyalty Pulse */}
+        <Card className="border-2 border-purple-200 bg-gradient-to-r from-purple-50 to-fuchsia-50">
+          <CardHeader className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <div>
+              <CardTitle className="text-xl flex items-center gap-2 text-purple-900">
+                <Star className="w-5 h-5 text-purple-600" />
+                Loyalty Pulse
+              </CardTitle>
+              <CardDescription>
+                Program sağlığı ve aksiyon fırsatları • {loyaltyPulse?.lookback_days || 60} günlük görünüm
+              </CardDescription>
+            </div>
+            <Button 
+              variant="outline" 
+              onClick={() => navigate('/loyalty-insights')}
+              className="bg-white hover:bg-purple-50 text-purple-700 border-purple-200"
+            >
+              <TrendingUp className="w-4 h-4 mr-2" />
+              Open Insights
+            </Button>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {[
+                { label: 'Total Members', value: (loyaltySummary.total_members || 0).toLocaleString('en-US') },
+                { label: 'Active Rate', value: `${(loyaltySummary.active_rate || 0).toFixed(1)}%` },
+                { label: 'Points at Risk', value: loyaltyExpiring.toLocaleString('en-US') },
+                { label: 'Redemption Rate', value: `${(loyaltySummary.redemption_rate || 0).toFixed(1)}%` },
+              ].map((stat) => (
+                <div key={stat.label} className="p-3 bg-white/80 rounded-lg border border-purple-100 shadow-sm">
+                  <p className="text-xs uppercase tracking-wide text-gray-500">{stat.label}</p>
+                  <p className="text-2xl font-semibold text-gray-900">{stat.value}</p>
+                </div>
+              ))}
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="p-4 bg-white rounded-lg border border-purple-100 shadow-sm">
+                <p className="text-xs uppercase tracking-wider text-gray-500">Churn Risk</p>
+                <p className="text-3xl font-bold text-purple-900 mt-1">
+                  {loyaltyPulse?.churn_risk?.length || 0} members
+                </p>
+                <p className="text-sm text-gray-600 mt-1">
+                  60+ gündür pasif • Son hedefleme fırsatlarını kontrol edin
+                </p>
+              </div>
+              <div className="p-4 bg-white rounded-lg border border-purple-100 shadow-sm">
+                <p className="text-xs uppercase tracking-wider text-gray-500">Recommended Action</p>
+                {loyaltyTopAction ? (
+                  <>
+                    <p className="text-lg font-semibold text-purple-900 mt-1">{loyaltyTopAction.title}</p>
+                    <p className="text-sm text-gray-600 mt-1">{loyaltyTopAction.description}</p>
+                    <div className="flex items-center gap-2 text-xs text-gray-500 mt-2">
+                      <ShieldCheck className="w-4 h-4 text-purple-500" />
+                      {loyaltyTopAction.category} • Priority {loyaltyTopAction.priority}
+                    </div>
+                    <Button
+                      size="sm"
+                      className="mt-3 bg-purple-600 hover:bg-purple-700"
+                      onClick={() => navigate('/loyalty-insights')}
+                    >
+                      Go to Action Center
+                    </Button>
+                  </>
+                ) : (
+                  <p className="text-sm text-gray-500 mt-1">Şu anda acil aksiyon önerisi yok.</p>
+                )}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Finance Snapshot - NEW */}
         <Card className="border-2 border-emerald-400 bg-gradient-to-r from-emerald-50 to-teal-50">

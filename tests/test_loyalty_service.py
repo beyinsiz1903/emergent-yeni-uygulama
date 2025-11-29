@@ -317,3 +317,51 @@ async def test_run_automation_creates_queued_task():
     runs_collection = service.db.loyalty_automation_runs.documents
     assert len(runs_collection) == 1
     assert runs_collection[0]["initiated_by"] == "Automation Bot"
+
+
+@pytest.mark.asyncio
+async def test_run_automation_applies_segment_filter():
+    tenant_id = "tenant-6"
+    now = datetime.now(timezone.utc)
+    service = build_service({
+        "guests": [
+            {"id": "guest-30", "tenant_id": tenant_id, "name": "VIP Platinum", "loyalty_points": 12000, "loyalty_tier": "platinum"},
+            {"id": "guest-31", "tenant_id": tenant_id, "name": "Starter Bronze", "loyalty_points": 500, "loyalty_tier": "bronze"},
+        ],
+        "loyalty_programs": [
+            {
+                "id": "member-30",
+                "tenant_id": tenant_id,
+                "guest_id": "guest-30",
+                "tier": "platinum",
+                "points": 12000,
+                "lifetime_points": 20000,
+                "last_activity": now - timedelta(days=5)
+            },
+            {
+                "id": "member-31",
+                "tenant_id": tenant_id,
+                "guest_id": "guest-31",
+                "tier": "bronze",
+                "points": 500,
+                "lifetime_points": 800,
+                "last_activity": now - timedelta(days=20)
+            },
+        ],
+        "loyalty_transactions": [
+            {"id": "txn-20", "tenant_id": tenant_id, "guest_id": "guest-30", "points": 700, "transaction_type": "earned", "created_at": now - timedelta(days=10)},
+            {"id": "txn-21", "tenant_id": tenant_id, "guest_id": "guest-31", "points": 200, "transaction_type": "earned", "created_at": now - timedelta(days=15)},
+        ],
+    })
+
+    result = await service.run_automation(
+        tenant_id=tenant_id,
+        action_id="boost_redemptions",
+        actor="Marketing Bot",
+        payload={"segment": "vip"}
+    )
+
+    assert result["success"] is True
+    stored_run = service.db.loyalty_automation_runs.documents[0]
+    assert len(stored_run["targets"]) == 1
+    assert stored_run["targets"][0]["guest_id"] == "guest-30"

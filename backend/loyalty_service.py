@@ -270,7 +270,8 @@ class LoyaltyService:
                 'guest_id': member['guest_id'],
                 'guest_name': guest.get('name') if guest else None,
                 'points_expiring': points,
-                'expiration_date': expiring_at.isoformat() if expiring_at else None
+                'expiration_date': expiring_at.isoformat() if expiring_at else None,
+                'tier': guest.get('loyalty_tier') if guest else member.get('tier')
             })
             total_points += points
 
@@ -701,6 +702,11 @@ class LoyaltyService:
         else:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unknown automation action")
 
+        segment = payload.get('segment')
+        targets = self._filter_targets_by_segment(targets, segment)
+        if not targets:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Seçilen segment için uygun üye bulunamadı")
+
         run_doc = {
             'id': str(uuid.uuid4()),
             'tenant_id': tenant_id,
@@ -826,3 +832,40 @@ class LoyaltyService:
             return None, None
         points_needed = max(required - points, 0)
         return next_tier, points_needed
+
+    def _filter_targets_by_segment(self, targets: List[Dict[str, Any]], segment: Optional[str]) -> List[Dict[str, Any]]:
+        if not segment or segment == 'all':
+            return targets
+
+        segment = segment.lower()
+
+        if segment == 'high_value':
+            return [
+                target
+                for target in targets
+                if (target.get('points') or target.get('lifetime_points') or 0) >= 5000
+            ]
+
+        if segment == 'dormant':
+            return [
+                target
+                for target in targets
+                if target.get('days_inactive', 0) >= 60
+            ]
+
+        if segment == 'vip':
+            vip_tiers = {LoyaltyTier.PLATINUM.value, LoyaltyTier.DIAMOND.value}
+            return [
+                target
+                for target in targets
+                if (target.get('tier') or '').lower() in vip_tiers
+            ]
+
+        if segment == 'expiring':
+            return [
+                target
+                for target in targets
+                if target.get('points_expiring', 0) > 0
+            ]
+
+        return targets

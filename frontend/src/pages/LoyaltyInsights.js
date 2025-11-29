@@ -50,6 +50,7 @@ const LoyaltyInsights = () => {
   const [loading, setLoading] = useState(true);
   const [automationRuns, setAutomationRuns] = useState([]);
   const [runningAction, setRunningAction] = useState(null);
+  const [segments, setSegments] = useState({});
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -83,13 +84,17 @@ const LoyaltyInsights = () => {
     }
   };
 
-  const triggerAutomation = async (actionId) => {
+  const triggerAutomation = async (actionId, segment) => {
     try {
       setRunningAction(actionId);
-      await axios.post('/loyalty/actions/run', {
+      const payload = {
         action_id: actionId,
         lookback_days: parseInt(lookback, 10)
-      });
+      };
+      if (segment && segment !== 'all') {
+        payload.segment = segment;
+      }
+      await axios.post('/loyalty/actions/run', payload);
       toast.success('Otomasyon kuyruğa alındı');
       await Promise.all([loadAutomationRuns(), loadInsights(lookback)]);
     } catch (error) {
@@ -121,6 +126,14 @@ const LoyaltyInsights = () => {
   const generatedAt = insights?.generated_at
     ? new Date(insights.generated_at).toLocaleString('tr-TR')
     : null;
+  const segmentOptions = [
+    { value: 'all', label: 'Tüm Üyeler' },
+    { value: 'high_value', label: 'High Value (5K+ pts)' },
+    { value: 'dormant', label: 'Dormant 60+ gün' },
+    { value: 'vip', label: 'VIP (Platinum+)' },
+    { value: 'expiring', label: 'Yakında süresi dolan' },
+  ];
+  const topActionSegment = loyaltyTopAction ? (segments[loyaltyTopAction.id] || 'all') : 'all';
 
   const formatNumber = (value = 0) => value.toLocaleString('tr-TR');
 
@@ -394,11 +407,29 @@ const LoyaltyInsights = () => {
                 <ShieldCheck className="w-4 h-4" />
                 {action.category}
               </div>
+              <div>
+                <p className="text-xs text-gray-500 mb-1">Segment</p>
+                <Select
+                  value={segments[action.id] || 'all'}
+                  onValueChange={(val) => setSegments((prev) => ({ ...prev, [action.id]: val }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Segment seç" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {segmentOptions.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
               <Button
                 size="sm"
                 className="w-full"
                 disabled={runningAction === action.id}
-                onClick={() => triggerAutomation(action.id)}
+                onClick={() => triggerAutomation(action.id, segments[action.id])}
               >
                 {runningAction === action.id ? 'Çalışıyor...' : 'Otomasyonu Başlat'}
               </Button>
