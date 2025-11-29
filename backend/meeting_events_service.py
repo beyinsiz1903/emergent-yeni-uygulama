@@ -535,10 +535,8 @@ class MeetingEventsService:
         now = datetime.now(timezone.utc)
         window_end = now + timedelta(days=lookahead_days)
 
-        events = await self.db.event_bookings.find(
-            {'tenant_id': tenant_id},
-            {'_id': 0}
-        ).to_list(1000)
+        events_cursor = self.db.event_bookings.find({'tenant_id': tenant_id})
+        events = await events_cursor.to_list(1000)
 
         upcoming = []
         for event in events:
