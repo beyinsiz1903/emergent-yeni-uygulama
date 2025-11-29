@@ -721,6 +721,172 @@ async def create_pos_menu_and_orders(tenant_id):
         await db.pos_orders.insert_many(orders)
         print(f"Created {len(orders)} POS orders")
 
+async def create_meeting_rooms_and_events(tenant_id):
+    """Create meeting rooms, event bookings, catering orders, and BEOs"""
+    print("Creating meeting rooms & events data...")
+
+    existing_rooms = await db.meeting_rooms.count_documents({'tenant_id': tenant_id})
+    if existing_rooms < 3:
+        base_rooms = [
+            {
+                'id': str(uuid.uuid4()),
+                'tenant_id': tenant_id,
+                'room_name': 'Grand Ballroom',
+                'capacity': 500,
+                'hourly_rate': 250.0,
+                'full_day_rate': 1800.0,
+                'equipment': ['Stage', 'LED Wall', 'Sound System'],
+                'floor': 1,
+                'area_sqm': 450.0,
+                'status': 'active',
+                'created_at': datetime.now(timezone.utc),
+                'updated_at': datetime.now(timezone.utc)
+            },
+            {
+                'id': str(uuid.uuid4()),
+                'tenant_id': tenant_id,
+                'room_name': 'Executive Boardroom',
+                'capacity': 24,
+                'hourly_rate': 120.0,
+                'full_day_rate': 780.0,
+                'equipment': ['Video Conference', 'Whiteboard', 'Display'],
+                'floor': 10,
+                'area_sqm': 80.0,
+                'status': 'active',
+                'created_at': datetime.now(timezone.utc),
+                'updated_at': datetime.now(timezone.utc)
+            },
+            {
+                'id': str(uuid.uuid4()),
+                'tenant_id': tenant_id,
+                'room_name': 'Sky Lounge',
+                'capacity': 120,
+                'hourly_rate': 180.0,
+                'full_day_rate': 1200.0,
+                'equipment': ['Panoramic View', 'Bar Setup', 'Lighting'],
+                'floor': 25,
+                'area_sqm': 220.0,
+                'status': 'active',
+                'created_at': datetime.now(timezone.utc),
+                'updated_at': datetime.now(timezone.utc)
+            }
+        ]
+        await db.meeting_rooms.insert_many(base_rooms)
+        print(f"Created {len(base_rooms)} meeting rooms")
+
+    rooms = await db.meeting_rooms.find({'tenant_id': tenant_id}).to_list(length=50)
+
+    existing_events = await db.event_bookings.count_documents({'tenant_id': tenant_id})
+    if existing_events >= 5:
+        print("Meeting & events data already populated. Skipping...")
+        return
+
+    event_bookings = []
+    room_bookings = []
+    catering_orders = []
+    beo_orders = []
+
+    setup_styles = ['theater', 'classroom', 'banquet', 'u_shape']
+    organizations = ['TechCorp', 'MedLife', 'FinanceHub', 'StartUpX', 'EduFuture']
+
+    for idx in range(5):
+        room = random.choice(rooms)
+        days_ahead = random.randint(7, 45)
+        event_date = (datetime.now(timezone.utc) + timedelta(days=days_ahead)).date().isoformat()
+        start_time = random.choice(['09:00', '10:00', '14:00'])
+        duration_hours = random.choice([4, 6, 8])
+        end_hour = min(22, int(start_time.split(':')[0]) + duration_hours)
+        end_time = f"{end_hour:02d}:00"
+
+        event_id = str(uuid.uuid4())
+        total_cost = round(room['full_day_rate'] * random.uniform(0.7, 1.2), 2)
+
+        event = {
+            'id': event_id,
+            'tenant_id': tenant_id,
+            'event_name': f"{organizations[idx]} Summit",
+            'organization': organizations[idx],
+            'contact_name': f"{random.choice(FIRST_NAMES)} {random.choice(LAST_NAMES)}",
+            'contact_email': f"events@{organizations[idx].lower()}.com",
+            'meeting_room_id': room['id'],
+            'event_date': event_date,
+            'start_time': start_time,
+            'end_time': end_time,
+            'setup_type': random.choice(setup_styles),
+            'expected_attendees': min(room['capacity'], random.randint(20, room['capacity'])),
+            'catering_required': True,
+            'av_equipment': ['Projector', 'Wireless Mics'],
+            'total_cost': total_cost,
+            'status': 'confirmed',
+            'created_at': datetime.now(timezone.utc)
+        }
+        event_bookings.append(event)
+
+        start_dt = datetime.fromisoformat(f"{event_date}T{start_time}").replace(tzinfo=timezone.utc)
+        end_dt = datetime.fromisoformat(f"{event_date}T{end_time}").replace(tzinfo=timezone.utc)
+
+        room_bookings.append({
+            'id': str(uuid.uuid4()),
+            'tenant_id': tenant_id,
+            'room_id': room['id'],
+            'event_name': event['event_name'],
+            'organizer': event['organization'],
+            'event_date': event_date,
+            'start_datetime': start_dt,
+            'end_datetime': end_dt,
+            'expected_attendees': event['expected_attendees'],
+            'booking_source': 'demo_seed',
+            'event_id': event_id,
+            'notes': 'Demo booking generated by seed script',
+            'status': 'confirmed',
+            'created_at': datetime.now(timezone.utc),
+            'updated_at': datetime.now(timezone.utc)
+        })
+
+        order_id = str(uuid.uuid4())
+        catering_orders.append({
+            'id': order_id,
+            'tenant_id': tenant_id,
+            'event_id': event_id,
+            'guest_count': event['expected_attendees'],
+            'menu_items': [
+                {'name': 'Coffee Break', 'price': 12.0},
+                {'name': 'Buffet Lunch', 'price': 35.0},
+                {'name': 'Afternoon Snacks', 'price': 15.0}
+            ],
+            'service_type': 'buffet',
+            'special_requirements': 'Vegetarian options included',
+            'total_amount': round(event['expected_attendees'] * 45.0, 2),
+            'status': 'confirmed',
+            'created_at': datetime.now(timezone.utc)
+        })
+
+        beo_orders.append({
+            'id': str(uuid.uuid4()),
+            'tenant_id': tenant_id,
+            'event_name': event['event_name'],
+            'event_date': event_date,
+            'start_time': start_time,
+            'end_time': end_time,
+            'expected_guests': event['expected_attendees'],
+            'meeting_room_id': room['id'],
+            'setup_style': event['setup_type'],
+            'av_requirements': ['Stage Lighting', 'Backdrop'],
+            'total_cost': total_cost + 1500.0,
+            'catering_order_id': order_id,
+            'status': 'approved',
+            'notes': 'Auto-generated BEO from seed script',
+            'created_at': datetime.now(timezone.utc),
+            'updated_at': datetime.now(timezone.utc)
+        })
+
+    await db.event_bookings.insert_many(event_bookings)
+    await db.meeting_room_bookings.insert_many(room_bookings)
+    await db.catering_orders.insert_many(catering_orders)
+    await db.banquet_event_orders.insert_many(beo_orders)
+
+    print(f"Created {len(event_bookings)} event bookings, {len(room_bookings)} room bookings")
+
 async def create_message_templates(tenant_id):
     """Create message templates"""
     print("Creating message templates...")
@@ -821,6 +987,7 @@ async def main():
     await create_multi_room_reservations(tenant_id)
     await create_housekeeping_tasks(tenant_id)
     await create_pos_menu_and_orders(tenant_id)
+    await create_meeting_rooms_and_events(tenant_id)
     await create_message_templates(tenant_id)
     await create_competitors(tenant_id)
     
@@ -833,6 +1000,7 @@ async def main():
         'rooms': await db.rooms.count_documents({'tenant_id': tenant_id}),
         'guests': await db.guests.count_documents({'tenant_id': tenant_id}),
         'bookings': await db.bookings.count_documents({'tenant_id': tenant_id}),
+        'event_bookings': await db.event_bookings.count_documents({'tenant_id': tenant_id}),
         'folios': await db.folios.count_documents({'tenant_id': tenant_id}),
         'charges': await db.folio_charges.count_documents({'tenant_id': tenant_id}),
         'payments': await db.payments.count_documents({'tenant_id': tenant_id}),
@@ -843,6 +1011,10 @@ async def main():
         'guest_tags': await db.guest_tags.count_documents({'tenant_id': tenant_id}),
         'pos_menu_items': await db.pos_menu_items.count_documents({'tenant_id': tenant_id}),
         'pos_orders': await db.pos_orders.count_documents({'tenant_id': tenant_id}),
+        'meeting_rooms': await db.meeting_rooms.count_documents({'tenant_id': tenant_id}),
+        'meeting_room_bookings': await db.meeting_room_bookings.count_documents({'tenant_id': tenant_id}),
+        'catering_orders': await db.catering_orders.count_documents({'tenant_id': tenant_id}),
+        'banquet_event_orders': await db.banquet_event_orders.count_documents({'tenant_id': tenant_id}),
         'message_templates': await db.message_templates.count_documents({'tenant_id': tenant_id}),
         'competitors': await db.competitors.count_documents({'tenant_id': tenant_id})
     }

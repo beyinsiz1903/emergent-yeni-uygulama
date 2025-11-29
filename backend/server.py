@@ -49296,7 +49296,16 @@ if desktop_router:
 
 # Include World-Class PMS Features (Aşama 1, 2, 3)
 try:
-    from world_class_features import world_class_router
+    from world_class_features import (
+        world_class_router,
+        require_current_user as world_class_auth_dependency,
+        require_database as world_class_db_dependency,
+    )
+
+    # Wire FastAPI dependency overrides so the world_class router can reuse existing auth/db
+    app.dependency_overrides[world_class_auth_dependency] = get_current_user
+    app.dependency_overrides[world_class_db_dependency] = lambda: db
+
     app.include_router(world_class_router, tags=["world-class-features"])
     print("✅ World-Class PMS features included (116 endpoints): Group Management, Contactless, Sustainability, Voice AI, Blockchain, Metaverse, Advanced Analytics")
 except ImportError as e:

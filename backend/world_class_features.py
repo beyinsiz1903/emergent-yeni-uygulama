@@ -10,9 +10,33 @@ from datetime import datetime, timezone, timedelta
 from enum import Enum
 import uuid
 
+from meeting_events_models import (
+    MeetingRoomCreate,
+    MeetingRoomBookingCreate,
+    CateringOrderCreate,
+    BanquetEventOrderCreate,
+)
+from meeting_events_service import MeetingEventsService
+
 # Create separate router
 world_class_router = APIRouter(prefix="/api")
 security = HTTPBearer()
+
+
+async def require_current_user():
+    """Placeholder dependency overridden by server.py to inject authenticated user."""
+    raise HTTPException(status_code=401, detail="Authentication dependency not configured")
+
+
+async def require_database():
+    """Placeholder dependency overridden by server.py to inject Mongo client."""
+    raise HTTPException(status_code=500, detail="Database dependency not configured")
+
+
+def get_meeting_events_service(
+    db = Depends(require_database)
+) -> MeetingEventsService:
+    return MeetingEventsService(db)
 
 # ============================================================================
 # AŞAMA 1: OPERA CLOUD'U %100 GEÇMEK - EKSİK ÖZELLIKLER
@@ -58,47 +82,42 @@ class BanquetEventOrder(BaseModel):
 
 # Meeting Room Management
 @world_class_router.post("/events/meeting-rooms")
-async def create_meeting_room(room_data: dict, current_user = Depends(lambda: None)):
+async def create_meeting_room(
+    room_data: MeetingRoomCreate,
+    current_user = Depends(require_current_user),
+    service: MeetingEventsService = Depends(get_meeting_events_service)
+):
     """Create new meeting/conference room"""
+    room = await service.create_meeting_room(current_user.tenant_id, room_data)
     return {
         'success': True,
-        'room_id': str(uuid.uuid4()),
-        'message': 'Meeting room created successfully'
+        'room': room
     }
 
 @world_class_router.get("/events/meeting-rooms")
-async def get_meeting_rooms(current_user = Depends(lambda: None)):
+async def get_meeting_rooms(
+    current_user = Depends(require_current_user),
+    service: MeetingEventsService = Depends(get_meeting_events_service)
+):
     """Get all meeting rooms"""
+    rooms = await service.list_meeting_rooms(current_user.tenant_id)
     return {
-        'meeting_rooms': [
-            {
-                'id': str(uuid.uuid4()),
-                'room_name': 'Grand Ballroom',
-                'capacity': 500,
-                'hourly_rate': 200.0,
-                'full_day_rate': 1500.0,
-                'equipment': ['Projector', 'Sound System', 'Stage']
-            },
-            {
-                'id': str(uuid.uuid4()),
-                'room_name': 'Executive Board Room',
-                'capacity': 20,
-                'hourly_rate': 100.0,
-                'full_day_rate': 750.0,
-                'equipment': ['Video Conference', 'Whiteboard', 'Smart TV']
-            }
-        ],
-        'total_count': 2
+        'meeting_rooms': rooms,
+        'total_count': len(rooms)
     }
 
 @world_class_router.post("/events/meeting-rooms/{room_id}/book")
-async def book_meeting_room(room_id: str, booking_data: dict, current_user = Depends(lambda: None)):
+async def book_meeting_room(
+    room_id: str,
+    booking_data: MeetingRoomBookingCreate,
+    current_user = Depends(require_current_user),
+    service: MeetingEventsService = Depends(get_meeting_events_service)
+):
     """Book a meeting room"""
+    booking = await service.book_meeting_room(current_user.tenant_id, room_id, booking_data)
     return {
         'success': True,
-        'booking_id': str(uuid.uuid4()),
-        'room_id': room_id,
-        'message': 'Meeting room booked successfully'
+        'booking': booking
     }
 
 @world_class_router.get("/events/meeting-rooms/{room_id}/availability")
@@ -106,101 +125,96 @@ async def check_meeting_room_availability(
     room_id: str, 
     start_date: str, 
     end_date: str, 
-    current_user = Depends(lambda: None)
+    current_user = Depends(require_current_user),
+    service: MeetingEventsService = Depends(get_meeting_events_service)
 ):
     """Check meeting room availability for date range"""
-    return {
-        'room_id': room_id,
-        'start_date': start_date,
-        'end_date': end_date,
-        'available_slots': [
-            {'date': start_date, 'time': '09:00-12:00', 'available': True},
-            {'date': start_date, 'time': '14:00-17:00', 'available': False},
-            {'date': end_date, 'time': '09:00-17:00', 'available': True}
-        ],
-        'is_available': True
-    }
+    availability = await service.get_meeting_room_availability(
+        current_user.tenant_id,
+        room_id,
+        start_date,
+        end_date
+    )
+    return availability
 
 @world_class_router.post("/events/meeting-rooms/{room_id}/cancel")
 async def cancel_meeting_room_booking(
     room_id: str, 
     booking_id: str, 
-    current_user = Depends(lambda: None)
+    current_user = Depends(require_current_user),
+    service: MeetingEventsService = Depends(get_meeting_events_service)
 ):
     """Cancel meeting room booking"""
+    booking = await service.cancel_meeting_room_booking(current_user.tenant_id, booking_id)
     return {
         'success': True,
-        'room_id': room_id,
-        'booking_id': booking_id,
-        'cancellation_fee': 0.0,
-        'refund_amount': 100.0,
-        'message': 'Meeting room booking cancelled successfully'
+        'booking': booking
     }
 
 
 # Catering Management
 @world_class_router.post("/events/catering")
-async def create_catering_order(catering_data: dict, current_user = Depends(lambda: None)):
+async def create_catering_order(
+    catering_data: CateringOrderCreate,
+    current_user = Depends(require_current_user),
+    service: MeetingEventsService = Depends(get_meeting_events_service)
+):
     """Create catering order for event"""
+    order = await service.create_catering_order(current_user.tenant_id, catering_data)
     return {
         'success': True,
-        'order_id': str(uuid.uuid4()),
-        'estimated_cost': catering_data.get('guest_count', 0) * 25.0,
-        'message': 'Catering order created'
+        'order': order
     }
 
 @world_class_router.get("/events/catering")
-async def get_catering_orders(event_id: Optional[str] = None, current_user = Depends(lambda: None)):
+async def get_catering_orders(
+    event_id: Optional[str] = None,
+    current_user = Depends(require_current_user),
+    service: MeetingEventsService = Depends(get_meeting_events_service)
+):
     """Get catering orders"""
+    orders = await service.list_catering_orders(current_user.tenant_id, event_id)
     return {
-        'catering_orders': [],
-        'total_count': 0
+        'catering_orders': orders,
+        'total_count': len(orders)
     }
 
 # BEO - Banquet Event Order
 @world_class_router.post("/events/beo")
-async def create_beo(beo_data: dict, current_user = Depends(lambda: None)):
+async def create_beo(
+    beo_data: BanquetEventOrderCreate,
+    current_user = Depends(require_current_user),
+    service: MeetingEventsService = Depends(get_meeting_events_service)
+):
     """Create Banquet Event Order"""
+    beo = await service.create_beo(current_user.tenant_id, beo_data)
     return {
         'success': True,
-        'beo_id': str(uuid.uuid4()),
-        'event_name': beo_data.get('event_name'),
-        'message': 'BEO created successfully'
+        'beo': beo
     }
 
 @world_class_router.get("/events/beo")
-async def get_beo_list(start_date: Optional[str] = None, current_user = Depends(lambda: None)):
+async def get_beo_list(
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+    current_user = Depends(require_current_user),
+    service: MeetingEventsService = Depends(get_meeting_events_service)
+):
     """Get BEO list"""
+    beos = await service.list_beo(current_user.tenant_id, start_date, end_date)
     return {
-        'beo_list': [
-            {
-                'id': str(uuid.uuid4()),
-                'event_name': 'Corporate Annual Meeting 2025',
-                'event_date': '2025-12-15',
-                'expected_guests': 150,
-                'setup_style': 'theater',
-                'status': 'confirmed'
-            }
-        ],
-        'total_count': 1
+        'beo_list': beos,
+        'total_count': len(beos)
     }
 
 @world_class_router.get("/events/beo/{beo_id}")
-async def get_beo_details(beo_id: str, current_user = Depends(lambda: None)):
+async def get_beo_details(
+    beo_id: str,
+    current_user = Depends(require_current_user),
+    service: MeetingEventsService = Depends(get_meeting_events_service)
+):
     """Get BEO details"""
-    return {
-        'beo_id': beo_id,
-        'event_name': 'Corporate Annual Meeting 2025',
-        'event_date': '2025-12-15',
-        'meeting_room': 'Grand Ballroom',
-        'catering': {
-            'menu': 'Premium Buffet',
-            'guest_count': 150,
-            'cost': 3750.0
-        },
-        'av_requirements': ['Projector', 'Wireless Mics', 'LED Wall'],
-        'total_cost': 5250.0
-    }
+    return await service.get_beo_details(current_user.tenant_id, beo_id)
 
 # Group Pick-up Tracking
 @world_class_router.get("/events/group-pickup")
@@ -218,57 +232,46 @@ async def get_group_pickup(group_id: str, current_user = Depends(lambda: None)):
 
 # Event Calendar
 @world_class_router.get("/events/calendar")
-async def get_event_calendar(month: str, current_user = Depends(lambda: None)):
+async def get_event_calendar(
+    month: str,
+    current_user = Depends(require_current_user),
+    service: MeetingEventsService = Depends(get_meeting_events_service)
+):
     """Get event calendar for month"""
-    return {
-        'month': month,
-        'events': [
-            {
-                'date': '2025-12-15',
-                'event_name': 'Corporate Annual Meeting',
-                'guest_count': 150,
-                'revenue': 5250.0
-            }
-        ],
-        'total_events': 1,
-        'total_projected_revenue': 5250.0
-    }
+    return await service.get_event_calendar(current_user.tenant_id, month)
 
 # Event Revenue Report
 @world_class_router.get("/events/revenue-report")
-async def get_event_revenue(start_date: str, end_date: str, current_user = Depends(lambda: None)):
+async def get_event_revenue(
+    start_date: str,
+    end_date: str,
+    current_user = Depends(require_current_user),
+    service: MeetingEventsService = Depends(get_meeting_events_service)
+):
     """Get event revenue report"""
-    return {
-        'period': f"{start_date} to {end_date}",
-        'total_events': 12,
-        'total_revenue': 45000.0,
-        'breakdown': {
-            'room_rental': 18000.0,
-            'catering': 22000.0,
-            'av_equipment': 5000.0
-        }
-    }
+    return await service.get_event_revenue_report(current_user.tenant_id, start_date, end_date)
 
 # AV Equipment Management
 @world_class_router.get("/events/av-equipment")
-async def get_av_equipment(current_user = Depends(lambda: None)):
+async def get_av_equipment(
+    current_user = Depends(require_current_user),
+    service: MeetingEventsService = Depends(get_meeting_events_service)
+):
     """Get available AV equipment"""
-    return {
-        'equipment': [
-            {'name': 'Projector 4K', 'quantity': 5, 'hourly_rate': 50.0},
-            {'name': 'Wireless Mic Set', 'quantity': 10, 'hourly_rate': 25.0},
-            {'name': 'LED Wall', 'quantity': 2, 'daily_rate': 500.0}
-        ]
-    }
+    return await service.get_av_equipment(current_user.tenant_id)
 
 # Event Floor Plan
 @world_class_router.post("/events/floor-plan")
-async def save_floor_plan(plan_data: dict, current_user = Depends(lambda: None)):
+async def save_floor_plan(
+    plan_data: dict,
+    current_user = Depends(require_current_user),
+    service: MeetingEventsService = Depends(get_meeting_events_service)
+):
     """Save event floor plan/layout"""
+    plan = await service.save_floor_plan(current_user.tenant_id, plan_data)
     return {
         'success': True,
-        'plan_id': str(uuid.uuid4()),
-        'message': 'Floor plan saved'
+        'plan': plan
     }
 
 # ============= ADVANCED LOYALTY PROGRAM (8 ENDPOINTS) =============
