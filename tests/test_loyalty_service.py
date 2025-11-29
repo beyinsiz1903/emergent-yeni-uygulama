@@ -23,6 +23,7 @@ def build_service(initial=None):
         loyalty_promotions=InMemoryCollection(initial.get("loyalty_promotions")),
         loyalty_redemption_catalog=InMemoryCollection(initial.get("loyalty_redemption_catalog")),
         loyalty_redemptions=InMemoryCollection(initial.get("loyalty_redemptions")),
+        loyalty_automation_runs=InMemoryCollection(initial.get("loyalty_automation_runs")),
     )
     return LoyaltyService(db)
 
@@ -264,3 +265,55 @@ async def test_get_insights_returns_coherent_summary():
     assert insights["partner_activity"]["points_to_partner"] == 200
     assert insights["active_promotions"][0]["offer"] == "Double points weekends"
     assert len(insights["recommended_actions"]) >= 1
+
+
+@pytest.mark.asyncio
+async def test_run_automation_creates_queued_task():
+    tenant_id = "tenant-5"
+    now = datetime.now(timezone.utc)
+    service = build_service({
+        "guests": [
+            {"id": "guest-20", "tenant_id": tenant_id, "name": "Active Member", "loyalty_points": 6000, "loyalty_tier": "gold"},
+            {"id": "guest-21", "tenant_id": tenant_id, "name": "Dormant Member", "loyalty_points": 800, "loyalty_tier": "silver"},
+        ],
+        "loyalty_programs": [
+            {
+                "id": "member-20",
+                "tenant_id": tenant_id,
+                "guest_id": "guest-20",
+                "tier": "gold",
+                "points": 6000,
+                "lifetime_points": 11000,
+                "last_activity": now - timedelta(days=10)
+            },
+            {
+                "id": "member-21",
+                "tenant_id": tenant_id,
+                "guest_id": "guest-21",
+                "tier": "silver",
+                "points": 800,
+                "lifetime_points": 2000,
+                "last_activity": now - timedelta(days=120),
+                "points_expire_at": now + timedelta(days=15)
+            },
+        ],
+        "loyalty_transactions": [
+            {"id": "txn-10", "tenant_id": tenant_id, "guest_id": "guest-20", "points": 500, "transaction_type": "earned", "created_at": now - timedelta(days=20)},
+            {"id": "txn-11", "tenant_id": tenant_id, "guest_id": "guest-20", "points": 300, "transaction_type": "redeemed", "created_at": now - timedelta(days=15)},
+        ],
+    })
+
+    result = await service.run_automation(
+        tenant_id=tenant_id,
+        action_id="expiring_points",
+        actor="Automation Bot",
+        payload={"limit": 1, "lookback_days": 90}
+    )
+
+    assert result["success"] is True
+    automation = result["automation"]
+    assert automation["action_id"] == "expiring_points"
+    assert automation["targets"]
+    runs_collection = service.db.loyalty_automation_runs.documents
+    assert len(runs_collection) == 1
+    assert runs_collection[0]["initiated_by"] == "Automation Bot"

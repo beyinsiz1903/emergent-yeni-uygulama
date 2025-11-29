@@ -48,11 +48,17 @@ const LoyaltyInsights = () => {
   const [insights, setInsights] = useState(null);
   const [lookback, setLookback] = useState('90');
   const [loading, setLoading] = useState(true);
+  const [automationRuns, setAutomationRuns] = useState([]);
+  const [runningAction, setRunningAction] = useState(null);
   const navigate = useNavigate();
 
   useEffect(() => {
     loadInsights(lookback);
   }, [lookback]);
+
+  useEffect(() => {
+    loadAutomationRuns();
+  }, []);
 
   const loadInsights = async (range) => {
     try {
@@ -65,6 +71,31 @@ const LoyaltyInsights = () => {
       toast.error('Loyalty analitikleri yüklenemedi');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadAutomationRuns = async () => {
+    try {
+      const response = await axios.get('/loyalty/actions', { params: { limit: 12 } });
+      setAutomationRuns(response.data?.runs || []);
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  const triggerAutomation = async (actionId) => {
+    try {
+      setRunningAction(actionId);
+      await axios.post('/loyalty/actions/run', {
+        action_id: actionId,
+        lookback_days: parseInt(lookback, 10)
+      });
+      toast.success('Otomasyon kuyruğa alındı');
+      await Promise.all([loadAutomationRuns(), loadInsights(lookback)]);
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Otomasyon tetiklenemedi');
+    } finally {
+      setRunningAction(null);
     }
   };
 
@@ -363,6 +394,44 @@ const LoyaltyInsights = () => {
                 <ShieldCheck className="w-4 h-4" />
                 {action.category}
               </div>
+              <Button
+                size="sm"
+                className="w-full"
+                disabled={runningAction === action.id}
+                onClick={() => triggerAutomation(action.id)}
+              >
+                {runningAction === action.id ? 'Çalışıyor...' : 'Otomasyonu Başlat'}
+              </Button>
+            </div>
+          ))}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Otomasyon Geçmişi</CardTitle>
+          <p className="text-sm text-gray-500">Son 12 çalışma</p>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {automationRuns.length === 0 && <p className="text-sm text-gray-500">Henüz otomasyon çalıştırılmadı</p>}
+          {automationRuns.map((run) => (
+            <div key={run.id} className="border rounded-lg p-3 space-y-2">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="font-semibold">{run.title}</p>
+                  <p className="text-xs text-gray-500">{run.created_at ? new Date(run.created_at).toLocaleString('tr-TR') : ''}</p>
+                </div>
+                <Badge variant="outline" className="capitalize">
+                  {run.summary?.category || 'otomasyon'}
+                </Badge>
+              </div>
+              <p className="text-sm text-gray-600">Hedef: {run.targets?.length || 0} üye</p>
+              {run.summary?.message && (
+                <p className="text-xs text-gray-500 italic">“{run.summary.message}”</p>
+              )}
+              {run.summary?.offer && (
+                <p className="text-xs text-gray-500 italic">Teklif: {run.summary.offer}</p>
+              )}
             </div>
           ))}
         </CardContent>

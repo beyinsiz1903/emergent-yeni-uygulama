@@ -10,6 +10,11 @@ class InMemoryCursor:
         self._items.sort(key=lambda item: item.get(key), reverse=reverse)
         return self
 
+    def limit(self, value):
+        if value is not None:
+            self._items = self._items[:value]
+        return self
+
     async def to_list(self, length):
         return self._items[:length]
 

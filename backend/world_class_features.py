@@ -296,6 +296,12 @@ class LoyaltyTier(str, Enum):
     PLATINUM = "platinum"
     DIAMOND = "diamond"
 
+class LoyaltyAutomationRequest(BaseModel):
+    action_id: str
+    lookback_days: int | None = None
+    limit: int | None = None
+    notes: Optional[str] = None
+
 @world_class_router.post("/loyalty/upgrade-tier")
 async def upgrade_loyalty_tier(
     guest_id: str,
@@ -394,6 +400,28 @@ async def get_loyalty_insights(
 ):
     """Get loyalty analytics overview for GM dashboards"""
     return await service.get_insights(current_user.tenant_id, lookback_days)
+
+
+@world_class_router.post("/loyalty/actions/run")
+async def run_loyalty_action(
+    request: LoyaltyAutomationRequest,
+    current_user = Depends(require_current_user),
+    service: LoyaltyService = Depends(get_loyalty_service)
+):
+    """Trigger automated loyalty action based on insights"""
+    payload = request.model_dump(exclude={'action_id'}, exclude_none=True)
+    actor = getattr(current_user, 'name', 'system')
+    return await service.run_automation(current_user.tenant_id, request.action_id, actor, payload)
+
+
+@world_class_router.get("/loyalty/actions")
+async def list_loyalty_actions(
+    limit: int = 20,
+    current_user = Depends(require_current_user),
+    service: LoyaltyService = Depends(get_loyalty_service)
+):
+    """List recent loyalty automation runs"""
+    return await service.list_automation_runs(current_user.tenant_id, limit)
 
 # ============= GUEST SERVICES (8 ENDPOINTS) =============
 

@@ -40,6 +40,28 @@ DEFAULT_TIER_BENEFITS = {
 class LoyaltyService:
     POSITIVE_TRANSACTION_TYPES = {"earned", "bonus", "adjustment_credit", "manual_credit"}
     NEGATIVE_TRANSACTION_TYPES = {"redeemed", "expired", "adjustment_debit", "manual_debit"}
+    AUTOMATION_ACTIONS = {
+        "expiring_points": {
+            "title": "Expiring Points Outreach",
+            "category": "retention",
+            "description": "Send reminder to members whose points expire soon.",
+        },
+        "reactivate_members": {
+            "title": "Dormant Member Reactivation",
+            "category": "engagement",
+            "description": "Target members inactive for 60+ days with a comeback incentive.",
+        },
+        "boost_redemptions": {
+            "title": "Boost Redemptions",
+            "category": "monetization",
+            "description": "Offer limited-time bonus for high-value members to redeem points.",
+        },
+        "partner_activation": {
+            "title": "Partner Earn Campaign",
+            "category": "partnerships",
+            "description": "Invite members to earn with airline or retail partners.",
+        },
+    }
 
     def __init__(self, db):
         self.db = db
@@ -617,6 +639,105 @@ class LoyaltyService:
             'active_promotions': active_promotions,
             'recommended_actions': recommendations
         }
+
+    async def run_automation(
+        self,
+        tenant_id: str,
+        action_id: str,
+        actor: str,
+        payload: Optional[Dict[str, Any]] = None,
+    ) -> Dict[str, Any]:
+        payload = payload or {}
+        action = self.AUTOMATION_ACTIONS.get(action_id)
+        if not action:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unsupported automation action")
+
+        lookback = int(payload.get('lookback_days', 90))
+        limit = int(payload.get('limit', 10))
+        limit = max(1, min(limit, 50))
+        insights = await self.get_insights(tenant_id, lookback)
+        now = datetime.now(timezone.utc)
+
+        targets: List[Dict[str, Any]] = []
+        summary: Dict[str, Any] = {'category': action['category']}
+
+        if action_id == 'expiring_points':
+            expiring_list = insights.get('expiring_points', {}).get('expiring_soon', [])
+            targets = expiring_list[:limit]
+            if not targets:
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="No members with expiring points found")
+            summary |= {
+                'template': 'points_expiring',
+                'message': payload.get('message') or 'Puanlarınız yakında sona eriyor. Şimdi kullanın!',
+            }
+        elif action_id == 'reactivate_members':
+            churn_list = insights.get('churn_risk', [])
+            targets = churn_list[:limit]
+            if not targets:
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="No dormant members available")
+            summary |= {
+                'template': 'reactivation_offer',
+                'offer': payload.get('offer') or 'Geri dönün: 2 gecelik konaklamaya +500 puan',
+            }
+        elif action_id == 'boost_redemptions':
+            high_value_members = insights.get('top_members', [])
+            targets = high_value_members[:limit]
+            if not targets:
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="No high-value members found")
+            summary |= {
+                'template': 'redemption_flash_sale',
+                'bonus': payload.get('bonus') or 'Bu hafta redemption işlemlerinde %25 indirim',
+            }
+        elif action_id == 'partner_activation':
+            partner_stats = insights.get('partner_activity', {})
+            if partner_stats.get('points_from_partner', 0) > 0:
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Partner kazanımları zaten aktif görünüyor")
+            targets = partner_stats.get('recent_transfers', [])
+            summary |= {
+                'template': 'partner_campaign',
+                'partner': payload.get('partner') or 'AirlineX',
+                'call_to_action': 'Yeni partner kampanyasıyla çift puan kazanın',
+            }
+        else:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unknown automation action")
+
+        run_doc = {
+            'id': str(uuid.uuid4()),
+            'tenant_id': tenant_id,
+            'action_id': action_id,
+            'title': action['title'],
+            'initiated_by': actor,
+            'parameters': {
+                'lookback_days': lookback,
+                'limit': limit,
+                **{k: v for k, v in payload.items() if k not in {'lookback_days', 'limit'}}
+            },
+            'targets': targets,
+            'summary': summary,
+            'status': 'queued',
+            'created_at': now,
+        }
+        await self.db.loyalty_automation_runs.insert_one(run_doc)
+        run_doc['created_at'] = run_doc['created_at'].isoformat()
+
+        return {
+            'success': True,
+            'automation': run_doc
+        }
+
+    async def list_automation_runs(self, tenant_id: str, limit: int = 20) -> Dict[str, Any]:
+        cursor = (
+            self.db.loyalty_automation_runs.find({'tenant_id': tenant_id}, {'_id': 0})
+            .sort('created_at', -1)
+        )
+        if limit:
+            cursor = cursor.limit(limit)
+        runs = await cursor.to_list(limit or 100)
+        for run in runs:
+            created_at = self._ensure_datetime(run.get('created_at'))
+            if created_at:
+                run['created_at'] = created_at.isoformat()
+        return {'runs': runs}
 
     # ------------------------------------------------------------------
     # Internal helpers
