@@ -164,14 +164,14 @@ def test_night_audit_flow():
     print_test_header("STEP 3: POST /api/night-audit/no-show-handling")
     
     try:
-        no_show_data = {
+        params = {
             "audit_date": yesterday,
             "charge_no_show_fee": True
         }
         
         response = requests.post(
             f"{API_BASE}/night-audit/no-show-handling", 
-            json=no_show_data, 
+            params=params, 
             headers=headers, 
             timeout=15
         )
