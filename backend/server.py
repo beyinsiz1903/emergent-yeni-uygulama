@@ -40451,7 +40451,6 @@ async def get_group_bookings(
     return group_bookings
 
 class MultiRoomBookingCreate(BaseModel):
-class MultiRoomBookingCreate(BaseModel):
     guest_id: Optional[str] = None
     guest: Optional[GuestCreate] = None
     arrival_date: str
@@ -40468,16 +40467,6 @@ class MultiRoomBookingCreate(BaseModel):
     billing_address: Optional[str] = None
     billing_tax_number: Optional[str] = None
     billing_contact_person: Optional[str] = None
-
-
-    guest_id: Optional[str] = None
-    guest: Optional[GuestCreate] = None
-    arrival_date: str
-    departure_date: str
-    rooms: List[dict]
-    company_id: Optional[str] = None
-    channel: ChannelType = ChannelType.DIRECT
-    special_requests: Optional[str] = None
 
 @api_router.post("/pms/bookings/multi-room", response_model=List[Booking])
 async def create_multi_room_booking(
