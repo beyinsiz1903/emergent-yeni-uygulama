@@ -5541,7 +5541,13 @@ const PMSModule = ({ user, tenant, onLogout }) => {
           actions={[
             {
               label: 'New Booking',
-      {/* Maintenance Work Order Dialog */}
+              icon: Plus,
+              onClick: () => setOpenDialog('newbooking')
+            }
+          ]}
+        />
+
+        {/* Maintenance Work Order Dialog */}
       <Dialog open={maintenanceDialogOpen} onOpenChange={setMaintenanceDialogOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
