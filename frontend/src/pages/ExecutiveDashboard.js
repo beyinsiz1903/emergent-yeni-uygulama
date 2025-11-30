@@ -45,7 +45,6 @@ const ExecutiveDashboard = ({ user }) => {
     }, 60000);
 
     return () => clearInterval(interval);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [budgetYear]);
 
   const loadData = async (isAutoRefresh = false) => {
