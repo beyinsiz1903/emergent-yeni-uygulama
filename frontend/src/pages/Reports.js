@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import NightAuditModule from "@/components/NightAuditModule";
 import axios from 'axios';
 import { toast } from 'sonner';
 import Layout from '@/components/Layout';
