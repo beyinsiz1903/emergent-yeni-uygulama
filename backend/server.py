@@ -46794,6 +46794,146 @@ async def get_corporate_contract_utilization(
     if total_committed > 0:
         avg_utilization = round((total_actual / total_committed) * 100, 1)
 
+
+# ============= MAINTENANCE ASSETS & PREVENTIVE PLANS =============
+
+@api_router.post("/maintenance/assets")
+async def create_maintenance_asset(
+    data: MaintenanceAsset,
+    current_user: User = Depends(get_current_user)
+):
+    asset = data.model_copy(update={
+        'tenant_id': current_user.tenant_id,
+        'id': str(uuid.uuid4()),
+    })
+    await db.maintenance_assets.insert_one(asset.model_dump())
+    return asset
+
+
+@api_router.get("/maintenance/assets")
+async def list_maintenance_assets(
+    asset_type: Optional[str] = None,
+    room_id: Optional[str] = None,
+    current_user: User = Depends(get_current_user)
+):
+    query = {'tenant_id': current_user.tenant_id}
+    if asset_type:
+        query['asset_type'] = asset_type
+    if room_id:
+        query['room_id'] = room_id
+
+    items = await db.maintenance_assets.find(query, {'_id': 0}).to_list(1000)
+    return {'items': items, 'count': len(items)}
+
+
+@api_router.post("/maintenance/plans")
+async def create_preventive_plan(
+    data: PreventiveMaintenancePlan,
+    current_user: User = Depends(get_current_user)
+):
+    plan = data.model_copy(update={
+        'tenant_id': current_user.tenant_id,
+        'id': str(uuid.uuid4()),
+    })
+    await db.maintenance_plans.insert_one(plan.model_dump())
+    return plan
+
+
+@api_router.get("/maintenance/plans")
+async def list_preventive_plans(
+    asset_id: Optional[str] = None,
+    current_user: User = Depends(get_current_user)
+):
+    query = {'tenant_id': current_user.tenant_id}
+    if asset_id:
+        query['asset_id'] = asset_id
+
+    items = await db.maintenance_plans.find(query, {'_id': 0}).to_list(1000)
+    return {'items': items, 'count': len(items)}
+
+
+@api_router.post("/maintenance/plans/run-scheduler")
+async def run_preventive_maintenance_scheduler(
+    current_user: User = Depends(get_current_user)
+):
+    """Trigger preventive maintenance scheduler
+
+    - Finds plans where next_due_date <= today and is_active
+    - Creates maintenance work orders for due plans
+    - Updates last_completed_date and next_due_date
+    """
+    tenant_id = current_user.tenant_id
+    now = datetime.now(timezone.utc)
+    today = now.date()
+
+    due_plans_cursor = db.maintenance_plans.find({
+        'tenant_id': tenant_id,
+        'is_active': True,
+        'next_due_date': {'$lte': now.isoformat()}
+    }, {'_id': 0})
+
+    created_orders = []
+
+    async for plan in due_plans_cursor:
+        asset = None
+        if plan.get('asset_id'):
+            asset = await db.maintenance_assets.find_one({
+                'tenant_id': tenant_id,
+                'id': plan['asset_id']
+            }, {'_id': 0})
+
+        room_id = asset.get('room_id') if asset else None
+        room_number = asset.get('room_number') if asset else None
+
+        wo_data = MaintenanceWorkOrder(
+            asset_id=plan.get('asset_id'),
+            plan_id=plan.get('id'),
+            room_id=room_id,
+            room_number=room_number,
+            issue_type=plan.get('default_issue_type', 'other'),
+            priority=plan.get('default_priority', 'normal'),
+            source='preventive_plan',
+            description=plan.get('description') or f"Preventive maintenance for plan {plan.get('id')}"
+        )
+        wo_payload = wo_data.model_dump()
+        wo_payload.update({
+            'id': str(uuid.uuid4()),
+            'tenant_id': tenant_id,
+            'reported_by_user_id': current_user.id,
+            'reported_by_role': current_user.role,
+            'created_at': now.isoformat(),
+            'status': 'open',
+        })
+
+        await db.maintenance_work_orders.insert_one(wo_payload)
+        created_orders.append(wo_payload)
+
+        # Calculate next_due_date
+        freq_type = plan.get('frequency_type')
+        freq_val = plan.get('frequency_value', 0)
+        next_due = now
+        if freq_type == 'days':
+            next_due = now + timedelta(days=freq_val)
+        elif freq_type == 'weeks':
+            next_due = now + timedelta(weeks=freq_val)
+        elif freq_type == 'months':
+            # Approximate months as 30 days
+            next_due = now + timedelta(days=30 * freq_val)
+
+        await db.maintenance_plans.update_one(
+            {'tenant_id': tenant_id, 'id': plan['id']},
+            {'$set': {
+                'last_completed_date': now.isoformat(),
+                'next_due_date': next_due.isoformat(),
+            }}
+        )
+
+    return {
+        'created_count': len(created_orders),
+        'orders': created_orders,
+    }
+
+
     return {
         'contracts': contracts,
         'summary': {
