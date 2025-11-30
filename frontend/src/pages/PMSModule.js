@@ -2403,7 +2403,7 @@ const PMSModule = ({ user, tenant, onLogout }) => {
                 <CardContent className="p-4">
                   <div className="text-xs text-gray-600">Total Revenue</div>
                   <div className="text-2xl font-bold text-green-600">
-                    ${bookings.reduce((sum, b) => sum + (b.total_amount || 0), 0).toFixed(0)}
+                    ${bookingStats.totalRevenue.toFixed(0)}
                   </div>
                 </CardContent>
               </Card>
