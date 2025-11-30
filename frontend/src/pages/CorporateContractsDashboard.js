@@ -139,11 +139,18 @@ const CorporateContractsDashboard = ({ user, tenant, onLogout }) => {
                           <td className="py-2 pr-3 text-right">{c.actual_room_nights}</td>
                           <td className="py-2 pr-3 text-right">
                             <div className="flex items-center gap-2 justify-end">
-                              <span className="text-[11px] font-medium {isUnderUtil ? 'text-amber-700' : 'text-green-700'}">
+                              <span
+                                className={`text-[11px] font-medium ${
+                                  isUnderUtil ? 'text-amber-700' : 'text-green-700'
+                                }`}
+                              >
                                 {utilization}%
                               </span>
                               <div className="w-24">
-                                <Progress value={utilization} className={isUnderUtil ? "h-1 bg-amber-100" : "h-1 bg-emerald-100"} />
+                                <Progress
+                                  value={utilization}
+                                  className={isUnderUtil ? 'h-1 bg-amber-100' : 'h-1 bg-emerald-100'}
+                                />
                               </div>
                             </div>
                           </td>
