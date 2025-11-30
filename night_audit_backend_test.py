@@ -130,13 +130,13 @@ def test_night_audit_flow():
     print_test_header("STEP 2: POST /api/night-audit/automatic-posting")
     
     try:
-        posting_data = {
+        params = {
             "audit_date": yesterday
         }
         
         response = requests.post(
             f"{API_BASE}/night-audit/automatic-posting", 
-            json=posting_data, 
+            params=params, 
             headers=headers, 
             timeout=15
         )
