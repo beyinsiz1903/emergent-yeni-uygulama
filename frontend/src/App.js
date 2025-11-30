@@ -100,6 +100,8 @@ const NightAuditLogs = lazy(() => import("@/pages/NightAuditLogs"));
 const FrontdeskAuditChecklist = lazy(() => import("@/pages/FrontdeskAuditChecklist"));
 const CorporateContractsDashboard = lazy(() => import("@/pages/CorporateContractsDashboard"));
 const MaintenanceWorkOrders = lazy(() => import("@/pages/MaintenanceWorkOrders"));
+const MaintenanceAssets = lazy(() => import("@/pages/MaintenanceAssets"));
+const MaintenancePlans = lazy(() => import("@/pages/MaintenancePlans"));
 
 import { Toaster } from "@/components/ui/sonner";
 
