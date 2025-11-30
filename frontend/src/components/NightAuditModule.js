@@ -1,237 +1,407 @@
 import React, { useState, useEffect } from 'react';
+import axios from 'axios';
 import { Card, CardHeader, CardTitle, CardContent } from './ui/card';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
-import { Moon, PlayCircle, CheckCircle, AlertTriangle, Clock, TrendingUp } from 'lucide-react';
+import { Input } from './ui/input';
+import { Moon, PlayCircle, CheckCircle, AlertTriangle, Clock, TrendingUp, Calendar } from 'lucide-react';
+
+// Helper to get yesterday in YYYY-MM-DD format
+const getDefaultAuditDate = () => {
+  const d = new Date();
+  d.setDate(d.getDate() - 1);
+  return d.toISOString().split('T')[0];
+};
 
 const NightAuditModule = () => {
-  const [auditStatus, setAuditStatus] = useState(null);
-  const [history, setHistory] = useState([]);
-  const [running, setRunning] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const [auditDate, setAuditDate] = useState(getDefaultAuditDate);
+  const [status, setStatus] = useState(null);
+  const [report, setReport] = useState(null);
+  const [auditId, setAuditId] = useState(null);
 
+  const [startResult, setStartResult] = useState(null);
+  const [autoPostingResult, setAutoPostingResult] = useState(null);
+  const [noShowResult, setNoShowResult] = useState(null);
+  const [endOfDayResult, setEndOfDayResult] = useState(null);
+
+  const [chargeNoShowFee, setChargeNoShowFee] = useState(true);
+  const [loadingStatus, setLoadingStatus] = useState(false);
+  const [runningStep, setRunningStep] = useState(null); // 'start' | 'auto' | 'noShow' | 'end'
+
+  // Fetch status + report when auditDate changes
   useEffect(() => {
-    fetchAuditStatus();
-    fetchAuditHistory();
-  }, []);
+    fetchStatusAndReport();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [auditDate]);
 
-  const fetchAuditStatus = async () => {
+  const fetchStatusAndReport = async () => {
+    setLoadingStatus(true);
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(
-        `${process.env.REACT_APP_BACKEND_URL}/api/night-audit/status`,
-        {
-          headers: { 'Authorization': `Bearer ${token}` }
-        }
-      );
-      const data = await response.json();
-      setAuditStatus(data);
-    } catch (error) {
-      console.error('Error fetching audit status:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchAuditHistory = async () => {
-    try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(
-        `${process.env.REACT_APP_BACKEND_URL}/api/night-audit/history?days=30`,
-        {
-          headers: { 'Authorization': `Bearer ${token}` }
-        }
-      );
-      const data = await response.json();
-      setHistory(data.history || []);
-    } catch (error) {
-      console.error('Error fetching audit history:', error);
-    }
-  };
-
-  const runNightAudit = async () => {
-    setRunning(true);
-    try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(
-        `${process.env.REACT_APP_BACKEND_URL}/api/night-audit/run`,
-        {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            audit_date: new Date().toISOString()
-          })
-        }
-      );
-      
-      if (response.ok) {
-        alert('Night audit started successfully!');
-        fetchAuditStatus();
-        fetchAuditHistory();
+      // Status
+      const statusRes = await axios.get('/night-audit/status', {
+        params: { audit_date: auditDate },
+      });
+      setStatus(statusRes.data);
+      if (statusRes.data && statusRes.data.id) {
+        setAuditId(statusRes.data.id);
       }
-    } catch (error) {
-      console.error('Error running night audit:', error);
-      alert('Failed to run night audit');
+
+      // Report (may not exist yet)
+      try {
+        const reportRes = await axios.get('/night-audit/audit-report', {
+          params: { audit_date: auditDate },
+        });
+        setReport(reportRes.data);
+      } catch (err) {
+        // 404 means henüz audit yok; bu durumda raporu temizleyelim
+        setReport(null);
+      }
+    } catch (err) {
+      console.error('Error fetching night audit status/report', err);
     } finally {
-      setRunning(false);
+      setLoadingStatus(false);
     }
   };
 
-  if (loading) {
-    return <div className="flex items-center justify-center h-64">Loading...</div>;
-  }
+  const handleStartAudit = async () => {
+    setRunningStep('start');
+    try {
+      const res = await axios.post('/night-audit/start-audit', null, {
+        params: { audit_date: auditDate },
+      });
+      setStartResult(res.data);
+      if (res.data.audit_id) {
+        setAuditId(res.data.audit_id);
+      }
+      await fetchStatusAndReport();
+    } catch (err) {
+      console.error('Error starting night audit', err);
+      window.alert('Night audit başlatılamadı. Detay için konsolu kontrol edin.');
+    } finally {
+      setRunningStep(null);
+    }
+  };
+
+  const handleAutomaticPosting = async () => {
+    setRunningStep('auto');
+    try {
+      const res = await axios.post('/night-audit/automatic-posting', null, {
+        params: { audit_date: auditDate },
+      });
+      setAutoPostingResult(res.data);
+      await fetchStatusAndReport();
+    } catch (err) {
+      console.error('Error in automatic posting', err);
+      window.alert('Oda gelirleri post edilirken hata oluştu.');
+    } finally {
+      setRunningStep(null);
+    }
+  };
+
+  const handleNoShowHandling = async () => {
+    setRunningStep('noShow');
+    try {
+      const res = await axios.post('/night-audit/no-show-handling', null, {
+        params: {
+          audit_date: auditDate,
+          charge_no_show_fee: chargeNoShowFee,
+        },
+      });
+      setNoShowResult(res.data);
+      await fetchStatusAndReport();
+    } catch (err) {
+      console.error('Error processing no-shows', err);
+      window.alert('No-show işlemleri sırasında hata oluştu.');
+    } finally {
+      setRunningStep(null);
+    }
+  };
+
+  const handleEndOfDay = async () => {
+    if (!auditId) {
+      window.alert('Önce audit başlatılmalı (Audit ID bulunamadı).');
+      return;
+    }
+    setRunningStep('end');
+    try {
+      const res = await axios.post('/night-audit/end-of-day', null, {
+        params: { audit_id: auditId },
+      });
+      setEndOfDayResult(res.data);
+      await fetchStatusAndReport();
+    } catch (err) {
+      console.error('Error completing end-of-day', err);
+      window.alert('Gün sonu kapanışında hata oluştu.');
+    } finally {
+      setRunningStep(null);
+    }
+  };
+
+  const disabledAll = loadingStatus || runningStep !== null;
+
+  const currentAudit = report?.audit || null;
+  const bookingsByStatus = report?.bookings_by_status || [];
 
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold flex items-center gap-2">
-            <Moon className="w-8 h-8 text-blue-600" />
+          <h1 className="text-2xl font-bold flex items-center gap-2">
+            <Moon className="w-7 h-7 text-blue-600" />
             Night Audit
           </h1>
-          <p className="text-gray-600">Daily closing procedures and date rollover</p>
+          <p className="text-gray-600 text-sm">
+            Belirli bir iş günü için no-show, oda gelirleri ve gün sonu kapanışını yönetin.
+          </p>
         </div>
-        <Button
-          onClick={runNightAudit}
-          disabled={running || auditStatus?.status === 'completed'}
-          size="lg"
-        >
-          <PlayCircle className="w-5 h-5 mr-2" />
-          {running ? 'Running...' : 'Run Night Audit'}
-        </Button>
+        <div className="flex items-center gap-3">
+          <div className="text-sm text-gray-600 flex items-center gap-2">
+            <Calendar className="w-4 h-4" />
+            <span>Audit Date</span>
+          </div>
+          <Input
+            type="date"
+            className="w-40 h-9"
+            value={auditDate}
+            onChange={(e) => setAuditDate(e.target.value)}
+            disabled={disabledAll}
+          />
+        </div>
       </div>
 
-      {/* Status Cards */}
+      {/* Status cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="text-sm text-gray-600">Last Audit</div>
-                <div className="text-2xl font-bold">
-                  {auditStatus?.last_audit_date || 'N/A'}
-                </div>
-              </div>
-              <Clock className="w-8 h-8 text-blue-600" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="text-sm text-gray-600">Status</div>
-                <Badge className={auditStatus?.status === 'completed' ? 'bg-green-500' : 'bg-yellow-500'}>
-                  {auditStatus?.status || 'Unknown'}
+          <CardContent className="p-4 flex items-center justify-between">
+            <div>
+              <div className="text-xs text-gray-500 mb-1">Durum</div>
+              <div className="flex items-center gap-2">
+                <Badge
+                  className={
+                    status?.status === 'completed'
+                      ? 'bg-green-500'
+                      : status?.status === 'in_progress'
+                      ? 'bg-yellow-500'
+                      : 'bg-gray-400'
+                  }
+                >
+                  {status?.status || 'not_started'}
                 </Badge>
               </div>
-              {auditStatus?.status === 'completed' ? (
-                <CheckCircle className="w-8 h-8 text-green-600" />
-              ) : (
-                <AlertTriangle className="w-8 h-8 text-yellow-600" />
-              )}
             </div>
+            {status?.status === 'completed' ? (
+              <CheckCircle className="w-7 h-7 text-green-600" />
+            ) : (
+              <AlertTriangle className="w-7 h-7 text-yellow-500" />
+            )}
           </CardContent>
         </Card>
 
         <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="text-sm text-gray-600">Next Audit Due</div>
-                <div className="text-lg font-bold">
-                  {auditStatus?.next_audit_due || 'N/A'}
-                </div>
+          <CardContent className="p-4 flex items-center justify-between">
+            <div>
+              <div className="text-xs text-gray-500 mb-1">Toplam Odalar</div>
+              <div className="text-xl font-semibold">
+                {currentAudit?.total_rooms ?? '-'}
               </div>
-              <TrendingUp className="w-8 h-8 text-purple-600" />
             </div>
+            <TrendingUp className="w-7 h-7 text-blue-600" />
           </CardContent>
         </Card>
 
         <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="text-sm text-gray-600">Pending Tasks</div>
-                <div className="text-2xl font-bold">
-                  {auditStatus?.pending_tasks?.length || 0}
-                </div>
+          <CardContent className="p-4 flex items-center justify-between">
+            <div>
+              <div className="text-xs text-gray-500 mb-1">Doluluk (%)</div>
+              <div className="text-xl font-semibold">
+                {currentAudit && currentAudit.total_rooms > 0
+                  ? `${(
+                      (currentAudit.occupied_rooms / currentAudit.total_rooms) * 100
+                    ).toFixed(1)}%`
+                  : '-'}
               </div>
-              <AlertTriangle className="w-8 h-8 text-orange-600" />
             </div>
+            <Clock className="w-7 h-7 text-purple-600" />
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-4 flex items-center justify-between">
+            <div>
+              <div className="text-xs text-gray-500 mb-1">Toplam Gelir</div>
+              <div className="text-xl font-semibold">
+                {currentAudit?.total_revenue != null
+                  ? `€${currentAudit.total_revenue.toFixed(2)}`
+                  : '-'}
+              </div>
+            </div>
+            <TrendingUp className="w-7 h-7 text-green-600" />
           </CardContent>
         </Card>
       </div>
 
-      {/* Audit Process Steps */}
+      {/* Steps */}
       <Card>
         <CardHeader>
-          <CardTitle>Night Audit Process</CardTitle>
+          <CardTitle>Night Audit Adımları</CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            {[
-              { step: 'Process No-Shows', desc: 'Identify and charge no-show bookings' },
-              { step: 'Post Room Revenues', desc: 'Post daily room charges to folios' },
-              { step: 'Roll Business Date', desc: 'Advance system date to next day' },
-              { step: 'Generate Reports', desc: 'Create daily operational reports' },
-              { step: 'Backup Data', desc: 'Create system backup' }
-            ].map((item, idx) => (
-              <div key={idx} className="flex items-center gap-4 p-4 bg-gray-50 rounded-lg">
-                <div className="w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold">
-                  {idx + 1}
-                </div>
-                <div className="flex-1">
-                  <div className="font-semibold">{item.step}</div>
-                  <div className="text-sm text-gray-600">{item.desc}</div>
-                </div>
-                <CheckCircle className="w-5 h-5 text-green-600" />
+        <CardContent className="space-y-4">
+          {/* Step 1 */}
+          <div className="flex flex-col md:flex-row md:items-center gap-4 p-3 rounded-lg border border-gray-100 bg-white">
+            <div className="flex-1">
+              <div className="font-semibold">1. Audit Başlat</div>
+              <div className="text-xs text-gray-600">
+                Bu tarih için night audit kaydı oluşturur, oda ve gelir istatistiklerini toplar.
               </div>
-            ))}
+              {startResult && (
+                <div className="mt-2 text-xs text-gray-600">
+                  <span className="font-medium">Statistikler:</span>{' '}
+                  {startResult.statistics && (
+                    <>
+                      Odalar: {startResult.statistics.total_rooms} | Doluluk: {startResult.statistics.occupancy_pct}% | Toplam
+                      Gelir: €{startResult.statistics.total_revenue}
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
+            <Button
+              variant="outline"
+              onClick={handleStartAudit}
+              disabled={disabledAll}
+            >
+              <PlayCircle className="w-4 h-4 mr-2" />
+              {runningStep === 'start' ? 'Çalışıyor...' : 'Audit Başlat'}
+            </Button>
+          </div>
+
+          {/* Step 2 */}
+          <div className="flex flex-col md:flex-row md:items-center gap-4 p-3 rounded-lg border border-gray-100 bg-white">
+            <div className="flex-1">
+              <div className="font-semibold">2. Oda Gelirlerini Post Et</div>
+              <div className="text-xs text-gray-600">
+                Check-in durumundaki tüm odalar için günlük oda ücreti ve vergi
+                kayıtlarını folio&apos;lara ekler.
+              </div>
+              {autoPostingResult && (
+                <div className="mt-2 text-xs text-gray-600">
+                  <span className="font-medium">Sonuç:</span>{' '}
+                  {autoPostingResult.posted_count} rezervasyon, toplam €
+                  {autoPostingResult.total_amount_posted}
+                </div>
+              )}
+            </div>
+            <Button
+              variant="outline"
+              onClick={handleAutomaticPosting}
+              disabled={disabledAll}
+            >
+              <PlayCircle className="w-4 h-4 mr-2" />
+              {runningStep === 'auto' ? 'Çalışıyor...' : 'Oda Gelirlerini Post Et'}
+            </Button>
+          </div>
+
+          {/* Step 3 */}
+          <div className="flex flex-col md:flex-row md:items-center gap-4 p-3 rounded-lg border border-gray-100 bg-white">
+            <div className="flex-1">
+              <div className="font-semibold">3. No-Show İşleme</div>
+              <div className="text-xs text-gray-600">
+                Check-in yapmamış confirmed/guaranteed rezervasyonları no-show
+                durumuna çevirir. İsteğe bağlı olarak no-show ücreti uygular.
+              </div>
+              <label className="mt-2 inline-flex items-center gap-2 text-xs text-gray-700">
+                <input
+                  type="checkbox"
+                  checked={chargeNoShowFee}
+                  onChange={(e) => setChargeNoShowFee(e.target.checked)}
+                  disabled={disabledAll}
+                />
+                No-show ücreti uygula
+              </label>
+              {noShowResult && (
+                <div className="mt-2 text-xs text-gray-600">
+                  <span className="font-medium">Sonuç:</span>{' '}
+                  {noShowResult.no_shows_processed} rezervasyon, toplam €
+                  {noShowResult.total_no_show_charges}
+                </div>
+              )}
+            </div>
+            <Button
+              variant="outline"
+              onClick={handleNoShowHandling}
+              disabled={disabledAll}
+            >
+              <PlayCircle className="w-4 h-4 mr-2" />
+              {runningStep === 'noShow' ? 'Çalışıyor...' : 'No-Show İşle'}
+            </Button>
+          </div>
+
+          {/* Step 4 */}
+          <div className="flex flex-col md:flex-row md:items-center gap-4 p-3 rounded-lg border border-gray-100 bg-white">
+            <div className="flex-1">
+              <div className="font-semibold">4. Gün Sonu Kapanışı</div>
+              <div className="text-xs text-gray-600">
+                Night audit sürecini tamamlar, özet istatistikleri kaydeder ve
+                günü kapatır.
+              </div>
+              {endOfDayResult && (
+                <div className="mt-2 text-xs text-gray-600">
+                  <span className="font-medium">Özet:</span>{' '}
+                  {endOfDayResult.summary && (
+                    <>
+                      Toplam Gelir: €{endOfDayResult.summary.total_revenue} | No
+                      Show: {endOfDayResult.summary.no_shows} | Dolu Odalar:{' '}
+                      {endOfDayResult.summary.occupied_rooms}
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
+            <Button
+              variant="outline"
+              onClick={handleEndOfDay}
+              disabled={disabledAll}
+            >
+              <PlayCircle className="w-4 h-4 mr-2" />
+              {runningStep === 'end' ? 'Çalışıyor...' : 'Gün Sonunu Kapat'}
+            </Button>
           </div>
         </CardContent>
       </Card>
 
-      {/* Audit History */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Audit History (Last 30 Days)</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b">
-                  <th className="text-left p-3">Date</th>
-                  <th className="text-left p-3">Status</th>
-                  <th className="text-right p-3">No-Shows</th>
-                  <th className="text-right p-3">Revenues Posted</th>
-                  <th className="text-left p-3">Completed At</th>
-                </tr>
-              </thead>
-              <tbody>
-                {history.slice(0, 10).map((audit, idx) => (
-                  <tr key={idx} className="border-b hover:bg-gray-50">
-                    <td className="p-3">{audit.audit_date}</td>
-                    <td className="p-3">
-                      <Badge className="bg-green-500">{audit.status}</Badge>
-                    </td>
-                    <td className="p-3 text-right">{audit.no_shows}</td>
-                    <td className="p-3 text-right">{audit.revenues_posted}</td>
-                    <td className="p-3">
-                      {new Date(audit.completed_at).toLocaleTimeString()}
-                    </td>
+      {/* Bookings by status */}
+      {bookingsByStatus && bookingsByStatus.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Duruma Göre Rezervasyon Özeti</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b text-left text-gray-600">
+                    <th className="py-2 pr-4">Durum</th>
+                    <th className="py-2 pr-4 text-right">Adet</th>
+                    <th className="py-2 pr-4 text-right">Toplam Gelir</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </CardContent>
-      </Card>
+                </thead>
+                <tbody>
+                  {bookingsByStatus.map((row, idx) => (
+                    <tr key={idx} className="border-b last:border-0">
+                      <td className="py-2 pr-4 capitalize">{row._id}</td>
+                      <td className="py-2 pr-4 text-right">{row.count}</td>
+                      <td className="py-2 pr-4 text-right">
+                        €{row.revenue?.toFixed ? row.revenue.toFixed(2) : row.revenue}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 };
