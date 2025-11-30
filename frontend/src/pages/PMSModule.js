@@ -307,17 +307,27 @@ const PMSModule = ({ user, tenant, onLogout }) => {
     }, 1000);
   }, []);
   
-  // Load data when tab changes
+  // Flags to track if tab-specific data has been loaded at least once
+  const [hasLoadedFrontdesk, setHasLoadedFrontdesk] = useState(false);
+  const [hasLoadedHousekeeping, setHasLoadedHousekeeping] = useState(false);
+  const [hasLoadedReports, setHasLoadedReports] = useState(false);
+
+  // Load data when tab changes (lazy-load per tab, but only once)
   useEffect(() => {
-    if (activeTab === 'reports') {
-      console.log('🔄 Reports tab activated, loading reports...');
+    if (activeTab === 'reports' && !hasLoadedReports) {
+      console.log('🔄 Reports tab activated, loading reports (first time)...');
       loadReports();
-    } else if (activeTab === 'frontdesk') {
+      setHasLoadedReports(true);
+    } else if (activeTab === 'frontdesk' && !hasLoadedFrontdesk) {
+      console.log('🔄 Frontdesk tab activated, loading data (first time)...');
       loadFrontDeskData();
-    } else if (activeTab === 'housekeeping') {
+      setHasLoadedFrontdesk(true);
+    } else if (activeTab === 'housekeeping' && !hasLoadedHousekeeping) {
+      console.log('🔄 Housekeeping tab activated, loading data (first time)...');
       loadHousekeepingData();
+      setHasLoadedHousekeeping(true);
     }
-  }, [activeTab]);
+  }, [activeTab, hasLoadedFrontdesk, hasLoadedHousekeeping, hasLoadedReports]);
 
   const loadData = async () => {
     try {
