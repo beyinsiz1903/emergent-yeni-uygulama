@@ -568,6 +568,11 @@ function App() {
             element={
               isAuthenticated ? (
                 <MaintenanceWorkOrders user={user} tenant={tenant} onLogout={handleLogout} />
+              ) : (
+                <Navigate to="/auth" replace />
+              )
+            }
+          />
           <Route
             path="/maintenance/assets"
             element={
