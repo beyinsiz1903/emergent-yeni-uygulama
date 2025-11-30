@@ -338,6 +338,90 @@ const ExecutiveDashboard = ({ user }) => {
                   <div className="flex justify-between">
                     <span className="text-gray-300">Ort. Rezervasyon Geliri:</span>
                     <span className="text-blue-400">₺{dailySummary.highlights.avg_revenue_per_booking.toFixed(0)}</span>
+        {/* Comp-Set Summary */}
+        {compSetSummary && (
+          <Card className="bg-white/10 backdrop-blur-sm text-white border border-white/20 shadow-xl mt-4">
+            <CardContent className="p-4 space-y-3">
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2">
+                  <Home className="h-5 w-5" />
+                  <span className="font-semibold text-sm">Comp-Set Karşılaştırma</span>
+                </div>
+                <Badge variant="outline" className="text-xs border-white/40 text-white/80">
+                  {compSetSummary.period}
+                </Badge>
+              </div>
+
+              <div className="grid grid-cols-3 gap-3 text-xs">
+                <div>
+                  <div className="text-gray-300 mb-1">Doluluk</div>
+                  <div className="space-y-1">
+                    <div className="flex justify-between">
+                      <span className="text-[11px]">Otel</span>
+                      <span className="font-semibold">{compSetSummary.hotel.occupancy}%</span>
+                    </div>
+                    <div className="flex justify-between text-gray-300">
+                      <span className="text-[11px]">Comp-set</span>
+                      <span>{compSetSummary.comp_set.occupancy}%</span>
+                    </div>
+                    <div className="flex justify-between text-[11px] mt-1">
+                      <span>Index</span>
+                      <span className={compSetSummary.indexes.occ_index >= 100 ? 'text-emerald-400' : 'text-red-300'}>
+                        {compSetSummary.indexes.occ_index}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <div className="text-gray-300 mb-1">ADR</div>
+                  <div className="space-y-1">
+                    <div className="flex justify-between">
+                      <span className="text-[11px]">Otel</span>
+                      <span className="font-semibold">₺{compSetSummary.hotel.adr.toFixed(0)}</span>
+                    </div>
+                    <div className="flex justify-between text-gray-300">
+                      <span className="text-[11px]">Comp-set</span>
+                      <span>₺{compSetSummary.comp_set.adr.toFixed(0)}</span>
+                    </div>
+                    <div className="flex justify-between text-[11px] mt-1">
+                      <span>Index</span>
+                      <span className={compSetSummary.indexes.adr_index >= 100 ? 'text-emerald-400' : 'text-red-300'}>
+                        {compSetSummary.indexes.adr_index}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <div className="text-gray-300 mb-1">RevPAR</div>
+                  <div className="space-y-1">
+                    <div className="flex justify-between">
+                      <span className="text-[11px]">Otel</span>
+                      <span className="font-semibold">₺{compSetSummary.hotel.revpar.toFixed(0)}</span>
+                    </div>
+                    <div className="flex justify-between text-gray-300">
+                      <span className="text-[11px]">Comp-set</span>
+                      <span>₺{compSetSummary.comp_set.revpar.toFixed(0)}</span>
+                    </div>
+                    <div className="flex justify-between text-[11px] mt-1">
+                      <span>Index</span>
+                      <span className={compSetSummary.indexes.revpar_index >= 100 ? 'text-emerald-400' : 'text-red-300'}>
+                        {compSetSummary.indexes.revpar_index}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <p className="text-[11px] text-gray-300 mt-2">
+                Comp-set verisi ilk etapta manuel / heuristik tahminler ile hesaplanmaktadır. İleride gerçek pazar verisi entegrasyonu yapılabilir.
+              </p>
+            </CardContent>
+          </Card>
+        )}
+
+
                   </div>
                 </div>
               )}
