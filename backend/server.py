@@ -690,6 +690,24 @@ class HousekeepingTask(BaseModel):
     completed_at: Optional[datetime] = None
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
+
+class MaintenanceWorkOrder(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    tenant_id: str
+    room_id: Optional[str] = None
+    room_number: Optional[str] = None
+    issue_type: str  # plumbing, hvac, electrical, furniture, housekeeping_damage, other
+    priority: str = "normal"  # low, normal, high, urgent
+    status: str = "open"  # open, in_progress, completed, cancelled
+    source: str = "housekeeping"  # housekeeping, frontdesk, sensor, gm, other
+    description: Optional[str] = None
+    reported_by_user_id: Optional[str] = None
+    reported_by_role: Optional[str] = None
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    completed_at: Optional[datetime] = None
+
+
 # Company Models
 class CompanyCreate(BaseModel):
     name: str
