@@ -21,7 +21,7 @@ import sys
 import os
 
 # Configuration
-BASE_URL = "https://page-load-issue.preview.emergentagent.com"
+BASE_URL = "https://speedy-pms-switch.preview.emergentagent.com"
 API_BASE = f"{BASE_URL}/api"
 
 # Demo credentials

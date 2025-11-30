@@ -218,7 +218,7 @@
 ## 📋 QUICK START GUIDE
 
 **Login:**
-- URL: https://page-load-issue.preview.emergentagent.com
+- URL: https://speedy-pms-switch.preview.emergentagent.com
 - Demo: demo@hotel.com / demo123
 
 **New User Registration:**
