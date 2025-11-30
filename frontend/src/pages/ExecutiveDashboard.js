@@ -29,6 +29,7 @@ const ExecutiveDashboard = ({ user }) => {
   const [kpiSnapshot, setKpiSnapshot] = useState(null);
   const [alerts, setAlerts] = useState([]);
   const [dailySummary, setDailySummary] = useState(null);
+  const [compSetSummary, setCompSetSummary] = useState(null);
 
   useEffect(() => {
     loadData();
