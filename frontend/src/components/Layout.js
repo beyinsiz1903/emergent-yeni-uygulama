@@ -39,6 +39,7 @@ const Layout = ({ children, user, tenant, onLogout, currentModule }) => {
     { name: 'Reports', path: '/reports', icon: FileText, id: 'reports' },
     { name: t('nav.rms'), path: '/rms', icon: TrendingUp, id: 'rms' },
     { name: 'Housekeeping', path: '/housekeeping', icon: Home, id: 'housekeeping' },
+    { name: 'Maintenance', path: '/maintenance/work-orders', icon: Wrench, id: 'maintenance' },
     { name: 'F&B', path: '/fnb-complete', icon: ChefHat, id: 'fnb' },
     { name: 'POS Restaurant', path: '/pos', icon: ShoppingCart, id: 'pos' },
     { name: 'Channel Manager', path: '/channel-manager', icon: Network, id: 'channel-manager' },
