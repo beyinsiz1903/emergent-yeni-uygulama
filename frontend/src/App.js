@@ -184,7 +184,6 @@ function App() {
   // }, []);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     console.log('🔄 App mounting - checking auth state...');
     const token = localStorage.getItem('token');
     const storedUser = localStorage.getItem('user');
