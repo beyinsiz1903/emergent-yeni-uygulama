@@ -326,8 +326,8 @@ const Reports = ({ user, tenant, onLogout }) => {
 
         {/* Info Card */}
         <Card className="mt-6 bg-blue-50 border-blue-200">
-          <CardContent className="pt-6">
-            <div className="flex gap-3">
+          <CardContent className="pt-6 flex items-start justify-between gap-4">
+            <div className="flex gap-3 flex-1">
               <FileText className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
               <div>
                 <h4 className="font-semibold text-gray-900 mb-1">Export Tips</h4>
@@ -338,6 +338,17 @@ const Reports = ({ user, tenant, onLogout }) => {
                   <li>• All financial amounts are properly formatted with currency symbols</li>
                 </ul>
               </div>
+            </div>
+            <div className="flex flex-col items-end gap-2">
+              <span className="text-xs text-gray-500">Corporate performance</span>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => navigate('/reports/corporate-contracts')}
+                className="text-xs"
+              >
+                Corporate Contracts Dashboard
+              </Button>
             </div>
           </CardContent>
         </Card>
