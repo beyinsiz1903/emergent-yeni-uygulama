@@ -194,6 +194,14 @@ const PMSModule = ({ user, tenant, onLogout }) => {
     contact_person: '',
     contact_email: '',
     contact_phone: '',
+    contracted_rate: '',
+    default_rate_type: '',
+    default_market_segment: '',
+    default_cancellation_policy: '',
+    payment_terms: '',
+    status: 'pending'
+  });
+
   // Lightweight stats for UI (kept outside heavy JSX where possible)
   const bookingStats = useMemo(() => {
     const total = bookings.length;
@@ -203,15 +211,6 @@ const PMSModule = ({ user, tenant, onLogout }) => {
     const avgAdr = total > 0 ? totalRevenue / total : 0;
     return { total, confirmed, checkedIn, totalRevenue, avgAdr };
   }, [bookings]);
-
-
-    contracted_rate: '',
-    default_rate_type: '',
-    default_market_segment: '',
-    default_cancellation_policy: '',
-    payment_terms: '',
-    status: 'pending'
-  });
 
   const [newCharge, setNewCharge] = useState({
     charge_type: 'food', description: '', amount: 0, quantity: 1
