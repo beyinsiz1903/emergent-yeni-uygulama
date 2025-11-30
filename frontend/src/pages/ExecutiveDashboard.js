@@ -338,6 +338,13 @@ const ExecutiveDashboard = ({ user }) => {
                   <div className="flex justify-between">
                     <span className="text-gray-300">Ort. Rezervasyon Geliri:</span>
                     <span className="text-blue-400">₺{dailySummary.highlights.avg_revenue_per_booking.toFixed(0)}</span>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
         {/* Comp-Set Summary */}
         {compSetSummary && (
           <Card className="bg-white/10 backdrop-blur-sm text-white border border-white/20 shadow-xl mt-4">
