@@ -140,7 +140,7 @@ const ExecutiveDashboard = ({ user }) => {
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 pb-20">
       {/* Header */}
       <div className="bg-black/30 backdrop-blur-sm text-white p-4 sticky top-0 z-10 shadow-lg border-b border-white/10">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-3">
             <button onClick={() => navigate(-1)} className="p-2 hover:bg-white/10 rounded-lg transition">
               <ArrowLeft className="h-5 w-5" />
