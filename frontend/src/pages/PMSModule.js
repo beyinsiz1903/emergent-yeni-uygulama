@@ -2385,14 +2385,29 @@ const PMSModule = ({ user, tenant, onLogout }) => {
                       <CardContent className="pt-6">
                         <div className="flex justify-between items-start">
                           <div className="flex-1">
-                            <div className="font-semibold text-lg">{guest?.name}</div>
+                            <div className="font-semibold text-lg flex items-center gap-2">
+                              {guest?.name}
+                              {booking.company_id && (
+                                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-blue-50 text-blue-700 border border-blue-200">
+                                  Corp · {booking.market_segment || 'corporate'}
+                                </span>
+                              )}
+                            </div>
                             <div className="text-sm text-gray-600">Room {room?.room_number} - {room?.room_type}</div>
                             <div className="text-sm text-gray-500">
                               {new Date(booking.check_in).toLocaleDateString()} - {new Date(booking.check_out).toLocaleDateString()}
                             </div>
                           </div>
                           <div className="flex items-center gap-3">
-                            <div className="text-right">
+                            <div className="text-right space-y-1">
+                              {booking.company_id && (
+                                <div className="text-[11px] text-gray-500">
+                                  {(() => {
+                                    const company = companies.find(c => c.id === booking.company_id);
+                                    return company ? `${company.name}${company.corporate_code ? ' · ' + company.corporate_code : ''}` : 'Corporate Booking';
+                                  })()}
+                                </div>
+                              )}
                               <div className="text-2xl font-bold">${booking.total_amount}</div>
                               <span className={`px-3 py-1 rounded-full text-xs ${booking.status === 'confirmed' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'}`}>
                                 {booking.status.toUpperCase()}
