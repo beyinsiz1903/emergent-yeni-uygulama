@@ -254,15 +254,16 @@ async def get_arrivals(date: Optional[str] = None, current_user: User = Depends(
 
 @api_router.get("/frontdesk/departures")
 async def get_departures(date: Optional[str] = None, current_user: User = Depends(get_current_user)):
-    """Get today's departures"""
+    """Get today's departures (optimized to avoid N+1 queries)"""
     if not date:
         target_date = datetime.now(timezone.utc).date()
     else:
         target_date = datetime.fromisoformat(date).date()
-    
+
     start_of_day = datetime.combine(target_date, datetime.min.time())
     end_of_day = datetime.combine(target_date, datetime.max.time())
-    
+
+    # Fetch bookings for the day
     bookings = await db.bookings.find({
         'tenant_id': current_user.tenant_id,
         'status': 'checked_in',
@@ -271,19 +272,62 @@ async def get_departures(date: Optional[str] = None, current_user: User = Depend
             '$lte': end_of_day.isoformat()
         }
     }, {'_id': 0}).to_list(1000)
-    
+
+    if not bookings:
+        return []
+
+    booking_ids = [b['id'] for b in bookings if 'id' in b]
+    guest_ids = {b.get('guest_id') for b in bookings if b.get('guest_id')}
+    room_ids = {b.get('room_id') for b in bookings if b.get('room_id')}
+
+    guests = []
+    rooms = []
+    charges = []
+    payments = []
+
+    if guest_ids:
+        guests = await db.guests.find({'id': {'$in': list(guest_ids)}}, {'_id': 0}).to_list(len(guest_ids))
+    if room_ids:
+        rooms = await db.rooms.find({'id': {'$in': list(room_ids)}}, {'_id': 0}).to_list(len(room_ids))
+    if booking_ids:
+        charges = await db.folio_charges.find({'booking_id': {'$in': booking_ids}}, {'_id': 0}).to_list(1000)
+        payments = await db.payments.find({'booking_id': {'$in': booking_ids}}, {'_id': 0}).to_list(1000)
+
+    guest_map = {g['id']: g for g in guests if 'id' in g}
+    room_map = {r['id']: r for r in rooms if 'id' in r}
+
+    # Group charges and payments by booking
+    charges_by_booking: Dict[str, float] = {}
+    payments_by_booking: Dict[str, float] = {}
+
+    for c in charges:
+        bid = c.get('booking_id')
+        if not bid:
+            continue
+        charges_by_booking[bid] = charges_by_booking.get(bid, 0.0) + c.get('total', 0.0)
+
+    for p in payments:
+        if p.get('status') != 'paid':
+            continue
+        bid = p.get('booking_id')
+        if not bid:
+            continue
+        payments_by_booking[bid] = payments_by_booking.get(bid, 0.0) + p.get('amount', 0.0)
+
     enriched = []
     for booking in bookings:
-        guest = await db.guests.find_one({'id': booking['guest_id']}, {'_id': 0})
-        room = await db.rooms.find_one({'id': booking['room_id']}, {'_id': 0})
-        
-        # Get folio balance
-        charges = await db.folio_charges.find({'booking_id': booking['id']}, {'_id': 0}).to_list(1000)
-        payments = await db.payments.find({'booking_id': booking['id']}, {'_id': 0}).to_list(1000)
-        balance = sum(c['total'] for c in charges) - sum(p['amount'] for p in payments if p['status'] == 'paid')
-        
-        enriched.append({**booking, 'guest': guest, 'room': room, 'balance': balance})
-    
+        bid = booking.get('id')
+        total_charges = charges_by_booking.get(bid, 0.0)
+        total_paid = payments_by_booking.get(bid, 0.0)
+        balance = total_charges - total_paid
+
+        enriched.append({
+            **booking,
+            'guest': guest_map.get(booking.get('guest_id')),
+            'room': room_map.get(booking.get('room_id')),
+            'balance': balance,
+        })
+
     return enriched
 
 @api_router.get("/frontdesk/inhouse")
