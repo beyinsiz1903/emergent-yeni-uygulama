@@ -164,6 +164,9 @@ const ExecutiveDashboard = ({ user }) => {
             <div>
               <h1 className="text-xl font-bold">Executive Dashboard</h1>
               <p className="text-gray-300 text-sm">
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <TabsContent value="snapshot">
+
                 {new Date().toLocaleDateString('tr-TR', { 
                   weekday: 'long', 
                   year: 'numeric', 
