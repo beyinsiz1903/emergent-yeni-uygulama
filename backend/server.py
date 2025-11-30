@@ -16251,15 +16251,17 @@ async def create_maintenance_work_order(
     current_user: User = Depends(get_current_user)
 ):
     """Create a new maintenance work order (from HK, Front Desk, GM, etc.)"""
-    wo = data.model_copy(update={
+    payload = data.model_dump()
+    payload.update({
+        'id': str(uuid.uuid4()),
         'tenant_id': current_user.tenant_id,
         'reported_by_user_id': data.reported_by_user_id or current_user.id,
         'reported_by_role': data.reported_by_role or current_user.role,
-        'created_at': datetime.now(timezone.utc),
+        'created_at': datetime.now(timezone.utc).isoformat(),
         'status': data.status or 'open',
     })
-    await db.maintenance_work_orders.insert_one(wo.model_dump())
-    return wo
+    await db.maintenance_work_orders.insert_one(payload)
+    return payload
 
 
 @api_router.get("/maintenance/work-orders")
