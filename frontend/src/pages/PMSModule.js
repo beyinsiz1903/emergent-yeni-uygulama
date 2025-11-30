@@ -5537,13 +5537,39 @@ const PMSModule = ({ user, tenant, onLogout }) => {
           </DialogContent>
         </Dialog>
 
-        {/* FloatingActionButton - Quick New Booking */}
+        {/* FloatingActionButton - Quick Actions (mirrors top toolbar) */}
         <FloatingActionButton
           actions={[
             {
               label: 'New Booking',
               icon: <Plus className="w-5 h-5" />,
-              onClick: () => setOpenDialog('newbooking')
+              onClick: () => {
+                setOpenDialog('newbooking');
+                toast.info('Opening new booking form...');
+              }
+            },
+            {
+              label: 'New Guest',
+              icon: <UserPlus className="w-5 h-5" />,
+              onClick: () => setOpenDialog('newguest')
+            },
+            {
+              label: 'Flash Report',
+              icon: <FileText className="w-5 h-5" />,
+              onClick: async () => {
+                try {
+                  const response = await axios.get('/reports/flash-report');
+                  toast.success('Flash report generated!');
+                  console.log('Flash report:', response.data);
+                } catch (error) {
+                  toast.error('Failed to generate report');
+                }
+              }
+            },
+            {
+              label: 'Refresh Dashboard',
+              icon: <RefreshCw className="w-5 h-5" />,
+              onClick: () => loadData()
             }
           ]}
         />
