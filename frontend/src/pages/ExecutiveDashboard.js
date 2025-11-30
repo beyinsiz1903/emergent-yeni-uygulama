@@ -155,8 +155,8 @@ const ExecutiveDashboard = ({ user }) => {
                 Comp-Set
               </TabsTrigger>
             </TabsList>
-          </Tabs>
-        </div>
+
+            <TabsContent value="snapshot" className="mt-4">
 
           <Tabs value={activeTab} onValueChange={setActiveTab}>
             <TabsList className="bg-white/10">
