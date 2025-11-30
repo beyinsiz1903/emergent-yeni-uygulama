@@ -332,18 +332,36 @@ async def get_departures(date: Optional[str] = None, current_user: User = Depend
 
 @api_router.get("/frontdesk/inhouse")
 async def get_inhouse_guests(current_user: User = Depends(get_current_user)):
-    """Get all currently checked-in guests"""
+    """Get all currently checked-in guests (optimized to avoid N+1 queries)"""
     bookings = await db.bookings.find({
         'tenant_id': current_user.tenant_id,
         'status': 'checked_in'
     }, {'_id': 0}).to_list(1000)
-    
+
+    if not bookings:
+        return []
+
+    guest_ids = {b.get('guest_id') for b in bookings if b.get('guest_id')}
+    room_ids = {b.get('room_id') for b in bookings if b.get('room_id')}
+
+    guests = []
+    rooms = []
+    if guest_ids:
+        guests = await db.guests.find({'id': {'$in': list(guest_ids)}}, {'_id': 0}).to_list(len(guest_ids))
+    if room_ids:
+        rooms = await db.rooms.find({'id': {'$in': list(room_ids)}}, {'_id': 0}).to_list(len(room_ids))
+
+    guest_map = {g['id']: g for g in guests if 'id' in g}
+    room_map = {r['id']: r for r in rooms if 'id' in r}
+
     enriched = []
     for booking in bookings:
-        guest = await db.guests.find_one({'id': booking['guest_id']}, {'_id': 0})
-        room = await db.rooms.find_one({'id': booking['room_id']}, {'_id': 0})
-        enriched.append({**booking, 'guest': guest, 'room': room})
-    
+        enriched.append({
+            **booking,
+            'guest': guest_map.get(booking.get('guest_id')),
+            'room': room_map.get(booking.get('room_id')),
+        })
+
     return enriched
 
 # ============= HOUSEKEEPING ENDPOINTS =============
