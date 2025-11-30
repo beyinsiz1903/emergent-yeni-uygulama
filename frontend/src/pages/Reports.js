@@ -338,7 +338,11 @@ const Reports = ({ user, tenant, onLogout }) => {
                   <li>• All financial amounts are properly formatted with currency symbols</li>
                 </ul>
               </div>
-        {/* Night Audit Section */
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Night Audit Section */}
         <div className="mt-10">
           <h2 className="text-xl font-semibold text-gray-900 mb-4 flex items-center gap-2">
             <Calendar className="w-5 h-5 text-blue-600" />
@@ -354,7 +358,6 @@ const Reports = ({ user, tenant, onLogout }) => {
           </Card>
         </div>
 
-            </div>
           </CardContent>
         </Card>
       </div>
