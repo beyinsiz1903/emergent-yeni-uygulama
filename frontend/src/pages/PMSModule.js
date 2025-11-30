@@ -1402,8 +1402,30 @@ const PMSModule = ({ user, tenant, onLogout }) => {
                           <span className="font-semibold">{aiPrediction.upcoming_bookings}</span>
                         </div>
                         {aiPrediction.prediction && (
-                          <div className="mt-3 p-3 bg-white rounded border border-green-100">
-                            <p className="text-xs text-gray-700">{JSON.stringify(aiPrediction.prediction).substring(0, 200)}</p>
+                          <div className="mt-3 p-3 bg-white rounded border border-green-100 space-y-1">
+                            {typeof aiPrediction.prediction === 'string' ? (
+                              <p className="text-xs text-gray-700">{aiPrediction.prediction}</p>
+                            ) : (
+                              <>
+                                {aiPrediction.prediction.tomorrow_prediction != null && (
+                                  <p className="text-xs text-gray-700">
+                                    Tomorrow: <span className="font-semibold">{aiPrediction.prediction.tomorrow_prediction}%</span>
+                                  </p>
+                                )}
+                                {aiPrediction.prediction.next_week_prediction != null && (
+                                  <p className="text-xs text-gray-700">
+                                    Next 7 days: <span className="font-semibold">{aiPrediction.prediction.next_week_prediction}%</span>
+                                  </p>
+                                )}
+                                {Array.isArray(aiPrediction.prediction.patterns) && aiPrediction.prediction.patterns.length > 0 && (
+                                  <ul className="list-disc list-inside text-xs text-gray-700">
+                                    {aiPrediction.prediction.patterns.map((item, idx) => (
+                                      <li key={idx}>{item}</li>
+                                    ))}
+                                  </ul>
+                                )}
+                              </>
+                            )}
                           </div>
                         )}
                       </div>
