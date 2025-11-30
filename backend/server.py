@@ -5833,6 +5833,52 @@ async def get_pending_ar(
             # Use balance field directly
             folios_with_balance = [f for f in company_folios if f.get('balance', 0) > 0]
             total_outstanding = sum(f.get('balance', 0) for f in folios_with_balance)
+            
+            if total_outstanding > 0 and folios_with_balance:
+                # Find oldest folio
+                oldest_folio = min(folios_with_balance, key=lambda f: f.get('created_at', datetime.now(timezone.utc).isoformat()))
+                oldest_date = datetime.fromisoformat(oldest_folio['created_at'].replace('Z', '+00:00'))
+                days_outstanding = (datetime.now(timezone.utc) - oldest_date).days
+                
+                # Calculate aging
+                aging = {'0-7': 0, '8-14': 0, '15-30': 0, '30+': 0}
+                for folio in folios_with_balance:
+                    days = (datetime.now(timezone.utc) - datetime.fromisoformat(folio['created_at'].replace('Z', '+00:00'))).days
+                    balance = folio.get('balance', 0)
+                    if days <= 7:
+                        aging['0-7'] += balance
+                    elif days <= 14:
+                        aging['8-14'] += balance
+                    elif days <= 30:
+                        aging['15-30'] += balance
+                    else:
+                        aging['30+'] += balance
+                
+                ar_data.append({
+                    'company_id': company['id'],
+                    'company_name': company.get('name', 'Unknown'),
+                    'corporate_code': company.get('corporate_code', ''),
+                    'contact_person': company.get('contact_person', ''),
+                    'contact_email': company.get('contact_email', ''),
+                    'contact_phone': company.get('contact_phone', ''),
+                    'payment_terms': company.get('payment_terms', 'Net 30'),
+                    'total_outstanding': round(total_outstanding, 2),
+                    'open_folios_count': len(folios_with_balance),
+                    'oldest_invoice_date': oldest_folio['created_at'],
+                    'days_outstanding': days_outstanding,
+                    'aging': aging
+                })
+        
+        # Sort by days outstanding (oldest first)
+        ar_data.sort(key=lambda x: x['days_outstanding'], reverse=True)
+        
+        return ar_data
+        
+    except Exception as e:
+        print(f"Error in get_pending_ar: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return []
 
 @api_router.get("/frontdesk/audit-checklist")
 async def get_frontdesk_audit_checklist(
