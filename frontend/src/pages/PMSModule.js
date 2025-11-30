@@ -5537,18 +5537,19 @@ const PMSModule = ({ user, tenant, onLogout }) => {
           </DialogContent>
         </Dialog>
 
+        {/* FloatingActionButton - Quick New Booking */}
         <FloatingActionButton
           actions={[
             {
               label: 'New Booking',
-              icon: Plus,
+              icon: <Plus className="w-5 h-5" />,
               onClick: () => setOpenDialog('newbooking')
             }
           ]}
         />
 
         {/* Maintenance Work Order Dialog */}
-      <Dialog open={maintenanceDialogOpen} onOpenChange={setMaintenanceDialogOpen}>
+        <Dialog open={maintenanceDialogOpen} onOpenChange={setMaintenanceDialogOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>Yeni Maintenance Work Order</DialogTitle>
