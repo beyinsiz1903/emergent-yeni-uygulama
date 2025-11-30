@@ -16319,10 +16319,6 @@ async def update_maintenance_work_order(
 
     return {'updated': result.modified_count == 1}
 
-            'failed': total - successful
-        }
-    }
-
 @api_router.post("/ai/log-activity")
 
 
