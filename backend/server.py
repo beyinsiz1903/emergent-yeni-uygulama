@@ -705,6 +705,24 @@ class MaintenanceWorkOrder(BaseModel):
     reported_by_user_id: Optional[str] = None
     reported_by_role: Optional[str] = None
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+
+class SensorAlert(BaseModel):
+    """IoT sensör uyarısı modeli - sensörden gelen ham veriyi ve bağlamı temsil eder"""
+    id: Optional[str] = None
+    tenant_id: Optional[str] = None
+    sensor_id: str
+    room_id: Optional[str] = None
+    room_number: Optional[str] = None
+    metric: str  # e.g. temperature, humidity, water_leak, door_open
+    value: float
+    threshold: Optional[float] = None
+    threshold_breached: Optional[bool] = None
+    severity: str = "info"  # info, warning, high, critical
+    message: Optional[str] = None
+    metadata: Optional[dict] = None
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
     completed_at: Optional[datetime] = None
 
 
