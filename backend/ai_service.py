@@ -181,8 +181,8 @@ Format your response as JSON with keys: tomorrow_prediction, next_week_predictio
             f"Current occupancy is {current_occupancy:.1f}%.",
             f"{upcoming_bookings} upcoming bookings cover roughly {booking_ratio:.0%} of available rooms."
         ]
-        if error_message:
-            patterns.append("AI service unavailable, using heuristic forecast.")
+        # We do not surface technical error messages to end users in the UI;
+        # the frontend only shows human-friendly patterns.
         
         recommendations = []
         if booking_ratio >= 0.8:
