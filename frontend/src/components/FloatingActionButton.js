@@ -15,31 +15,43 @@ const FloatingActionButton = ({ actions = [] }) => {
     <div className="fixed bottom-6 right-6 z-50">
       {/* Action Items (shown when open) */}
       {isOpen && (
-        <div className="absolute bottom-16 right-0 space-y-3 mb-2">
-          {actions.map((action, idx) => (
-            <div
-              key={idx}
-              className="flex items-center justify-end gap-3 animate-in slide-in-from-bottom duration-200"
-              style={{ animationDelay: `${idx * 50}ms` }}
-            >
-              {/* Action Label */}
-              <div className="bg-gray-900 text-white text-sm px-3 py-2 rounded-lg shadow-lg whitespace-nowrap">
-                {action.label}
-              </div>
-              
-              {/* Action Button */}
-              <Button
-                onClick={() => {
-                  action.onClick();
-                  setIsOpen(false);
+        <div className="absolute bottom-24 right-4">
+          {/* Yarım daire düzeni: ikonlar sağ alttan yukarı ve sola doğru yay şeklinde */}
+          {actions.map((action, idx) => {
+            const angleDeg = 90 - idx * (actions.length > 1 ? 60 / (actions.length - 1) : 0); // 90° ile 30° arası
+            const angleRad = (angleDeg * Math.PI) / 180;
+            const radius = 100; // px
+            const offsetX = Math.cos(angleRad) * radius;
+            const offsetY = Math.sin(angleRad) * radius;
+
+            return (
+              <div
+                key={idx}
+                className="absolute flex items-center gap-2 animate-in fade-in zoom-in duration-200"
+                style={{
+                  transform: `translate(${-offsetX}px, ${-offsetY}px)`
                 }}
-                className={`w-12 h-12 rounded-full shadow-lg ${action.color || 'bg-blue-600 hover:bg-blue-700'}`}
-                title={action.label}
               >
-                {action.icon}
-              </Button>
-            </div>
-          ))}
+                {/* Action Label */}
+                <div className="bg-gray-900 text-white text-xs px-3 py-1.5 rounded-full shadow-lg whitespace-nowrap">
+                  {action.label}
+                </div>
+
+                {/* Action Button */}
+                <Button
+                  size="icon"
+                  onClick={() => {
+                    action.onClick();
+                    setIsOpen(false);
+                  }}
+                  className={`w-11 h-11 rounded-full shadow-lg ${action.color || 'bg-blue-600 hover:bg-blue-700'}`}
+                  title={action.label}
+                >
+                  {action.icon}
+                </Button>
+              </div>
+            );
+          })}
         </div>
       )}
 
