@@ -428,14 +428,6 @@ const ExecutiveDashboard = ({ user }) => {
           </Card>
         )}
 
-
-                  </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        )}
-
         {/* Room Summary */}
         {kpiSnapshot && kpiSnapshot.summary && (
           <Card className="bg-white/10 backdrop-blur-sm text-white border border-white/20 shadow-xl">
