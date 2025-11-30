@@ -2380,7 +2380,7 @@ const PMSModule = ({ user, tenant, onLogout }) => {
               <Card>
                 <CardContent className="p-4">
                   <div className="text-xs text-gray-600">Total Bookings</div>
-                  <div className="text-2xl font-bold">{bookings.length}</div>
+                  <div className="text-2xl font-bold">{bookingStats.total}</div>
                 </CardContent>
               </Card>
               <Card>
