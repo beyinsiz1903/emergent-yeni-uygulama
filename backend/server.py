@@ -722,6 +722,40 @@ class SensorAlert(BaseModel):
     threshold: Optional[float] = None
     threshold_breached: Optional[bool] = None
     severity: str = "info"  # info, warning, high, critical
+
+
+class MaintenanceAsset(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    tenant_id: Optional[str] = None
+    name: str
+    asset_type: str  # hvac, plumbing, electrical, elevator, room_fixture, other
+    room_id: Optional[str] = None
+    room_number: Optional[str] = None
+    location: Optional[str] = None
+    manufacturer: Optional[str] = None
+    model: Optional[str] = None
+    serial_number: Optional[str] = None
+    installed_at: Optional[datetime] = None
+    warranty_until: Optional[datetime] = None
+    status: str = "active"  # active, retired, out_of_service
+
+
+class PreventiveMaintenancePlan(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    tenant_id: Optional[str] = None
+    asset_id: Optional[str] = None
+    asset_type: Optional[str] = None
+    frequency_type: str  # days, weeks, months
+    frequency_value: int
+    next_due_date: datetime
+    last_completed_date: Optional[datetime] = None
+    description: Optional[str] = None
+    default_issue_type: str = "other"
+    default_priority: str = "normal"
+    is_active: bool = True
+
     message: Optional[str] = None
     metadata: Optional[dict] = None
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
