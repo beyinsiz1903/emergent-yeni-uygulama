@@ -1,7 +1,8 @@
 import React, { memo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { LogOut, Home, LogIn } from 'lucide-react';
+import { TabsContent } from '@/components/ui/tabs';
+import { LogOut, Home, LogIn, Plus } from 'lucide-react';
 
 /**
  * Housekeeping main tab content extracted from PMSModule.
