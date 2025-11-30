@@ -96,6 +96,7 @@ const RevenueAutopilot = lazy(() => import("@/pages/RevenueAutopilot"));
 const HRComplete = lazy(() => import("@/pages/HRComplete"));
 const FnBComplete = lazy(() => import("@/pages/FnBComplete"));
 const KitchenDisplay = lazy(() => import("@/pages/KitchenDisplay"));
+const NightAuditLogs = lazy(() => import("@/pages/NightAuditLogs"));
 
 import { Toaster } from "@/components/ui/sonner";
 
