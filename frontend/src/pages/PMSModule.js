@@ -2192,75 +2192,14 @@ const PMSModule = ({ user, tenant, onLogout }) => {
           </TabsContent>
 
           {/* BOOKINGS TAB */}
-          <TabsContent value="bookings" className="space-y-4">
-            <div className="flex justify-between items-center">
-              <h2 className="text-2xl font-semibold">Bookings ({bookingStats.total})</h2>
-              <div className="flex gap-2">
-                <Button variant="outline" onClick={() => setOpenDialog('findroom')}>
-                  <Home className="w-4 h-4 mr-2" />
-                  Find Available Rooms
-                </Button>
-                <Button onClick={() => setOpenDialog('booking')}>
-                  <Plus className="w-4 h-4 mr-2" />
-                  New Booking
-                </Button>
-              </div>
-            </div>
-
-            {/* Booking Stats */}
-            <div className="grid grid-cols-5 gap-4">
-              <Card>
-                <CardContent className="p-4">
-                  <div className="text-xs text-gray-600">Total Bookings</div>
-                  <div className="text-2xl font-bold">{bookingStats.total}</div>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="p-4">
-                  <div className="text-xs text-gray-600">Confirmed</div>
-                  <div className="text-2xl font-bold text-blue-600">
-                    {bookingStats.confirmed}
-                  </div>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="p-4">
-                  <div className="text-xs text-gray-600">Checked In</div>
-                  <div className="text-2xl font-bold text-green-600">
-                    {bookingStats.checkedIn}
-                  </div>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="p-4">
-                  <div className="text-xs text-gray-600">Total Revenue</div>
-                  <div className="text-2xl font-bold text-green-600">
-                    ${bookingStats.totalRevenue.toFixed(0)}
-                  </div>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="p-4">
-                  <div className="text-xs text-gray-600">Avg ADR</div>
-                  <div className="text-2xl font-bold text-purple-600">
-                    ${bookingStats.avgAdr.toFixed(0)}
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-
-            <div className="space-y-4">
-              <VirtualizedBookingList
-                bookings={bookings}
-                onSelectBooking={(booking) => {
-                  setSelectedBookingDetail(booking);
-                  setOpenDialog('bookingDetail');
-                  toast.info('Opening booking details...');
-                }}
-                height={600}
-              />
-            </div>
-          </TabsContent>
+          <BookingsTab
+            bookingStats={bookingStats}
+            bookings={bookings}
+            setOpenDialog={setOpenDialog}
+            setSelectedBookingDetail={setSelectedBookingDetail}
+            loadBookingFolios={loadBookingFolios}
+            toast={toast}
+          />
 
           {/* UPSELL CENTER TAB */}
           <TabsContent value="upsell" className="space-y-6">
