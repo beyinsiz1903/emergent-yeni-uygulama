@@ -358,8 +358,6 @@ const Reports = ({ user, tenant, onLogout }) => {
           </Card>
         </div>
 
-          </CardContent>
-        </Card>
       </div>
     </Layout>
   );
