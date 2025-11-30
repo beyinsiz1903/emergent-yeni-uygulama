@@ -5520,7 +5520,7 @@ const PMSModule = ({ user, tenant, onLogout }) => {
                       source: 'housekeeping',
                       description: maintenanceForm.description || undefined
                     };
-                    const res = await axios.post(`${import.meta.env.REACT_APP_BACKEND_URL}/maintenance/work-orders`, payload, {
+                    const res = await axios.post('/maintenance/work-orders', payload, {
                       headers: { Authorization: `Bearer ${localStorage.getItem('access_token')}` }
                     });
                     toast.success(`Maintenance work order created for room ${res.data.room_number || maintenanceForm.room_number}`);
