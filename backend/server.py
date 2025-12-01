@@ -4451,23 +4451,85 @@ async def complete_kitchen_order(order_id: str, current_user: User = Depends(get
 
 @api_router.post("/housekeeping/upload-photo")
 async def upload_room_photo(
-    photo: bytes = File(...),
+    photo: UploadFile = File(...),
     room_id: str = Form(...),
-    photo_type: str = Form(...),
+    photo_type: Optional[str] = Form(None),
+    legacy_type: Optional[str] = Form(None, alias="type"),
+    room_number: Optional[str] = Form(None),
+    quality_score: Optional[int] = Form(None),
+    notes: Optional[str] = Form(None),
     current_user: User = Depends(get_current_user)
 ):
-    # Save photo (simulated - gerçekte S3, CloudFlare R2)
+    """
+    Upload a housekeeping photo (before/after/issue) with optional quality metadata.
+    Stores a base64 inline preview so mobile/desktop apps can show the image instantly.
+    """
+    file_bytes = await photo.read()
+    file_size = len(file_bytes)
+    
+    # Encode preview for quick rendering if file is reasonably small (<2MB)
+    inline_preview = None
+    if file_size <= 2_000_000:
+        encoded = base64.b64encode(file_bytes).decode('utf-8')
+        inline_preview = f"data:{photo.content_type};base64,{encoded}"
+    
+    # Determine final inspection type
+    normalized_type = (photo_type or legacy_type or 'inspection').lower()
+    
+    # Safe quality score parsing
+    parsed_quality = None
+    if quality_score is not None:
+        try:
+            parsed_quality = max(1, min(10, int(quality_score)))
+        except (TypeError, ValueError):
+            parsed_quality = None
+    
     photo_record = {
         'id': str(uuid.uuid4()),
         'tenant_id': current_user.tenant_id,
         'room_id': room_id,
-        'photo_type': photo_type,  # before, after
+        'room_number': room_number,
+        'photo_type': normalized_type,  # before, after, inspection, issue
+        'quality_score': parsed_quality,
+        'notes': notes,
         'uploaded_by': current_user.id,
+        'uploaded_by_name': current_user.name,
         'uploaded_at': datetime.now(timezone.utc).isoformat(),
-        'url': f'/photos/{room_id}_{photo_type}_{str(uuid.uuid4())[:8]}.jpg'
+        'file_name': photo.filename,
+        'content_type': photo.content_type,
+        'size_kb': round(file_size / 1024, 2),
+        'storage': 'inline',
+        'inline_preview': inline_preview,
+        # Placeholder URL until external storage (S3/R2) is configured
+        'url': f'/photos/{room_id}_{normalized_type}_{str(uuid.uuid4())[:8]}.jpg'
     }
+    
     await db.room_photos.insert_one(photo_record)
-    return {'success': True, 'photo_id': photo_record['id'], 'url': photo_record['url']}
+    return {
+        'success': True,
+        'photo_id': photo_record['id'],
+        'inline_preview': photo_record['inline_preview'],
+        'quality_score': photo_record['quality_score']
+    }
+
+
+@api_router.get("/housekeeping/photos/feed")
+async def get_housekeeping_photo_feed(
+    limit: int = 12,
+    room_id: Optional[str] = None,
+    photo_type: Optional[str] = None,
+    current_user: User = Depends(get_current_user)
+):
+    """Return the most recent housekeeping photos for quick quality control."""
+    query = {'tenant_id': current_user.tenant_id}
+    if room_id:
+        query['room_id'] = room_id
+    if photo_type:
+        query['photo_type'] = photo_type
+    
+    limit = max(1, min(limit, 50))
+    photos = await db.room_photos.find(query, {'_id': 0}).sort('uploaded_at', -1).to_list(limit)
+    return {'photos': photos, 'count': len(photos)}
 
 # ============= PUSH NOTIFICATIONS (TÜM DEPARTMANLAR) =============
 
