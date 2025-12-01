@@ -30149,11 +30149,12 @@ async def get_occupancy_prediction(
     for day_offset in range(days):
         pred_date = start_date + timedelta(days=day_offset)
         
-        # Count bookings for this date
+        # Count bookings for this date (stored as ISO strings in Mongo)
+        pred_date_iso = pred_date.isoformat()
         bookings_count = await db.bookings.count_documents({
             'tenant_id': current_user.tenant_id,
-            'check_in': {'$lte': pred_date},
-            'check_out': {'$gt': pred_date},
+            'check_in': {'$lte': pred_date_iso},
+            'check_out': {'$gt': pred_date_iso},
             'status': {'$in': ['confirmed', 'guaranteed', 'checked_in']}
         })
         
