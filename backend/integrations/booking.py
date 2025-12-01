@@ -4,9 +4,10 @@ import uuid
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 from fastapi import BackgroundTasks
-from typing import List
+from typing import List, Dict, Any, Optional
 from server import db, get_current_user, User
 from celery_app import celery_app
+import httpx
 
 class BookingCredentialManager:
     @staticmethod
@@ -83,6 +84,39 @@ class BookingIntegrationLogger:
         }
         await db.booking_integration_logs.insert_one(record)
 
+
+class BookingAPIClient:
+    def __init__(self, credentials: Dict[str, Any]):
+        self.credentials = credentials
+        self.base_url = credentials.get("settings", {}).get("base_url", "https://api.mock-booking.com")
+
+    async def push_ari(self, payload: Dict[str, Any]) -> Dict[str, Any]:
+        endpoint = f"{self.base_url}/ari"
+        async with httpx.AsyncClient(timeout=10) as client:
+            # Mock response for now
+            await asyncio.sleep(0.1)
+            return {"success": True, "rooms": len(payload.get("rooms", [])), "endpoint": endpoint}
+
+    async def fetch_reservations(self, modified_since: Optional[str] = None) -> Dict[str, Any]:
+        endpoint = f"{self.base_url}/reservations"
+        async with httpx.AsyncClient(timeout=10) as client:
+            await asyncio.sleep(0.1)
+            return {
+                "success": True,
+                "reservations": [
+                    {
+                        "id": f"BOOK-{uuid.uuid4().hex[:8]}",
+                        "guest_name": "Booking Guest",
+                        "room_code": "DLX",
+                        "check_in": datetime.now(timezone.utc).isoformat(),
+                        "check_out": (datetime.now(timezone.utc) + timedelta(days=2)).isoformat(),
+                        "status": "confirmed",
+                        "total_amount": 300,
+                        "currency": "EUR"
+                    }
+                ],
+                "endpoint": endpoint
+            }
 
 booking_router = APIRouter(prefix="/booking", tags=["booking-integrations"])
 

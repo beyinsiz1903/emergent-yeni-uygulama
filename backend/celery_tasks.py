@@ -11,7 +11,7 @@ import asyncio
 import logging
 from typing import List, Dict, Any
 import uuid
-from integrations.booking import BookingIntegrationLogger, BookingCredentialManager
+from integrations.booking import BookingIntegrationLogger, BookingCredentialManager, BookingAPIClient
 
 logger = logging.getLogger(__name__)
 
@@ -35,6 +35,11 @@ def booking_push_task(tenant_id: str, payload: Dict[str, Any]):
 async def _booking_push_async(tenant_id: str, payload: Dict[str, Any]):
     db, client = get_db()
     try:
+        credentials = await BookingCredentialManager.get_credentials(tenant_id)
+        if not credentials:
+            raise ValueError("Booking credentials missing")
+
+        api_client = BookingAPIClient(credentials)
         await BookingIntegrationLogger.log_event(
             tenant_id,
             'ari_push_attempt',
@@ -43,19 +48,20 @@ async def _booking_push_async(tenant_id: str, payload: Dict[str, Any]):
             message='Sending ARI payload to Booking.com'
         )
 
-        await asyncio.sleep(0.2)
+        response = await api_client.push_ari(payload)
 
         await BookingIntegrationLogger.log_event(
             tenant_id,
             'ari_push',
-            payload,
+            response,
             'success',
             message='Booking.com ARI push completed'
         )
 
         return {
             'success': True,
-            'rooms_updated': len(payload.get('rooms', []))
+            'rooms_updated': len(payload.get('rooms', [])),
+            'endpoint': response.get('endpoint')
         }
     except Exception as e:
         await BookingIntegrationLogger.log_event(
@@ -81,38 +87,32 @@ async def _booking_pull_async(tenant_id: str):
         if not credentials:
             raise ValueError("Booking credentials missing")
 
-        await asyncio.sleep(0.2)
+        client_api = BookingAPIClient(credentials)
+        response = await client_api.fetch_reservations()
+        reservations = response.get('reservations', [])
 
-        fake_reservations = [
-            {
-                'reservation_id': f"BOOK-{uuid.uuid4().hex[:8]}",
-                'guest_name': 'Booking Guest',
-                'room_code': 'DLX',
-                'check_in': datetime.now(timezone.utc).isoformat(),
-                'check_out': (datetime.now(timezone.utc) + timedelta(days=3)).isoformat(),
-                'status': 'confirmed',
-                'total_amount': 450.0,
-                'currency': 'EUR',
-                'source': 'booking.com'
-            }
-        ]
-
-        for reservation in fake_reservations:
+        for reservation in reservations:
             await db.ota_reservations.update_one(
-                {'tenant_id': tenant_id, 'provider': 'booking', 'reservation_id': reservation['reservation_id']},
-                {'$set': {**reservation, 'tenant_id': tenant_id, 'provider': 'booking', 'last_synced_at': datetime.now(timezone.utc).isoformat()}},
+                {'tenant_id': tenant_id, 'provider': 'booking', 'reservation_id': reservation.get('id')},
+                {'$set': {
+                    **reservation,
+                    'reservation_id': reservation.get('id'),
+                    'tenant_id': tenant_id,
+                    'provider': 'booking',
+                    'last_synced_at': datetime.now(timezone.utc).isoformat()}
+                },
                 upsert=True
             )
 
         await BookingIntegrationLogger.log_event(
             tenant_id,
             'reservation_pull',
-            {'count': len(fake_reservations)},
+            {'count': len(reservations), 'endpoint': response.get('endpoint')},
             'success',
             message='Booking.com reservations pulled'
         )
 
-        return {'success': True, 'reservations': len(fake_reservations)}
+        return {'success': True, 'reservations': len(reservations)}
     except Exception as e:
         await BookingIntegrationLogger.log_event(
             tenant_id,
