@@ -11,7 +11,13 @@ import asyncio
 import logging
 from typing import List, Dict, Any
 import uuid
-from integrations.booking import BookingIntegrationLogger, BookingCredentialManager, BookingAPIClient
+from integrations.booking import (
+    BookingIntegrationLogger,
+    BookingCredentialManager,
+    BookingAPIClient,
+    BookingReservationMapper
+)
+from server import ChannelType
 
 logger = logging.getLogger(__name__)
 
@@ -90,17 +96,15 @@ async def _booking_pull_async(tenant_id: str):
         client_api = BookingAPIClient(credentials)
         response = await client_api.fetch_reservations()
         reservations = response.get('reservations', [])
+        mapper = BookingReservationMapper(tenant_id)
 
         for reservation in reservations:
             await db.ota_reservations.update_one(
-                {'tenant_id': tenant_id, 'provider': 'booking', 'reservation_id': reservation.get('id')},
+                {'tenant_id': tenant_id, 'channel_type': ChannelType.BOOKING_COM.value, 'channel_booking_id': reservation.get('id')},
                 {'$set': {
-                    **reservation,
-                    'reservation_id': reservation.get('id'),
-                    'tenant_id': tenant_id,
-                    'provider': 'booking',
-                    'last_synced_at': datetime.now(timezone.utc).isoformat()}
-                },
+                    **mapper.to_ota_record(reservation),
+                    'last_synced_at': datetime.now(timezone.utc).isoformat()
+                }},
                 upsert=True
             )
 

@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 from fastapi import BackgroundTasks
 from typing import List, Dict, Any, Optional
-from server import db, get_current_user, User
+from server import db, get_current_user, User, OTAReservation, ChannelType
 from celery_app import celery_app
 import httpx
 
@@ -119,15 +119,23 @@ class BookingAPIClient:
 
         reservations = []
         for item in data.get("reservations", []):
+            stay = item.get("dates", {})
+            guest = item.get("guest", {})
+            counts = item.get("guest_counts", {})
             reservations.append({
                 "id": item.get("id"),
-                "guest_name": item.get("guest", {}).get("name"),
+                "guest_name": guest.get("name"),
+                "guest_email": guest.get("email"),
+                "guest_phone": guest.get("phone"),
                 "room_code": item.get("room", {}).get("code"),
-                "check_in": item.get("dates", {}).get("arrival"),
-                "check_out": item.get("dates", {}).get("departure"),
+                "check_in": stay.get("arrival"),
+                "check_out": stay.get("departure"),
                 "status": item.get("status"),
                 "total_amount": item.get("pricing", {}).get("total"),
-                "currency": item.get("pricing", {}).get("currency")
+                "currency": item.get("pricing", {}).get("currency"),
+                "adults": counts.get("adults"),
+                "children": counts.get("children"),
+                "commission_amount": item.get("pricing", {}).get("commission")
             })
 
         return {
@@ -135,6 +143,37 @@ class BookingAPIClient:
             "reservations": reservations,
             "endpoint": endpoint
         }
+
+class BookingReservationMapper:
+    def __init__(self, tenant_id: str):
+        self.tenant_id = tenant_id
+
+    def to_ota_record(self, reservation: Dict[str, Any]) -> Dict[str, Any]:
+        adults = reservation.get("adults", 2)
+        children = reservation.get("children", 0)
+        ota_res = OTAReservation(
+            tenant_id=self.tenant_id,
+            channel_type=ChannelType.BOOKING_COM,
+            channel_booking_id=reservation.get("id"),
+            guest_name=reservation.get("guest_name") or "Booking Guest",
+            guest_email=reservation.get("guest_email"),
+            guest_phone=reservation.get("guest_phone"),
+            room_type=reservation.get("room_code", "standard"),
+            check_in=reservation.get("check_in"),
+            check_out=reservation.get("check_out"),
+            adults=adults,
+            children=children,
+            total_amount=reservation.get("total_amount", 0.0),
+            commission_amount=reservation.get("commission_amount"),
+            status=reservation.get("status", "pending"),
+            raw_data=reservation
+        )
+        data = ota_res.model_dump()
+        data['channel_type'] = data['channel_type'].value
+        data['received_at'] = data['received_at'].isoformat()
+        if data.get('processed_at'):
+            data['processed_at'] = data['processed_at'].isoformat()
+        return data
 
 booking_router = APIRouter(prefix="/booking", tags=["booking-integrations"])
 
