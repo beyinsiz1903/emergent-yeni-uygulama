@@ -15,7 +15,10 @@ const FnBComplete = ({ user, tenant, onLogout }) => {
   const [recipes, setRecipes] = useState([]);
 
   useEffect(() => {
-    axios.get('/fnb/recipes').then(res => setRecipes(res.data.recipes || [])).catch(() => {});
+    axios
+      .get('/fnb/recipes')
+      .then((res) => setRecipes(res.data.recipes || []))
+      .catch(() => {});
   }, []);
 
   return (
@@ -28,16 +31,14 @@ const FnBComplete = ({ user, tenant, onLogout }) => {
               <ChefHat className="w-8 h-8 text-orange-600" />
               F&B Management Suite
             </h1>
-            <p className="text-gray-600 mt-1">
-              Recipe Costing, BEO, Kitchen Display, Inventory
-            </p>
+            <p className="text-gray-600 mt-1">Recipe Costing, BEO, Kitchen Display, Inventory</p>
           </div>
           <div className="flex items-center gap-3">
             <Button variant="outline" onClick={() => navigate('/pos')}>
               <Monitor className="w-4 h-4 mr-2" />
               POS Restaurant
             </Button>
-            <Button onClick={() => navigate('/')}> 
+            <Button onClick={() => navigate('/')}>
               <Home className="w-4 h-4 mr-2" />
               Dashboard
             </Button>
@@ -96,7 +97,10 @@ const FnBComplete = ({ user, tenant, onLogout }) => {
                 <div className="text-center py-8">
                   <FileText className="w-16 h-16 text-orange-600 mx-auto mb-4" />
                   <p className="text-gray-700 mb-4">Banquet Event Order otomatik oluşturma</p>
-                  <Button className="bg-orange-600" onClick={() => navigate('/fnb/beo-generator')}>
+                  <Button
+                    className="bg-orange-600"
+                    onClick={() => navigate('/fnb/beo-generator')}
+                  >
                     BEO Oluştur
                   </Button>
                 </div>
@@ -131,7 +135,9 @@ const FnBComplete = ({ user, tenant, onLogout }) => {
                 <CardTitle>Ingredient Inventory</CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-center text-gray-600 py-8">Malzeme stok takibi, par level, auto reorder</p>
+                <p className="text-center text-gray-600 py-8">
+                  Malzeme stok takibi, par level, auto reorder
+                </p>
               </CardContent>
             </Card>
           </TabsContent>
