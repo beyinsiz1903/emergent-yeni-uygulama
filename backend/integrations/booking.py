@@ -2,8 +2,11 @@ from datetime import datetime, timezone
 from typing import Dict, Any, Optional, List
 import uuid
 from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel, Field
 from fastapi import BackgroundTasks
+from typing import List
 from server import db, get_current_user, User
+from celery_app import celery_app
 
 class BookingCredentialManager:
     @staticmethod
@@ -83,6 +86,20 @@ class BookingIntegrationLogger:
 
 booking_router = APIRouter(prefix="/booking", tags=["booking-integrations"])
 
+class RoomRate(BaseModel):
+    room_code: str
+    rate_plan: str
+    date: str
+    price: float
+    currency: str = "EUR"
+    min_stay: int = 1
+    closed: bool = False
+
+
+class BookingPushRequest(BaseModel):
+    rooms: List[RoomRate]
+
+
 @booking_router.post("/credentials")
 async def upsert_booking_credentials(
     payload: Dict[str, Any],
@@ -107,4 +124,52 @@ async def get_booking_credentials(current_user: User = Depends(get_current_user)
         raise HTTPException(status_code=404, detail="Booking.com credentials not found")
     return creds
 
+@booking_router.post("/ari/push")
+async def trigger_booking_ari_push(
+    payload: BookingPushRequest,
+    current_user: User = Depends(get_current_user)
+):
+    credentials = await BookingCredentialManager.get_credentials(current_user.tenant_id)
+    if not credentials:
+        raise HTTPException(status_code=400, detail="Booking.com credentials missing")
+
+    builder = BookingPayloadBuilder(current_user.tenant_id, credentials)
+    push_payload = builder.build_rate_payload([room.model_dump() for room in payload.rooms])
+
+    celery_app.send_task('celery_tasks.booking_push_task', args=[current_user.tenant_id, push_payload])
+    await BookingIntegrationLogger.log_event(
+        current_user.tenant_id,
+        'ari_push',
+        push_payload,
+        'queued',
+        message='Booking.com ARI push queued'
+    )
+    return {"success": True, "queued": True}
+
+@booking_router.post("/reservations/pull")
+async def trigger_booking_reservation_pull(
+    current_user: User = Depends(get_current_user)
+):
+    credentials = await BookingCredentialManager.get_credentials(current_user.tenant_id)
+    if not credentials:
+        raise HTTPException(status_code=400, detail="Booking.com credentials missing")
+
+    celery_app.send_task('celery_tasks.booking_pull_task', args=[current_user.tenant_id])
+    await BookingIntegrationLogger.log_event(
+        current_user.tenant_id,
+        'reservation_pull',
+        {"tenant_id": current_user.tenant_id},
+        'queued',
+        message='Booking.com reservation pull queued'
+    )
+    return {"success": True, "queued": True}
+
+@booking_router.get("/logs")
+async def list_booking_logs(limit: int = 20, current_user: User = Depends(get_current_user)):
+    cursor = db.booking_integration_logs.find(
+        {'tenant_id': current_user.tenant_id},
+        {'_id': 0}
+    ).sort('created_at', -1).limit(limit)
+    items = await cursor.to_list(length=limit)
+    return {"items": items, "count": len(items)}
 
