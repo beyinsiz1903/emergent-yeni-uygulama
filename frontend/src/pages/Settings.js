@@ -35,6 +35,11 @@ const Settings = ({ user, tenant, onLogout }) => {
     min_stay: 1,
     closed: false
   });
+  const [roomMappings, setRoomMappings] = useState([]);
+  const [newMapping, setNewMapping] = useState({
+    channel_room_type: '',
+    pms_room_type: ''
+  });
 
   const saveIntegration = async (type, config) => {
     setSaving(true);
