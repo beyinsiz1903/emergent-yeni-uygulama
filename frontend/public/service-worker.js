@@ -5,6 +5,14 @@
 
 const CACHE_VERSION = 'v1.0.0';
 const CACHE_NAME = `hotel-pms-${CACHE_VERSION}`;
+const OFFLINE_DB_NAME = 'RoomOpsOffline';
+const OFFLINE_DB_VERSION = 1;
+const MEDIA_QUEUE_STORE = 'mediaQueue';
+const TASK_QUEUE_STORE = 'taskQueue';
+const NOTIFICATION_LOG_STORE = 'notificationLog';
+const MEDIA_SYNC_TAG = 'sync-media-uploads';
+const TASK_SYNC_TAG = 'sync-task-updates';
+const NOTIFICATION_SYNC_TAG = 'sync-notification-log';
 
 // Assets to cache immediately on install
 const PRECACHE_ASSETS = [
@@ -278,36 +286,19 @@ async function staleWhileRevalidate(request, cacheDuration) {
 self.addEventListener('sync', (event) => {
   console.log('[SW] Background sync triggered:', event.tag);
   
-  if (event.tag === 'sync-offline-actions') {
-    event.waitUntil(syncOfflineActions());
+  if (event.tag === MEDIA_SYNC_TAG) {
+    event.waitUntil(processMediaQueue());
+  } else if (event.tag === TASK_SYNC_TAG) {
+    event.waitUntil(processTaskQueue());
+  } else if (event.tag === NOTIFICATION_SYNC_TAG || event.tag === 'sync-offline-actions') {
+    event.waitUntil(broadcastClientMessage({ type: 'SYNC_NOTIFICATION_LOG' }));
   }
 });
-
-async function syncOfflineActions() {
-  // Sync any offline actions when connection is restored
-  console.log('[SW] Syncing offline actions...');
-  
-  // Implementation would depend on your offline queue system
-  // This is a placeholder
-  
-  return Promise.resolve();
-}
 
 // Push notifications
 self.addEventListener('push', (event) => {
   const data = event.data ? event.data.json() : {};
-  
-  const options = {
-    body: data.body || 'New notification',
-    icon: '/icon-192.png',
-    badge: '/badge-72.png',
-    vibrate: [200, 100, 200],
-    data: data,
-  };
-  
-  event.waitUntil(
-    self.registration.showNotification(data.title || 'Hotel PMS', options)
-  );
+  event.waitUntil(handlePushNotification(data));
 });
 
 // Notification click
@@ -318,5 +309,193 @@ self.addEventListener('notificationclick', (event) => {
     clients.openWindow(event.notification.data.url || '/')
   );
 });
+
+async function openOfflineDB() {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open(OFFLINE_DB_NAME, OFFLINE_DB_VERSION);
+
+    request.onerror = () => reject(request.error);
+    request.onsuccess = () => resolve(request.result);
+    request.onupgradeneeded = (event) => {
+      const db = event.target.result;
+
+      if (!db.objectStoreNames.contains(MEDIA_QUEUE_STORE)) {
+        const store = db.createObjectStore(MEDIA_QUEUE_STORE, { keyPath: 'id' });
+        store.createIndex('createdAt', 'createdAt', { unique: false });
+      }
+      if (!db.objectStoreNames.contains(TASK_QUEUE_STORE)) {
+        const store = db.createObjectStore(TASK_QUEUE_STORE, { keyPath: 'id' });
+        store.createIndex('createdAt', 'createdAt', { unique: false });
+      }
+      if (!db.objectStoreNames.contains(NOTIFICATION_LOG_STORE)) {
+        const store = db.createObjectStore(NOTIFICATION_LOG_STORE, { keyPath: 'id' });
+        store.createIndex('createdAt', 'createdAt', { unique: false });
+      }
+    };
+  });
+}
+
+async function getAllFromStore(storeName) {
+  const db = await openOfflineDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction([storeName], 'readonly');
+    const store = tx.objectStore(storeName);
+    const index = store.index('createdAt');
+    const request = index.openCursor(null, 'next');
+    const items = [];
+
+    request.onsuccess = (event) => {
+      const cursor = event.target.result;
+      if (cursor) {
+        items.push(cursor.value);
+        cursor.continue();
+      } else {
+        resolve(items);
+      }
+    };
+    request.onerror = () => reject(request.error);
+  });
+}
+
+async function removeFromStore(storeName, id) {
+  const db = await openOfflineDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction([storeName], 'readwrite');
+    const store = tx.objectStore(storeName);
+    const request = store.delete(id);
+    request.onsuccess = () => resolve(true);
+    request.onerror = () => reject(request.error);
+  });
+}
+
+async function processMediaQueue() {
+  try {
+    const items = await getAllFromStore(MEDIA_QUEUE_STORE);
+    if (!items.length) {
+      return;
+    }
+
+    for (const media of items) {
+      if (!media.uploadUrl || !media.file) {
+        await removeFromStore(MEDIA_QUEUE_STORE, media.id);
+        continue;
+      }
+
+      const headers = new Headers(media.headers || {});
+      if (!headers.has('Content-Type') && media.contentType) {
+        headers.set('Content-Type', media.contentType);
+      }
+
+      const uploadResponse = await fetch(media.uploadUrl, {
+        method: media.method || 'PUT',
+        headers,
+        body: media.file
+      });
+
+      if (!uploadResponse.ok) {
+        console.warn('[SW] Media upload failed, will retry later', media.id);
+        continue;
+      }
+
+      if (media.confirmEndpoint) {
+        await fetch(media.confirmEndpoint, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(media.confirmHeaders || {})
+          },
+          body: JSON.stringify(media.confirmPayload || {})
+        });
+      }
+
+      await removeFromStore(MEDIA_QUEUE_STORE, media.id);
+      await broadcastClientMessage({ type: 'MEDIA_UPLOAD_COMPLETED', payload: { mediaId: media.mediaId } });
+    }
+  } catch (error) {
+    console.error('[SW] processMediaQueue error', error);
+  }
+}
+
+async function processTaskQueue() {
+  try {
+    const tasks = await getAllFromStore(TASK_QUEUE_STORE);
+    if (!tasks.length) {
+      return;
+    }
+
+    for (const task of tasks) {
+      if (!task.request) {
+        await removeFromStore(TASK_QUEUE_STORE, task.id);
+        continue;
+      }
+
+      const { url, method = 'POST', headers = {}, body } = task.request;
+      try {
+        const response = await fetch(url, {
+          method,
+          headers,
+          body: body ? JSON.stringify(body) : undefined
+        });
+
+        if (response.ok) {
+          await removeFromStore(TASK_QUEUE_STORE, task.id);
+          await broadcastClientMessage({ type: 'TASK_SYNC_COMPLETED', payload: { taskId: task.referenceId } });
+        } else {
+          console.warn('[SW] Task sync failed', task, response.status);
+        }
+      } catch (err) {
+        console.warn('[SW] Task sync network error', err);
+      }
+    }
+  } catch (error) {
+    console.error('[SW] processTaskQueue error', error);
+  }
+}
+
+async function handlePushNotification(data) {
+  const options = {
+    body: data.body || 'New notification',
+    icon: data.icon || '/icon-192.png',
+    badge: data.badge || '/badge-72.png',
+    vibrate: data.vibrate || [200, 100, 200],
+    data: data,
+    actions: data.actions || [],
+    tag: data.tag || `notification-${Date.now()}`
+  };
+
+  await logNotificationEvent({
+    title: data.title || 'Hotel PMS',
+    body: data.body,
+    data,
+    createdAt: Date.now()
+  });
+
+  await broadcastClientMessage({ type: 'PUSH_NOTIFICATION', payload: data });
+
+  return self.registration.showNotification(data.title || 'Hotel PMS', options);
+}
+
+async function logNotificationEvent(event) {
+  const db = await openOfflineDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction([NOTIFICATION_LOG_STORE], 'readwrite');
+    const store = tx.objectStore(NOTIFICATION_LOG_STORE);
+    const record = {
+      ...event,
+      id: event.id || crypto.randomUUID(),
+      createdAt: event.createdAt || Date.now()
+    };
+    const request = store.put(record);
+    request.onsuccess = () => resolve(true);
+    request.onerror = () => reject(request.error);
+  });
+}
+
+async function broadcastClientMessage(message) {
+  const clientList = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+  clientList.forEach((client) => {
+    client.postMessage(message);
+  });
+}
 
 console.log('[SW] Service Worker loaded');

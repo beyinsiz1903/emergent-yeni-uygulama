@@ -5,6 +5,7 @@ import axios from "axios";
 import { QueryClientProvider } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { queryClient } from '@/lib/queryClient';
+import usePushNotifications from '@/hooks/usePushNotifications';
 
 // Critical imports - loaded immediately
 import AuthPage from "@/pages/AuthPage";
@@ -162,6 +163,8 @@ function App() {
   const [user, setUser] = useState(null);
   const [tenant, setTenant] = useState(null);
   const [loading, setLoading] = useState(true);
+
+  usePushNotifications(isAuthenticated ? user : null);
 
   // Setup axios interceptor for handling auth errors - DISABLED for now
   // The aggressive logout was causing issues with optional endpoints
