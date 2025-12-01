@@ -5,13 +5,24 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Building2, Wrench, Filter, RefreshCw, AlertTriangle, CheckCircle } from "lucide-react";
+import { Building2, Wrench, Filter, RefreshCw, AlertTriangle, CheckCircle, Camera, Image, Video } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Checkbox } from "@/components/ui/checkbox";
+import useMediaCapture from "@/hooks/useMediaCapture";
+import { toast } from "sonner";
 
 const MaintenanceWorkOrders = ({ user, tenant, onLogout }) => {
   const [items, setItems] = useState([]);
   const [status, setStatus] = useState("open");
   const [priority, setPriority] = useState("all");
   const [loading, setLoading] = useState(true);
+  const [mediaModalOpen, setMediaModalOpen] = useState(false);
+  const [selectedWorkOrder, setSelectedWorkOrder] = useState(null);
+  const [mediaList, setMediaList] = useState([]);
+  const [mediaLoading, setMediaLoading] = useState(false);
+  const [mediaType, setMediaType] = useState("photo");
+  const [includeBeforeAfter, setIncludeBeforeAfter] = useState(true);
+  const { uploadMedia, uploading } = useMediaCapture();
 
   const loadData = async () => {
     try {
@@ -40,6 +51,116 @@ const MaintenanceWorkOrders = ({ user, tenant, onLogout }) => {
       console.error("Failed to update work order", err);
     }
   };
+
+  const openMediaModal = async (workOrder) => {
+    setSelectedWorkOrder(workOrder);
+    setMediaModalOpen(true);
+    await fetchMedia(workOrder.id);
+  };
+
+  const fetchMedia = async (workOrderId) => {
+    setMediaLoading(true);
+    try {
+      const res = await axios.get("/media/list", {
+        params: {
+          module: "maintenance",
+          entity_id: workOrderId
+        }
+      });
+      setMediaList(res.data.items || []);
+    } catch (error) {
+      console.error("Failed to fetch media", error);
+      toast.error("Fotoğraflar yüklenemedi");
+    } finally {
+      setMediaLoading(false);
+    }
+  };
+
+  const handleMediaCapture = async (file) => {
+    if (!file || !selectedWorkOrder) return;
+
+    try {
+      const metadata = {
+        work_order_id: selectedWorkOrder.id,
+        room_id: selectedWorkOrder.room_id,
+        room_number: selectedWorkOrder.room_number,
+        issue_type: selectedWorkOrder.issue_type,
+        status: selectedWorkOrder.status,
+        photo_type: includeBeforeAfter ? (selectedWorkOrder.status === "completed" ? "after" : "before") : "general",
+        captured_at: new Date().toISOString()
+      };
+
+      const result = await uploadMedia({
+        file,
+        module: "maintenance",
+        entityId: selectedWorkOrder.id,
+        mediaType,
+        qaRequired: true,
+        metadata
+      });
+
+      if (result.offlineQueued) {
+        toast.message("📶 Medya sıraya alındı", {
+          description: "Bağlantı sağlandığında otomatik yüklenecek."
+        });
+      } else {
+        toast.success("✓ Medya yüklendi");
+        await fetchMedia(selectedWorkOrder.id);
+      }
+    } catch (error) {
+      console.error("Media upload failed", error);
+      toast.error("Medya yüklenemedi");
+    }
+  };
+
+  const renderMediaList = () => {
+    if (mediaLoading) {
+      return (
+        <div className="text-sm text-gray-500 flex items-center gap-2">
+          <RefreshCw className="w-4 h-4 animate-spin" />
+          Fotoğraflar yükleniyor...
+        </div>
+      );
+    }
+
+    if (!mediaList.length) {
+      return <p className="text-sm text-gray-500">Bu iş emri için kayıtlı medya yok.</p>;
+    }
+
+    return (
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-96 overflow-y-auto">
+        {mediaList.map((media) => (
+          <Card key={media.id} className="border">
+            <CardContent className="p-3 space-y-2">
+              <div className="flex items-center justify-between text-xs text-gray-500">
+                <span>{media.media_type}</span>
+                <span>{new Date(media.created_at).toLocaleString("tr-TR")}</span>
+              </div>
+              {media.media_type === "photo" ? (
+                <img
+                  src={media.storage_url}
+                  alt={media.metadata?.photo_type || "maintenance-photo"}
+                  className="w-full h-40 object-cover rounded"
+                />
+              ) : (
+                <video controls className="w-full rounded">
+                  <source src={media.storage_url} type={media.content_type || "video/mp4"} />
+                </video>
+              )}
+              {media.metadata?.notes && (
+                <p className="text-xs text-gray-600">{media.metadata.notes}</p>
+              )}
+              <div className="text-xs text-gray-500">
+                QA: {media.qa_status || "-"}
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    );
+  };
+
+  const fileInputId = "maintenance-media-input";
 
   const renderStatusBadge = (value) => {
     const v = value || "open";
@@ -216,6 +337,17 @@ const MaintenanceWorkOrders = ({ user, tenant, onLogout }) => {
                             ) : (
                               <span className="text-[11px] text-gray-400">Closed</span>
                             )}
+                            <div className="mt-2">
+                              <Button
+                                size="xs"
+                                variant="secondary"
+                                className="w-full"
+                                onClick={() => openMediaModal(wo)}
+                              >
+                                <Camera className="w-3 h-3 mr-1" />
+                                Fotoğraflar
+                              </Button>
+                            </div>
                           </td>
                         </tr>
                       );
@@ -227,6 +359,85 @@ const MaintenanceWorkOrders = ({ user, tenant, onLogout }) => {
           </CardContent>
         </Card>
       </div>
+      <Dialog open={mediaModalOpen} onOpenChange={setMediaModalOpen}>
+        <DialogContent className="max-w-3xl w-[95vw]">
+          <DialogHeader>
+            <DialogTitle>
+              Bakım Fotoğrafları {selectedWorkOrder ? `- ${selectedWorkOrder.room_number || ""}` : ""}
+            </DialogTitle>
+          </DialogHeader>
+          {selectedWorkOrder && (
+            <div className="space-y-4">
+              <div className="flex items-center gap-3">
+                <div className="flex-1">
+                  <p className="text-sm font-semibold">{selectedWorkOrder.issue_type}</p>
+                  <p className="text-xs text-gray-500">{selectedWorkOrder.description || "-"}</p>
+                </div>
+                <Badge>{selectedWorkOrder.status}</Badge>
+              </div>
+
+              <div className="flex flex-col sm:flex-row sm:items-center gap-3 border rounded-lg p-3 bg-gray-50">
+                <div className="flex items-center gap-2">
+                  <input
+                    id={fileInputId}
+                    type="file"
+                    accept={mediaType === "photo" ? "image/*" : "video/*"}
+                    capture={mediaType === "photo" ? "environment" : undefined}
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        handleMediaCapture(file);
+                        e.target.value = "";
+                      }
+                    }}
+                  />
+                  <Button
+                    size="sm"
+                    className="flex items-center gap-2"
+                    onClick={() => document.getElementById(fileInputId)?.click()}
+                    disabled={uploading}
+                  >
+                    {uploading ? (
+                      <RefreshCw className="w-4 h-4 mr-1 animate-spin" />
+                    ) : mediaType === "video" ? (
+                      <Video className="w-4 h-4" />
+                    ) : (
+                      <Camera className="w-4 h-4" />
+                    )}
+                    Yeni {mediaType === "video" ? "Video" : "Fotoğraf"}
+                  </Button>
+                </div>
+
+                <div className="flex items-center gap-4 text-xs text-gray-600">
+                  <div className="flex items-center gap-2">
+                    <Checkbox
+                      id="beforeAfter"
+                      checked={includeBeforeAfter}
+                      onCheckedChange={(checked) => setIncludeBeforeAfter(Boolean(checked))}
+                    />
+                    <label htmlFor="beforeAfter">Önce/Sonra Etiketle</label>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <label className="text-xs">Tip:</label>
+                    <Select value={mediaType} onValueChange={setMediaType}>
+                      <SelectTrigger className="h-8 w-28">
+                        <SelectValue placeholder="Tip" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="photo">Fotoğraf</SelectItem>
+                        <SelectItem value="video">Video</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              </div>
+
+              <div>{renderMediaList()}</div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </Layout>
   );
 };

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { Card, CardContent } from '@/components/ui/card';
@@ -24,6 +24,7 @@ const KitchenDisplay = () => {
   const [statusFilter, setStatusFilter] = useState('active');
   const [lastUpdate, setLastUpdate] = useState(null);
   const { isConnected } = useWebSocket('kitchen');
+  const notifiedOrdersRef = useRef(new Set());
 
   useEffect(() => {
     loadOrders();
@@ -119,6 +120,43 @@ const KitchenDisplay = () => {
       })
       .slice(0, 4);
   }, [orders]);
+
+  useEffect(() => {
+    if (!('Notification' in window)) return;
+    if (Notification.permission === 'default') {
+      Notification.requestPermission();
+    }
+  }, []);
+
+  useEffect(() => {
+    urgentOrders.forEach((order) => {
+      if (!order?.id) return;
+      if (notifiedOrdersRef.current.has(order.id)) return;
+      notifiedOrdersRef.current.add(order.id);
+      triggerLocalNotification(order);
+    });
+  }, [urgentOrders]);
+
+  const triggerLocalNotification = async (order) => {
+    const title = `⚠️ ${order.table_name || 'Order'} gecikiyor`;
+    const body = `Sipariş ${getElapsedTime(order.ordered_at)} dk oldu. İstasyon: ${order.items?.[0]?.station || 'Genel'}`;
+
+    if ('Notification' in window && Notification.permission === 'granted') {
+      try {
+        const registration = await navigator.serviceWorker.ready;
+        await registration.showNotification(title, {
+          body,
+          tag: `kitchen-${order.id}`,
+          data: { url: '/kitchen-display' }
+        });
+      } catch (error) {
+        console.warn('Notification failed, falling back to toast', error);
+        toast.warning(title, { description: body });
+      }
+    } else {
+      toast.warning(title, { description: body });
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gray-900 text-white">

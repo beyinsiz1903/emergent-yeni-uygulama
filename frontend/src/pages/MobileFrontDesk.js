@@ -31,6 +31,7 @@ import {
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import useMediaCapture from '@/hooks/useMediaCapture';
 
 const MobileFrontDesk = ({ user }) => {
   const navigate = useNavigate();
@@ -62,10 +63,15 @@ const MobileFrontDesk = ({ user }) => {
   const [availableRooms, setAvailableRooms] = useState([]);
   const [passportScanModalOpen, setPassportScanModalOpen] = useState(false);
   const [selectedBookingForPassport, setSelectedBookingForPassport] = useState(null);
-  const [passportImage, setPassportImage] = useState(null);
+  const [passportPreview, setPassportPreview] = useState(null);
+  const [passportFile, setPassportFile] = useState(null);
+  const [passportBase64, setPassportBase64] = useState(null);
+  const [passportProcessing, setPassportProcessing] = useState(false);
   const [keycardModalOpen, setKeycardModalOpen] = useState(false);
   const [selectedBookingForKeycard, setSelectedBookingForKeycard] = useState(null);
   const [keycardType, setKeycardType] = useState('physical');
+
+  const { uploadMedia: uploadDocument, uploading: passportUploading } = useMediaCapture();
   
   // COLLAPSIBLE STATE
   const [arrivalsExpanded, setArrivalsExpanded] = useState(false);
@@ -218,36 +224,94 @@ const MobileFrontDesk = ({ user }) => {
 
   // NEW FEATURE 3: PASSPORT SCAN
   const openPassportScan = (booking) => {
+    resetPassportCaptureState();
     setSelectedBookingForPassport(booking);
     setPassportScanModalOpen(true);
   };
 
-  const handlePassportScan = async (imageData) => {
-    try {
-      const res = await axios.post('/frontdesk/passport-scan', {
-        image_data: imageData
-      });
-      toast.success('✓ Kimlik okundu');
-      // Auto-fill guest data
-      if (res.data.extracted_data) {
-        toast.info(`${res.data.extracted_data.name} ${res.data.extracted_data.surname}`);
-      }
-      setPassportScanModalOpen(false);
-    } catch (error) {
-      toast.error('✗ Kimlik okunamadı');
+  const resetPassportCaptureState = () => {
+    setPassportPreview(null);
+    setPassportFile(null);
+    setPassportBase64(null);
+    setPassportProcessing(false);
+  };
+
+  const handlePassportModalChange = (open) => {
+    setPassportScanModalOpen(open);
+    if (!open) {
+      resetPassportCaptureState();
+      setSelectedBookingForPassport(null);
     }
   };
 
-  const handleImageUpload = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const base64String = reader.result.split(',')[1];
-        setPassportImage(base64String);
-      };
-      reader.readAsDataURL(file);
+  const handlePassportScan = async () => {
+    if (!passportFile || !passportBase64 || !selectedBookingForPassport) {
+      toast.error('⚠️ Lütfen kimlik fotoğrafı ekleyin');
+      return;
     }
+
+    try {
+      setPassportProcessing(true);
+      const metadata = {
+        booking_id: selectedBookingForPassport.id,
+        guest_name: selectedBookingForPassport.guest_name,
+        document_type: 'passport',
+        captured_at: new Date().toISOString()
+      };
+
+      const result = await uploadDocument({
+        file: passportFile,
+        module: 'frontdesk',
+        entityId: selectedBookingForPassport.id,
+        mediaType: 'document',
+        qaRequired: true,
+        metadata
+      });
+
+      if (result.offlineQueued) {
+        toast.message('📶 Kimlik fotoğrafı sıraya alındı', {
+          description: 'Bağlantı sağlandığında otomatik yüklenecek.'
+        });
+        setPassportScanModalOpen(false);
+        return;
+      }
+
+      const res = await axios.post('/frontdesk/passport-scan', {
+        booking_id: selectedBookingForPassport.id,
+        image_data: passportBase64
+      });
+
+      toast.success('✓ Kimlik okundu');
+      if (res.data.extracted_data) {
+        toast.info(
+          `${res.data.extracted_data.name || ''} ${res.data.extracted_data.surname || ''}`.trim()
+        );
+      }
+
+      setPassportScanModalOpen(false);
+    } catch (error) {
+      console.error('Passport scan failed', error);
+      toast.error('✗ Kimlik okunamadı');
+    } finally {
+      setPassportProcessing(false);
+    }
+  };
+
+  const handlePassportFileChange = (e) => {
+    const file = e.target.files[0];
+    if (!file) {
+      resetPassportCaptureState();
+      return;
+    }
+
+    setPassportFile(file);
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setPassportPreview(reader.result);
+      const base64String = reader.result?.split(',')[1];
+      setPassportBase64(base64String || null);
+    };
+    reader.readAsDataURL(file);
   };
 
   // NEW FEATURE 4: KEYCARD ISSUE
@@ -1018,7 +1082,7 @@ const MobileFrontDesk = ({ user }) => {
       </Dialog>
 
       {/* NEW FEATURE 3: PASSPORT SCAN MODAL */}
-      <Dialog open={passportScanModalOpen} onOpenChange={setPassportScanModalOpen}>
+      <Dialog open={passportScanModalOpen} onOpenChange={handlePassportModalChange}>
         <DialogContent className="max-w-full w-[95vw] max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>📷 Kimlik Okuma</DialogTitle>
@@ -1040,14 +1104,14 @@ const MobileFrontDesk = ({ user }) => {
                   type="file" 
                   accept="image/*" 
                   capture="environment"
-                  onChange={handleImageUpload}
+                  onChange={handlePassportFileChange}
                   className="cursor-pointer"
                 />
                 
-                {passportImage && (
+                {passportPreview && (
                   <div className="relative">
                     <img 
-                      src={`data:image/jpeg;base64,${passportImage}`} 
+                      src={passportPreview} 
                       alt="Passport" 
                       className="w-full rounded border"
                     />
@@ -1056,10 +1120,14 @@ const MobileFrontDesk = ({ user }) => {
                 
                 <Button 
                   className="w-full bg-teal-600 hover:bg-teal-700"
-                  disabled={!passportImage}
-                  onClick={() => handlePassportScan(passportImage)}
+                  disabled={!passportFile || !passportBase64 || passportProcessing || passportUploading}
+                  onClick={handlePassportScan}
                 >
-                  <Camera className="w-4 h-4 mr-2" />
+                  {(passportProcessing || passportUploading) ? (
+                    <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                  ) : (
+                    <Camera className="w-4 h-4 mr-2" />
+                  )}
                   Kimlik Oku
                 </Button>
                 

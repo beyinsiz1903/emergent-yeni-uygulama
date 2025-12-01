@@ -12586,6 +12586,40 @@ async def create_channel_connection(
     
     return {'message': f'Channel {channel_name} connected successfully', 'connection': connection}
 
+@api_router.get("/channel-manager/room-mappings")
+async def get_room_mappings(
+    current_user: User = Depends(get_current_user)
+):
+    mappings = await db.room_mappings.find(
+        {'tenant_id': current_user.tenant_id},
+        {'_id': 0}
+    ).to_list(200)
+    return {'mappings': mappings, 'count': len(mappings)}
+
+@api_router.post("/channel-manager/room-mappings")
+async def create_room_mapping(
+    mapping: RoomMapping,
+    current_user: User = Depends(get_current_user)
+):
+    mapping.tenant_id = current_user.tenant_id
+    payload = mapping.model_dump()
+    payload['created_at'] = payload['created_at'].isoformat()
+    await db.room_mappings.insert_one(payload)
+    return {'message': 'Room mapping created', 'mapping': mapping}
+
+@api_router.delete("/channel-manager/room-mappings/{mapping_id}")
+async def delete_room_mapping(
+    mapping_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    result = await db.room_mappings.delete_one({
+        'id': mapping_id,
+        'tenant_id': current_user.tenant_id
+    })
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Mapping not found")
+    return {'message': 'Mapping removed'}
+
 @api_router.get("/channel-manager/ota-reservations")
 @cached(ttl=180, key_prefix="cm_ota_reservations")  # Cache for 3 min
 async def get_ota_reservations(
@@ -51079,6 +51113,22 @@ try:
 except ImportError as e:
     print(f"⚠️ Monitoring endpoints not available: {e}")
 
+# Include media endpoints
+try:
+    from media_endpoints import media_router
+    app.include_router(media_router, prefix="/api", tags=["media"])
+    print("✅ Media endpoints included")
+except ImportError as e:
+    print(f"⚠️ Media endpoints not available: {e}")
+
+# Include notification endpoints
+try:
+    from notification_endpoints import notification_router
+    app.include_router(notification_router, prefix="/api", tags=["notifications"])
+    print("✅ Notification endpoints included")
+except ImportError as e:
+    print(f"⚠️ Notification endpoints not available: {e}")
+
 # Include optimization endpoints (Enterprise Performance)
 try:
     from optimization_endpoints import optimization_router, init_optimization_managers
@@ -51086,6 +51136,14 @@ try:
     print("✅ Optimization endpoints included")
 except ImportError as e:
     print(f"⚠️ Optimization endpoints not available: {e}")
+
+# Include OTA integrator routers (placeholder)
+try:
+    from integrations.booking import booking_router
+    app.include_router(booking_router, prefix="/api/ota", tags=["ota-booking"])
+    print("✅ Booking OTA endpoints included")
+except ImportError as e:
+    print(f"⚠️ Booking OTA endpoints not available: {e}")
 
 # Include GraphQL endpoint
 try:

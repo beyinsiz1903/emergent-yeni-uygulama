@@ -5,6 +5,14 @@
 
 const CACHE_VERSION = 'v1.0.0';
 const CACHE_NAME = `hotel-pms-${CACHE_VERSION}`;
+const OFFLINE_DB_NAME = 'RoomOpsOffline';
+const OFFLINE_DB_VERSION = 1;
+const MEDIA_QUEUE_STORE = 'mediaQueue';
+const TASK_QUEUE_STORE = 'taskQueue';
+const NOTIFICATION_LOG_STORE = 'notificationLog';
+const MEDIA_SYNC_TAG = 'sync-media-uploads';
+const TASK_SYNC_TAG = 'sync-task-updates';
+const NOTIFICATION_SYNC_TAG = 'sync-notification-log';
 
 // Assets to cache immediately on install
 const PRECACHE_ASSETS = [
@@ -278,36 +286,19 @@ async function staleWhileRevalidate(request, cacheDuration) {
 self.addEventListener('sync', (event) => {
   console.log('[SW] Background sync triggered:', event.tag);
   
-  if (event.tag === 'sync-offline-actions') {
-    event.waitUntil(syncOfflineActions());
+  if (event.tag === MEDIA_SYNC_TAG) {
+    event.waitUntil(processMediaQueue());
+  } else if (event.tag === TASK_SYNC_TAG) {
+    event.waitUntil(processTaskQueue());
+  } else if (event.tag === NOTIFICATION_SYNC_TAG || event.tag === 'sync-offline-actions') {
+    event.waitUntil(broadcastClientMessage({ type: 'SYNC_NOTIFICATION_LOG' }));
   }
 });
-
-async function syncOfflineActions() {
-  // Sync any offline actions when connection is restored
-  console.log('[SW] Syncing offline actions...');
-  
-  // Implementation would depend on your offline queue system
-  // This is a placeholder
-  
-  return Promise.resolve();
-}
 
 // Push notifications
 self.addEventListener('push', (event) => {
   const data = event.data ? event.data.json() : {};
-  
-  const options = {
-    body: data.body || 'New notification',
-    icon: '/icon-192.png',
-    badge: '/badge-72.png',
-    vibrate: [200, 100, 200],
-    data: data,
-  };
-  
-  event.waitUntil(
-    self.registration.showNotification(data.title || 'Hotel PMS', options)
-  );
+  event.waitUntil(handlePushNotification(data));
 });
 
 // Notification click
@@ -318,5 +309,282 @@ self.addEventListener('notificationclick', (event) => {
     clients.openWindow(event.notification.data.url || '/')
   );
 });
+
+async function openOfflineDB() {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open(OFFLINE_DB_NAME, OFFLINE_DB_VERSION);
+
+    request.onerror = () => reject(request.error);
+    request.onsuccess = () => resolve(request.result);
+    request.onupgradeneeded = (event) => {
+      const db = event.target.result;
+
+      if (!db.objectStoreNames.contains(MEDIA_QUEUE_STORE)) {
+        const store = db.createObjectStore(MEDIA_QUEUE_STORE, { keyPath: 'id' });
+        store.createIndex('createdAt', 'createdAt', { unique: false });
+      }
+      if (!db.objectStoreNames.contains(TASK_QUEUE_STORE)) {
+        const store = db.createObjectStore(TASK_QUEUE_STORE, { keyPath: 'id' });
+        store.createIndex('createdAt', 'createdAt', { unique: false });
+      }
+      if (!db.objectStoreNames.contains(NOTIFICATION_LOG_STORE)) {
+        const store = db.createObjectStore(NOTIFICATION_LOG_STORE, { keyPath: 'id' });
+        store.createIndex('createdAt', 'createdAt', { unique: false });
+      }
+    };
+  });
+}
+
+async function getAllFromStore(storeName) {
+  const db = await openOfflineDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction([storeName], 'readonly');
+    const store = tx.objectStore(storeName);
+    const index = store.index('createdAt');
+    const request = index.openCursor(null, 'next');
+    const items = [];
+
+    request.onsuccess = (event) => {
+      const cursor = event.target.result;
+      if (cursor) {
+        items.push(cursor.value);
+        cursor.continue();
+      } else {
+        resolve(items);
+      }
+    };
+    request.onerror = () => reject(request.error);
+  });
+}
+
+async function removeFromStore(storeName, id) {
+  const db = await openOfflineDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction([storeName], 'readwrite');
+    const store = tx.objectStore(storeName);
+    const request = store.delete(id);
+    request.onsuccess = () => resolve(true);
+    request.onerror = () => reject(request.error);
+  });
+}
+
+async function processMediaQueue() {
+  try {
+    const items = await getAllFromStore(MEDIA_QUEUE_STORE);
+    if (!items.length) {
+      return;
+    }
+
+    for (const media of items) {
+      if (!media.file) {
+        await removeFromStore(MEDIA_QUEUE_STORE, media.id);
+        continue;
+      }
+
+      const descriptor = await ensureUploadDescriptor(media);
+      if (!descriptor.uploadUrl) {
+        console.warn('[SW] No upload URL yet, will retry later', descriptor.id);
+        continue;
+      }
+
+      const headers = new Headers(descriptor.headers || {});
+      if (!headers.has('Content-Type') && descriptor.contentType) {
+        headers.set('Content-Type', descriptor.contentType);
+      }
+
+      try {
+        const uploadResponse = await fetch(descriptor.uploadUrl, {
+          method: descriptor.method || 'PUT',
+          headers,
+          body: descriptor.file
+        });
+
+        if (!uploadResponse.ok) {
+          console.warn('[SW] Media upload failed, will retry later', descriptor.id);
+          continue;
+        }
+      } catch (err) {
+        console.warn('[SW] Media upload network error', err);
+        continue;
+      }
+
+      await confirmMediaDescriptor(descriptor);
+      await removeFromStore(MEDIA_QUEUE_STORE, descriptor.id);
+      await broadcastClientMessage({
+        type: 'MEDIA_UPLOAD_COMPLETED',
+        payload: { mediaId: descriptor.mediaId }
+      });
+    }
+  } catch (error) {
+    console.error('[SW] processMediaQueue error', error);
+  }
+}
+
+async function ensureUploadDescriptor(media) {
+  if (media.uploadUrl && media.mediaId) {
+    return media;
+  }
+
+  if (!media.requestPayload) {
+    return media;
+  }
+
+  try {
+    const headers = {
+      'Content-Type': 'application/json',
+      ...buildAuthHeader(media.authToken)
+    };
+
+    const response = await fetch('/api/media/request-upload', {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(media.requestPayload)
+    });
+
+    if (!response.ok) {
+      console.warn('[SW] Failed to refresh upload descriptor', response.status);
+      return media;
+    }
+
+    const data = await response.json();
+    media.uploadUrl = data.upload_url;
+    media.headers = data.headers;
+    media.mediaId = data.media_id;
+    media.confirmPayload = {
+      ...(media.confirmPayload || {}),
+      media_id: data.media_id,
+      storage_url: data.upload_url
+    };
+
+    await updateStoreEntry(MEDIA_QUEUE_STORE, media);
+    return media;
+  } catch (error) {
+    console.warn('[SW] ensureUploadDescriptor error', error);
+    return media;
+  }
+}
+
+async function confirmMediaDescriptor(media) {
+  const payload = {
+    ...(media.confirmPayload || {}),
+    media_id: media.mediaId,
+    storage_url: media.uploadUrl,
+    content_type: media.contentType,
+    size_bytes: media.file?.size,
+    metadata: media.metadata || {},
+    qa_required: media.qaRequired
+  };
+
+  const headers = {
+    'Content-Type': 'application/json',
+    ...buildAuthHeader(media.authToken)
+  };
+
+  await fetch('/api/media/confirm', {
+    method: 'POST',
+    headers,
+    body: JSON.stringify(payload)
+  });
+}
+
+async function processTaskQueue() {
+  try {
+    const tasks = await getAllFromStore(TASK_QUEUE_STORE);
+    if (!tasks.length) {
+      return;
+    }
+
+    for (const task of tasks) {
+      if (!task.request) {
+        await removeFromStore(TASK_QUEUE_STORE, task.id);
+        continue;
+      }
+
+      const { url, method = 'POST', headers = {}, body } = task.request;
+      try {
+        const response = await fetch(url, {
+          method,
+          headers,
+          body: body ? JSON.stringify(body) : undefined
+        });
+
+        if (response.ok) {
+          await removeFromStore(TASK_QUEUE_STORE, task.id);
+          await broadcastClientMessage({ type: 'TASK_SYNC_COMPLETED', payload: { taskId: task.referenceId } });
+        } else {
+          console.warn('[SW] Task sync failed', task, response.status);
+        }
+      } catch (err) {
+        console.warn('[SW] Task sync network error', err);
+      }
+    }
+  } catch (error) {
+    console.error('[SW] processTaskQueue error', error);
+  }
+}
+
+async function handlePushNotification(data) {
+  const options = {
+    body: data.body || 'New notification',
+    icon: data.icon || '/icon-192.png',
+    badge: data.badge || '/badge-72.png',
+    vibrate: data.vibrate || [200, 100, 200],
+    data: data,
+    actions: data.actions || [],
+    tag: data.tag || `notification-${Date.now()}`
+  };
+
+  await logNotificationEvent({
+    title: data.title || 'Hotel PMS',
+    body: data.body,
+    data,
+    createdAt: Date.now()
+  });
+
+  await broadcastClientMessage({ type: 'PUSH_NOTIFICATION', payload: data });
+
+  return self.registration.showNotification(data.title || 'Hotel PMS', options);
+}
+
+async function logNotificationEvent(event) {
+  const db = await openOfflineDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction([NOTIFICATION_LOG_STORE], 'readwrite');
+    const store = tx.objectStore(NOTIFICATION_LOG_STORE);
+    const record = {
+      ...event,
+      id: event.id || crypto.randomUUID(),
+      createdAt: event.createdAt || Date.now()
+    };
+    const request = store.put(record);
+    request.onsuccess = () => resolve(true);
+    request.onerror = () => reject(request.error);
+  });
+}
+
+async function broadcastClientMessage(message) {
+  const clientList = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+  clientList.forEach((client) => {
+    client.postMessage(message);
+  });
+}
+
+async function updateStoreEntry(storeName, entry) {
+  const db = await openOfflineDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction([storeName], 'readwrite');
+    const store = tx.objectStore(storeName);
+    const request = store.put(entry);
+    request.onsuccess = () => resolve(true);
+    request.onerror = () => reject(request.error);
+  });
+}
+
+const buildAuthHeader = (token) =>
+  token
+    ? {
+        Authorization: token.startsWith('Bearer ') ? token : `Bearer ${token}`
+      }
+    : {};
 
 console.log('[SW] Service Worker loaded');

@@ -9,7 +9,15 @@ import os
 from datetime import datetime, timedelta, timezone
 import asyncio
 import logging
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
+import uuid
+from integrations.booking import (
+    BookingIntegrationLogger,
+    BookingCredentialManager,
+    BookingAPIClient,
+    BookingReservationMapper
+)
+from server import ChannelType
 
 logger = logging.getLogger(__name__)
 
@@ -23,6 +31,145 @@ def get_db():
 
 
 # ============= NIGHT AUDIT TASKS =============
+# ============= BOOKING.COM INTEGRATION TASKS =============
+
+@celery_app.task(name='celery_tasks.booking_push_task')
+def booking_push_task(tenant_id: str, payload: Dict[str, Any]):
+    """Push ARI updates to Booking.com"""
+    return asyncio.run(_booking_push_async(tenant_id, payload))
+
+async def _booking_push_async(tenant_id: str, payload: Dict[str, Any]):
+    db, client = get_db()
+    try:
+        credentials = await BookingCredentialManager.get_credentials(tenant_id)
+        if not credentials:
+            raise ValueError("Booking credentials missing")
+
+        api_client = BookingAPIClient(credentials)
+        await BookingIntegrationLogger.log_event(
+            tenant_id,
+            'ari_push_attempt',
+            payload,
+            'processing',
+            message='Sending ARI payload to Booking.com'
+        )
+
+        response = await api_client.push_ari(payload)
+
+        await BookingIntegrationLogger.log_event(
+            tenant_id,
+            'ari_push',
+            response,
+            'success',
+            message='Booking.com ARI push completed'
+        )
+
+        return {
+            'success': True,
+            'rooms_updated': len(payload.get('rooms', [])),
+            'endpoint': response.get('endpoint')
+        }
+    except Exception as e:
+        await BookingIntegrationLogger.log_event(
+            tenant_id,
+            'ari_push',
+            payload,
+            'failed',
+            message=str(e)
+        )
+        return {'success': False, 'error': str(e)}
+    finally:
+        await client.close()
+
+@celery_app.task(name='celery_tasks.booking_pull_task')
+def booking_pull_task(tenant_id: str):
+    """Pull reservations from Booking.com"""
+    return asyncio.run(_booking_pull_async(tenant_id))
+
+async def _booking_pull_async(tenant_id: str):
+    db, client = get_db()
+    try:
+        credentials = await BookingCredentialManager.get_credentials(tenant_id)
+        if not credentials:
+            raise ValueError("Booking credentials missing")
+
+        client_api = BookingAPIClient(credentials)
+        response = await client_api.fetch_reservations()
+        reservations = response.get('reservations', [])
+        mapper = BookingReservationMapper(tenant_id)
+
+        for reservation in reservations:
+            ota_record = mapper.to_ota_record(reservation)
+            await db.ota_reservations.update_one(
+                {'tenant_id': tenant_id, 'channel_type': ChannelType.BOOKING_COM.value, 'channel_booking_id': ota_record['channel_booking_id']},
+                {'$set': {
+                    **ota_record,
+                    'last_synced_at': datetime.now(timezone.utc).isoformat()
+                }},
+                upsert=True
+            )
+
+            guest_id = await ensure_guest_record(db, mapper, reservation)
+            room_id = await find_room_for_reservation(db, tenant_id, ota_record.get('room_type'))
+
+            if guest_id and room_id:
+                booking_payload = mapper.to_booking_payload(reservation, guest_id, room_id)
+                await db.bookings.insert_one(booking_payload)
+                await db.ota_reservations.update_one(
+                    {'tenant_id': tenant_id, 'channel_booking_id': ota_record['channel_booking_id']},
+                    {'$set': {
+                        'status': 'imported',
+                        'pms_booking_id': booking_payload['id'],
+                        'processed_at': datetime.now(timezone.utc).isoformat()
+                    }}
+                )
+
+        await BookingIntegrationLogger.log_event(
+            tenant_id,
+            'reservation_pull',
+            {'count': len(reservations), 'endpoint': response.get('endpoint')},
+            'success',
+            message='Booking.com reservations pulled'
+        )
+
+        return {'success': True, 'reservations': len(reservations)}
+    except Exception as e:
+        await BookingIntegrationLogger.log_event(
+            tenant_id,
+            'reservation_pull',
+            {},
+            'failed',
+            message=str(e)
+        )
+        return {'success': False, 'error': str(e)}
+    finally:
+        await client.close()
+
+
+async def ensure_guest_record(db, mapper: BookingReservationMapper, reservation: Dict[str, Any]) -> Optional[str]:
+    query = {
+        'tenant_id': mapper.tenant_id,
+        'email': reservation.get('guest_email')
+    }
+    guest = await db.guests.find_one(query)
+    if guest:
+        return guest['id']
+
+    payload = mapper.to_guest_payload(reservation)
+    await db.guests.insert_one(payload)
+    return payload['id']
+
+
+async def find_room_for_reservation(db, tenant_id: str, room_type: Optional[str]) -> Optional[str]:
+    if not room_type:
+        return None
+    room = await db.rooms.find_one({
+        'tenant_id': tenant_id,
+        'room_type': room_type,
+        'status': 'available'
+    })
+    return room['id'] if room else None
+
 
 @celery_app.task(name='celery_tasks.night_audit_task')
 def night_audit_task():
