@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Settings as SettingsIcon, Mail, MessageSquare, Phone, Key, AlertCircle, Cloud, RefreshCw, Server } from 'lucide-react';
+import { Settings as SettingsIcon, Mail, MessageSquare, Phone, Key, AlertCircle, Cloud, RefreshCw, Server, Trash2 } from 'lucide-react';
 
 const Settings = ({ user, tenant, onLogout }) => {
   const [integrations, setIntegrations] = useState({
@@ -483,6 +483,64 @@ const Settings = ({ user, tenant, onLogout }) => {
                 </CardContent>
               </Card>
             </div>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Room Mappings</CardTitle>
+                <CardDescription>Match Booking.com room codes to PMS room types</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div>
+                    <Label>Booking Room Code</Label>
+                    <Input
+                      value={newMapping.channel_room_type}
+                      onChange={(e) => setNewMapping({ ...newMapping, channel_room_type: e.target.value })}
+                      placeholder="DLX"
+                    />
+                  </div>
+                  <div>
+                    <Label>PMS Room Type</Label>
+                    <Input
+                      value={newMapping.pms_room_type}
+                      onChange={(e) => setNewMapping({ ...newMapping, pms_room_type: e.target.value })}
+                      placeholder="Deluxe"
+                    />
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button
+                    size="sm"
+                    onClick={addRoomMapping}
+                    disabled={!newMapping.channel_room_type || !newMapping.pms_room_type}
+                  >
+                    Add Mapping
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={loadRoomMappings}>
+                    Refresh
+                  </Button>
+                </div>
+                <div className="space-y-2 max-h-64 overflow-y-auto">
+                  {roomMappings.length === 0 ? (
+                    <p className="text-sm text-gray-500">No mappings yet.</p>
+                  ) : (
+                    roomMappings.map((mapping) => (
+                      <div key={mapping.id} className="border rounded p-3 text-sm flex items-center justify-between">
+                        <div>
+                          <p className="font-semibold">
+                            {mapping.channel_room_type} → {mapping.pms_room_type}
+                          </p>
+                          <p className="text-xs text-gray-500">{mapping.channel_name || 'Booking.com'}</p>
+                        </div>
+                        <Button size="icon" variant="ghost" onClick={() => removeRoomMapping(mapping.id)}>
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </CardContent>
+            </Card>
           </TabsContent>
         </Tabs>
       </div>
