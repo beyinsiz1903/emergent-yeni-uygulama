@@ -4406,13 +4406,22 @@ async def installment_calculator(amount: float, installments: int, current_user:
 
 # ============= HR COMPLETE SUITE (İK MÜDÜRÜ İÇİN) =============
 
+async def _get_staff_map(tenant_id: str):
+    staff = await db.staff_members.find({'tenant_id': tenant_id}, {'_id': 0}).to_list(500)
+    return {member['id']: member for member in staff}
+
+
 @api_router.post("/hr/clock-in")
 async def clock_in(staff_data: dict, current_user: User = Depends(get_current_user)):
     """Personel giris kaydi"""
     record = {
-        'id': str(uuid.uuid4()), 'tenant_id': current_user.tenant_id,
-        'staff_id': staff_data['staff_id'], 'date': date.today().isoformat(),
-        'clock_in': datetime.now(timezone.utc).isoformat(), 'status': 'present',
+        'id': str(uuid.uuid4()),
+        'tenant_id': current_user.tenant_id,
+        'staff_id': staff_data['staff_id'],
+        'date': date.today().isoformat(),
+        'clock_in': datetime.now(timezone.utc).isoformat(),
+        'clock_out': None,
+        'status': 'present',
         'created_at': datetime.now(timezone.utc).isoformat()
     }
     await db.attendance_records.insert_one(record)
@@ -4461,6 +4470,168 @@ async def get_payroll(month: str, current_user: User = Depends(get_current_user)
     payroll = await db.payroll_records.find({'tenant_id': current_user.tenant_id, 'period_month': month}, {'_id': 0}).to_list(200)
     total = sum([p.get('net_salary', 0) for p in payroll])
     return {'payroll': payroll, 'total': total, 'count': len(payroll)}
+
+
+def _parse_date_range(start: Optional[str], end: Optional[str], days: int = 7):
+    today = date.today()
+    start_date = datetime.fromisoformat(start).date() if start else today - timedelta(days=days)
+    end_date = datetime.fromisoformat(end).date() if end else today
+    if start_date > end_date:
+        start_date, end_date = end_date, start_date
+    return start_date, end_date
+
+
+@api_router.get("/hr/attendance/records")
+async def get_attendance_records(
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+    staff_id: Optional[str] = None,
+    limit: int = 500,
+    current_user: User = Depends(get_current_user)
+):
+    start_dt, end_dt = _parse_date_range(start_date, end_date, days=7)
+    query: Dict[str, Any] = {
+        'tenant_id': current_user.tenant_id,
+        'date': {'$gte': start_dt.isoformat(), '$lte': end_dt.isoformat()}
+    }
+    if staff_id:
+        query['staff_id'] = staff_id
+    records = await db.attendance_records.find(query, {'_id': 0}).sort('clock_in', -1).limit(limit).to_list(limit)
+    staff_map = await _get_staff_map(current_user.tenant_id)
+    for record in records:
+        staff = staff_map.get(record['staff_id'])
+        if staff:
+            record['staff_name'] = staff.get('name')
+            record['department'] = staff.get('department')
+            record['position'] = staff.get('position')
+    return {
+        'records': records,
+        'total': len(records),
+        'range': {'start': start_dt.isoformat(), 'end': end_dt.isoformat()}
+    }
+
+
+@api_router.get("/hr/attendance/summary")
+async def get_attendance_summary(
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+    current_user: User = Depends(get_current_user)
+):
+    start_dt, end_dt = _parse_date_range(start_date, end_date, days=30)
+    query = {
+        'tenant_id': current_user.tenant_id,
+        'date': {'$gte': start_dt.isoformat(), '$lte': end_dt.isoformat()}
+    }
+    records = await db.attendance_records.find(query, {'_id': 0}).to_list(2000)
+    staff_map = await _get_staff_map(current_user.tenant_id)
+    
+    summary: Dict[str, Any] = {}
+    for record in records:
+        staff_id = record['staff_id']
+        summary.setdefault(staff_id, {
+            'staff_id': staff_id,
+            'total_hours': 0,
+            'days_present': 0,
+            'overtime_hours': 0,
+            'late_count': 0
+        })
+        summary[staff_id]['total_hours'] += record.get('total_hours', 0)
+        summary[staff_id]['days_present'] += 1
+    
+    for staff_id, data in summary.items():
+        staff = staff_map.get(staff_id, {})
+        data['staff_name'] = staff.get('name', staff_id)
+        data['department'] = staff.get('department', 'unknown')
+        data['position'] = staff.get('position', 'Staff')
+        overtime_threshold = staff.get('monthly_hours', 160)
+        if data['total_hours'] > overtime_threshold:
+            data['overtime_hours'] = round(data['total_hours'] - overtime_threshold, 2)
+        data['average_daily_hours'] = round(
+            data['total_hours'] / data['days_present'], 2
+        ) if data['days_present'] else 0
+    
+    summary_list = sorted(summary.values(), key=lambda x: x['staff_name'])
+    total_hours = round(sum(item['total_hours'] for item in summary_list), 2)
+    avg_hours = round(total_hours / len(summary_list), 2) if summary_list else 0
+    
+    return {
+        'summary': summary_list,
+        'range': {'start': start_dt.isoformat(), 'end': end_dt.isoformat()},
+        'metrics': {
+            'staff_count': len(summary_list),
+            'total_hours': total_hours,
+            'avg_hours_per_staff': avg_hours
+        }
+    }
+
+
+@api_router.get("/hr/payroll/export")
+async def export_payroll(
+    month: Optional[str] = None,
+    format: str = 'json',
+    current_user: User = Depends(get_current_user)
+):
+    today = date.today()
+    if month:
+        start_dt = datetime.fromisoformat(f"{month}-01").date()
+    else:
+        start_dt = date(today.year, today.month, 1)
+    next_month = start_dt.replace(day=28) + timedelta(days=4)
+    end_dt = next_month - timedelta(days=next_month.day)
+    
+    query = {
+        'tenant_id': current_user.tenant_id,
+        'date': {'$gte': start_dt.isoformat(), '$lte': end_dt.isoformat()}
+    }
+    records = await db.attendance_records.find(query, {'_id': 0}).to_list(5000)
+    staff_map = await _get_staff_map(current_user.tenant_id)
+    
+    payroll_rows = {}
+    for record in records:
+        staff_id = record['staff_id']
+        payroll_rows.setdefault(staff_id, 0)
+        payroll_rows[staff_id] += record.get('total_hours', 0)
+    
+    payroll = []
+    for staff_id, total_hours in payroll_rows.items():
+        staff = staff_map.get(staff_id, {})
+        hourly_rate = staff.get('hourly_rate', 12)
+        overtime_hours = max(0, total_hours - staff.get('monthly_hours', 160))
+        overtime_rate = staff.get('overtime_rate', hourly_rate * 1.5)
+        base_hours = total_hours - overtime_hours
+        gross_pay = (base_hours * hourly_rate) + (overtime_hours * overtime_rate)
+        payroll.append({
+            'staff_id': staff_id,
+            'staff_name': staff.get('name', staff_id),
+            'department': staff.get('department', 'unknown'),
+            'total_hours': round(total_hours, 2),
+            'overtime_hours': round(overtime_hours, 2),
+            'hourly_rate': hourly_rate,
+            'overtime_rate': overtime_rate,
+            'gross_pay': round(gross_pay, 2)
+        })
+    
+    response = {
+        'month': start_dt.strftime('%Y-%m'),
+        'payroll': payroll,
+        'staff_count': len(payroll),
+        'total_gross_pay': round(sum(row['gross_pay'] for row in payroll), 2)
+    }
+    
+    if format == 'csv':
+        import csv
+        from io import StringIO
+        buffer = StringIO()
+        writer = csv.DictWriter(buffer, fieldnames=list(payroll[0].keys()) if payroll else [
+            'staff_id', 'staff_name', 'department', 'total_hours', 'overtime_hours',
+            'hourly_rate', 'overtime_rate', 'gross_pay'
+        ])
+        writer.writeheader()
+        for row in payroll:
+            writer.writerow(row)
+        response['csv'] = base64.b64encode(buffer.getvalue().encode()).decode()
+    
+    return response
 
 @api_router.post("/hr/job-posting")
 async def create_job_posting(job_data: dict, current_user: User = Depends(get_current_user)):
