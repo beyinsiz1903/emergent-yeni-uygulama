@@ -5,7 +5,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
-import axios from 'axios';
+import useMediaCapture from '@/hooks/useMediaCapture';
 
 const PhotoUploadComponent = ({
   roomId,
@@ -16,9 +16,9 @@ const PhotoUploadComponent = ({
 }) => {
   const [photo, setPhoto] = useState(null);
   const [preview, setPreview] = useState(null);
-  const [uploading, setUploading] = useState(false);
   const [qualityScore, setQualityScore] = useState(photoType === 'after' ? 9 : 0);
   const [notes, setNotes] = useState('');
+  const { uploadMedia, uploading } = useMediaCapture();
 
   const handleCapture = (e) => {
     const file = e.target.files[0];
@@ -33,38 +33,45 @@ const PhotoUploadComponent = ({
   };
 
   const uploadPhoto = async () => {
-    if (!photo) return;
-    
-    setUploading(true);
-    try {
-      const formData = new FormData();
-      formData.append('photo', photo);
-      formData.append('room_id', roomId);
-      formData.append('photo_type', photoType);
-      if (roomNumber) {
-        formData.append('room_number', roomNumber);
-      }
-      if (photoType === 'after' && qualityScore) {
-        formData.append('quality_score', qualityScore);
-      }
-      if (showNotes && notes.trim()) {
-        formData.append('notes', notes.trim());
-      }
-      formData.append('timestamp', new Date().toISOString());
+    if (!photo || !roomId) {
+      toast.error('Fotoğraf veya oda seçimi eksik');
+      return;
+    }
 
-      await axios.post('/housekeeping/upload-photo', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
+    try {
+      const metadata = {
+        room_id: roomId,
+        room_number: roomNumber,
+        photo_type: photoType,
+        notes: showNotes ? notes.trim() : undefined,
+        quality_score: photoType === 'after' ? qualityScore : undefined,
+        captured_at: new Date().toISOString()
+      };
+
+      const result = await uploadMedia({
+        file: photo,
+        module: 'housekeeping',
+        entityId: roomId,
+        mediaType: 'photo',
+        qaRequired: photoType !== 'before',
+        metadata
       });
 
-      toast.success(`✓ ${photoType === 'before' ? 'Önce' : 'Sonra'} fotoğrafı yüklendi!`);
+      if (result.offlineQueued) {
+        toast.message('📶 Fotoğraf sıraya alındı', {
+          description: 'Bağlantı geldiğinde otomatik yükleme yapılacak.'
+        });
+      } else {
+        toast.success(`✓ ${photoType === 'before' ? 'Önce' : 'Sonra'} fotoğrafı yüklendi!`);
+      }
+
       setPhoto(null);
       setPreview(null);
       setNotes('');
-      if (onUploadComplete) onUploadComplete();
+      if (onUploadComplete) onUploadComplete(result);
     } catch (error) {
+      console.error('Media upload failed', error);
       toast.error('Fotoğraf yüklenemedi');
-    } finally {
-      setUploading(false);
     }
   };
 

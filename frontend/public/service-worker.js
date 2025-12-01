@@ -376,44 +376,115 @@ async function processMediaQueue() {
     }
 
     for (const media of items) {
-      if (!media.uploadUrl || !media.file) {
+      if (!media.file) {
         await removeFromStore(MEDIA_QUEUE_STORE, media.id);
         continue;
       }
 
-      const headers = new Headers(media.headers || {});
-      if (!headers.has('Content-Type') && media.contentType) {
-        headers.set('Content-Type', media.contentType);
-      }
-
-      const uploadResponse = await fetch(media.uploadUrl, {
-        method: media.method || 'PUT',
-        headers,
-        body: media.file
-      });
-
-      if (!uploadResponse.ok) {
-        console.warn('[SW] Media upload failed, will retry later', media.id);
+      const descriptor = await ensureUploadDescriptor(media);
+      if (!descriptor.uploadUrl) {
+        console.warn('[SW] No upload URL yet, will retry later', descriptor.id);
         continue;
       }
 
-      if (media.confirmEndpoint) {
-        await fetch(media.confirmEndpoint, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            ...(media.confirmHeaders || {})
-          },
-          body: JSON.stringify(media.confirmPayload || {})
-        });
+      const headers = new Headers(descriptor.headers || {});
+      if (!headers.has('Content-Type') && descriptor.contentType) {
+        headers.set('Content-Type', descriptor.contentType);
       }
 
-      await removeFromStore(MEDIA_QUEUE_STORE, media.id);
-      await broadcastClientMessage({ type: 'MEDIA_UPLOAD_COMPLETED', payload: { mediaId: media.mediaId } });
+      try {
+        const uploadResponse = await fetch(descriptor.uploadUrl, {
+          method: descriptor.method || 'PUT',
+          headers,
+          body: descriptor.file
+        });
+
+        if (!uploadResponse.ok) {
+          console.warn('[SW] Media upload failed, will retry later', descriptor.id);
+          continue;
+        }
+      } catch (err) {
+        console.warn('[SW] Media upload network error', err);
+        continue;
+      }
+
+      await confirmMediaDescriptor(descriptor);
+      await removeFromStore(MEDIA_QUEUE_STORE, descriptor.id);
+      await broadcastClientMessage({
+        type: 'MEDIA_UPLOAD_COMPLETED',
+        payload: { mediaId: descriptor.mediaId }
+      });
     }
   } catch (error) {
     console.error('[SW] processMediaQueue error', error);
   }
+}
+
+async function ensureUploadDescriptor(media) {
+  if (media.uploadUrl && media.mediaId) {
+    return media;
+  }
+
+  if (!media.requestPayload) {
+    return media;
+  }
+
+  try {
+    const headers = {
+      'Content-Type': 'application/json',
+      ...buildAuthHeader(media.authToken)
+    };
+
+    const response = await fetch('/api/media/request-upload', {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(media.requestPayload)
+    });
+
+    if (!response.ok) {
+      console.warn('[SW] Failed to refresh upload descriptor', response.status);
+      return media;
+    }
+
+    const data = await response.json();
+    media.uploadUrl = data.upload_url;
+    media.headers = data.headers;
+    media.mediaId = data.media_id;
+    media.confirmPayload = {
+      ...(media.confirmPayload || {}),
+      media_id: data.media_id,
+      storage_url: data.upload_url
+    };
+
+    await updateStoreEntry(MEDIA_QUEUE_STORE, media);
+    return media;
+  } catch (error) {
+    console.warn('[SW] ensureUploadDescriptor error', error);
+    return media;
+  }
+}
+
+async function confirmMediaDescriptor(media) {
+  const payload = {
+    ...(media.confirmPayload || {}),
+    media_id: media.mediaId,
+    storage_url: media.uploadUrl,
+    content_type: media.contentType,
+    size_bytes: media.file?.size,
+    metadata: media.metadata || {},
+    qa_required: media.qaRequired
+  };
+
+  const headers = {
+    'Content-Type': 'application/json',
+    ...buildAuthHeader(media.authToken)
+  };
+
+  await fetch('/api/media/confirm', {
+    method: 'POST',
+    headers,
+    body: JSON.stringify(payload)
+  });
 }
 
 async function processTaskQueue() {
@@ -497,5 +568,23 @@ async function broadcastClientMessage(message) {
     client.postMessage(message);
   });
 }
+
+async function updateStoreEntry(storeName, entry) {
+  const db = await openOfflineDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction([storeName], 'readwrite');
+    const store = tx.objectStore(storeName);
+    const request = store.put(entry);
+    request.onsuccess = () => resolve(true);
+    request.onerror = () => reject(request.error);
+  });
+}
+
+const buildAuthHeader = (token) =>
+  token
+    ? {
+        Authorization: token.startsWith('Bearer ') ? token : `Bearer ${token}`
+      }
+    : {};
 
 console.log('[SW] Service Worker loaded');
