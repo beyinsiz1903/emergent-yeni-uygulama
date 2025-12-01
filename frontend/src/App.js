@@ -277,28 +277,31 @@ function App() {
   // Guest user routes
   if (isAuthenticated && user?.role === 'guest') {
     return (
-      <QueryClientProvider client={queryClient}>
-        <div className="App">
-          <Toaster position="top-right" />
-          <BrowserRouter>
-            <Routes>
-              <Route path="/" element={<LandingPage />} />
-              <Route path="/guest-portal/*" element={<GuestPortal user={user} onLogout={handleLogout} />} />
-            </Routes>
-          </BrowserRouter>
-        </div>
-        {/* ReactQueryDevtools removed for production */}
-      </QueryClientProvider>
+      <NotificationProvider>
+        <QueryClientProvider client={queryClient}>
+          <div className="App">
+            <Toaster position="top-right" />
+            <BrowserRouter>
+              <Routes>
+                <Route path="/" element={<LandingPage />} />
+                <Route path="/guest-portal/*" element={<GuestPortal user={user} onLogout={handleLogout} />} />
+              </Routes>
+            </BrowserRouter>
+            <NotificationCenter />
+          </div>
+        </QueryClientProvider>
+      </NotificationProvider>
     );
   }
 
   // Hotel admin routes
   return (
-    <QueryClientProvider client={queryClient}>
-      <div className="App">
-        <Toaster position="top-right" />
-        <BrowserRouter>
-        <Routes>
+    <NotificationProvider>
+      <QueryClientProvider client={queryClient}>
+        <div className="App">
+          <Toaster position="top-right" />
+          <BrowserRouter>
+          <Routes>
           {/* Public Landing Page */}
           <Route path="/landing" element={<LandingPage />} />
           <Route path="/login" element={<Navigate to="/auth" replace />} />
@@ -1040,10 +1043,11 @@ function App() {
           <Route path="/fnb/beo-generator" element={isAuthenticated ? <Suspense fallback={<LoadingFallback />}><FnbBeoGenerator user={user} tenant={tenant} onLogout={handleLogout} /></Suspense> : <Navigate to="/auth" replace />} />
           <Route path="/kitchen-display" element={isAuthenticated ? <Suspense fallback={<LoadingFallback />}><KitchenDisplay user={user} tenant={tenant} onLogout={handleLogout} /></Suspense> : <Navigate to="/auth" replace />} />
         </Routes>
-      </BrowserRouter>
-      {/* ReactQueryDevtools removed for production */}
-    </div>
-  </QueryClientProvider>
+        </BrowserRouter>
+        <NotificationCenter />
+      </div>
+    </QueryClientProvider>
+    </NotificationProvider>
   );
 }
 
