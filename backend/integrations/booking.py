@@ -88,35 +88,53 @@ class BookingIntegrationLogger:
 class BookingAPIClient:
     def __init__(self, credentials: Dict[str, Any]):
         self.credentials = credentials
-        self.base_url = credentials.get("settings", {}).get("base_url", "https://api.mock-booking.com")
+        settings = credentials.get("settings", {}) or {}
+        self.base_url = settings.get("base_url", "https://distribution.booking.com")
+        self.timeout = settings.get("timeout_seconds", 10)
+        self.username = credentials.get("username")
+        self.password = credentials.get("password")
 
     async def push_ari(self, payload: Dict[str, Any]) -> Dict[str, Any]:
-        endpoint = f"{self.base_url}/ari"
-        async with httpx.AsyncClient(timeout=10) as client:
-            # Mock response for now
-            await asyncio.sleep(0.1)
-            return {"success": True, "rooms": len(payload.get("rooms", [])), "endpoint": endpoint}
-
-    async def fetch_reservations(self, modified_since: Optional[str] = None) -> Dict[str, Any]:
-        endpoint = f"{self.base_url}/reservations"
-        async with httpx.AsyncClient(timeout=10) as client:
-            await asyncio.sleep(0.1)
+        endpoint = f"{self.base_url}/json/bookings"
+        async with httpx.AsyncClient(timeout=self.timeout, auth=(self.username, self.password)) as client:
+            response = await client.post(endpoint, json={"roomRates": payload.get("rooms", [])})
+            response.raise_for_status()
+            result = response.json()
             return {
                 "success": True,
-                "reservations": [
-                    {
-                        "id": f"BOOK-{uuid.uuid4().hex[:8]}",
-                        "guest_name": "Booking Guest",
-                        "room_code": "DLX",
-                        "check_in": datetime.now(timezone.utc).isoformat(),
-                        "check_out": (datetime.now(timezone.utc) + timedelta(days=2)).isoformat(),
-                        "status": "confirmed",
-                        "total_amount": 300,
-                        "currency": "EUR"
-                    }
-                ],
-                "endpoint": endpoint
+                "endpoint": endpoint,
+                "raw": result
             }
+
+    async def fetch_reservations(self, modified_since: Optional[str] = None) -> Dict[str, Any]:
+        endpoint = f"{self.base_url}/json/reservations"
+        params = {}
+        if modified_since:
+            params["modified_since"] = modified_since
+
+        async with httpx.AsyncClient(timeout=self.timeout, auth=(self.username, self.password)) as client:
+            response = await client.get(endpoint, params=params)
+            response.raise_for_status()
+            data = response.json()
+
+        reservations = []
+        for item in data.get("reservations", []):
+            reservations.append({
+                "id": item.get("id"),
+                "guest_name": item.get("guest", {}).get("name"),
+                "room_code": item.get("room", {}).get("code"),
+                "check_in": item.get("dates", {}).get("arrival"),
+                "check_out": item.get("dates", {}).get("departure"),
+                "status": item.get("status"),
+                "total_amount": item.get("pricing", {}).get("total"),
+                "currency": item.get("pricing", {}).get("currency")
+            })
+
+        return {
+            "success": True,
+            "reservations": reservations,
+            "endpoint": endpoint
+        }
 
 booking_router = APIRouter(prefix="/booking", tags=["booking-integrations"])
 
