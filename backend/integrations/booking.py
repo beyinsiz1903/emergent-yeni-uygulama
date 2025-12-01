@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 from fastapi import BackgroundTasks
 from typing import List, Dict, Any, Optional
-from server import db, get_current_user, User, OTAReservation, ChannelType
+from server import db, get_current_user, User, OTAReservation, ChannelType, BookingCreate, Booking, GuestCreate, Guest
 from celery_app import celery_app
 import httpx
 
@@ -173,6 +173,45 @@ class BookingReservationMapper:
         data['received_at'] = data['received_at'].isoformat()
         if data.get('processed_at'):
             data['processed_at'] = data['processed_at'].isoformat()
+        return data
+
+    def to_booking_payload(self, reservation: Dict[str, Any], guest_id: str, room_id: str) -> Dict[str, Any]:
+        booking_create = BookingCreate(
+            guest_id=guest_id,
+            room_id=room_id,
+            check_in=reservation.get("check_in"),
+            check_out=reservation.get("check_out"),
+            adults=reservation.get("adults") or 2,
+            children=reservation.get("children") or 0,
+            guests_count=(reservation.get("adults") or 2) + (reservation.get("children") or 0),
+            total_amount=reservation.get("total_amount") or 0,
+            channel=ChannelType.BOOKING_COM
+        )
+        booking = Booking(
+            tenant_id=self.tenant_id,
+            **booking_create.model_dump(exclude={'check_in', 'check_out'}),
+            check_in=datetime.fromisoformat(reservation.get("check_in")),
+            check_out=datetime.fromisoformat(reservation.get("check_out"))
+        )
+        data = booking.model_dump()
+        data['check_in'] = data['check_in'].isoformat()
+        data['check_out'] = data['check_out'].isoformat()
+        data['created_at'] = data['created_at'].isoformat()
+        return data
+
+    def to_guest_payload(self, reservation: Dict[str, Any]) -> Dict[str, Any]:
+        guest_create = GuestCreate(
+            name=reservation.get("guest_name") or "Booking Guest",
+            email=reservation.get("guest_email") or f"{reservation.get('id')}@booking.com",
+            phone=reservation.get("guest_phone") or "",
+            id_number=f"BOOK-{reservation.get('id')}"
+        )
+        guest = Guest(
+            tenant_id=self.tenant_id,
+            **guest_create.model_dump()
+        )
+        data = guest.model_dump()
+        data['created_at'] = data['created_at'].isoformat()
         return data
 
 booking_router = APIRouter(prefix="/booking", tags=["booking-integrations"])
