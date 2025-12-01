@@ -12,7 +12,7 @@ import {
   SelectTrigger,
   SelectValue
 } from '@/components/ui/select';
-import { Image, RefreshCw, ShieldCheck } from 'lucide-react';
+import { Image, RefreshCw, ShieldCheck, CheckCircle2, XCircle } from 'lucide-react';
 import PhotoUploadComponent from './PhotoUploadComponent';
 
 const emptyState = (
@@ -28,6 +28,7 @@ const HousekeepingQualityPanel = ({ rooms = [] }) => {
   const [recentPhotos, setRecentPhotos] = useState([]);
   const [loadingRoomPhotos, setLoadingRoomPhotos] = useState(false);
   const [loadingFeed, setLoadingFeed] = useState(false);
+  const [qaActionLoading, setQaActionLoading] = useState({});
 
   useEffect(() => {
     if (rooms.length && !selectedRoomId) {
@@ -60,8 +61,13 @@ const HousekeepingQualityPanel = ({ rooms = [] }) => {
   const fetchRoomPhotos = async (roomId) => {
     setLoadingRoomPhotos(true);
     try {
-      const res = await axios.get(`/housekeeping/room/${roomId}/photos`);
-      setRoomPhotos(res.data.photos || []);
+      const res = await axios.get('/media/list', {
+        params: {
+          module: 'housekeeping',
+          entity_id: roomId
+        }
+      });
+      setRoomPhotos(res.data.items || []);
     } catch (error) {
       console.error('Room photo fetch failed', error);
       toast.error('Oda fotoğrafları yüklenemedi');
@@ -73,14 +79,38 @@ const HousekeepingQualityPanel = ({ rooms = [] }) => {
   const fetchRecentPhotos = async () => {
     setLoadingFeed(true);
     try {
-      const res = await axios.get('/housekeeping/photos/feed', {
-        params: { limit: 6 }
+      const res = await axios.get('/media/list', {
+        params: {
+          module: 'housekeeping'
+        }
       });
-      setRecentPhotos(res.data.photos || []);
+      const items = res.data.items || [];
+      setRecentPhotos(items.slice(0, 6));
     } catch (error) {
       console.error('Photo feed load failed', error);
     } finally {
       setLoadingFeed(false);
+    }
+  };
+
+  const handleQAAction = async (mediaId, action, score) => {
+    setQaActionLoading((prev) => ({ ...prev, [mediaId]: true }));
+    try {
+      await axios.post('/media/qa/review', {
+        media_id: mediaId,
+        action,
+        score
+      });
+      toast.success(action === 'approve' ? 'Onaylandı' : 'Reddedildi');
+      if (selectedRoomId) {
+        fetchRoomPhotos(selectedRoomId);
+      }
+      fetchRecentPhotos();
+    } catch (error) {
+      console.error('QA action failed', error);
+      toast.error('QA işlemi başarısız');
+    } finally {
+      setQaActionLoading((prev) => ({ ...prev, [mediaId]: false }));
     }
   };
 
@@ -89,7 +119,9 @@ const HousekeepingQualityPanel = ({ rooms = [] }) => {
   }
 
   const qualityScore =
-    roomPhotos.find((photo) => photo.photo_type === 'after')?.quality_score;
+    roomPhotos.find(
+      (photo) => photo.metadata?.photo_type === 'after' && photo.metadata?.quality_score
+    )?.metadata?.quality_score ?? null;
 
   return (
     <Card>
@@ -182,7 +214,7 @@ const HousekeepingQualityPanel = ({ rooms = [] }) => {
                   : '--'}
               </p>
               <p className="text-xs text-gray-500 mt-1">
-                {roomPhotos[0]?.uploaded_by_name || '—'}
+                {roomPhotos[0]?.metadata?.captured_by || '—'}
               </p>
             </CardContent>
           </Card>
@@ -203,38 +235,82 @@ const HousekeepingQualityPanel = ({ rooms = [] }) => {
             </div>
           ) : roomPhotos.length ? (
             <div className="grid gap-4 md:grid-cols-3">
-              {roomPhotos.slice(0, 6).map((photo) => (
-                <div
-                  key={photo.id}
-                  className="border rounded-lg overflow-hidden bg-white"
-                >
-                  {photo.inline_preview ? (
-                    <img
-                      src={photo.inline_preview}
-                      alt={photo.photo_type}
-                      className="h-32 w-full object-cover"
-                    />
-                  ) : (
-                    emptyState
-                  )}
-                  <div className="p-3 space-y-1 text-xs">
-                    <div className="flex items-center justify-between">
-                      <Badge variant="outline">{photo.photo_type}</Badge>
-                      {photo.quality_score && (
-                        <span className="font-semibold text-blue-600">
-                          {photo.quality_score}/10
-                        </span>
+              {roomPhotos.slice(0, 6).map((photo) => {
+                const metadata = photo.metadata || {};
+                const isPending = photo.qa_status === 'qa_pending';
+                return (
+                  <div
+                    key={photo.id}
+                    className="border rounded-lg overflow-hidden bg-white space-y-2"
+                  >
+                    {photo.storage_url ? (
+                      <img
+                        src={photo.storage_url}
+                        alt={metadata.photo_type || photo.media_type}
+                        className="h-32 w-full object-cover"
+                      />
+                    ) : (
+                      emptyState
+                    )}
+                    <div className="px-3 pb-3 space-y-2 text-xs">
+                      <div className="flex items-center justify-between">
+                        <Badge variant="outline">{metadata.photo_type || photo.media_type}</Badge>
+                        {metadata.quality_score && (
+                          <span className="font-semibold text-blue-600">
+                            {metadata.quality_score}/10
+                          </span>
+                        )}
+                      </div>
+                      <div className="space-y-1">
+                        <p className="text-gray-600">
+                          {photo.uploaded_at
+                            ? new Date(photo.uploaded_at).toLocaleString('tr-TR')
+                            : '--'}
+                        </p>
+                        <p className="text-gray-500 text-[11px] truncate">
+                          {metadata.notes || 'Not yok'}
+                        </p>
+                        <p className="text-[11px] text-gray-500">
+                          QA: {photo.qa_status || '—'}
+                        </p>
+                      </div>
+                      {isPending && (
+                        <div className="flex items-center gap-2">
+                          <Button
+                            size="xs"
+                            className="flex-1 bg-green-50 text-green-700 hover:bg-green-100"
+                            disabled={qaActionLoading[photo.id]}
+                            onClick={() =>
+                              handleQAAction(photo.id, 'approve', metadata.quality_score)
+                            }
+                          >
+                            {qaActionLoading[photo.id] ? (
+                              <RefreshCw className="w-3 h-3 animate-spin" />
+                            ) : (
+                              <CheckCircle2 className="w-3 h-3 mr-1" />
+                            )}
+                            Onayla
+                          </Button>
+                          <Button
+                            size="xs"
+                            variant="outline"
+                            className="flex-1 border-red-200 text-red-600 hover:bg-red-50"
+                            disabled={qaActionLoading[photo.id]}
+                            onClick={() => handleQAAction(photo.id, 'reject')}
+                          >
+                            {qaActionLoading[photo.id] ? (
+                              <RefreshCw className="w-3 h-3 animate-spin" />
+                            ) : (
+                              <XCircle className="w-3 h-3 mr-1" />
+                            )}
+                            Ret
+                          </Button>
+                        </div>
                       )}
                     </div>
-                    <p className="text-gray-600">
-                      {new Date(photo.uploaded_at).toLocaleString('tr-TR')}
-                    </p>
-                    <p className="text-gray-500 text-[11px] truncate">
-                      {photo.notes || 'Not yok'}
-                    </p>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           ) : (
             emptyState
