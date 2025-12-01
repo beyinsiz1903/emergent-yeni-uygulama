@@ -129,7 +129,7 @@ const Settings = ({ user, tenant, onLogout }) => {
 
   const loadRoomMappings = async () => {
     try {
-      const res = await axios.get('/ota/room-mappings');
+      const res = await axios.get('/channel-manager/room-mappings');
       setRoomMappings(res.data.mappings || []);
     } catch (error) {
       console.error('Failed to load room mappings', error);
@@ -138,7 +138,7 @@ const Settings = ({ user, tenant, onLogout }) => {
 
   const addRoomMapping = async () => {
     try {
-      await axios.post('/ota/room-mappings', {
+      await axios.post('/channel-manager/room-mappings', {
         channel_name: 'booking',
         channel_room_type: newMapping.channel_room_type,
         pms_room_type: newMapping.pms_room_type
@@ -153,7 +153,7 @@ const Settings = ({ user, tenant, onLogout }) => {
 
   const removeRoomMapping = async (mappingId) => {
     try {
-      await axios.delete(`/ota/room-mappings/${mappingId}`);
+      await axios.delete(`/channel-manager/room-mappings/${mappingId}`);
       toast.success('Room mapping removed');
       await loadRoomMappings();
     } catch (error) {
