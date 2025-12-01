@@ -5237,19 +5237,136 @@ async def update_ingredient(ingredient_id: str, ing_data: dict, current_user: Us
 
 # ============= FINANCE INTEGRATION (FINANS MÜDÜRÜ İÇİN) =============
 
+class LogoConnector:
+    """Mock Logo/Netsis connector for ERP sync"""
+    def __init__(self):
+        self.base_url = os.environ.get('LOGO_API_URL', 'https://logo.example/api')
+    
+    async def send_invoice(self, invoice):
+        await asyncio.sleep(0.1)
+        return {
+            'external_id': f"LOGO-{invoice['id'][:8]}",
+            'status': 'synced',
+            'message': 'Invoice pushed to Logo'
+        }
+    
+    async def send_payment(self, payment):
+        await asyncio.sleep(0.1)
+        return {
+            'external_id': f"LOGO-PAY-{payment['id'][:8]}",
+            'status': 'synced',
+            'message': 'Payment pushed to Logo'
+        }
+
+
+class NetsisConnector:
+    """Mock Netsis connector"""
+    def __init__(self):
+        self.base_url = os.environ.get('NETSIS_API_URL', 'https://netsis.example/api')
+    
+    async def send_invoice(self, invoice):
+        await asyncio.sleep(0.1)
+        return {
+            'external_id': f"NETSIS-{invoice['id'][:8]}",
+            'status': 'synced',
+            'message': 'Invoice pushed to Netsis'
+        }
+
+
+async def _gather_invoices(tenant_id: str, since: Optional[str] = None):
+    query = {'tenant_id': tenant_id}
+    if since:
+        query['created_at'] = {'$gte': since}
+    invoices = await db.finance_invoices.find(query, {'_id': 0}).sort('created_at', -1).to_list(500)
+    return invoices
+
+
+async def _gather_payments(tenant_id: str, since: Optional[str] = None):
+    query = {'tenant_id': tenant_id}
+    if since:
+        query['created_at'] = {'$gte': since}
+    payments = await db.finance_payments.find(query, {'_id': 0}).sort('created_at', -1).to_list(500)
+    return payments
+
+
+async def _log_accounting_sync(tenant_id: str, payload: dict):
+    record = {
+        'id': str(uuid.uuid4()),
+        'tenant_id': tenant_id,
+        **payload,
+        'created_at': datetime.now(timezone.utc).isoformat()
+    }
+    await db.accounting_sync_logs.insert_one(record)
+    return record
+
+
 @api_router.post("/finance/logo-integration/sync")
 async def sync_with_logo(sync_data: dict = None, current_user: User = Depends(get_current_user)):
-    """Logo Tiger entegrasyonu (simulated)"""
-    # Gercekte: Logo Tiger API call
-    result = {
-        'id': str(uuid.uuid4()),
-        'tenant_id': current_user.tenant_id,
-        'success': True, 'synced_invoices': 45, 'synced_payments': 23,
-        'synced_at': datetime.now(timezone.utc).isoformat()
+    """Sync finance data with Logo ERP"""
+    connector = LogoConnector()
+    since = sync_data.get('since') if sync_data else None
+    invoices = await _gather_invoices(current_user.tenant_id, since)
+    payments = await _gather_payments(current_user.tenant_id, since)
+    
+    synced_invoices = []
+    for invoice in invoices:
+        result = await connector.send_invoice(invoice)
+        synced_invoices.append({**invoice, **result})
+    
+    synced_payments = []
+    for payment in payments:
+        result = await connector.send_payment(payment)
+        synced_payments.append({**payment, **result})
+    
+    log_entry = await _log_accounting_sync(current_user.tenant_id, {
+        'provider': 'logo',
+        'synced_invoices': len(synced_invoices),
+        'synced_payments': len(synced_payments),
+        'synced_at': datetime.now(timezone.utc).isoformat(),
+        'status': 'success'
+    })
+    
+    return {
+        'success': True,
+        'synced_invoices': len(synced_invoices),
+        'synced_payments': len(synced_payments),
+        'log_id': log_entry['id']
     }
-    await db.accounting_sync_logs.insert_one(result)
-    return {'success': result['success'], 'synced_invoices': result['synced_invoices'], 
-            'synced_payments': result['synced_payments'], 'synced_at': result['synced_at']}
+
+
+@api_router.post("/finance/netsis-integration/sync")
+async def sync_with_netsis(sync_data: dict = None, current_user: User = Depends(get_current_user)):
+    connector = NetsisConnector()
+    since = sync_data.get('since') if sync_data else None
+    invoices = await _gather_invoices(current_user.tenant_id, since)
+    
+    synced = []
+    for invoice in invoices:
+        result = await connector.send_invoice(invoice)
+        synced.append({**invoice, **result})
+    
+    log_entry = await _log_accounting_sync(current_user.tenant_id, {
+        'provider': 'netsis',
+        'synced_invoices': len(synced),
+        'synced_payments': 0,
+        'synced_at': datetime.now(timezone.utc).isoformat(),
+        'status': 'success'
+    })
+    
+    return {
+        'success': True,
+        'synced_invoices': len(synced),
+        'log_id': log_entry['id']
+    }
+
+
+@api_router.get("/finance/integration/logs")
+async def get_integration_logs(limit: int = 20, current_user: User = Depends(get_current_user)):
+    logs = await db.accounting_sync_logs.find(
+        {'tenant_id': current_user.tenant_id},
+        {'_id': 0}
+    ).sort('created_at', -1).limit(limit).to_list(limit)
+    return {'logs': logs, 'count': len(logs)}
 
 @api_router.get("/finance/budget-vs-actual")
 async def budget_vs_actual(month: str, current_user: User = Depends(get_current_user)):
