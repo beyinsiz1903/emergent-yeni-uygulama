@@ -51103,6 +51103,14 @@ try:
 except ImportError as e:
     print(f"⚠️ Optimization endpoints not available: {e}")
 
+# Include OTA integrator routers (placeholder)
+try:
+    from integrations.booking import booking_router
+    app.include_router(booking_router, prefix="/api/ota", tags=["ota-booking"])
+    print("✅ Booking OTA endpoints included")
+except ImportError as e:
+    print(f"⚠️ Booking OTA endpoints not available: {e}")
+
 # Include GraphQL endpoint
 try:
     from strawberry.fastapi import GraphQLRouter
