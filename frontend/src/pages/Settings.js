@@ -10,13 +10,15 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Settings as SettingsIcon, Mail, MessageSquare, Phone, Key, AlertCircle, Cloud, RefreshCw, Server, Trash2 } from 'lucide-react';
 
-const Settings = ({ user, tenant, onLogout }) => {
-  const [integrations, setIntegrations] = useState({
-    sendgrid: { enabled: false, api_key: '' },
-    twilio: { enabled: false, account_sid: '', auth_token: '', phone_number: '' },
-    whatsapp: { enabled: false, account_sid: '', auth_token: '' }
-  });
+const DEFAULT_INTEGRATIONS = {
+  sendgrid: { enabled: false, api_key: '' },
+  twilio: { enabled: false, account_sid: '', auth_token: '', phone_number: '' },
+  whatsapp: { enabled: false, account_sid: '', auth_token: '' }
+};
 
+const Settings = ({ user, tenant, onLogout }) => {
+  const [integrations, setIntegrations] = useState(DEFAULT_INTEGRATIONS);
+  const [loadingIntegrations, setLoadingIntegrations] = useState(false);
   const [saving, setSaving] = useState(false);
   const [bookingCreds, setBookingCreds] = useState({
     property_id: '',
@@ -26,6 +28,13 @@ const Settings = ({ user, tenant, onLogout }) => {
   });
   const [bookingLoading, setBookingLoading] = useState(false);
   const [bookingLogs, setBookingLogs] = useState([]);
+  const [roomMappings, setRoomMappings] = useState([]);
+  const [newMapping, setNewMapping] = useState({
+    channel_room_type: '',
+    pms_room_type: '',
+    channel_name: 'Booking.com'
+  });
+  const [mappingLoading, setMappingLoading] = useState(false);
   const [ariRoom, setAriRoom] = useState({
     room_code: 'DLX',
     rate_plan: 'BAR',
@@ -41,14 +50,27 @@ const Settings = ({ user, tenant, onLogout }) => {
     try {
       await axios.post(`/settings/integrations/${type}`, config);
       toast.success(`${type} integration saved successfully!`);
-      setIntegrations({
-        ...integrations,
-        [type]: { ...integrations[type], ...config }
-      });
+      await loadIntegrations();
     } catch (error) {
       toast.error('Failed to save integration settings');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const loadIntegrations = async () => {
+    try {
+      setLoadingIntegrations(true);
+      const res = await axios.get('/settings/integrations');
+      const merged = {
+        ...DEFAULT_INTEGRATIONS,
+        ...(res.data?.integrations || {})
+      };
+      setIntegrations(merged);
+    } catch (error) {
+      console.error('Failed to load integrations', error);
+    } finally {
+      setLoadingIntegrations(false);
     }
   };
 
@@ -78,9 +100,52 @@ const Settings = ({ user, tenant, onLogout }) => {
     }
   };
 
+  const loadRoomMappings = async () => {
+    try {
+      const res = await axios.get('/channel-manager/room-mappings');
+      setRoomMappings(res.data.mappings || []);
+    } catch (error) {
+      toast.error('Failed to load room mappings');
+    }
+  };
+
+  const addRoomMapping = async () => {
+    if (!newMapping.channel_room_type || !newMapping.pms_room_type) {
+      toast.error('Please provide both Booking and PMS room types');
+      return;
+    }
+    try {
+      setMappingLoading(true);
+      await axios.post('/channel-manager/room-mappings', {
+        channel_room_type: newMapping.channel_room_type,
+        pms_room_type: newMapping.pms_room_type,
+        channel_name: newMapping.channel_name || 'Booking.com'
+      });
+      toast.success('Room mapping added');
+      setNewMapping((prev) => ({ ...prev, channel_room_type: '', pms_room_type: '' }));
+      await loadRoomMappings();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Failed to add room mapping');
+    } finally {
+      setMappingLoading(false);
+    }
+  };
+
+  const removeRoomMapping = async (mappingId) => {
+    try {
+      await axios.delete(`/channel-manager/room-mappings/${mappingId}`);
+      toast.success('Mapping removed');
+      loadRoomMappings();
+    } catch (error) {
+      toast.error('Failed to remove mapping');
+    }
+  };
+
   useEffect(() => {
+    loadIntegrations();
     loadBookingCreds();
     loadBookingLogs();
+    loadRoomMappings();
   }, []);
 
   const saveBookingCredentials = async () => {
@@ -490,7 +555,7 @@ const Settings = ({ user, tenant, onLogout }) => {
                 <CardDescription>Match Booking.com room codes to PMS room types</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                   <div>
                     <Label>Booking Room Code</Label>
                     <Input
@@ -507,13 +572,24 @@ const Settings = ({ user, tenant, onLogout }) => {
                       placeholder="Deluxe"
                     />
                   </div>
+                  <div>
+                    <Label>Channel Name</Label>
+                    <Input
+                      value={newMapping.channel_name}
+                      onChange={(e) => setNewMapping({ ...newMapping, channel_name: e.target.value })}
+                      placeholder="Booking.com"
+                    />
+                  </div>
                 </div>
                 <div className="flex items-center gap-2">
                   <Button
                     size="sm"
                     onClick={addRoomMapping}
-                    disabled={!newMapping.channel_room_type || !newMapping.pms_room_type}
+                    disabled={mappingLoading || !newMapping.channel_room_type || !newMapping.pms_room_type}
                   >
+                    {mappingLoading ? (
+                      <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                    ) : null}
                     Add Mapping
                   </Button>
                   <Button size="sm" variant="outline" onClick={loadRoomMappings}>
