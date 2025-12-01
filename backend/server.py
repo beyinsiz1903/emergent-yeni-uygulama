@@ -11,6 +11,7 @@ import logging
 from pathlib import Path
 from pydantic import BaseModel, Field, ConfigDict, EmailStr, field_validator
 from typing import List, Optional, Dict, Any
+from copy import deepcopy
 import uuid
 from datetime import datetime, timezone, timedelta, date
 import bcrypt
@@ -30,6 +31,33 @@ DEFAULT_PUSH_CHANNELS = [
     'finance',
     'executive'
 ]
+
+DEFAULT_INTEGRATION_SETTINGS = {
+    'sendgrid': {
+        'enabled': False,
+        'api_key': ''
+    },
+    'twilio': {
+        'enabled': False,
+        'account_sid': '',
+        'auth_token': '',
+        'phone_number': ''
+    },
+    'whatsapp': {
+        'enabled': False,
+        'account_sid': '',
+        'auth_token': ''
+    }
+}
+
+
+def merge_integration_settings(stored: Optional[Dict[str, Any]]) -> Dict[str, Dict[str, Any]]:
+    settings = deepcopy(DEFAULT_INTEGRATION_SETTINGS)
+    if stored:
+        for key in DEFAULT_INTEGRATION_SETTINGS.keys():
+            if key in stored and isinstance(stored[key], dict):
+                settings[key] = {**settings[key], **stored[key]}
+    return settings
 from websocket_server import broadcast_kitchen_orders
 import qrcode
 import io
@@ -1643,7 +1671,8 @@ class RoomMapping(BaseModel):
     model_config = ConfigDict(extra="ignore")
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     tenant_id: str
-    channel_id: str
+    channel_id: Optional[str] = None
+    channel_name: Optional[str] = None
     pms_room_type: str  # PMS room type
     channel_room_type: str  # Channel's room type name
     channel_room_id: Optional[str] = None
@@ -12551,6 +12580,70 @@ async def check_permission(
         }
     except ValueError:
         raise HTTPException(status_code=400, detail=f"Invalid permission: {request.permission}")
+
+# ============= INTEGRATION SETTINGS =============
+
+
+@api_router.get("/settings/integrations")
+async def get_integration_settings(
+    current_user: User = Depends(get_current_user)
+):
+    """Return configured external service integrations"""
+    doc = await db.integration_settings.find_one(
+        {'tenant_id': current_user.tenant_id},
+        {'_id': 0}
+    )
+    settings = merge_integration_settings(doc)
+    return {
+        'integrations': settings,
+        'updated_at': doc.get('updated_at') if doc else None
+    }
+
+
+@api_router.post("/settings/integrations/{integration_type}")
+async def save_integration_settings(
+    integration_type: str,
+    config: Dict[str, Any],
+    current_user: User = Depends(get_current_user)
+):
+    """Save credentials/configuration for integrations like SendGrid or Twilio"""
+    integration_type = integration_type.lower()
+    if integration_type not in DEFAULT_INTEGRATION_SETTINGS:
+        raise HTTPException(status_code=400, detail="Unsupported integration type")
+    
+    merged = {**DEFAULT_INTEGRATION_SETTINGS[integration_type], **config}
+    
+    if integration_type == 'sendgrid':
+        merged['enabled'] = config.get('enabled', bool(merged.get('api_key')))
+    elif integration_type == 'twilio':
+        merged['enabled'] = config.get('enabled', bool(merged.get('account_sid') and merged.get('auth_token')))
+    elif integration_type == 'whatsapp':
+        merged['enabled'] = config.get('enabled', bool(merged.get('account_sid') and merged.get('auth_token')))
+    
+    await db.integration_settings.update_one(
+        {'tenant_id': current_user.tenant_id},
+        {
+            '$set': {
+                integration_type: merged,
+                'tenant_id': current_user.tenant_id,
+                'updated_at': datetime.now(timezone.utc).isoformat()
+            }
+        },
+        upsert=True
+    )
+    
+    doc = await db.integration_settings.find_one(
+        {'tenant_id': current_user.tenant_id},
+        {'_id': 0}
+    )
+    
+    return {
+        'success': True,
+        'integration': integration_type,
+        'config': merged,
+        'integrations': merge_integration_settings(doc)
+    }
+
 
 # ============= CHANNEL MANAGER & RMS =============
 
