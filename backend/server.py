@@ -20,6 +20,15 @@ from passlib.context import CryptContext
 
 # Password hashing context
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+DEFAULT_PUSH_CHANNELS = [
+    'general',
+    'arrivals',
+    'housekeeping',
+    'maintenance',
+    'finance',
+    'executive'
+]
 import qrcode
 import io
 import base64
@@ -3873,6 +3882,31 @@ async def register_mobile_device(device_data: dict, current_user: User = Depends
         'last_active': datetime.now(timezone.utc).isoformat()
     }
     await db.mobile_devices.insert_one(device)
+    
+    if device_data.get('push_token'):
+        await db.push_device_tokens.update_one(
+            {
+                'tenant_id': current_user.tenant_id,
+                'user_id': current_user.id,
+                'device_id': device_data['device_id']
+            },
+            {
+                '$set': {
+                    'tenant_id': current_user.tenant_id,
+                    'user_id': current_user.id,
+                    'device_id': device_data['device_id'],
+                    'platform': device_data.get('device_type', 'mobile'),
+                    'push_token': device_data['push_token'],
+                    'app_version': device_data.get('app_version'),
+                    'os_version': device_data.get('os_version'),
+                    'subscriptions': DEFAULT_PUSH_CHANNELS,
+                    'departments': [current_user.role] if current_user.role else [],
+                    'updated_at': datetime.now(timezone.utc).isoformat(),
+                    'created_at': datetime.now(timezone.utc).isoformat()
+                }
+            },
+            upsert=True
+        )
     return {'success': True, 'device_id': device['id']}
 
 @api_router.post("/mobile/push-notification")
@@ -4531,28 +4565,219 @@ async def get_housekeeping_photo_feed(
     photos = await db.room_photos.find(query, {'_id': 0}).sort('uploaded_at', -1).to_list(limit)
     return {'photos': photos, 'count': len(photos)}
 
+# Helper functions for push notification delivery
+async def _collect_push_devices(
+    tenant_id: str,
+    user_ids: Optional[List[str]] = None,
+    departments: Optional[List[str]] = None
+):
+    query: Dict[str, Any] = {'tenant_id': tenant_id}
+    if user_ids:
+        query['user_id'] = {'$in': user_ids}
+    if departments:
+        query['departments'] = {'$in': departments}
+    return await db.push_device_tokens.find(query, {'_id': 0}).to_list(1000)
+
+
+async def _simulate_push_delivery(devices: List[dict], payload: dict) -> List[dict]:
+    deliveries = []
+    for device in devices:
+        deliveries.append({
+            'device_id': device.get('device_id'),
+            'platform': device.get('platform', 'unknown'),
+            'user_id': device.get('user_id'),
+            'status': 'queued',
+            'delivered_at': datetime.now(timezone.utc).isoformat()
+        })
+    if deliveries:
+        print(f"📱 Mock push deliver: {len(deliveries)} devices → {payload.get('title')}")
+    return deliveries
+
+
+async def _record_push_log(tenant_id: str, payload: dict, deliveries: List[dict], created_by: str):
+    log_entry = {
+        'id': str(uuid.uuid4()),
+        'tenant_id': tenant_id,
+        'title': payload.get('title'),
+        'body': payload.get('body'),
+        'channels': payload.get('channels', ['in_app']),
+        'target_user_ids': payload.get('user_ids'),
+        'target_departments': payload.get('departments'),
+        'delivery_count': len(deliveries),
+        'deliveries': deliveries[:50],
+        'created_by': created_by,
+        'created_at': datetime.now(timezone.utc).isoformat()
+    }
+    await db.push_delivery_logs.insert_one(log_entry)
+    return log_entry
+
+
 # ============= PUSH NOTIFICATIONS (TÜM DEPARTMANLAR) =============
 
 @api_router.post("/notifications/send-push")
 async def send_push_notification(notif_data: dict, current_user: User = Depends(get_current_user)):
-    # Save notification
-    notification = {
+    channels = notif_data.get('channels', ['in_app', 'push'])
+    target_user_ids = notif_data.get('user_ids')
+    if notif_data.get('user_id') and not target_user_ids:
+        target_user_ids = [notif_data['user_id']]
+    target_departments = notif_data.get('departments')
+    
+    payload = {
         'id': str(uuid.uuid4()),
         'tenant_id': current_user.tenant_id,
-        'user_id': notif_data.get('user_id'),
-        'department': notif_data.get('department'),
         'title': notif_data['title'],
         'body': notif_data['body'],
         'type': notif_data.get('type', 'info'),
+        'priority': notif_data.get('priority', 'normal'),
+        'action_url': notif_data.get('action_url'),
+        'metadata': notif_data.get('metadata', {}),
+        'channels': channels,
+        'user_ids': target_user_ids,
+        'departments': target_departments,
         'sent_at': datetime.now(timezone.utc).isoformat(),
-        'read': False
+        'created_by': current_user.id
     }
-    await db.push_notifications.insert_one(notification)
     
-    # Gerçekte: Firebase Cloud Messaging, APNs
-    print(f"📱 Push Notification: {notif_data['title']} → {notif_data.get('user_id', 'all')}")
+    if 'in_app' in channels:
+        in_app_notification = {
+            **payload,
+            'user_id': target_user_ids[0] if target_user_ids and len(target_user_ids) == 1 else None,
+            'department': target_departments,
+            'read': False
+        }
+        await db.notifications.insert_one(in_app_notification)
     
-    return {'success': True, 'notification_id': notification['id']}
+    deliveries: List[dict] = []
+    if 'push' in channels:
+        devices = await _collect_push_devices(
+            tenant_id=current_user.tenant_id,
+            user_ids=target_user_ids,
+            departments=target_departments
+        )
+        deliveries = await _simulate_push_delivery(devices, payload)
+    
+    await db.push_notifications.insert_one({
+        **payload,
+        'target_count': len(deliveries),
+    })
+    await _record_push_log(current_user.tenant_id, payload, deliveries, current_user.id)
+    
+    return {
+        'success': True,
+        'notification_id': payload['id'],
+        'queued': len(deliveries),
+        'channels': channels
+    }
+
+
+@api_router.post("/notifications/push/register")
+async def register_push_device(device_payload: dict, current_user: User = Depends(get_current_user)):
+    device_id = device_payload.get('device_id')
+    push_token = device_payload.get('push_token')
+    if not device_id or not push_token:
+        raise HTTPException(status_code=400, detail="device_id and push_token are required")
+    
+    subscriptions = device_payload.get('subscriptions') or device_payload.get('channels') or DEFAULT_PUSH_CHANNELS
+    departments = device_payload.get('departments') or ([current_user.role] if current_user.role else [])
+    
+    device_doc = {
+        'tenant_id': current_user.tenant_id,
+        'user_id': current_user.id,
+        'device_id': device_id,
+        'device_name': device_payload.get('device_name'),
+        'platform': device_payload.get('platform', 'web'),
+        'push_token': push_token,
+        'app_version': device_payload.get('app_version'),
+        'os_version': device_payload.get('os_version'),
+        'user_agent': device_payload.get('user_agent'),
+        'timezone': device_payload.get('timezone'),
+        'subscriptions': subscriptions,
+        'departments': departments,
+        'capabilities': device_payload.get('capabilities', {}),
+        'updated_at': datetime.now(timezone.utc).isoformat(),
+        'created_at': datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.push_device_tokens.update_one(
+        {
+            'tenant_id': current_user.tenant_id,
+            'user_id': current_user.id,
+            'device_id': device_id
+        },
+        {'$set': device_doc},
+        upsert=True
+    )
+    
+    return {
+        'success': True,
+        'device_id': device_id,
+        'subscriptions': subscriptions
+    }
+
+
+@api_router.post("/notifications/push/subscriptions")
+async def update_push_subscriptions(subscription_payload: dict, current_user: User = Depends(get_current_user)):
+    channels = subscription_payload.get('channels') or DEFAULT_PUSH_CHANNELS
+    
+    await db.push_subscriptions.update_one(
+        {
+            'tenant_id': current_user.tenant_id,
+            'user_id': current_user.id
+        },
+        {
+            '$set': {
+                'channels': channels,
+                'updated_at': datetime.now(timezone.utc).isoformat()
+            }
+        },
+        upsert=True
+    )
+    
+    await db.push_device_tokens.update_many(
+        {
+            'tenant_id': current_user.tenant_id,
+            'user_id': current_user.id
+        },
+        {'$set': {'subscriptions': channels}}
+    )
+    
+    return {'success': True, 'channels': channels}
+
+
+@api_router.get("/notifications/push/subscriptions")
+async def get_push_subscriptions(current_user: User = Depends(get_current_user)):
+    record = await db.push_subscriptions.find_one(
+        {'tenant_id': current_user.tenant_id, 'user_id': current_user.id},
+        {'_id': 0}
+    )
+    return {
+        'channels': record.get('channels') if record else DEFAULT_PUSH_CHANNELS
+    }
+
+
+@api_router.get("/notifications/push-status")
+async def get_push_status(current_user: User = Depends(get_current_user)):
+    devices = await db.push_device_tokens.find(
+        {'tenant_id': current_user.tenant_id, 'user_id': current_user.id},
+        {'_id': 0}
+    ).sort('updated_at', -1).to_list(20)
+    
+    subscription = await db.push_subscriptions.find_one(
+        {'tenant_id': current_user.tenant_id, 'user_id': current_user.id},
+        {'_id': 0}
+    )
+    
+    last_delivery = await db.push_delivery_logs.find(
+        {'tenant_id': current_user.tenant_id, 'target_user_ids': {'$in': [current_user.id]}}
+    ).sort('created_at', -1).to_list(1)
+    
+    return {
+        'enabled': len(devices) > 0,
+        'devices': devices,
+        'device_count': len(devices),
+        'subscriptions': subscription.get('channels') if subscription else DEFAULT_PUSH_CHANNELS,
+        'last_delivery': last_delivery[0] if last_delivery else None
+    }
 
 @api_router.get("/notifications/my-notifications")
 async def get_my_notifications(current_user: User = Depends(get_current_user)):
