@@ -721,6 +721,381 @@ async def create_pos_menu_and_orders(tenant_id):
         await db.pos_orders.insert_many(orders)
         print(f"Created {len(orders)} POS orders")
 
+async def create_meeting_rooms_and_events(tenant_id):
+    """Create meeting rooms, event bookings, catering orders, and BEOs"""
+    print("Creating meeting rooms & events data...")
+
+    existing_rooms = await db.meeting_rooms.count_documents({'tenant_id': tenant_id})
+    if existing_rooms < 3:
+        base_rooms = [
+            {
+                'id': str(uuid.uuid4()),
+                'tenant_id': tenant_id,
+                'room_name': 'Grand Ballroom',
+                'capacity': 500,
+                'hourly_rate': 250.0,
+                'full_day_rate': 1800.0,
+                'equipment': ['Stage', 'LED Wall', 'Sound System'],
+                'floor': 1,
+                'area_sqm': 450.0,
+                'status': 'active',
+                'created_at': datetime.now(timezone.utc),
+                'updated_at': datetime.now(timezone.utc)
+            },
+            {
+                'id': str(uuid.uuid4()),
+                'tenant_id': tenant_id,
+                'room_name': 'Executive Boardroom',
+                'capacity': 24,
+                'hourly_rate': 120.0,
+                'full_day_rate': 780.0,
+                'equipment': ['Video Conference', 'Whiteboard', 'Display'],
+                'floor': 10,
+                'area_sqm': 80.0,
+                'status': 'active',
+                'created_at': datetime.now(timezone.utc),
+                'updated_at': datetime.now(timezone.utc)
+            },
+            {
+                'id': str(uuid.uuid4()),
+                'tenant_id': tenant_id,
+                'room_name': 'Sky Lounge',
+                'capacity': 120,
+                'hourly_rate': 180.0,
+                'full_day_rate': 1200.0,
+                'equipment': ['Panoramic View', 'Bar Setup', 'Lighting'],
+                'floor': 25,
+                'area_sqm': 220.0,
+                'status': 'active',
+                'created_at': datetime.now(timezone.utc),
+                'updated_at': datetime.now(timezone.utc)
+            }
+        ]
+        await db.meeting_rooms.insert_many(base_rooms)
+        print(f"Created {len(base_rooms)} meeting rooms")
+
+    rooms = await db.meeting_rooms.find({'tenant_id': tenant_id}).to_list(length=50)
+
+    existing_events = await db.event_bookings.count_documents({'tenant_id': tenant_id})
+    if existing_events >= 5:
+        print("Meeting & events data already populated. Skipping...")
+        return
+
+    event_bookings = []
+    room_bookings = []
+    catering_orders = []
+    beo_orders = []
+
+    setup_styles = ['theater', 'classroom', 'banquet', 'u_shape']
+    organizations = ['TechCorp', 'MedLife', 'FinanceHub', 'StartUpX', 'EduFuture']
+
+    for idx in range(5):
+        room = random.choice(rooms)
+        days_ahead = random.randint(7, 45)
+        event_date = (datetime.now(timezone.utc) + timedelta(days=days_ahead)).date().isoformat()
+        start_time = random.choice(['09:00', '10:00', '14:00'])
+        duration_hours = random.choice([4, 6, 8])
+        end_hour = min(22, int(start_time.split(':')[0]) + duration_hours)
+        end_time = f"{end_hour:02d}:00"
+
+        event_id = str(uuid.uuid4())
+        total_cost = round(room['full_day_rate'] * random.uniform(0.7, 1.2), 2)
+
+        event = {
+            'id': event_id,
+            'tenant_id': tenant_id,
+            'event_name': f"{organizations[idx]} Summit",
+            'organization': organizations[idx],
+            'contact_name': f"{random.choice(FIRST_NAMES)} {random.choice(LAST_NAMES)}",
+            'contact_email': f"events@{organizations[idx].lower()}.com",
+            'meeting_room_id': room['id'],
+            'event_date': event_date,
+            'start_time': start_time,
+            'end_time': end_time,
+            'setup_type': random.choice(setup_styles),
+            'expected_attendees': min(room['capacity'], random.randint(20, room['capacity'])),
+            'catering_required': True,
+            'av_equipment': ['Projector', 'Wireless Mics'],
+            'total_cost': total_cost,
+            'status': 'confirmed',
+            'created_at': datetime.now(timezone.utc)
+        }
+        event_bookings.append(event)
+
+        start_dt = datetime.fromisoformat(f"{event_date}T{start_time}").replace(tzinfo=timezone.utc)
+        end_dt = datetime.fromisoformat(f"{event_date}T{end_time}").replace(tzinfo=timezone.utc)
+
+        room_bookings.append({
+            'id': str(uuid.uuid4()),
+            'tenant_id': tenant_id,
+            'room_id': room['id'],
+            'event_name': event['event_name'],
+            'organizer': event['organization'],
+            'event_date': event_date,
+            'start_datetime': start_dt,
+            'end_datetime': end_dt,
+            'expected_attendees': event['expected_attendees'],
+            'booking_source': 'demo_seed',
+            'event_id': event_id,
+            'notes': 'Demo booking generated by seed script',
+            'status': 'confirmed',
+            'created_at': datetime.now(timezone.utc),
+            'updated_at': datetime.now(timezone.utc)
+        })
+
+        order_id = str(uuid.uuid4())
+        catering_orders.append({
+            'id': order_id,
+            'tenant_id': tenant_id,
+            'event_id': event_id,
+            'guest_count': event['expected_attendees'],
+            'menu_items': [
+                {'name': 'Coffee Break', 'price': 12.0},
+                {'name': 'Buffet Lunch', 'price': 35.0},
+                {'name': 'Afternoon Snacks', 'price': 15.0}
+            ],
+            'service_type': 'buffet',
+            'special_requirements': 'Vegetarian options included',
+            'total_amount': round(event['expected_attendees'] * 45.0, 2),
+            'status': 'confirmed',
+            'created_at': datetime.now(timezone.utc)
+        })
+
+        beo_orders.append({
+            'id': str(uuid.uuid4()),
+            'tenant_id': tenant_id,
+            'event_name': event['event_name'],
+            'event_date': event_date,
+            'start_time': start_time,
+            'end_time': end_time,
+            'expected_guests': event['expected_attendees'],
+            'meeting_room_id': room['id'],
+            'setup_style': event['setup_type'],
+            'av_requirements': ['Stage Lighting', 'Backdrop'],
+            'total_cost': total_cost + 1500.0,
+            'catering_order_id': order_id,
+            'status': 'approved',
+            'notes': 'Auto-generated BEO from seed script',
+            'created_at': datetime.now(timezone.utc),
+            'updated_at': datetime.now(timezone.utc)
+        })
+
+    await db.event_bookings.insert_many(event_bookings)
+    await db.meeting_room_bookings.insert_many(room_bookings)
+    await db.catering_orders.insert_many(catering_orders)
+    await db.banquet_event_orders.insert_many(beo_orders)
+
+    print(f"Created {len(event_bookings)} event bookings, {len(room_bookings)} room bookings")
+
+async def create_group_reservations(tenant_id):
+    """Create group reservations with pickup data"""
+    print("Creating group reservations...")
+
+    events = await db.event_bookings.find({'tenant_id': tenant_id}).to_list(length=50)
+    rooms = await db.rooms.find({'tenant_id': tenant_id}).to_list(length=200)
+
+    if not events or not rooms:
+        print("No events or rooms available for group reservations")
+        return
+
+    group_docs = []
+    pickup_bookings = []
+
+    for idx, event in enumerate(events[:4]):
+        group_id = str(uuid.uuid4())
+        total_rooms = random.randint(20, 60)
+        picked_rooms = random.randint(int(total_rooms * 0.4), total_rooms)
+
+        check_in_date = event.get('event_date') or (datetime.now(timezone.utc) + timedelta(days=idx * 7)).date().isoformat()
+        check_out_date = event.get('event_date') or (datetime.now(timezone.utc) + timedelta(days=idx * 7 + 3)).date().isoformat()
+
+        group = {
+            'id': group_id,
+            'tenant_id': tenant_id,
+            'group_name': event.get('event_name', f'Group {idx+1}'),
+            'group_type': random.choice(['corporate', 'wedding', 'sports', 'mice']),
+            'contact_person': f"{random.choice(FIRST_NAMES)} {random.choice(LAST_NAMES)}",
+            'contact_email': f"group{idx+1}@client.com",
+            'contact_phone': f"+1-555-{random.randint(1000,9999)}",
+            'check_in_date': check_in_date,
+            'check_out_date': check_out_date,
+            'total_rooms': total_rooms,
+            'adults_per_room': random.randint(1, 2),
+            'special_requests': random.choice(['VIP hospitality suite', 'Airport transfers', 'Private dinner', None]),
+            'status': 'confirmed' if picked_rooms == total_rooms else 'partial',
+            'rooms_assigned': picked_rooms,
+            'created_at': datetime.now(timezone.utc).isoformat(),
+            'created_by': 'demo_seed'
+        }
+        group_docs.append(group)
+
+        for i in range(picked_rooms):
+            room = random.choice(rooms)
+            nights = random.randint(2, 4)
+            check_in_dt = datetime.fromisoformat(check_in_date) if 'T' not in check_in_date else datetime.fromisoformat(check_in_date.replace('Z', '+00:00'))
+            check_out_dt = check_in_dt + timedelta(days=nights)
+            rate = room.get('base_price', 150)
+
+            booking = {
+                'id': str(uuid.uuid4()),
+                'tenant_id': tenant_id,
+                'group_id': group_id,
+                'guest_name': f"{random.choice(FIRST_NAMES)} {random.choice(LAST_NAMES)}",
+                'guest_email': f"guest{i}@{group_id[:6]}.com",
+                'check_in': check_in_dt.isoformat(),
+                'check_out': check_out_dt.isoformat(),
+                'room_id': room.get('id'),
+                'room_type': room.get('room_type', 'Standard'),
+                'nights': nights,
+                'adults': group['adults_per_room'],
+                'children': 0,
+                'status': 'confirmed',
+                'booking_source': 'group',
+                'total_amount': rate * nights,
+                'created_at': datetime.now(timezone.utc) - timedelta(days=random.randint(5, 30))
+            }
+            pickup_bookings.append(booking)
+
+    if group_docs:
+        await db.group_reservations.insert_many(group_docs)
+        print(f"Created {len(group_docs)} group reservations")
+    if pickup_bookings:
+        await db.bookings.insert_many(pickup_bookings)
+        print(f"Created {len(pickup_bookings)} group pickup bookings")
+
+async def create_loyalty_data(tenant_id):
+    """Create loyalty members, transactions, benefits and catalog"""
+    print("Creating loyalty data...")
+
+    existing_members = await db.loyalty_programs.count_documents({'tenant_id': tenant_id})
+    if existing_members >= 10:
+        print("Loyalty data already exists. Skipping...")
+        return
+
+    guests = await db.guests.find({'tenant_id': tenant_id}).to_list(length=200)
+    if not guests:
+        print("No guests found for loyalty seeding")
+        return
+
+    tier_options = ['bronze', 'silver', 'gold', 'platinum']
+    programs = []
+    transactions = []
+    now = datetime.now(timezone.utc)
+
+    for guest in guests[:10]:
+        tier = random.choice(tier_options)
+        base_points = {
+            'bronze': random.randint(200, 900),
+            'silver': random.randint(1200, 4000),
+            'gold': random.randint(5500, 9000),
+            'platinum': random.randint(11000, 15000)
+        }[tier]
+        expire_at = now + timedelta(days=random.randint(30, 180))
+        last_activity = now - timedelta(days=random.randint(1, 90))
+
+        program = {
+            'id': str(uuid.uuid4()),
+            'tenant_id': tenant_id,
+            'guest_id': guest['id'],
+            'tier': tier,
+            'points': base_points,
+            'lifetime_points': base_points + random.randint(500, 5000),
+            'last_activity': last_activity,
+            'points_expire_at': expire_at
+        }
+        programs.append(program)
+
+        for _ in range(2):
+            txn_points = random.randint(200, 1200)
+            transaction = {
+                'id': str(uuid.uuid4()),
+                'tenant_id': tenant_id,
+                'guest_id': guest['id'],
+                'points': txn_points,
+                'transaction_type': random.choice(['earned', 'bonus']),
+                'description': 'Room stay bonus',
+                'created_at': last_activity - timedelta(days=random.randint(5, 40))
+            }
+            transactions.append(transaction)
+
+    if programs:
+        await db.loyalty_programs.insert_many(programs)
+        print(f"Created {len(programs)} loyalty members")
+    if transactions:
+        await db.loyalty_transactions.insert_many(transactions)
+        print(f"Created {len(transactions)} loyalty transactions")
+
+    tier_benefits_existing = await db.loyalty_tier_benefits.count_documents({'tenant_id': tenant_id})
+    if tier_benefits_existing == 0:
+        tier_docs = [
+            {
+                'tenant_id': tenant_id,
+                'tier_name': 'bronze',
+                'benefits': ['Free Wi-Fi', 'Welcome drink'],
+                'points_required': 0,
+                'updated_at': now
+            },
+            {
+                'tenant_id': tenant_id,
+                'tier_name': 'silver',
+                'benefits': ['Late checkout (12pm)', 'Free breakfast', 'Free Wi-Fi'],
+                'points_required': 1000,
+                'updated_at': now
+            },
+            {
+                'tenant_id': tenant_id,
+                'tier_name': 'gold',
+                'benefits': ['Late checkout (1pm)', 'Free breakfast', 'Priority upgrade', 'Welcome amenity'],
+                'points_required': 5000,
+                'updated_at': now
+            },
+            {
+                'tenant_id': tenant_id,
+                'tier_name': 'platinum',
+                'benefits': ['Late checkout (2pm)', 'Suite upgrade', 'Airport transfer', 'Spa package'],
+                'points_required': 10000,
+                'updated_at': now
+            }
+        ]
+        await db.loyalty_tier_benefits.insert_many(tier_docs)
+        print("Inserted default loyalty tier benefits")
+
+    promotion_exists = await db.loyalty_promotions.count_documents({'tenant_id': tenant_id})
+    if promotion_exists == 0:
+        promotions = [
+            {
+                'id': str(uuid.uuid4()),
+                'tenant_id': tenant_id,
+                'target_tier': 'gold',
+                'offer': 'Double points on weekend stays',
+                'valid_until': (now + timedelta(days=60)).date().isoformat(),
+                'status': 'active',
+                'created_at': now
+            },
+            {
+                'id': str(uuid.uuid4()),
+                'tenant_id': tenant_id,
+                'target_tier': 'all',
+                'offer': 'Refer a friend bonus 500 pts',
+                'valid_until': (now + timedelta(days=90)).date().isoformat(),
+                'status': 'active',
+                'created_at': now
+            }
+        ]
+        await db.loyalty_promotions.insert_many(promotions)
+        print("Seeded loyalty promotions")
+
+    catalog_exists = await db.loyalty_redemption_catalog.count_documents({'tenant_id': tenant_id})
+    if catalog_exists == 0:
+        catalog_items = [
+            {'tenant_id': tenant_id, 'item': 'Free Night', 'points_required': 12000, 'value': 180.0},
+            {'tenant_id': tenant_id, 'item': 'Room Upgrade', 'points_required': 6000, 'value': 90.0},
+            {'tenant_id': tenant_id, 'item': 'Spa Credit', 'points_required': 3500, 'value': 50.0},
+            {'tenant_id': tenant_id, 'item': 'Airport Transfer', 'points_required': 2500, 'value': 40.0},
+        ]
+        await db.loyalty_redemption_catalog.insert_many(catalog_items)
+        print("Seeded loyalty redemption catalog")
+
 async def create_message_templates(tenant_id):
     """Create message templates"""
     print("Creating message templates...")
@@ -821,6 +1196,9 @@ async def main():
     await create_multi_room_reservations(tenant_id)
     await create_housekeeping_tasks(tenant_id)
     await create_pos_menu_and_orders(tenant_id)
+    await create_meeting_rooms_and_events(tenant_id)
+    await create_group_reservations(tenant_id)
+    await create_loyalty_data(tenant_id)
     await create_message_templates(tenant_id)
     await create_competitors(tenant_id)
     
@@ -833,6 +1211,7 @@ async def main():
         'rooms': await db.rooms.count_documents({'tenant_id': tenant_id}),
         'guests': await db.guests.count_documents({'tenant_id': tenant_id}),
         'bookings': await db.bookings.count_documents({'tenant_id': tenant_id}),
+        'event_bookings': await db.event_bookings.count_documents({'tenant_id': tenant_id}),
         'folios': await db.folios.count_documents({'tenant_id': tenant_id}),
         'charges': await db.folio_charges.count_documents({'tenant_id': tenant_id}),
         'payments': await db.payments.count_documents({'tenant_id': tenant_id}),
@@ -843,6 +1222,10 @@ async def main():
         'guest_tags': await db.guest_tags.count_documents({'tenant_id': tenant_id}),
         'pos_menu_items': await db.pos_menu_items.count_documents({'tenant_id': tenant_id}),
         'pos_orders': await db.pos_orders.count_documents({'tenant_id': tenant_id}),
+        'meeting_rooms': await db.meeting_rooms.count_documents({'tenant_id': tenant_id}),
+        'meeting_room_bookings': await db.meeting_room_bookings.count_documents({'tenant_id': tenant_id}),
+        'catering_orders': await db.catering_orders.count_documents({'tenant_id': tenant_id}),
+        'banquet_event_orders': await db.banquet_event_orders.count_documents({'tenant_id': tenant_id}),
         'message_templates': await db.message_templates.count_documents({'tenant_id': tenant_id}),
         'competitors': await db.competitors.count_documents({'tenant_id': tenant_id})
     }

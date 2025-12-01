@@ -9,7 +9,11 @@ import os
 from datetime import datetime, timedelta, timezone
 import asyncio
 import logging
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
+from uuid import uuid4
+
+from email_service import email_service
+from whatsapp_service import whatsapp_service
 
 logger = logging.getLogger(__name__)
 
@@ -409,6 +413,189 @@ async def _archive_old_bookings_async():
         }
     finally:
         await client.close()
+
+
+# ============= LOYALTY AUTOMATION TASKS =============
+
+@celery_app.task(name='celery_tasks.process_loyalty_automations_task')
+def process_loyalty_automations_task():
+    """Process queued loyalty automation runs and create outreach notifications"""
+    return asyncio.run(_process_loyalty_automations_async())
+
+
+async def _process_loyalty_automations_async():
+    db, client = get_db()
+    try:
+        runs = await (
+            db.loyalty_automation_runs.find({'status': 'queued'})
+            .sort('created_at', 1)
+            .limit(25)
+            .to_list(25)
+        )
+
+        if not runs:
+            return {'processed': 0, 'failures': 0}
+
+        processed = 0
+        failures = 0
+
+        for run in runs:
+            lock = await db.loyalty_automation_runs.update_one(
+                {'id': run.get('id'), 'status': 'queued'},
+                {
+                    '$set': {
+                        'status': 'processing',
+                        'processing_started_at': datetime.now(timezone.utc),
+                    }
+                }
+            )
+            if lock.matched_count == 0:
+                continue
+
+            try:
+                created, emails_sent, whatsapp_sent = await _deliver_loyalty_automation(db, run)
+                await db.loyalty_automation_runs.update_one(
+                    {'id': run.get('id')},
+                    {
+                        '$set': {
+                            'status': 'completed',
+                            'processed_at': datetime.now(timezone.utc),
+                            'notifications_created': created,
+                            'emails_sent': emails_sent,
+                            'whatsapp_sent': whatsapp_sent,
+                        }
+                    }
+                )
+                processed += 1
+            except Exception as exc:  # pragma: no cover - defensive logging
+                failures += 1
+                logger.error("Loyalty automation %s failed: %s", run.get('id'), exc)
+                await db.loyalty_automation_runs.update_one(
+                    {'id': run.get('id')},
+                    {
+                        '$set': {
+                            'status': 'failed',
+                            'processed_at': datetime.now(timezone.utc),
+                            'error': str(exc),
+                        }
+                    }
+                )
+
+        return {'processed': processed, 'failures': failures}
+
+    finally:
+        await client.close()
+
+
+async def _deliver_loyalty_automation(db, run: Dict[str, Any]) -> tuple[int, int, int]:
+    """Create notifications for each automation target."""
+    targets: List[Dict[str, Any]] = run.get('targets') or []
+    if not targets:
+        return 0, 0, 0
+
+    actor = run.get('initiated_by') or 'loyalty_manager'
+    summary = run.get('summary', {})
+    action_id = run.get('action_id')
+    tenant_id = run.get('tenant_id')
+    now = datetime.now(timezone.utc).isoformat()
+
+    guest_map: Dict[str, Dict[str, Any]] = {}
+    guest_ids = [target.get('guest_id') for target in targets if target.get('guest_id')]
+    if guest_ids:
+        cursor = db.guests.find(
+            {'tenant_id': tenant_id, 'id': {'$in': guest_ids}},
+            {'_id': 0}
+        )
+        docs = await cursor.to_list(len(guest_ids))
+        guest_map = {doc.get('id'): doc for doc in docs}
+
+    created = 0
+    emails_sent = 0
+    whatsapp_sent = 0
+    for target in targets:
+        message = _build_loyalty_message(action_id, target, summary)
+        notification = {
+            'id': str(uuid4()),
+            'tenant_id': tenant_id,
+            'user': actor,
+            'type': 'loyalty_automation',
+            'campaign_id': run.get('id'),
+            'guest_id': target.get('guest_id'),
+            'guest_name': target.get('guest_name'),
+            'category': summary.get('category'),
+            'message': message,
+            'metadata': {
+                'action_id': action_id,
+                'target': target,
+                'generated_by': 'automation_worker',
+            },
+            'read': False,
+            'created_at': now,
+        }
+        await db.notifications.insert_one(notification)
+
+        guest = guest_map.get(target.get('guest_id'))
+        preferences = (guest or {}).get('communication_preferences', {'email': True, 'whatsapp': True})
+        if preferences.get('email') and await _send_loyalty_email(guest, run, message):
+            emails_sent += 1
+        if preferences.get('whatsapp') and await _send_loyalty_whatsapp(guest, message):
+            whatsapp_sent += 1
+
+        created += 1
+
+    return created, emails_sent, whatsapp_sent
+
+
+def _build_loyalty_message(action_id: str, target: Dict[str, Any], summary: Dict[str, Any]) -> str:
+    guest = target.get('guest_name') or target.get('guest_id') or 'Üye'
+
+    if action_id == 'expiring_points':
+        points = target.get('points_expiring') or target.get('points') or 0
+        expiration = _format_date(target.get('expiration_date'))
+        return f"{guest} için {points} puan {expiration or 'yakında'} sona eriyor. Hatırlatma gönder."
+
+    if action_id == 'reactivate_members':
+        days = target.get('days_inactive', 0)
+        return f"{guest} {days} gündür pasif. {summary.get('offer', 'Geri dönüş kampanyası')} teklif et."
+
+    if action_id == 'boost_redemptions':
+        next_tier = target.get('next_tier')
+        needed = target.get('points_to_next_tier')
+        return f"{guest} {target.get('points', 0)} puana sahip. {next_tier or 'üst tier'} için {needed or 0} puan kaldı."
+
+    if action_id == 'partner_activation':
+        partner = summary.get('partner', 'Partner')
+        return f"{guest} için {partner} ile ortak kampanya mesajı gönder."
+
+    return f"{guest} için {summary.get('title', 'loyalty')} otomasyonu tetiklendi."
+
+
+def _format_date(value: Any) -> Optional[str]:
+    if not value:
+        return None
+    try:
+        return datetime.fromisoformat(str(value).replace('Z', '+00:00')).date().isoformat()
+    except ValueError:
+        return str(value)
+
+
+async def _send_loyalty_email(guest: Optional[Dict[str, Any]], run: Dict[str, Any], message: str) -> bool:
+    if not guest or not guest.get('email'):
+        return False
+    subject = f"{run.get('title') or 'Syroce Loyalty Alert'}"
+    return await email_service.send_loyalty_message(
+        email=guest['email'],
+        subject=subject,
+        message=message,
+        guest_name=guest.get('name')
+    )
+
+
+async def _send_loyalty_whatsapp(guest: Optional[Dict[str, Any]], message: str) -> bool:
+    phone = guest.get('phone') if guest else None
+    if not phone:
+        return False
+    return await whatsapp_service.send_loyalty_message(phone, message)
 
 
 @celery_app.task(name='celery_tasks.cleanup_old_cache')

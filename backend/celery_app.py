@@ -87,6 +87,12 @@ celery_app.conf.update(
             'schedule': crontab(minute=0, hour='*/6'),  # 0, 6, 12, 18
         },
         
+        # Process loyalty automations - runs every 5 minutes
+        'process-loyalty-automations': {
+            'task': 'celery_tasks.process_loyalty_automations_task',
+            'schedule': crontab(minute='*/5'),
+        },
+        
         # Process pending e-faturas - runs every 30 minutes
         'process-efaturas': {
             'task': 'celery_tasks.process_pending_efaturas_task',

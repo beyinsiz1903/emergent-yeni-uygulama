@@ -4348,6 +4348,80 @@ const PMSModule = ({ user, tenant, onLogout }) => {
                   </Card>
                 </div>
 
+                {/* Loyalty Automation History */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      <Zap className="w-5 h-5 text-purple-600" />
+                      Loyalty Automation History
+                    </CardTitle>
+                    <CardDescription>
+                      Son kampanyalar ve iletişim aksiyonları
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    {guest360Data.loyalty_automations && guest360Data.loyalty_automations.length > 0 ? (
+                      guest360Data.loyalty_automations.slice(0, 6).map((run) => (
+                        <div key={run.id} className="border rounded-lg p-3 bg-gray-50">
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <p className="font-semibold">{run.title || run.action_id}</p>
+                              <p className="text-xs text-gray-500">
+                                {new Date(run.created_at).toLocaleString('tr-TR')}
+                              </p>
+                            </div>
+                            <Badge
+                              variant={
+                                run.status === 'completed' ? 'secondary' :
+                                run.status === 'processing' ? 'default' :
+                                run.status === 'failed' ? 'destructive' :
+                                'outline'
+                              }
+                              className="capitalize"
+                            >
+                              {run.status || 'queued'}
+                            </Badge>
+                          </div>
+                          <div className="grid grid-cols-3 gap-2 text-xs text-gray-600 mt-2">
+                            <div>
+                              <div className="uppercase tracking-wide text-[10px]">Segment</div>
+                              <div className="font-semibold">
+                                {run.parameters?.segment || 'All'}
+                              </div>
+                            </div>
+                            <div>
+                              <div className="uppercase tracking-wide text-[10px]">Targets</div>
+                              <div className="font-semibold">
+                                {run.targets?.length || 0} member(s)
+                              </div>
+                            </div>
+                            <div>
+                              <div className="uppercase tracking-wide text-[10px]">Channel</div>
+                              <div className="font-semibold">Email + WhatsApp</div>
+                            </div>
+                          </div>
+                          {run.summary?.message && (
+                            <p className="text-xs text-gray-600 mt-2 italic">
+                              "{run.summary.message}"
+                            </p>
+                          )}
+                        </div>
+                      ))
+                    ) : (
+                      <div className="text-sm text-gray-500">
+                        Bu misafir için henüz loyalty otomasyonu çalıştırılmamış.
+                      </div>
+                    )}
+                    <Button
+                      variant="outline"
+                      onClick={() => window.open('/loyalty-insights', '_blank')}
+                      className="w-full border-purple-200 text-purple-600 hover:bg-purple-50"
+                    >
+                      Loyalty Insights'a Git
+                    </Button>
+                  </CardContent>
+                </Card>
+
                 {/* Tags & Notes */}
                 <Card>
                   <CardHeader>
