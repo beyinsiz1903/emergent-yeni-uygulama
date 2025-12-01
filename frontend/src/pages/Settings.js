@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Settings as SettingsIcon, Mail, MessageSquare, Phone, Key, AlertCircle } from 'lucide-react';
+import { Settings as SettingsIcon, Mail, MessageSquare, Phone, Key, AlertCircle, Cloud, RefreshCw, Server } from 'lucide-react';
 
 const Settings = ({ user, tenant, onLogout }) => {
   const [integrations, setIntegrations] = useState({
@@ -18,6 +18,23 @@ const Settings = ({ user, tenant, onLogout }) => {
   });
 
   const [saving, setSaving] = useState(false);
+  const [bookingCreds, setBookingCreds] = useState({
+    property_id: '',
+    username: '',
+    password: '',
+    settings: { base_url: '' }
+  });
+  const [bookingLoading, setBookingLoading] = useState(false);
+  const [bookingLogs, setBookingLogs] = useState([]);
+  const [ariRoom, setAriRoom] = useState({
+    room_code: 'DLX',
+    rate_plan: 'BAR',
+    date: new Date().toISOString().slice(0, 10),
+    price: 150,
+    currency: 'EUR',
+    min_stay: 1,
+    closed: false
+  });
 
   const saveIntegration = async (type, config) => {
     setSaving(true);
@@ -32,6 +49,75 @@ const Settings = ({ user, tenant, onLogout }) => {
       toast.error('Failed to save integration settings');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const loadBookingCreds = async () => {
+    try {
+      setBookingLoading(true);
+      const res = await axios.get('/ota/booking/credentials');
+      setBookingCreds({
+        property_id: res.data.property_id || '',
+        username: res.data.username || '',
+        password: '',
+        settings: res.data.settings || { base_url: '' }
+      });
+    } catch (error) {
+      // 404 simply means not configured yet
+    } finally {
+      setBookingLoading(false);
+    }
+  };
+
+  const loadBookingLogs = async () => {
+    try {
+      const res = await axios.get('/ota/booking/logs?limit=10');
+      setBookingLogs(res.data.items || []);
+    } catch (error) {
+      console.error('Failed to load booking logs', error);
+    }
+  };
+
+  useEffect(() => {
+    loadBookingCreds();
+    loadBookingLogs();
+  }, []);
+
+  const saveBookingCredentials = async () => {
+    try {
+      setBookingLoading(true);
+      await axios.post('/ota/booking/credentials', {
+        property_id: bookingCreds.property_id,
+        username: bookingCreds.username,
+        password: bookingCreds.password,
+        settings: bookingCreds.settings
+      });
+      toast.success('Booking.com credentials saved');
+      await loadBookingCreds();
+    } catch (error) {
+      toast.error('Failed to save Booking.com credentials');
+    } finally {
+      setBookingLoading(false);
+    }
+  };
+
+  const triggerAriPush = async () => {
+    try {
+      await axios.post('/ota/booking/ari/push', { rooms: [ariRoom] });
+      toast.success('ARI push queued');
+      loadBookingLogs();
+    } catch (error) {
+      toast.error('ARI push failed');
+    }
+  };
+
+  const triggerReservationPull = async () => {
+    try {
+      await axios.post('/ota/booking/reservations/pull');
+      toast.success('Reservation pull queued');
+      loadBookingLogs();
+    } catch (error) {
+      toast.error('Reservation pull failed');
     }
   };
 
@@ -53,6 +139,7 @@ const Settings = ({ user, tenant, onLogout }) => {
           <TabsList>
             <TabsTrigger value="integrations">🔌 Integrations</TabsTrigger>
             <TabsTrigger value="general">⚙️ General</TabsTrigger>
+            <TabsTrigger value="ota">🌐 OTA</TabsTrigger>
           </TabsList>
 
           <TabsContent value="integrations" className="space-y-4">
@@ -245,6 +332,157 @@ const Settings = ({ user, tenant, onLogout }) => {
                 <CardDescription>Coming soon...</CardDescription>
               </CardHeader>
             </Card>
+          </TabsContent>
+
+          <TabsContent value="ota" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Cloud className="w-5 h-5" />
+                  Booking.com Credentials
+                </CardTitle>
+                <CardDescription>
+                  Store property credentials to enable ARI push and reservation sync
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label>Property ID</Label>
+                    <Input
+                      value={bookingCreds.property_id}
+                      onChange={(e) => setBookingCreds({ ...bookingCreds, property_id: e.target.value })}
+                      placeholder="1234567"
+                    />
+                  </div>
+                  <div>
+                    <Label>Base URL</Label>
+                    <Input
+                      value={bookingCreds.settings?.base_url || ''}
+                      onChange={(e) =>
+                        setBookingCreds({
+                          ...bookingCreds,
+                          settings: { ...bookingCreds.settings, base_url: e.target.value }
+                        })
+                      }
+                      placeholder="https://distribution.booking.com"
+                    />
+                  </div>
+                  <div>
+                    <Label>Username</Label>
+                    <Input
+                      value={bookingCreds.username}
+                      onChange={(e) => setBookingCreds({ ...bookingCreds, username: e.target.value })}
+                      placeholder="api_user"
+                    />
+                  </div>
+                  <div>
+                    <Label>Password</Label>
+                    <Input
+                      type="password"
+                      value={bookingCreds.password}
+                      onChange={(e) => setBookingCreds({ ...bookingCreds, password: e.target.value })}
+                      placeholder="********"
+                    />
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <Button onClick={saveBookingCredentials} disabled={bookingLoading}>
+                    {bookingLoading ? <RefreshCw className="w-4 h-4 mr-2 animate-spin" /> : <Key className="w-4 h-4 mr-2" />}
+                    Save Credentials
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={loadBookingCreds}>
+                    Reload
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Server className="w-4 h-4" />
+                    ARI Push
+                  </CardTitle>
+                  <CardDescription>Send availability/rate updates to Booking.com</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <Label>Room Code</Label>
+                      <Input
+                        value={ariRoom.room_code}
+                        onChange={(e) => setAriRoom({ ...ariRoom, room_code: e.target.value })}
+                      />
+                    </div>
+                    <div>
+                      <Label>Rate Plan</Label>
+                      <Input
+                        value={ariRoom.rate_plan}
+                        onChange={(e) => setAriRoom({ ...ariRoom, rate_plan: e.target.value })}
+                      />
+                    </div>
+                    <div>
+                      <Label>Date</Label>
+                      <Input
+                        type="date"
+                        value={ariRoom.date}
+                        onChange={(e) => setAriRoom({ ...ariRoom, date: e.target.value })}
+                      />
+                    </div>
+                    <div>
+                      <Label>Price ({ariRoom.currency})</Label>
+                      <Input
+                        type="number"
+                        value={ariRoom.price}
+                        onChange={(e) => setAriRoom({ ...ariRoom, price: Number(e.target.value) })}
+                      />
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <Button onClick={triggerAriPush}>
+                      Push to Booking.com
+                    </Button>
+                    <Button variant="outline" onClick={triggerReservationPull}>
+                      Pull Reservations
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Latest OTA Logs</CardTitle>
+                  <CardDescription>Status of recent push/pull operations</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <Button size="sm" variant="outline" onClick={loadBookingLogs}>
+                    Refresh Logs
+                  </Button>
+                  <div className="space-y-2 max-h-64 overflow-y-auto">
+                    {bookingLogs.length === 0 ? (
+                      <p className="text-sm text-gray-500">No logs yet.</p>
+                    ) : (
+                      bookingLogs.map((log) => (
+                        <div key={log.id} className="border rounded p-3 text-sm">
+                          <div className="flex items-center justify-between">
+                            <span className="font-semibold capitalize">{log.event_type}</span>
+                            <Badge variant={log.status === 'success' ? 'success' : log.status === 'queued' ? 'secondary' : 'destructive'}>
+                              {log.status}
+                            </Badge>
+                          </div>
+                          <p className="text-xs text-gray-500 mt-1">
+                            {log.created_at ? new Date(log.created_at).toLocaleString() : ''}
+                          </p>
+                          {log.message && <p className="text-xs mt-1">{log.message}</p>}
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
           </TabsContent>
         </Tabs>
       </div>
