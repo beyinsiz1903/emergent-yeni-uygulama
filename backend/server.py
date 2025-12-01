@@ -17,6 +17,7 @@ import bcrypt
 import jwt
 from enum import Enum
 from passlib.context import CryptContext
+import asyncio
 
 # Password hashing context
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -29,6 +30,7 @@ DEFAULT_PUSH_CHANNELS = [
     'finance',
     'executive'
 ]
+from websocket_server import broadcast_kitchen_orders
 import qrcode
 import io
 import base64
@@ -4479,6 +4481,7 @@ async def complete_kitchen_order(order_id: str, current_user: User = Depends(get
         {'id': order_id},
         {'$set': {'status': 'ready', 'ready_at': datetime.now(timezone.utc).isoformat()}}
     )
+    await _broadcast_kitchen_queue(current_user.tenant_id)
     return {'success': True, 'message': 'Sipariş hazır olarak işaretlendi'}
 
 # ============= PHOTO UPLOAD (KAT HİZMETLERİ İÇİN) =============
@@ -4920,12 +4923,84 @@ async def create_beo(beo_data: dict, current_user: User = Depends(get_current_us
     await db.banquet_event_orders.insert_one(beo)
     return {'success': True, 'beo_id': beo['id'], 'message': 'BEO olusturuldu'}
 
+async def _get_active_kitchen_orders(tenant_id: str, statuses: Optional[List[str]] = None):
+    query = {'tenant_id': tenant_id}
+    if statuses:
+        query['status'] = {'$in': statuses}
+    else:
+        query['status'] = {'$in': ['pending', 'preparing']}
+    return await db.kitchen_orders.find(query, {'_id': 0}).sort(
+        [('priority', -1), ('ordered_at', 1)]
+    ).to_list(200)
+
+
+async def _next_kitchen_order_number(tenant_id: str) -> int:
+    last_order = await db.kitchen_orders.find({'tenant_id': tenant_id}).sort('order_number', -1).limit(1).to_list(1)
+    return (last_order[0]['order_number'] + 1) if last_order else 1
+
+
+async def _broadcast_kitchen_queue(tenant_id: str):
+    try:
+        orders = await _get_active_kitchen_orders(tenant_id)
+        await broadcast_kitchen_orders(tenant_id, orders)
+    except Exception as exc:
+        logging.warning(f"Kitchen broadcast failed: {exc}")
+
+
 @api_router.get("/fnb/kitchen-display")
-async def get_kitchen_orders(current_user: User = Depends(get_current_user)):
-    orders = await db.kitchen_orders.find({
-        'tenant_id': current_user.tenant_id, 'status': {'$in': ['pending', 'preparing']}
-    }, {'_id': 0}).sort('priority', -1).to_list(50)
+async def get_kitchen_orders(
+    status: Optional[str] = None,
+    current_user: User = Depends(get_current_user)
+):
+    statuses = status.split(',') if status else None
+    orders = await _get_active_kitchen_orders(current_user.tenant_id, statuses=statuses)
     return {'orders': orders, 'total': len(orders)}
+
+
+@api_router.post("/fnb/kitchen-order")
+async def create_kitchen_order(order_data: dict, current_user: User = Depends(get_current_user)):
+    if not order_data.get('items'):
+        raise HTTPException(status_code=400, detail="Order items required")
+    
+    order = {
+        'id': str(uuid.uuid4()),
+        'tenant_id': current_user.tenant_id,
+        'order_number': await _next_kitchen_order_number(current_user.tenant_id),
+        'table_number': order_data.get('table_number'),
+        'room_number': order_data.get('room_number'),
+        'priority': order_data.get('priority', 'normal'),
+        'status': 'pending',
+        'station': order_data.get('station'),
+        'items': order_data.get('items'),
+        'notes': order_data.get('notes'),
+        'ordered_by': current_user.name,
+        'ordered_at': datetime.now(timezone.utc).isoformat()
+    }
+    await db.kitchen_orders.insert_one(order)
+    await _broadcast_kitchen_queue(current_user.tenant_id)
+    order.pop('_id', None)
+    return {'success': True, 'order': order}
+
+
+@api_router.put("/fnb/kitchen-order/{order_id}/status")
+async def update_kitchen_order_status(
+    order_id: str,
+    status: str,
+    current_user: User = Depends(get_current_user)
+):
+    update_data = {'status': status}
+    if status == 'preparing':
+        update_data['started_at'] = datetime.now(timezone.utc).isoformat()
+    if status in ['ready', 'served']:
+        update_data['ready_at'] = datetime.now(timezone.utc).isoformat()
+    result = await db.kitchen_orders.update_one(
+        {'tenant_id': current_user.tenant_id, 'id': order_id},
+        {'$set': update_data}
+    )
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Order not found")
+    await _broadcast_kitchen_queue(current_user.tenant_id)
+    return {'success': True, 'order_id': order_id, 'status': status}
 
 @api_router.get("/fnb/ingredients")
 async def list_ingredients(current_user: User = Depends(get_current_user)):
