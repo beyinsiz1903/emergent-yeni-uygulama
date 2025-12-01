@@ -51079,6 +51079,22 @@ try:
 except ImportError as e:
     print(f"⚠️ Monitoring endpoints not available: {e}")
 
+# Include media endpoints
+try:
+    from media_endpoints import media_router
+    app.include_router(media_router, prefix="/api", tags=["media"])
+    print("✅ Media endpoints included")
+except ImportError as e:
+    print(f"⚠️ Media endpoints not available: {e}")
+
+# Include notification endpoints
+try:
+    from notification_endpoints import notification_router
+    app.include_router(notification_router, prefix="/api", tags=["notifications"])
+    print("✅ Notification endpoints included")
+except ImportError as e:
+    print(f"⚠️ Notification endpoints not available: {e}")
+
 # Include optimization endpoints (Enterprise Performance)
 try:
     from optimization_endpoints import optimization_router, init_optimization_managers
