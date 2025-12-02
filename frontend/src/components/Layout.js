@@ -79,7 +79,7 @@ const Layout = ({ children, user, tenant, onLogout, currentModule }) => {
             {/* Desktop Navigation - Compact & Beautiful with Scroll Preservation */}
             <nav 
               ref={navScrollRef}
-              className="hidden md:flex items-center space-x-1 max-w-4xl overflow-x-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100"
+              className="hidden md:flex items-center space-x-1 max-w-3xl overflow-x-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100"
               style={{ scrollBehavior: 'smooth' }}
             >
               {navigation.map((item) => {
