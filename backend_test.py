@@ -670,15 +670,30 @@ class PMSRoomsTester:
                     if response.status in test_case["expected_status"]:
                         if response.status == 200:
                             data = await response.json()
-                            missing_fields = [field for field in test_case["expected_fields"] if field not in data]
-                            if not missing_fields:
-                                print(f"  ✅ {test_case['name']}: PASSED - Folio found ({response_time:.1f}ms)")
-                                print(f"      📊 Folio: {data.get('folio_number', 'N/A')} - Balance: {data.get('balance', 'N/A')}")
+                            # Handle both single folio and list of folios
+                            if isinstance(data, list) and data:
+                                folio = data[0]  # Take first folio
+                                missing_fields = [field for field in test_case["expected_fields"] if field not in folio]
+                                if not missing_fields:
+                                    print(f"  ✅ {test_case['name']}: PASSED - Folio found ({response_time:.1f}ms)")
+                                    print(f"      📊 Folio: {folio.get('folio_number', 'N/A')} - Balance: {folio.get('balance', 'N/A')}")
+                                    passed += 1
+                                else:
+                                    print(f"  ❌ {test_case['name']}: Missing required fields {missing_fields}")
+                            elif isinstance(data, dict):
+                                missing_fields = [field for field in test_case["expected_fields"] if field not in data]
+                                if not missing_fields:
+                                    print(f"  ✅ {test_case['name']}: PASSED - Folio found ({response_time:.1f}ms)")
+                                    print(f"      📊 Folio: {data.get('folio_number', 'N/A')} - Balance: {data.get('balance', 'N/A')}")
+                                    passed += 1
+                                else:
+                                    print(f"  ❌ {test_case['name']}: Missing required fields {missing_fields}")
                             else:
-                                print(f"  ❌ {test_case['name']}: Missing required fields {missing_fields}")
+                                print(f"  ✅ {test_case['name']}: PASSED - Empty folio list ({response_time:.1f}ms)")
+                                passed += 1
                         else:  # 404
                             print(f"  ✅ {test_case['name']}: PASSED - No folio found (expected) ({response_time:.1f}ms)")
-                        passed += 1
+                            passed += 1
                     else:
                         error_text = await response.text()
                         print(f"  ❌ {test_case['name']}: Expected {test_case['expected_status']}, got {response.status}")
