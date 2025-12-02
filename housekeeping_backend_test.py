@@ -266,36 +266,33 @@ class HousekeepingTester:
             test_cases = [
                 {
                     "name": "Create cleaning task",
-                    "data": {
+                    "params": {
                         "room_id": self.created_test_data['rooms'][0],
                         "task_type": "cleaning",
                         "priority": "normal",
                         "notes": "Standard checkout cleaning"
                     },
-                    "expected_status": 200,
-                    "expected_fields": ["message", "task_id", "task"]
+                    "expected_status": 200
                 },
                 {
                     "name": "Create inspection task",
-                    "data": {
-                        "room_id": self.created_test_data['rooms'][0] if len(self.created_test_data['rooms']) > 0 else str(uuid.uuid4()),
+                    "params": {
+                        "room_id": self.created_test_data['rooms'][0],
                         "task_type": "inspection",
                         "priority": "high",
                         "notes": "Quality inspection required"
                     },
-                    "expected_status": 200,
-                    "expected_fields": ["message", "task_id", "task"]
+                    "expected_status": 200
                 },
                 {
                     "name": "Create maintenance task",
-                    "data": {
-                        "room_id": self.created_test_data['rooms'][0] if len(self.created_test_data['rooms']) > 0 else str(uuid.uuid4()),
+                    "params": {
+                        "room_id": self.created_test_data['rooms'][0],
                         "task_type": "maintenance",
                         "priority": "urgent",
                         "notes": "AC unit repair needed"
                     },
-                    "expected_status": 200,
-                    "expected_fields": ["message", "task_id", "task"]
+                    "expected_status": 200
                 }
             ]
             
@@ -304,20 +301,21 @@ class HousekeepingTester:
             
             for test_case in test_cases:
                 try:
+                    # Endpoint expects query parameters, not JSON body
                     url = f"{BACKEND_URL}/housekeeping/tasks"
+                    params = "&".join([f"{k}={v}" for k, v in test_case["params"].items()])
+                    url += f"?{params}"
                     
-                    async with self.session.post(url, json=test_case["data"], headers=self.get_headers()) as response:
+                    async with self.session.post(url, headers=self.get_headers()) as response:
                         if response.status == test_case["expected_status"]:
                             data = await response.json()
-                            missing_fields = [field for field in test_case["expected_fields"] if field not in data]
-                            if not missing_fields:
-                                # Store task ID for later tests
-                                if "task_id" in data:
-                                    self.created_test_data['tasks'].append(data["task_id"])
+                            # Endpoint returns task object directly
+                            if "id" in data:
+                                self.created_test_data['tasks'].append(data["id"])
                                 print(f"  ✅ {test_case['name']}: PASSED")
                                 passed += 1
                             else:
-                                print(f"  ❌ {test_case['name']}: Missing fields {missing_fields}")
+                                print(f"  ❌ {test_case['name']}: No task ID in response")
                         else:
                             error_text = await response.text()
                             print(f"  ❌ {test_case['name']}: Expected {test_case['expected_status']}, got {response.status} - {error_text[:100]}")
