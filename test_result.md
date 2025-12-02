@@ -9913,6 +9913,20 @@ agent_communication:
           - Mission status: CONTINUES - Further optimization needed
 
   - agent: "testing"
+
+frontend:
+  - task: "PMS Rooms - UI & Interactions"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/pages/PMSModule.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: true
+        agent: "main"
+        comment: "Rooms tab (room cards, bulk status updates, room block indicators, current guest info, quick actions like folio/payment/checkout, room status select) reviewed. Backend PMS Rooms & related endpoints recently performance-tested and fixed; frontend mapping uses room.id, room.status, room_type, floor, base_price and joined booking/guest/room_block data. Need fresh end-to-end UI retest for PMS → Rooms to ensure no runtime errors and that bulk actions & status changes behave correctly after recent optimizations."
+
     message: |
       ❌ FINAL ULTRA PERFORMANCE TEST RESULTS - CRITICAL PERFORMANCE ISSUES
       
