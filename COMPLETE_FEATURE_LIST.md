@@ -218,7 +218,7 @@
 ## 📋 QUICK START GUIDE
 
 **Login:**
-- URL: https://booking-system-76.preview.emergentagent.com
+- URL: https://tab-checker.preview.emergentagent.com
 - Demo: demo@hotel.com / demo123
 
 **New User Registration:**
