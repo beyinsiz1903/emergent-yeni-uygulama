@@ -1528,6 +1528,18 @@ frontend:
       - working: true
         agent: "testing"
         comment: "✅ ENDPOINT NOW WORKING - POST /api/reservations/multi-room returns HTTP 200. Tested with correct request body: {group_name, primary_booking_id, related_booking_ids}. Response includes success message and multi_room_id. Endpoint fully functional."
+  - task: "PMS Guests - UI & Interactions"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/pages/PMSModule.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: true
+        agent: "main"
+        comment: "Guests tab (guest list grid, stats cards, search filter, 360° profile button) reviewed. Backend /pms/guests endpoint and Guest model provide id, name, email, phone, id_number, loyalty fields; frontend safely filters and maps guests and calls loadGuest360 without runtime-unsafe operations. Need fresh end-to-end UI retest for PMS → Guests to ensure there are no React runtime errors and that search/filter + 360° actions behave correctly with live data."
+
 
   - task: "Housekeeping Mobile - Room Assignments"
     implemented: true
