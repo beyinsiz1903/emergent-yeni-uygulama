@@ -167,9 +167,9 @@ class PMSRoomsTester:
             print(f"❌ Error creating test data: {e}")
             return False
 
-    # ============= APPROVALS MODULE TESTS (6 endpoints) =============
+    # ============= PMS ROOMS BACKEND TESTS (7 endpoints) =============
 
-    async def test_create_approval_request(self):
+    async def test_pms_rooms_endpoint(self):
         """Test POST /api/approvals/create - **CRITICAL RE-TEST** after username bug fix"""
         print("\n📋 Testing Create Approval Request Endpoint (CRITICAL RE-TEST)...")
         print("🔧 BUG FIX: current_user.username → current_user.name should fix 500 error")
