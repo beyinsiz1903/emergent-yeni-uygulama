@@ -10442,6 +10442,13 @@ async def get_ai_dashboard_briefing(
         'briefing_date': today,
         'briefing_items': briefing_items,
         'summary': f"Occupancy {occupancy_pct}%, {arrivals} arrivals, {departures} departures",
+        'metrics': {
+            'occupancy_rate': occupancy_pct,
+            'today_checkins': arrivals,
+            'today_checkouts': departures,
+            # For now we keep monthly_revenue simple; detailed revenue comes from other endpoints
+            'monthly_revenue': 0
+        },
         'generated_at': datetime.now(timezone.utc).isoformat()
     }
 
