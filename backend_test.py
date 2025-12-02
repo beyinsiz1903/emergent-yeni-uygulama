@@ -281,7 +281,22 @@ class PMSRoomsTester:
                     if response.status == test_case["expected_status"]:
                         data = await response.json()
                         
-                        if isinstance(data, list):
+                        # Handle both list and dict responses (API returns {"blocks": [], "count": 0})
+                        if isinstance(data, dict) and "blocks" in data:
+                            blocks = data["blocks"]
+                            if blocks:  # If room blocks exist, check structure
+                                block = blocks[0]
+                                missing_fields = [field for field in test_case["required_fields"] if field not in block]
+                                if not missing_fields:
+                                    print(f"  ✅ {test_case['name']}: PASSED ({response_time:.1f}ms)")
+                                    print(f"      📊 Sample block: {block.get('type', 'N/A')} - {block.get('status', 'N/A')}")
+                                    passed += 1
+                                else:
+                                    print(f"  ❌ {test_case['name']}: Missing required fields {missing_fields}")
+                            else:
+                                print(f"  ✅ {test_case['name']}: PASSED - No room blocks found ({response_time:.1f}ms)")
+                                passed += 1
+                        elif isinstance(data, list):
                             if data:  # If room blocks exist, check structure
                                 block = data[0]
                                 missing_fields = [field for field in test_case["required_fields"] if field not in block]
@@ -295,7 +310,7 @@ class PMSRoomsTester:
                                 print(f"  ✅ {test_case['name']}: PASSED - No room blocks found ({response_time:.1f}ms)")
                                 passed += 1
                         else:
-                            print(f"  ❌ {test_case['name']}: Expected list response, got {type(data)}")
+                            print(f"  ❌ {test_case['name']}: Unexpected response format: {type(data)}")
                     else:
                         error_text = await response.text()
                         print(f"  ❌ {test_case['name']}: Expected {test_case['expected_status']}, got {response.status}")
