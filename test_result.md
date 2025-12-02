@@ -10898,6 +10898,21 @@ backend:
         agent: "testing"
         comment: "✅ BALANCE CALCULATION WORKING PERFECTLY - All tests passed (4/4). VERIFIED: (1) Voided charges excluded from balance calculation ✅, (2) Voided payments excluded from balance calculation ✅, (3) Balance formula correct: (active charges) - (active payments) ✅, (4) Balance matches expected calculation ✅. CRITICAL BUG FIXED: Function was filtering charges by voided=False but NOT filtering payments by voided status. Added 'voided': False filter to payments query at line 5630. Balance now correctly excludes both voided charges and voided payments. Tested with multiple scenarios including voided items."
 
+  - task: "PMS Guests Backend Flow"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: "NA"
+        agent: "user"
+        comment: "Turkish language request to test PMS Guests backend flow. Test GET /api/pms/guests?limit=100 endpoint and verify response structure matches frontend expectations. Also test guest 360° profile endpoints if available."
+      - working: true
+        agent: "testing"
+        comment: "✅ PMS GUESTS BACKEND: PRODUCTION-READY - Comprehensive testing completed with 100% success rate. AUTHENTICATION: Login successful with demo@hotel.com / demo123 ✅. MAIN ENDPOINT: GET /api/pms/guests?limit=100 returns HTTP 200 with valid array structure ✅. RESPONSE DATA: 5 guests returned with all required fields present (id, name, email, phone, id_number) ✅. OPTIONAL FIELDS: loyalty_points and total_stays present, loyalty_tier field missing but acceptable ✅. GUEST 360° PROFILES: Both profile endpoints working - /guests/{guest_id}/complete-profile returns comprehensive data (guest, stay_history, vip_protocol, preferences, celebrations, blacklist, spending_profile) ✅, /guests/{guest_id}/profile-enhanced returns enhanced profile (stay_history, preferences, tags, profile_completion) ✅. FRONTEND COMPATIBILITY: All field types match frontend expectations (strings, numbers, proper nulls) ✅. SAMPLE DATA: Guest structure includes id, tenant_id, name, email, phone, id_number, nationality, vip_status, loyalty_points, total_stays, total_spend ✅. Backend is stable and UI-ready."
+
   - task: "Folio System - Folio Transfer"
     implemented: true
     working: true
