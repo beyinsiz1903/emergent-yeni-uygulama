@@ -1413,6 +1413,20 @@ backend:
     file: "/app/backend/server.py"
     stuck_count: 0
     priority: "high"
+
+frontend:
+  - task: "PMS Front Desk - UI & Interactions"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/components/pms/FrontdeskTab.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: true
+        agent: "main"
+        comment: "Front Desk tab (arrivals/departures/inhouse lists, AI occupancy prediction, AI guest patterns, check-in/check-out buttons, folio loading) reviewed. Backend endpoints optimized and tested; frontend components render lists safely with optional chaining. Need fresh end-to-end UI retest for PMS → Front Desk after dashboard fixes."
+
     needs_retesting: false
     status_history:
       - working: "NA"
