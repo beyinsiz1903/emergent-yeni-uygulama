@@ -574,7 +574,9 @@ const Dashboard = ({ user, tenant, onLogout }) => {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="p-4 pt-0">
-                  <p className="text-sm md:text-base leading-relaxed mb-3">{aiBriefing.briefing}</p>
+                  <div className="text-sm md:text-base leading-relaxed mb-3">
+                    {renderAIBriefingText(aiBriefing.briefing)}
+                  </div>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs bg-white/10 rounded-lg p-3">
                     <div>
                       <div className="opacity-75 text-xs">Occupancy</div>
