@@ -347,7 +347,7 @@ class HousekeepingTester:
                 {
                     "name": "Update task status to in_progress",
                     "task_id": sample_task_id,
-                    "data": {
+                    "params": {
                         "status": "in_progress"
                     },
                     "expected_status": [200, 404]
@@ -355,7 +355,7 @@ class HousekeepingTester:
                 {
                     "name": "Update task status to completed",
                     "task_id": sample_task_id,
-                    "data": {
+                    "params": {
                         "status": "completed"
                     },
                     "expected_status": [200, 404]
@@ -363,7 +363,7 @@ class HousekeepingTester:
                 {
                     "name": "Update task with assignment",
                     "task_id": sample_task_id,
-                    "data": {
+                    "params": {
                         "status": "in_progress",
                         "assigned_to": "Maria Housekeeping"
                     },
@@ -376,19 +376,21 @@ class HousekeepingTester:
             
             for test_case in test_cases:
                 try:
+                    # Endpoint expects query parameters, not JSON body
                     url = f"{BACKEND_URL}/housekeeping/tasks/{test_case['task_id']}"
+                    params = "&".join([f"{k}={v}" for k, v in test_case["params"].items()])
+                    url += f"?{params}"
                     
-                    async with self.session.put(url, json=test_case["data"], headers=self.get_headers()) as response:
+                    async with self.session.put(url, headers=self.get_headers()) as response:
                         if response.status in test_case["expected_status"]:
                             if response.status == 200:
                                 data = await response.json()
-                                required_fields = ["message", "task_id", "updated_task"]
-                                missing_fields = [field for field in required_fields if field not in data]
-                                if not missing_fields:
+                                # Endpoint returns task object directly
+                                if "id" in data:
                                     print(f"  ✅ {test_case['name']}: PASSED")
                                     passed += 1
                                 else:
-                                    print(f"  ❌ {test_case['name']}: Missing fields {missing_fields}")
+                                    print(f"  ❌ {test_case['name']}: No task ID in response")
                             else:  # 404
                                 print(f"  ✅ {test_case['name']}: PASSED (404 - task not found)")
                                 passed += 1
