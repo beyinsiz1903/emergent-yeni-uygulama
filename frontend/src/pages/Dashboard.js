@@ -148,6 +148,44 @@ const Dashboard = ({ user, tenant, onLogout }) => {
     }
   }, []);
 
+  const renderAIBriefingText = (briefing) => {
+    if (!briefing) return null;
+
+    if (typeof briefing === 'string') {
+      return briefing;
+    }
+
+    if (typeof briefing === 'object') {
+      const { occupancy_percentage, confidence_level, reason } = briefing;
+      return (
+        <div className="space-y-1">
+          {occupancy_percentage != null && (
+            <div>
+              <span className="font-semibold">
+                {typeof occupancy_percentage === 'number'
+                  ? occupancy_percentage.toFixed(1)
+                  : occupancy_percentage}
+                %
+              </span>{' '}
+              occupancy
+            </div>
+          )}
+          {confidence_level && (
+            <div>
+              Confidence: <span className="font-semibold">{confidence_level}</span>
+            </div>
+          )}
+          {reason && (
+            <div className="text-sm opacity-90">{reason}</div>
+          )}
+        </div>
+      );
+    }
+
+    // Fallback for unexpected types
+    return String(briefing);
+  };
+
   useEffect(() => {
     const now = Date.now();
     const isCacheValid = dashboardCache.timestamp && (now - dashboardCache.timestamp < dashboardCache.CACHE_DURATION);
