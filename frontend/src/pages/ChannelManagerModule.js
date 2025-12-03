@@ -258,12 +258,6 @@ const ChannelManagerModule = ({ user, tenant, onLogout }) => {
     }
   };
 
-
-      });
-      loadConnections();
-    } catch (error) {
-      toast.error(error.response?.data?.detail || 'Failed to add connection');
-    } finally {
   const handleImportReservation = async (otaReservationId) => {
     try {
       setLoading(true);
