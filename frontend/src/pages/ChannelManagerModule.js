@@ -66,6 +66,10 @@ const ChannelManagerModule = ({ user, tenant, onLogout }) => {
     airbnb: false,
   });
 
+  // Sync history state
+  const [syncLogs, setSyncLogs] = useState([]);
+  const [syncSummary, setSyncSummary] = useState(null);
+
   // OTA Reservations state
   const [otaReservations, setOtaReservations] = useState([]);
   const [reservationFilter, setReservationFilter] = useState('pending');
