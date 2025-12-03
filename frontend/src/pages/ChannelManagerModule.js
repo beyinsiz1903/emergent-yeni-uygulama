@@ -50,6 +50,15 @@ const ChannelManagerModule = ({ user, tenant, onLogout }) => {
   
   // Exceptions state
   const [exceptions, setExceptions] = useState([]);
+  const [showAddMapping, setShowAddMapping] = useState(false);
+  const [pmsRoomTypes, setPmsRoomTypes] = useState([]);
+  const [newMapping, setNewMapping] = useState({
+    channel_id: '',
+    pms_room_type: '',
+    channel_room_type: '',
+    channel_room_id: ''
+  });
+
   const [exceptionFilter, setExceptionFilter] = useState('all');
   
   const [loading, setLoading] = useState(false);
