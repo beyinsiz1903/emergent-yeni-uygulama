@@ -1,25 +1,23 @@
 #!/usr/bin/env python3
 """
-PMS ROOMS BACKEND FLOW TESTING
-Test PMS Rooms section backend endpoints and verify compatibility with PMSModule.js Rooms TAB
+PMS BOOKINGS BACKEND FLOW TESTING
+Test PMS Bookings backend akışını test et - BookingsTab/VirtualizedBookingList veri yapısı doğrulaması
 
-OBJECTIVE: Verify /api/pms/rooms and related endpoints work correctly and return expected data structure
-Previously reported HTTP 500 / ResponseValidationError (tenant_id missing) should be fixed
+OBJECTIVE: /api/pms/bookings ve BookingsTab/VirtualizedBookingList'in dayandığı veri yapısının stabil olduğunu,
+hata vermediğini ve performans hedeflerini karşıladığını doğrulamak.
 
-TARGET ENDPOINTS (7):
-1. GET /api/pms/rooms - Main rooms list with required fields
-2. GET /api/pms/room-blocks - Room blocks data
-3. GET /api/pms/bookings - Active check-ins
-4. GET /api/pms/guests - Guest list
-5. PATCH /api/pms/rooms/{room_id} - Room status update (bulk update function)
-6. POST /api/frontdesk/checkout/{booking_id} - Quick checkout button
-7. GET /api/folio/booking/{booking_id} - Quick folio button
+TARGET ENDPOINTS:
+1. GET /api/pms/bookings (default parametrelerle)
+2. GET /api/pms/bookings?limit=100
+3. GET /api/pms/bookings?start_date=YYYY-MM-DD&end_date=YYYY-MM-DD (7 günlük periyot)
+4. GET /api/folio/booking/{booking_id} (varsa)
+5. GET /api/payments/booking/{booking_id} (varsa)
 
 EXPECTED RESULTS:
-- All endpoints return HTTP 200 (no 500 errors)
-- GET /api/pms/rooms includes: room.id, room.room_number, room.room_type, room.floor, room.base_price, room.status
-- Supporting endpoints return proper data structures for Rooms TAB functionality
-- No ResponseValidationError with tenant_id missing
+- Tüm çağrılar HTTP 200 dönmeli, 500/ValidationError olmamalı
+- Booking nesnelerinde gerekli alanlar: id, guest_id, room_id, status, total_amount, check_in, check_out
+- Mümkünse guest_name ve room_number (veya UI'nin bunları başka yerden çekebileceği net olsun)
+- Response süreleri kabaca raporlanacak (ortalama ms seviyesinde)
 """
 
 import asyncio
