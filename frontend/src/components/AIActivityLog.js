@@ -152,10 +152,10 @@ const AIActivityLog = () => {
                       {getStatusBadge(activity.status)}
                     </div>
                     
-                    {activity.result && (
+                    {activity.result != null && (
                       <div className="mt-2 p-2 bg-blue-50 rounded text-sm">
                         <span className="font-semibold text-blue-700">Result:</span>
-                        <span className="text-blue-600 ml-2">{activity.result}</span>
+                        <span className="text-blue-600 ml-2">{renderResult(activity.result)}</span>
                       </div>
                     )}
                     
