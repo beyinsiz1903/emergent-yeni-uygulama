@@ -56,6 +56,7 @@ const ChannelManagerModule = ({ user, tenant, onLogout }) => {
 
   useEffect(() => {
     loadConnections();
+    loadRoomMappings();
     loadOtaReservations();
     loadExceptions();
   }, []);
