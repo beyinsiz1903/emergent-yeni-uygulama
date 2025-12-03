@@ -181,7 +181,7 @@ const RMSModule = ({ user, tenant, onLogout }) => {
             <CardContent className="pt-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-gray-600">Comp Set Avg</p>
+                  <p className="text-sm text-gray-600">Rakip Set Ort.</p>
                   <p className="text-2xl font-bold">
                     ${compSet.length > 0 ? (compSet.reduce((sum, c) => sum + c.avg_rate, 0) / compSet.length).toFixed(0) : 0}
                   </p>
