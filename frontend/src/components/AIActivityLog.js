@@ -55,6 +55,18 @@ const AIActivityLog = () => {
     );
   };
 
+  const renderResult = (result) => {
+    if (result == null) return null;
+    if (typeof result === 'string' || typeof result === 'number' || typeof result === 'boolean') {
+      return String(result);
+    }
+    try {
+      return JSON.stringify(result);
+    } catch (e) {
+      return String(result);
+    }
+  };
+
   if (loading) {
     return (
       <div className="text-center py-12">
