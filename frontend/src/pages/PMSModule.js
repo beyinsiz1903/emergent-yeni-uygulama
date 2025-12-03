@@ -424,8 +424,27 @@ const PMSModule = ({ user, tenant, onLogout }) => {
         axios.get('/ai/pms/occupancy-prediction').catch(() => null),
         axios.get('/ai/pms/guest-patterns').catch(() => null)
       ]);
-      if (predictionRes) setAiPrediction(predictionRes.data);
-      if (patternsRes) setAiPatterns(patternsRes.data);
+      if (predictionRes) {
+        const raw = predictionRes.data || {};
+        // Normalize AI prediction response to a safe, flattened shape
+        const normalizedPrediction = {
+          current_occupancy: typeof raw.current_occupancy === 'number' ? raw.current_occupancy : 0,
+          upcoming_bookings: typeof raw.upcoming_bookings === 'number' ? raw.upcoming_bookings : 0,
+          // prediction can be string or object; keep as-is for FrontdeskTab which handles both
+          prediction: raw.prediction,
+        };
+        setAiPrediction(normalizedPrediction);
+      }
+      if (patternsRes) {
+        const rawPatterns = patternsRes.data || {};
+        // Normalize guest patterns response to always have a flat insights array of strings
+        const insights = Array.isArray(rawPatterns.insights)
+          ? rawPatterns.insights.map((item) =>
+              typeof item === 'string' ? item : JSON.stringify(item)
+            )
+          : [];
+        setAiPatterns({ insights });
+      }
     } catch (error) {
       // Fail silently - AI features are optional
       console.error('AI insights not available');
