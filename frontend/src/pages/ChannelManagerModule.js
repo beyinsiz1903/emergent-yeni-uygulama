@@ -50,6 +50,15 @@ const ChannelManagerModule = ({ user, tenant, onLogout }) => {
   const [rateDateTo, setRateDateTo] = useState('');
   const [baseRate, setBaseRate] = useState('');
   const [discountPct, setDiscountPct] = useState('');
+
+  const finalRate = useMemo(() => {
+    const base = parseFloat(baseRate);
+    const disc = parseFloat(discountPct);
+    if (Number.isNaN(base)) return '';
+    const pct = Number.isNaN(disc) ? 0 : disc;
+    const final = base * (1 - pct / 100);
+    return final > 0 ? final.toFixed(2) : '';
+  }, [baseRate, discountPct]);
   const [channelSelection, setChannelSelection] = useState({
     all: true,
     booking_com: false,
