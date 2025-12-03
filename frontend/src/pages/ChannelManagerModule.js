@@ -665,8 +665,16 @@ const ChannelManagerModule = ({ user, tenant, onLogout }) => {
                   <div>
                     <Label>Date Range</Label>
                     <div className="flex space-x-2 mt-1">
-                      <Input type="date" />
-                      <Input type="date" />
+                      <Input
+                        type="date"
+                        value={rateDateFrom}
+                        onChange={(e) => setRateDateFrom(e.target.value)}
+                      />
+                      <Input
+                        type="date"
+                        value={rateDateTo}
+                        onChange={(e) => setRateDateTo(e.target.value)}
+                      />
                     </div>
                   </div>
                 </div>
