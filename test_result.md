@@ -1543,6 +1543,18 @@ backend:
   - task: "Opera Cloud Parity - Cashiering & City Ledger Module (10 endpoints)"
     implemented: true
     working: false
+  - task: "PMS Bookings - UI & Interactions"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/components/pms/BookingsTab.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: true
+        agent: "main"
+        comment: "Bookings tab (booking stats cards, virtualized bookings list, booking detail dialog trigger) reviewed. Backend /pms/bookings endpoint already performance-optimized and returns Booking model with total_amount, status, check_in/out, room/guest info; frontend computes bookingStats safely and uses VirtualizedBookingList for efficient rendering. Need fresh end-to-end UI retest for PMS → Bookings to verify there are no runtime errors and that clicking a booking opens details correctly."
+
     file: "/app/backend/server.py"
     stuck_count: 0
     priority: "high"
