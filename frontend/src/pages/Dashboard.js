@@ -651,7 +651,7 @@ const Dashboard = ({ user, tenant, onLogout }) => {
                       <div className="text-lg font-bold">{aiBriefing.metrics?.today_checkins}</div>
                     </div>
                     <div>
-                      <div className="opacity-75 text-xs">Check-outs Today</div>
+                      <div className="opacity-75 text-xs">Bugünkü Check-out</div>
                       <div className="text-lg font-bold">{aiBriefing.metrics?.today_checkouts}</div>
                     </div>
                     <div>
