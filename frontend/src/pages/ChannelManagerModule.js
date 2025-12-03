@@ -704,6 +704,8 @@ const ChannelManagerModule = ({ user, tenant, onLogout }) => {
                           min="0"
                           max="100"
                           className="mt-1"
+                          value={discountPct}
+                          onChange={(e) => setDiscountPct(e.target.value)}
                         />
                       </div>
                       <div>
