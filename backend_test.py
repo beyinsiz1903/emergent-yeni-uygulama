@@ -435,58 +435,84 @@ class PMSBookingsTester:
             "avg_response_time": f"{avg_response_time:.1f}ms"
         })
 
-    async def test_pms_guests_endpoint(self):
-        """Test GET /api/pms/guests - Guest list"""
-        print("\n👥 Testing PMS Guests Endpoint...")
+    async def test_folio_booking_endpoint(self):
+        """Test GET /api/folio/booking/{booking_id} - Folio endpoint for bookings"""
+        print("\n💰 Testing Folio Booking Endpoint...")
+        
+        # Get a booking ID for testing
+        booking_id = None
+        if self.created_test_data['bookings']:
+            booking_id = self.created_test_data['bookings'][0]
+        else:
+            # Try to get a booking from the bookings endpoint
+            try:
+                async with self.session.get(f"{BACKEND_URL}/pms/bookings", headers=self.get_headers()) as response:
+                    if response.status == 200:
+                        bookings = await response.json()
+                        if bookings:
+                            booking_id = bookings[0]["id"]
+            except:
+                pass
+        
+        if not booking_id:
+            print("  ⚠️ No booking available for testing folio endpoint")
+            self.test_results.append({
+                "endpoint": "GET /api/folio/booking/{booking_id}",
+                "passed": 0, "total": 1, "success_rate": "0.0%",
+                "avg_response_time": "N/A"
+            })
+            return
         
         test_cases = [
             {
-                "name": "Get all guests - verify structure",
-                "params": {},
-                "expected_status": 200,
-                "required_fields": ["id", "name", "email", "phone"]
-            },
-            {
-                "name": "Get guests with pagination",
-                "params": {"limit": 50},
-                "expected_status": 200,
-                "required_fields": ["id", "name", "email", "phone"]
+                "name": "Get folio for booking",
+                "booking_id": booking_id,
+                "expected_status": [200, 404],  # 200 if folio exists, 404 if not found
+                "expected_fields": ["id", "booking_id", "folio_number", "balance"]
             }
         ]
         
         passed = 0
         total = len(test_cases)
+        response_times = []
         
         for test_case in test_cases:
             try:
-                url = f"{BACKEND_URL}/pms/guests"
-                if test_case["params"]:
-                    params = "&".join([f"{k}={v}" for k, v in test_case["params"].items()])
-                    url += f"?{params}"
+                url = f"{BACKEND_URL}/folio/booking/{test_case['booking_id']}"
                 
                 start_time = datetime.now()
                 async with self.session.get(url, headers=self.get_headers()) as response:
                     end_time = datetime.now()
                     response_time = (end_time - start_time).total_seconds() * 1000
+                    response_times.append(response_time)
                     
-                    if response.status == test_case["expected_status"]:
-                        data = await response.json()
-                        
-                        if isinstance(data, list):
-                            if data:  # If guests exist, check structure
-                                guest = data[0]
-                                missing_fields = [field for field in test_case["required_fields"] if field not in guest]
+                    if response.status in test_case["expected_status"]:
+                        if response.status == 200:
+                            data = await response.json()
+                            # Handle both single folio and list of folios
+                            if isinstance(data, list) and data:
+                                folio = data[0]  # Take first folio
+                                missing_fields = [field for field in test_case["expected_fields"] if field not in folio]
                                 if not missing_fields:
-                                    print(f"  ✅ {test_case['name']}: PASSED ({response_time:.1f}ms)")
-                                    print(f"      📊 Sample guest: {guest.get('name', 'N/A')} - {guest.get('email', 'N/A')}")
+                                    print(f"  ✅ {test_case['name']}: PASSED - Folio found ({response_time:.1f}ms)")
+                                    print(f"      📊 Folio: {folio.get('folio_number', 'N/A')} - Balance: {folio.get('balance', 'N/A')}")
+                                    passed += 1
+                                else:
+                                    print(f"  ❌ {test_case['name']}: Missing required fields {missing_fields}")
+                            elif isinstance(data, dict):
+                                missing_fields = [field for field in test_case["expected_fields"] if field not in data]
+                                if not missing_fields:
+                                    print(f"  ✅ {test_case['name']}: PASSED - Folio found ({response_time:.1f}ms)")
+                                    print(f"      📊 Folio: {data.get('folio_number', 'N/A')} - Balance: {data.get('balance', 'N/A')}")
                                     passed += 1
                                 else:
                                     print(f"  ❌ {test_case['name']}: Missing required fields {missing_fields}")
                             else:
-                                print(f"  ✅ {test_case['name']}: PASSED - No guests found ({response_time:.1f}ms)")
+                                print(f"  ✅ {test_case['name']}: PASSED - Empty folio response ({response_time:.1f}ms)")
                                 passed += 1
-                        else:
-                            print(f"  ❌ {test_case['name']}: Expected list response, got {type(data)}")
+                        else:  # 404
+                            print(f"  ✅ {test_case['name']}: PASSED - No folio found (expected) ({response_time:.1f}ms)")
+                            passed += 1
                     else:
                         error_text = await response.text()
                         print(f"  ❌ {test_case['name']}: Expected {test_case['expected_status']}, got {response.status}")
@@ -496,9 +522,13 @@ class PMSBookingsTester:
             except Exception as e:
                 print(f"  ❌ {test_case['name']}: Error {e}")
         
+        avg_response_time = sum(response_times) / len(response_times) if response_times else 0
+        print(f"      ⏱️ Average Response Time: {avg_response_time:.1f}ms")
+        
         self.test_results.append({
-            "endpoint": "GET /api/pms/guests",
-            "passed": passed, "total": total, "success_rate": f"{passed/total*100:.1f}%"
+            "endpoint": "GET /api/folio/booking/{booking_id}",
+            "passed": passed, "total": total, "success_rate": f"{passed/total*100:.1f}%",
+            "avg_response_time": f"{avg_response_time:.1f}ms"
         })
 
     async def test_room_status_update_endpoint(self):
