@@ -871,10 +871,26 @@ const ChannelManagerModule = ({ user, tenant, onLogout }) => {
 
                 {/* Action Buttons */}
                 <div className="flex justify-end space-x-3 pt-4">
-                  <Button variant="outline">
+                  <Button
+                    variant="outline"
+                    type="button"
+                    onClick={() => {
+                      const base = parseFloat(baseRate) || 0;
+                      const disc = parseFloat(discountPct) || 0;
+                      const final = base * (1 - disc / 100);
+                      toast.info(
+                        `Önizleme: ${rateRoomType || 'Oda tipi seçilmedi'} için ${rateDateFrom || '?'} - ${rateDateTo || '?'} arasında ${final.toFixed(2)} ₺`
+                      );
+                    }}
+                  >
                     Preview Changes
                   </Button>
-                  <Button className="bg-blue-600 hover:bg-blue-700">
+                  <Button
+                    type="button"
+                    className="bg-blue-600 hover:bg-blue-700"
+                    onClick={handleUpdateRates}
+                    disabled={loading}
+                  >
                     <RefreshCw className="w-4 h-4 mr-2" />
                     Update All Channels
                   </Button>
