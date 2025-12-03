@@ -705,12 +705,7 @@ const ChannelManagerModule = ({ user, tenant, onLogout }) => {
                           type="number"
                           placeholder="0.00"
                           className="mt-1"
-                          value={(() => {
-                            const base = parseFloat(baseRate) || 0;
-                            const disc = parseFloat(discountPct) || 0;
-                            const final = base * (1 - disc / 100);
-                            return final > 0 ? final.toFixed(2) : '';
-                          })()}
+                          value={finalRate}
                           disabled
                         />
                       </div>
