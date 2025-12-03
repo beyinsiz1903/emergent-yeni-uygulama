@@ -33,9 +33,11 @@ const ChannelManagerModule = ({ user, tenant, onLogout }) => {
     channel_type: 'booking_com',
     channel_name: '',
     property_id: '',
+    api_endpoint: '',
     api_key: '',
     api_secret: '',
-    status: 'active'
+    sync_rate_availability: true,
+    sync_reservations: true
   });
   
   // OTA Reservations state
