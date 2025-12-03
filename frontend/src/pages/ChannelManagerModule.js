@@ -714,6 +714,96 @@ const ChannelManagerModule = ({ user, tenant, onLogout }) => {
                           placeholder="0"
                           min="0"
                           max="100"
+          {/* Sync History Block (below Rate & Availability) */}
+          <Card className="border-gray-200">
+            <CardHeader className="pb-3 flex items-center justify-between">
+              <div>
+                <CardTitle className="text-lg">Channel Sync History (Last 7 Days)</CardTitle>
+                <CardDescription>
+                  Son 7 gündeki kanal senkronizasyon özetini görüntüleyin.
+                </CardDescription>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={loadSyncHistory}
+                disabled={loading}
+              >
+                <RefreshCw className="w-4 h-4 mr-2" /> Yenile
+              </Button>
+            </CardHeader>
+            <CardContent>
+              {syncSummary && (
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4 text-sm">
+                  <div className="p-3 rounded bg-gray-50">
+                    <div className="text-xs text-gray-500">Toplam Senkronizasyon</div>
+                    <div className="text-lg font-semibold">{syncSummary.total_syncs}</div>
+                  </div>
+                  <div className="p-3 rounded bg-green-50">
+                    <div className="text-xs text-green-700">Başarılı</div>
+                    <div className="text-lg font-semibold text-green-800">{syncSummary.successful}</div>
+                  </div>
+                  <div className="p-3 rounded bg-red-50">
+                    <div className="text-xs text-red-700">Hatalı</div>
+                    <div className="text-lg font-semibold text-red-800">{syncSummary.failed}</div>
+                  </div>
+                  <div className="p-3 rounded bg-blue-50">
+                    <div className="text-xs text-blue-700">Başarı Oranı</div>
+                    <div className="text-lg font-semibold text-blue-800">{syncSummary.success_rate}%</div>
+                  </div>
+                </div>
+              )}
+
+              {syncLogs.length === 0 ? (
+                <div className="text-center py-4 text-gray-500 text-sm">
+                  Son 7 günde herhangi bir sync log kaydı bulunamadı.
+                </div>
+              ) : (
+                <div className="max-h-64 overflow-y-auto border rounded">
+                  <table className="min-w-full text-xs">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="text-left p-2">Zaman</th>
+                        <th className="text-left p-2">Kanal</th>
+                        <th className="text-left p-2">Tür</th>
+                        <th className="text-left p-2">Durum</th>
+                        <th className="text-left p-2">Kayıt</th>
+                        <th className="text-left p-2">Süre (ms)</th>
+                        <th className="text-left p-2">Hata</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {syncLogs.map((log, idx) => (
+                        <tr key={idx} className="border-t hover:bg-gray-50">
+                          <td className="p-2 whitespace-nowrap text-[11px]">{log.timestamp}</td>
+                          <td className="p-2">{log.channel}</td>
+                          <td className="p-2">{log.sync_type}</td>
+                          <td className="p-2">
+                            <span
+                              className={
+                                log.status === 'success'
+                                  ? 'text-green-700'
+                                  : 'text-red-700'
+                              }
+                            >
+                              {log.status}
+                            </span>
+                          </td>
+                          <td className="p-2">{log.records_synced ?? '-'}</td>
+                          <td className="p-2">{log.duration_ms ?? '-'}</td>
+                          <td className="p-2 max-w-xs truncate" title={log.error_message || ''}>
+                            {log.error_message || '-'}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+
                           className="mt-1"
                           value={discountPct}
                           onChange={(e) => setDiscountPct(e.target.value)}
