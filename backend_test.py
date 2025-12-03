@@ -34,7 +34,7 @@ BACKEND_URL = "https://tab-checker.preview.emergentagent.com/api"
 TEST_EMAIL = "demo@hotel.com"
 TEST_PASSWORD = "demo123"
 
-class PMSRoomsTester:
+class PMSBookingsTester:
     def __init__(self):
         self.session = None
         self.auth_token = None
