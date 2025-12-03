@@ -159,6 +159,9 @@ const ChannelManagerModule = ({ user, tenant, onLogout }) => {
     } catch (error) {
       console.error('Failed to load OTA reservations:', error);
       setOtaReservations([]);
+    }
+  };
+
   const loadSyncHistory = async () => {
     try {
       const response = await axios.get('/channel-manager/sync-history?days=7');
