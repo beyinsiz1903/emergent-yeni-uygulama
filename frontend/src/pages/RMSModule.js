@@ -252,11 +252,11 @@ const RMSModule = ({ user, tenant, onLogout }) => {
               <table className="w-full">
                 <thead>
                   <tr className="border-b">
-                    <th className="text-left p-2">Property</th>
-                    <th className="text-left p-2">Average Rate</th>
-                    <th className="text-left p-2">Occupancy</th>
+                    <th className="text-left p-2">Otel</th>
+                    <th className="text-left p-2">Ortalama Fiyat</th>
+                    <th className="text-left p-2">Doluluk</th>
                     <th className="text-left p-2">RevPAR</th>
-                    <th className="text-left p-2">Distance</th>
+                    <th className="text-left p-2">Mesafe</th>
                   </tr>
                 </thead>
                 <tbody>
