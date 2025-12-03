@@ -72,6 +72,23 @@ const ChannelManagerModule = ({ user, tenant, onLogout }) => {
           ? data.connections
           : [];
       setConnections(list);
+  const loadRoomMappings = async () => {
+    try {
+      const response = await axios.get('/channel-manager/room-mappings');
+      const data = response.data;
+      const list = Array.isArray(data)
+        ? data
+        : Array.isArray(data.mappings)
+          ? data.mappings
+          : [];
+      setRoomMappings(list);
+    } catch (error) {
+      console.error('Failed to load room mappings:', error);
+      setRoomMappings([]);
+    }
+  };
+
+
     } catch (error) {
       console.error('Failed to load connections:', error);
       setConnections([]);
