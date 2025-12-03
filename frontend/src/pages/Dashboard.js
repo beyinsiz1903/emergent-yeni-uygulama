@@ -186,6 +186,69 @@ const Dashboard = ({ user, tenant, onLogout }) => {
     return String(briefing);
   };
 
+  const renderBriefingItems = (items) => {
+    if (!Array.isArray(items) || items.length === 0) return null;
+
+    const priorityLabel = {
+      high: 'Yüksek Öncelik',
+      medium: 'Orta Öncelik',
+      low: 'Düşük Öncelik'
+    };
+
+    const priorityBadgeClass = (priority) => {
+      switch (priority) {
+        case 'high':
+          return 'bg-red-500/90 text-white';
+        case 'medium':
+          return 'bg-amber-500/90 text-white';
+        default:
+          return 'bg-emerald-500/90 text-white';
+      }
+    };
+
+    return (
+      <div className="space-y-2 mt-2">
+        {items.map((item, idx) => {
+          if (!item || typeof item !== 'object') return null;
+          const priority = (item.priority || 'low').toLowerCase();
+          const category = item.category || '';
+          const message = item.message || '';
+          const insight = item.insight || '';
+
+          return (
+            <div
+              key={idx}
+              className="rounded-md border border-white/15 bg-white/5 px-3 py-2 text-xs md:text-sm"
+            >
+              <div className="flex items-center justify-between gap-2 mb-1">
+                <span className="inline-flex items-center gap-2">
+                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wide ${priorityBadgeClass(priority)}`}>
+                    {priorityLabel[priority] || priorityLabel.low}
+                  </span>
+                  {category && (
+                    <span className="text-[11px] uppercase tracking-wide text-white/70">
+                      {category}
+                    </span>
+                  )}
+                </span>
+              </div>
+              {message && (
+                <div className="text-white/90">
+                  {message}
+                </div>
+              )}
+              {insight && (
+                <div className="text-white/70 text-[11px] mt-1">
+                  {insight}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    );
+  };
+
   useEffect(() => {
     const now = Date.now();
     const isCacheValid = dashboardCache.timestamp && (now - dashboardCache.timestamp < dashboardCache.CACHE_DURATION);
