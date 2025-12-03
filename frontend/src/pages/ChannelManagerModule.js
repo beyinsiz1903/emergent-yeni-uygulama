@@ -234,6 +234,98 @@ const ChannelManagerModule = ({ user, tenant, onLogout }) => {
             <h1 className="text-4xl font-bold mb-2" style={{ fontFamily: 'Space Grotesk' }}>
               Channel Manager
             </h1>
+                <Dialog open={showAddMapping} onOpenChange={setShowAddMapping}>
+                  <DialogContent className="max-w-lg">
+                    <DialogHeader>
+                      <DialogTitle>Yeni Room Mapping Ekle</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4 mt-2">
+                      <div>
+                        <Label>Channel</Label>
+                        <select
+                          className="w-full border rounded-md p-2 mt-1"
+                          value={newMapping.channel_id}
+                          onChange={(e) => setNewMapping({ ...newMapping, channel_id: e.target.value })}
+                        >
+                          <option value="">Bir bağlantı seçin</option>
+                          {connections.map((conn) => (
+                            <option key={conn.id} value={conn.id}>
+                              {conn.channel_type === 'booking_com' ? 'Booking.com' : conn.channel_name}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      <div>
+                        <Label>PMS Room Type</Label>
+                        <select
+                          className="w-full border rounded-md p-2 mt-1"
+                          value={newMapping.pms_room_type}
+                          onChange={(e) => setNewMapping({ ...newMapping, pms_room_type: e.target.value })}
+                        >
+                          <option value="">Bir oda tipi seçin</option>
+                          {pmsRoomTypes.map((rt) => (
+                            <option key={rt} value={rt}>{rt}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div>
+                        <Label>Channel Room Type</Label>
+                        <Input
+                          className="mt-1"
+                          value={newMapping.channel_room_type}
+                          onChange={(e) => setNewMapping({ ...newMapping, channel_room_type: e.target.value })}
+                          placeholder="Booking oda adı"
+                        />
+                      </div>
+                      <div>
+                        <Label>Channel Room ID</Label>
+                        <Input
+                          className="mt-1"
+                          value={newMapping.channel_room_id}
+                          onChange={(e) => setNewMapping({ ...newMapping, channel_room_id: e.target.value })}
+                          placeholder="Booking oda ID"
+                        />
+                      </div>
+                      <div className="flex justify-end gap-2 mt-4">
+                        <Button
+                          variant="outline"
+                          type="button"
+                          onClick={() => {
+                            setShowAddMapping(false);
+                            setNewMapping({
+                              channel_id: '',
+                              pms_room_type: '',
+                              channel_room_type: '',
+                              channel_room_id: ''
+                            });
+                          }}
+                        >
+                          İptal
+                        </Button>
+                        <Button
+                          type="button"
+                          onClick={() => {
+                            if (!newMapping.channel_id || !newMapping.pms_room_type) {
+                              toast.error('Lütfen kanal ve PMS oda tipini seçin');
+                              return;
+                            }
+                            handleCreateRoomMapping(newMapping);
+                            setShowAddMapping(false);
+                            setNewMapping({
+                              channel_id: '',
+                              pms_room_type: '',
+                              channel_room_type: '',
+                              channel_room_id: ''
+                            });
+                          }}
+                        >
+                          Kaydet
+                        </Button>
+                      </div>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+
             <p className="text-gray-600">Manage OTA connections and reservations</p>
           </div>
           <Dialog open={showAddConnection} onOpenChange={setShowAddConnection}>
