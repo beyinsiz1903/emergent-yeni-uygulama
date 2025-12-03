@@ -143,6 +143,7 @@ const ChannelManagerModule = ({ user, tenant, onLogout }) => {
     loadPmsRoomTypes();
     loadOtaReservations();
     loadExceptions();
+    loadSyncHistory();
   }, []);
 
   const loadOtaReservations = async () => {
