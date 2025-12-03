@@ -651,10 +651,15 @@ const ChannelManagerModule = ({ user, tenant, onLogout }) => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <Label>Room Type</Label>
-                    <select className="w-full border rounded-md p-2 mt-1">
-                      <option value="standard">Standard Room</option>
-                      <option value="deluxe">Deluxe Room</option>
-                      <option value="suite">Suite</option>
+                    <select
+                      className="w-full border rounded-md p-2 mt-1"
+                      value={rateRoomType}
+                      onChange={(e) => setRateRoomType(e.target.value)}
+                    >
+                      <option value="">Bir oda tipi seçin</option>
+                      {pmsRoomTypes.map((rt) => (
+                        <option key={rt} value={rt}>{rt}</option>
+                      ))}
                     </select>
                   </div>
                   <div>
