@@ -262,31 +262,34 @@ class PMSBookingsTester:
             "avg_response_time": f"{avg_response_time:.1f}ms"
         })
 
-    async def test_pms_room_blocks_endpoint(self):
-        """Test GET /api/pms/room-blocks - Room blocks data"""
-        print("\n🚫 Testing PMS Room Blocks Endpoint...")
+    async def test_pms_bookings_with_limit(self):
+        """Test GET /api/pms/bookings?limit=100"""
+        print("\n📊 Testing PMS Bookings Endpoint with Limit Parameter...")
         
         test_cases = [
             {
-                "name": "Get all room blocks - verify structure",
-                "params": {},
+                "name": "Get bookings with limit=100",
+                "params": {"limit": 100},
                 "expected_status": 200,
-                "required_fields": ["id", "room_id", "type", "status", "start_date", "end_date", "reason"]
+                "required_fields": ["id", "guest_id", "room_id", "status", "total_amount", "check_in", "check_out"],
+                "optional_fields": ["guest_name", "room_number"]
             },
             {
-                "name": "Get active room blocks",
-                "params": {"status": "active"},
+                "name": "Get bookings with limit=50",
+                "params": {"limit": 50},
                 "expected_status": 200,
-                "required_fields": ["id", "room_id", "type", "status", "start_date", "end_date", "reason"]
+                "required_fields": ["id", "guest_id", "room_id", "status", "total_amount", "check_in", "check_out"],
+                "optional_fields": ["guest_name", "room_number"]
             }
         ]
         
         passed = 0
         total = len(test_cases)
+        response_times = []
         
         for test_case in test_cases:
             try:
-                url = f"{BACKEND_URL}/pms/room-blocks"
+                url = f"{BACKEND_URL}/pms/bookings"
                 if test_case["params"]:
                     params = "&".join([f"{k}={v}" for k, v in test_case["params"].items()])
                     url += f"?{params}"
@@ -295,40 +298,33 @@ class PMSBookingsTester:
                 async with self.session.get(url, headers=self.get_headers()) as response:
                     end_time = datetime.now()
                     response_time = (end_time - start_time).total_seconds() * 1000
+                    response_times.append(response_time)
                     
                     if response.status == test_case["expected_status"]:
                         data = await response.json()
                         
-                        # Handle both list and dict responses (API returns {"blocks": [], "count": 0})
-                        if isinstance(data, dict) and "blocks" in data:
-                            blocks = data["blocks"]
-                            if blocks:  # If room blocks exist, check structure
-                                block = blocks[0]
-                                missing_fields = [field for field in test_case["required_fields"] if field not in block]
+                        if isinstance(data, list):
+                            limit = test_case["params"]["limit"]
+                            actual_count = len(data)
+                            
+                            if data:  # If bookings exist, check structure
+                                booking = data[0]
+                                missing_fields = [field for field in test_case["required_fields"] if field not in booking]
+                                optional_present = [field for field in test_case["optional_fields"] if field in booking]
+                                
                                 if not missing_fields:
                                     print(f"  ✅ {test_case['name']}: PASSED ({response_time:.1f}ms)")
-                                    print(f"      📊 Sample block: {block.get('type', 'N/A')} - {block.get('status', 'N/A')}")
+                                    print(f"      📊 Requested limit: {limit}, Returned: {actual_count}")
+                                    print(f"      📊 Pagination working: {'✅' if actual_count <= limit else '❌'}")
+                                    print(f"      📊 Optional fields present: {optional_present}")
                                     passed += 1
                                 else:
                                     print(f"  ❌ {test_case['name']}: Missing required fields {missing_fields}")
                             else:
-                                print(f"  ✅ {test_case['name']}: PASSED - No room blocks found ({response_time:.1f}ms)")
-                                passed += 1
-                        elif isinstance(data, list):
-                            if data:  # If room blocks exist, check structure
-                                block = data[0]
-                                missing_fields = [field for field in test_case["required_fields"] if field not in block]
-                                if not missing_fields:
-                                    print(f"  ✅ {test_case['name']}: PASSED ({response_time:.1f}ms)")
-                                    print(f"      📊 Sample block: {block.get('type', 'N/A')} - {block.get('status', 'N/A')}")
-                                    passed += 1
-                                else:
-                                    print(f"  ❌ {test_case['name']}: Missing required fields {missing_fields}")
-                            else:
-                                print(f"  ✅ {test_case['name']}: PASSED - No room blocks found ({response_time:.1f}ms)")
+                                print(f"  ✅ {test_case['name']}: PASSED - No bookings found ({response_time:.1f}ms)")
                                 passed += 1
                         else:
-                            print(f"  ❌ {test_case['name']}: Unexpected response format: {type(data)}")
+                            print(f"  ❌ {test_case['name']}: Expected list response, got {type(data)}")
                     else:
                         error_text = await response.text()
                         print(f"  ❌ {test_case['name']}: Expected {test_case['expected_status']}, got {response.status}")
@@ -338,9 +334,13 @@ class PMSBookingsTester:
             except Exception as e:
                 print(f"  ❌ {test_case['name']}: Error {e}")
         
+        avg_response_time = sum(response_times) / len(response_times) if response_times else 0
+        print(f"      ⏱️ Average Response Time: {avg_response_time:.1f}ms")
+        
         self.test_results.append({
-            "endpoint": "GET /api/pms/room-blocks",
-            "passed": passed, "total": total, "success_rate": f"{passed/total*100:.1f}%"
+            "endpoint": "GET /api/pms/bookings?limit=X",
+            "passed": passed, "total": total, "success_rate": f"{passed/total*100:.1f}%",
+            "avg_response_time": f"{avg_response_time:.1f}ms"
         })
 
     async def test_pms_bookings_endpoint(self):
