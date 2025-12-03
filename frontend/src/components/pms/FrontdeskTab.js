@@ -99,7 +99,7 @@ const FrontdeskTab = ({
                           {Array.isArray(aiPrediction.prediction.patterns) && aiPrediction.prediction.patterns.length > 0 && (
                             <ul className="list-disc list-inside text-xs text-gray-700">
                               {aiPrediction.prediction.patterns.map((item, idx) => (
-                                <li key={idx}>{item}</li>
+                                <li key={idx}>{typeof item === 'string' ? item : JSON.stringify(item)}</li>
                               ))}
                             </ul>
                           )}
