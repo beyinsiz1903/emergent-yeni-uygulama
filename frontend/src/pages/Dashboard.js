@@ -655,7 +655,7 @@ const Dashboard = ({ user, tenant, onLogout }) => {
                       <div className="text-lg font-bold">{aiBriefing.metrics?.today_checkouts}</div>
                     </div>
                     <div>
-                      <div className="opacity-75 text-xs">Monthly Revenue</div>
+                      <div className="opacity-75 text-xs">Aylık Ciro</div>
                       <div className="text-lg font-bold">${(aiBriefing.metrics?.monthly_revenue || 0).toFixed(0)}</div>
                     </div>
                   </div>
