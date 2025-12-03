@@ -206,6 +206,12 @@ const ChannelManagerModule = ({ user, tenant, onLogout }) => {
         api_secret: '',
         sync_rate_availability: true,
         sync_reservations: true
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleUpdateRates = async () => {
     try {
       if (!rateRoomType || !rateDateFrom || !rateDateTo || !baseRate) {
