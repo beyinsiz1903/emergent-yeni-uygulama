@@ -206,6 +206,53 @@ const ChannelManagerModule = ({ user, tenant, onLogout }) => {
         api_secret: '',
         sync_rate_availability: true,
         sync_reservations: true
+  const handleUpdateRates = async () => {
+    try {
+      if (!rateRoomType || !rateDateFrom || !rateDateTo || !baseRate) {
+        toast.error('Lütfen oda tipi, tarih aralığı ve baz fiyatı doldurun');
+        return;
+      }
+
+      const base = parseFloat(baseRate) || 0;
+      const disc = parseFloat(discountPct) || 0;
+      const final = base * (1 - disc / 100);
+
+      const selectedChannels = [];
+      if (channelSelection.all) {
+        selectedChannels.push('direct', 'booking_com', 'expedia', 'airbnb');
+      } else {
+        Object.entries(channelSelection).forEach(([key, value]) => {
+          if (value && key !== 'all') selectedChannels.push(key);
+        });
+      }
+
+      if (selectedChannels.length === 0) {
+        toast.error('En az bir kanal seçmelisiniz');
+        return;
+      }
+
+      setLoading(true);
+      const payload = {
+        room_type: rateRoomType,
+        date_from: rateDateFrom,
+        date_to: rateDateTo,
+        base_rate: base,
+        discount_pct: disc,
+        new_rate: final,
+        channels: selectedChannels,
+      };
+
+      const response = await axios.post('/channel-manager/update-rates', payload);
+      toast.success(response.data?.message || 'Rates updated successfully');
+    } catch (error) {
+      console.error('Failed to update rates:', error);
+      toast.error(error.response?.data?.detail || 'Failed to update rates');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+
       });
       loadConnections();
     } catch (error) {
