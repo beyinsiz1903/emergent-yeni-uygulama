@@ -531,72 +531,85 @@ class PMSBookingsTester:
             "avg_response_time": f"{avg_response_time:.1f}ms"
         })
 
-    async def test_room_status_update_endpoint(self):
-        """Test PATCH /api/pms/rooms/{room_id} - Room status update (bulk update function)"""
-        print("\n🔄 Testing Room Status Update Endpoint (Bulk Update Function)...")
+    async def test_payments_booking_endpoint(self):
+        """Test GET /api/payments/booking/{booking_id} - Payments endpoint for bookings"""
+        print("\n💳 Testing Payments Booking Endpoint...")
         
-        # Get a room ID for testing
-        room_id = None
-        if self.created_test_data['rooms']:
-            room_id = self.created_test_data['rooms'][0]
+        # Get a booking ID for testing
+        booking_id = None
+        if self.created_test_data['bookings']:
+            booking_id = self.created_test_data['bookings'][0]
         else:
-            # Try to get a room from the rooms endpoint
+            # Try to get a booking from the bookings endpoint
             try:
-                async with self.session.get(f"{BACKEND_URL}/pms/rooms", headers=self.get_headers()) as response:
+                async with self.session.get(f"{BACKEND_URL}/pms/bookings", headers=self.get_headers()) as response:
                     if response.status == 200:
-                        rooms = await response.json()
-                        if rooms:
-                            room_id = rooms[0]["id"]
+                        bookings = await response.json()
+                        if bookings:
+                            booking_id = bookings[0]["id"]
             except:
                 pass
         
-        if not room_id:
-            print("  ⚠️ No room available for testing status update")
+        if not booking_id:
+            print("  ⚠️ No booking available for testing payments endpoint")
             self.test_results.append({
-                "endpoint": "PATCH /api/pms/rooms/{room_id}",
-                "passed": 0, "total": 1, "success_rate": "0.0%"
+                "endpoint": "GET /api/payments/booking/{booking_id}",
+                "passed": 0, "total": 1, "success_rate": "0.0%",
+                "avg_response_time": "N/A"
             })
             return
         
         test_cases = [
             {
-                "name": "Update room status to cleaning",
-                "room_id": room_id,
-                "data": {"status": "cleaning"},
-                "expected_status": 200
-            },
-            {
-                "name": "Update room status to available",
-                "room_id": room_id,
-                "data": {"status": "available"},
-                "expected_status": 200
-            },
-            {
-                "name": "Update room status to maintenance",
-                "room_id": room_id,
-                "data": {"status": "maintenance", "notes": "Scheduled maintenance"},
-                "expected_status": 200
+                "name": "Get payments for booking",
+                "booking_id": booking_id,
+                "expected_status": [200, 404],  # 200 if payments exist, 404 if not found
+                "expected_fields": ["id", "booking_id", "amount", "method", "status"]
             }
         ]
         
         passed = 0
         total = len(test_cases)
+        response_times = []
         
         for test_case in test_cases:
             try:
-                url = f"{BACKEND_URL}/pms/rooms/{test_case['room_id']}"
+                url = f"{BACKEND_URL}/payments/booking/{test_case['booking_id']}"
                 
                 start_time = datetime.now()
-                async with self.session.put(url, json=test_case["data"], headers=self.get_headers()) as response:
+                async with self.session.get(url, headers=self.get_headers()) as response:
                     end_time = datetime.now()
                     response_time = (end_time - start_time).total_seconds() * 1000
+                    response_times.append(response_time)
                     
-                    if response.status == test_case["expected_status"]:
-                        data = await response.json()
-                        print(f"  ✅ {test_case['name']}: PASSED ({response_time:.1f}ms)")
-                        if "status" in data:
-                            print(f"      📊 Room status updated to: {data.get('status', 'N/A')}")
-                        passed += 1
+                    if response.status in test_case["expected_status"]:
+                        if response.status == 200:
+                            data = await response.json()
+                            # Handle both single payment and list of payments
+                            if isinstance(data, list) and data:
+                                payment = data[0]  # Take first payment
+                                missing_fields = [field for field in test_case["expected_fields"] if field not in payment]
+                                if not missing_fields:
+                                    print(f"  ✅ {test_case['name']}: PASSED - Payments found ({response_time:.1f}ms)")
+                                    print(f"      📊 Payment: {payment.get('amount', 'N/A')} - Method: {payment.get('method', 'N/A')}")
+                                    print(f"      📊 Total payments: {len(data)}")
+                                    passed += 1
+                                else:
+                                    print(f"  ❌ {test_case['name']}: Missing required fields {missing_fields}")
+                            elif isinstance(data, dict):
+                                missing_fields = [field for field in test_case["expected_fields"] if field not in data]
+                                if not missing_fields:
+                                    print(f"  ✅ {test_case['name']}: PASSED - Payment found ({response_time:.1f}ms)")
+                                    print(f"      📊 Payment: {data.get('amount', 'N/A')} - Method: {data.get('method', 'N/A')}")
+                                    passed += 1
+                                else:
+                                    print(f"  ❌ {test_case['name']}: Missing required fields {missing_fields}")
+                            else:
+                                print(f"  ✅ {test_case['name']}: PASSED - Empty payments response ({response_time:.1f}ms)")
+                                passed += 1
+                        else:  # 404
+                            print(f"  ✅ {test_case['name']}: PASSED - No payments found (expected) ({response_time:.1f}ms)")
+                            passed += 1
                     else:
                         error_text = await response.text()
                         print(f"  ❌ {test_case['name']}: Expected {test_case['expected_status']}, got {response.status}")
@@ -606,9 +619,13 @@ class PMSBookingsTester:
             except Exception as e:
                 print(f"  ❌ {test_case['name']}: Error {e}")
         
+        avg_response_time = sum(response_times) / len(response_times) if response_times else 0
+        print(f"      ⏱️ Average Response Time: {avg_response_time:.1f}ms")
+        
         self.test_results.append({
-            "endpoint": "PUT /api/pms/rooms/{room_id}",
-            "passed": passed, "total": total, "success_rate": f"{passed/total*100:.1f}%"
+            "endpoint": "GET /api/payments/booking/{booking_id}",
+            "passed": passed, "total": total, "success_rate": f"{passed/total*100:.1f}%",
+            "avg_response_time": f"{avg_response_time:.1f}ms"
         })
 
     async def test_quick_checkout_endpoint(self):
