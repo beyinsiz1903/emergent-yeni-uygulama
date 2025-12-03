@@ -157,7 +157,7 @@ const RMSModule = ({ user, tenant, onLogout }) => {
             <CardContent className="pt-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-gray-600">Current ADR</p>
+                  <p className="text-sm text-gray-600">Güncel ADR</p>
                   <p className="text-2xl font-bold">${pricingStrategy?.current_rate || 0}</p>
                 </div>
                 <DollarSign className="w-8 h-8 text-green-500" />
