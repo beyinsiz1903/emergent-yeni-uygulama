@@ -169,7 +169,7 @@ const RMSModule = ({ user, tenant, onLogout }) => {
             <CardContent className="pt-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-gray-600">Recommended ADR</p>
+                  <p className="text-sm text-gray-600">Önerilen ADR</p>
                   <p className="text-2xl font-bold">${pricingStrategy?.recommended_rate || 0}</p>
                 </div>
                 <TrendingUp className="w-8 h-8 text-blue-500" />
