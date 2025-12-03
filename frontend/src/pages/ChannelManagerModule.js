@@ -122,7 +122,13 @@ const ChannelManagerModule = ({ user, tenant, onLogout }) => {
   const loadOtaReservations = async () => {
     try {
       const response = await axios.get(`/channel-manager/ota-reservations?status=${reservationFilter}`);
-      setOtaReservations(Array.isArray(response.data) ? response.data : []);
+      const data = response.data;
+      const list = Array.isArray(data)
+        ? data
+        : Array.isArray(data.reservations)
+          ? data.reservations
+          : [];
+      setOtaReservations(list);
     } catch (error) {
       console.error('Failed to load OTA reservations:', error);
       setOtaReservations([]);
