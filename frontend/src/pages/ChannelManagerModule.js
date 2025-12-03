@@ -141,7 +141,13 @@ const ChannelManagerModule = ({ user, tenant, onLogout }) => {
         ? '/channel-manager/exceptions'
         : `/channel-manager/exceptions?status=${exceptionFilter}`;
       const response = await axios.get(url);
-      setExceptions(Array.isArray(response.data) ? response.data : []);
+      const data = response.data;
+      const list = Array.isArray(data)
+        ? data
+        : Array.isArray(data.exceptions)
+          ? data.exceptions
+          : [];
+      setExceptions(list);
     } catch (error) {
       console.error('Failed to load exceptions:', error);
       setExceptions([]);
