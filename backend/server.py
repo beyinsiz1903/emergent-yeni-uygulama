@@ -1633,11 +1633,22 @@ class ChannelConnection(BaseModel):
     status: ChannelStatus = ChannelStatus.INACTIVE
     api_endpoint: Optional[str] = None
     api_key: Optional[str] = None
+    api_secret: Optional[str] = None
     property_id: Optional[str] = None  # Channel's property ID
     last_sync: Optional[datetime] = None
     sync_rate_availability: bool = True
     sync_reservations: bool = True
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+class ChannelConnectionCreate(BaseModel):
+    channel_type: ChannelType
+    channel_name: str
+    property_id: Optional[str] = None
+    api_endpoint: Optional[str] = None
+    api_key: Optional[str] = None
+    api_secret: Optional[str] = None
+    sync_rate_availability: bool = True
+    sync_reservations: bool = True
 
 class RoomMapping(BaseModel):
     model_config = ConfigDict(extra="ignore")
