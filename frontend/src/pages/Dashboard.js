@@ -647,7 +647,7 @@ const Dashboard = ({ user, tenant, onLogout }) => {
                       <div className="text-lg font-bold">{aiBriefing.metrics?.occupancy_rate?.toFixed(1)}%</div>
                     </div>
                     <div>
-                      <div className="opacity-75 text-xs">Check-ins Today</div>
+                      <div className="opacity-75 text-xs">Bugünkü Check-in</div>
                       <div className="text-lg font-bold">{aiBriefing.metrics?.today_checkins}</div>
                     </div>
                     <div>
