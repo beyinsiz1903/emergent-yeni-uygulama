@@ -337,14 +337,9 @@ const ChannelManagerModule = ({ user, tenant, onLogout }) => {
               <CardHeader className="flex items-center justify-between">
                 <div>
                   <CardTitle>Room Mappings</CardTitle>
-                <CardDescription>
-                  Eşleştirilmiş PMS oda tiplerinizi Booking.com ve diğer OTA oda tipleriyle yönetin.
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                {roomMappings.length === 0 ? (
-                  <div className="text-center py-8 text-gray-500">
-                    Henüz bir oda eşlemesi yok.
+                  <CardDescription>
+                    Eşleştirilmiş PMS oda tiplerinizi Booking.com ve diğer OTA oda tipleriyle yönetin.
+                  </CardDescription>
                 </div>
                 <Button
                   size="sm"
@@ -353,7 +348,11 @@ const ChannelManagerModule = ({ user, tenant, onLogout }) => {
                 >
                   <Plus className="w-4 h-4 mr-1" /> Eşleme Ekle
                 </Button>
-
+              </CardHeader>
+              <CardContent>
+                {roomMappings.length === 0 ? (
+                  <div className="text-center py-8 text-gray-500">
+                    Henüz bir oda eşlemesi yok.
                   </div>
                 ) : (
                   <div className="overflow-x-auto">
