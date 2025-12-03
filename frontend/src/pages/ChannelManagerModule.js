@@ -329,7 +329,146 @@ const ChannelManagerModule = ({ user, tenant, onLogout }) => {
                 </Dialog>
 
           <Dialog open={showAddConnection} onOpenChange={setShowAddConnection}>
+            <DialogTrigger asChild>
+              <Button>
+                <Plus className="w-4 h-4 mr-2" />
+                Add Connection
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-lg">
+              <DialogHeader>
+                <DialogTitle>Add Channel Connection</DialogTitle>
+              </DialogHeader>
+              <form onSubmit={handleAddConnection} className="space-y-4">
+                <div>
+                  <Label>Channel Type</Label>
+                  <select
+                    className="w-full border rounded-md p-2"
+                    value={newConnection.channel_type}
+                    onChange={(e) => setNewConnection({...newConnection, channel_type: e.target.value})}
+                  >
+                    <option value="booking_com">Booking.com</option>
+                    <option value="expedia">Expedia</option>
+                    <option value="airbnb">Airbnb</option>
+                    <option value="agoda">Agoda</option>
+                    <option value="tripadvisor">TripAdvisor</option>
+                  </select>
+                </div>
+                <div>
+                  <Label>Channel Name</Label>
+                  <Input
+                    value={newConnection.channel_name}
+                    onChange={(e) => setNewConnection({...newConnection, channel_name: e.target.value})}
+                    placeholder="e.g., Grand Hotel Istanbul"
+                    required
+                  />
+                </div>
+                <div>
+                  <Label>Property ID</Label>
+                  <Input
+                    value={newConnection.property_id}
+                    onChange={(e) => setNewConnection({...newConnection, property_id: e.target.value})}
+                    placeholder="Property/Hotel ID from OTA"
+                    required
+                  />
+                </div>
+                <div>
+                  <Label>API Key</Label>
+                  <Input
+                    value={newConnection.api_key}
+                    onChange={(e) => setNewConnection({...newConnection, api_key: e.target.value})}
+                    placeholder="API Key"
+                  />
+                </div>
+                <div>
+                  <Label>API Secret</Label>
+                  <Input
+                    type="password"
+                    value={newConnection.api_secret}
+                    onChange={(e) => setNewConnection({...newConnection, api_secret: e.target.value})}
+                    placeholder="API Secret"
+                  />
+                </div>
+                <Button type="submit" className="w-full" disabled={loading}>
+                  {loading ? 'Adding...' : 'Add Connection'}
+                </Button>
+              </form>
+            </DialogContent>
+          </Dialog>
+        </div>
+
+        {/* Tabs */}
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
+          <TabsList className="grid w-full grid-cols-5">
+            <TabsTrigger value="connections">
+              <Network className="w-4 h-4 mr-2" />
+              Connections
+            </TabsTrigger>
+            <TabsTrigger value="mappings">
+              <Network className="w-4 h-4 mr-2" />
+              Room Mappings
+            </TabsTrigger>
+            <TabsTrigger value="rates">
+              <Settings className="w-4 h-4 mr-2" />
+              Rate & Availability
+            </TabsTrigger>
+            <TabsTrigger value="reservations">
+              <Download className="w-4 h-4 mr-2" />
+              OTA Reservations
+            </TabsTrigger>
+            <TabsTrigger value="exceptions">
+              <AlertTriangle className="w-4 h-4 mr-2" />
+              Exceptions
+            </TabsTrigger>
+          </TabsList>
+
           {/* Connections Tab */}
+          <TabsContent value="connections" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Active Connections</CardTitle>
+                <CardDescription>
+                  Manage your OTA channel connections and credentials
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {connections.length === 0 ? (
+                  <div className="text-center py-8 text-gray-500">
+                    <Network className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                    <p>No channel connections yet</p>
+                    <p className="text-sm">Add your first connection to start receiving OTA reservations</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {connections.map((conn) => (
+                      <div key={conn.id} className="border rounded-lg p-4 flex items-center justify-between">
+                        <div className="flex items-center space-x-4">
+                          <div className="text-4xl">
+                            {channelLogos[conn.channel_type] || '🌐'}
+                          </div>
+                          <div>
+                            <h3 className="font-semibold text-lg">{conn.channel_name}</h3>
+                            <p className="text-sm text-gray-600">
+                              Property ID: {conn.property_id}
+                            </p>
+                            <p className="text-sm text-gray-600">
+                              Type: {conn.channel_type.replace('_', '.')}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center space-x-4">
+                          {getStatusBadge(conn.status)}
+                          <Button variant="outline" size="sm">
+                            <Settings className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
 
           {/* Room Mappings Tab */}
           <TabsContent value="mappings" className="mt-4">
@@ -405,74 +544,6 @@ const ChannelManagerModule = ({ user, tenant, onLogout }) => {
               </CardContent>
             </Card>
           </TabsContent>
-
-
-            <DialogTrigger asChild>
-              <Button>
-                <Plus className="w-4 h-4 mr-2" />
-                Add Connection
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-lg">
-              <DialogHeader>
-                <DialogTitle>Add Channel Connection</DialogTitle>
-              </DialogHeader>
-              <form onSubmit={handleAddConnection} className="space-y-4">
-                <div>
-                  <Label>Channel Type</Label>
-                  <select
-                    className="w-full border rounded-md p-2"
-                    value={newConnection.channel_type}
-                    onChange={(e) => setNewConnection({...newConnection, channel_type: e.target.value})}
-                  >
-                    <option value="booking_com">Booking.com</option>
-                    <option value="expedia">Expedia</option>
-                    <option value="airbnb">Airbnb</option>
-                    <option value="agoda">Agoda</option>
-                    <option value="tripadvisor">TripAdvisor</option>
-                  </select>
-                </div>
-                <div>
-                  <Label>Channel Name</Label>
-                  <Input
-                    value={newConnection.channel_name}
-                    onChange={(e) => setNewConnection({...newConnection, channel_name: e.target.value})}
-                    placeholder="e.g., Grand Hotel Istanbul"
-                    required
-                  />
-                </div>
-                <div>
-                  <Label>Property ID</Label>
-                  <Input
-                    value={newConnection.property_id}
-                    onChange={(e) => setNewConnection({...newConnection, property_id: e.target.value})}
-                    placeholder="Property/Hotel ID from OTA"
-                    required
-                  />
-                </div>
-                <div>
-                  <Label>API Key</Label>
-                  <Input
-                    value={newConnection.api_key}
-                    onChange={(e) => setNewConnection({...newConnection, api_key: e.target.value})}
-                    placeholder="API Key"
-                  />
-                </div>
-                <div>
-                  <Label>API Secret</Label>
-                  <Input
-                    type="password"
-                    value={newConnection.api_secret}
-                    onChange={(e) => setNewConnection({...newConnection, api_secret: e.target.value})}
-                    placeholder="API Secret"
-                  />
-                </div>
-                <Button type="submit" className="w-full" disabled={loading}>
-                  {loading ? 'Adding...' : 'Add Connection'}
-                </Button>
-              </form>
-            </DialogContent>
-          </Dialog>
         </div>
 
         {/* Tabs */}
