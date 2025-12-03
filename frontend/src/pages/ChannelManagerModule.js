@@ -118,6 +118,29 @@ const ChannelManagerModule = ({ user, tenant, onLogout }) => {
     }
   };
 
+  const handleCreateRoomMapping = async (mapping) => {
+    try {
+      await axios.post('/channel-manager/room-mappings', mapping);
+      toast.success('Room mapping created');
+      loadRoomMappings();
+    } catch (error) {
+      console.error('Failed to create room mapping:', error);
+      toast.error(error.response?.data?.detail || 'Failed to create room mapping');
+    }
+  };
+
+  const handleDeleteRoomMapping = async (mappingId) => {
+    try {
+      await axios.delete(`/channel-manager/room-mappings/${mappingId}`);
+      toast.success('Room mapping deleted');
+      loadRoomMappings();
+    } catch (error) {
+      console.error('Failed to delete room mapping:', error);
+      toast.error(error.response?.data?.detail || 'Failed to delete room mapping');
+    }
+  };
+
+
   const handleAddConnection = async (e) => {
     e.preventDefault();
     setLoading(true);
