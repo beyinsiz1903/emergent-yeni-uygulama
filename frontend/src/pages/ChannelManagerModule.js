@@ -54,13 +54,6 @@ const ChannelManagerModule = ({ user, tenant, onLogout }) => {
   
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    loadConnections();
-    loadRoomMappings();
-    loadOtaReservations();
-    loadExceptions();
-  }, []);
-
   const loadConnections = async () => {
     try {
       const response = await axios.get('/channel-manager/connections');
@@ -72,6 +65,12 @@ const ChannelManagerModule = ({ user, tenant, onLogout }) => {
           ? data.connections
           : [];
       setConnections(list);
+    } catch (error) {
+      console.error('Failed to load connections:', error);
+      setConnections([]);
+    }
+  };
+
   const loadRoomMappings = async () => {
     try {
       const response = await axios.get('/channel-manager/room-mappings');
@@ -88,12 +87,12 @@ const ChannelManagerModule = ({ user, tenant, onLogout }) => {
     }
   };
 
-
-    } catch (error) {
-      console.error('Failed to load connections:', error);
-      setConnections([]);
-    }
-  };
+  useEffect(() => {
+    loadConnections();
+    loadRoomMappings();
+    loadOtaReservations();
+    loadExceptions();
+  }, []);
 
   const loadOtaReservations = async () => {
     try {
