@@ -176,10 +176,6 @@ const ChannelManagerModule = ({ user, tenant, onLogout }) => {
     }
   };
 
-
-    }
-  };
-
   const loadExceptions = async () => {
     try {
       const url = exceptionFilter === 'all' 
