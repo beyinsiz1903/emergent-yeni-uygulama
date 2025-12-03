@@ -217,8 +217,9 @@ const ChannelManagerModule = ({ user, tenant, onLogout }) => {
           {/* Room Mappings Tab */}
           <TabsContent value="mappings" className="mt-4">
             <Card>
-              <CardHeader>
-                <CardTitle>Room Mappings</CardTitle>
+              <CardHeader className="flex items-center justify-between">
+                <div>
+                  <CardTitle>Room Mappings</CardTitle>
                 <CardDescription>
                   Eşleştirilmiş PMS oda tiplerinizi Booking.com ve diğer OTA oda tipleriyle yönetin.
                 </CardDescription>
