@@ -12734,6 +12734,7 @@ async def get_ota_reservations(
 @api_router.post("/channel-manager/import-reservation/{ota_reservation_id}")
 async def import_ota_reservation(
     ota_reservation_id: str,
+    request: Request,
     current_user: User = Depends(get_current_user)
 ):
     """Import OTA reservation into PMS"""
