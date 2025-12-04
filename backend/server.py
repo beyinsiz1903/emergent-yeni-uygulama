@@ -12612,6 +12612,24 @@ async def create_channel_connection(
     conn_dict['created_at'] = conn_dict['created_at'].isoformat()
     await db.channel_connections.insert_one(conn_dict)
     
+    # Log connection creation in channel_sync_logs
+    sync_log = {
+        'id': str(uuid.uuid4()),
+        'tenant_id': current_user.tenant_id,
+        'timestamp': datetime.now(timezone.utc).isoformat(),
+        'channel': payload.channel_type,
+        'sync_type': 'connection',
+        'status': 'success',
+        'duration_ms': 0,
+        'records_synced': 0,
+        'error_message': None,
+        'initiator_type': 'hotel_user',
+        'initiator_name': current_user.name,
+        'initiator_id': current_user.id,
+        'ip_address': None,
+    }
+    await db.channel_sync_logs.insert_one(sync_log)
+    
     return {'message': f'Channel {payload.channel_name} connected successfully', 'connection': connection}
 
 @api_router.get("/channel-manager/room-mappings")
