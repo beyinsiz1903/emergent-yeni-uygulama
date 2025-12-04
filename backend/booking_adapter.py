@@ -83,12 +83,22 @@ class BookingAdapter:
     async def push_availability(self, availability_update: Dict[str, Any]) -> Dict[str, Any]:
         """Simulate pushing availability updates to Booking.com.
 
-        This is a placeholder for future work.
+        `availability_update` is expected to contain:
+        {
+          "rooms": [ ... /pms/rooms/availability result ... ],
+          "check_in": "YYYY-MM-DD",
+          "check_out": "YYYY-MM-DD",
+        }
         """
-        # TODO: Implement normalization and real API call when needed.
+        rooms = availability_update.get("rooms", [])
+        check_in = availability_update.get("check_in", "")
+        check_out = availability_update.get("check_out", "")
+
+        normalized = normalize_availability_response(rooms, check_in, check_out)
+        # TODO: Implement real Booking.com API call here in the future.
         return {
-            "status": "not_implemented",
-            "availability_update": availability_update,
+            "status": "simulated",
+            "normalized_payload": normalized,
         }
 
     async def import_reservations(self, since: str) -> List[Dict[str, Any]]:
