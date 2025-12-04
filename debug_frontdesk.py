@@ -3,7 +3,7 @@ import json
 from datetime import datetime, timedelta
 
 def debug_frontdesk():
-    base_url = 'https://tab-checker.preview.emergentagent.com/api'
+    base_url = 'https://hata-giderelim.preview.emergentagent.com/api'
     
     # Register hotel
     timestamp = datetime.now().strftime('%H%M%S')

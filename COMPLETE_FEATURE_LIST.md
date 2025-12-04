@@ -218,7 +218,7 @@
 ## 📋 QUICK START GUIDE
 
 **Login:**
-- URL: https://tab-checker.preview.emergentagent.com
+- URL: https://hata-giderelim.preview.emergentagent.com
 - Demo: demo@hotel.com / demo123
 
 **New User Registration:**

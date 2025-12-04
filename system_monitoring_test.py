@@ -14,7 +14,7 @@ import time
 from datetime import datetime
 
 # Configuration
-BACKEND_URL = "https://tab-checker.preview.emergentagent.com/api"
+BACKEND_URL = "https://hata-giderelim.preview.emergentagent.com/api"
 TEST_EMAIL = "admin@hotel.com"
 TEST_PASSWORD = "admin123"
 
