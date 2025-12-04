@@ -36736,6 +36736,7 @@ async def get_available_rooms_for_assignment(
     }
 
 from booking_adapter import BookingAdapter
+from booking_availability import normalize_availability_response
 
 
 @api_router.post("/channel-manager/update-rates")
