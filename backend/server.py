@@ -36659,6 +36659,7 @@ async def get_available_rooms_for_assignment(
 @api_router.post("/channel-manager/update-rates")
 async def update_channel_rates(
     rate_update: dict,
+    request: Request,
     credentials: HTTPAuthorizationCredentials = Depends(security)
 ):
     """Update rates across channels"""
@@ -36668,7 +36669,13 @@ async def update_channel_rates(
     if current_user.role not in ['admin', 'revenue_manager', 'gm']:
         raise HTTPException(status_code=403, detail="Access denied")
     
-    # Log the rate update
+    # Determine initiator info
+    ip_address = request.headers.get('x-forwarded-for') or request.client.host
+    initiator_type = 'hotel_user'
+    if getattr(current_user, 'is_staff', False):
+        initiator_type = 'pms_staff'
+    
+    # Log the rate update (for detailed audit)
     rate_log = {
         'id': str(uuid.uuid4()),
         'tenant_id': current_user.tenant_id,
@@ -36678,10 +36685,31 @@ async def update_channel_rates(
         'date_from': rate_update.get('date_from'),
         'date_to': rate_update.get('date_to'),
         'updated_by': current_user.name,
+        'updated_by_id': current_user.id,
+        'initiator_type': initiator_type,
+        'ip_address': ip_address,
         'created_at': datetime.now(timezone.utc).isoformat()
     }
     
     await db.rate_updates.insert_one(rate_log)
+    
+    # Also push a summary entry to channel_sync_logs for UI sync history
+    sync_log = {
+        'id': str(uuid.uuid4()),
+        'tenant_id': current_user.tenant_id,
+        'timestamp': datetime.now(timezone.utc).isoformat(),
+        'channel': ','.join(rate_update.get('channels', [])) or 'multiple',
+        'sync_type': 'rates',
+        'status': 'success',
+        'duration_ms': rate_update.get('duration_ms', 0),
+        'records_synced': rate_update.get('records_synced', 0),
+        'error_message': None,
+        'initiator_type': initiator_type,
+        'initiator_name': current_user.name,
+        'initiator_id': current_user.id,
+        'ip_address': ip_address
+    }
+    await db.channel_sync_logs.insert_one(sync_log)
     
     return {
         'message': 'Rates updated successfully',
