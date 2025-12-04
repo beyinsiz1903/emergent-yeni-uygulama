@@ -36792,6 +36792,18 @@ async def update_channel_rates(
         'ip_address': ip_address
     }
     await db.channel_sync_logs.insert_one(sync_log)
+
+    # Call Booking.com adapter in simulated mode if booking_com is selected
+    channels = rate_update.get('channels', []) or []
+    if 'booking_com' in channels:
+        connection = await db.channel_connections.find_one({
+            'tenant_id': current_user.tenant_id,
+            'channel_type': ChannelType.BOOKING_COM,
+        })
+        if connection:
+            adapter = BookingAdapter(connection)
+            # Simulate push (no real HTTP call yet)
+            await adapter.push_rates(rate_update)
     
     return {
         'message': 'Rates updated successfully',
