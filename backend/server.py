@@ -12829,6 +12829,25 @@ async def import_ota_reservation(
             'processed_at': datetime.now(timezone.utc).isoformat()
         }}
     )
+
+    # Log reservation import in channel_sync_logs
+    ip_address = request.headers.get('x-forwarded-for') or request.client.host
+    sync_log = {
+        'id': str(uuid.uuid4()),
+        'tenant_id': current_user.tenant_id,
+        'timestamp': datetime.now(timezone.utc).isoformat(),
+        'channel': ota_res['channel_type'],
+        'sync_type': 'reservation_import',
+        'status': 'success',
+        'duration_ms': 0,
+        'records_synced': 1,
+        'error_message': None,
+        'initiator_type': 'hotel_user',
+        'initiator_name': current_user.name,
+        'initiator_id': current_user.id,
+        'ip_address': ip_address,
+    }
+    await db.channel_sync_logs.insert_one(sync_log)
     
     return {
         'message': 'OTA reservation imported successfully',
