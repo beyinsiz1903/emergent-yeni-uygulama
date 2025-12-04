@@ -175,6 +175,11 @@ const ChannelManagerModule = ({ user, tenant, onLogout }) => {
       setSyncLogs(logs);
     } catch (error) {
       console.error('Failed to load sync history:', error);
+      setSyncLogs([]);
+      setSyncSummary(null);
+    }
+  };
+
   const loadRateParity = async () => {
     try {
       const response = await axios.get('/channel-manager/rate-parity-check');
@@ -182,12 +187,6 @@ const ChannelManagerModule = ({ user, tenant, onLogout }) => {
     } catch (error) {
       console.error('Failed to load rate parity info:', error);
       setParityInfo(null);
-    }
-  };
-
-
-      setSyncLogs([]);
-      setSyncSummary(null);
     }
   };
 
