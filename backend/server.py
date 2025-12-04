@@ -25277,7 +25277,11 @@ async def get_channel_sync_history(
             'status': log.get('status'),  # success, failed
             'duration_ms': log.get('duration_ms'),
             'records_synced': log.get('records_synced'),
-            'error_message': log.get('error_message')
+            'error_message': log.get('error_message'),
+            'initiator_type': log.get('initiator_type'),
+            'initiator_name': log.get('initiator_name'),
+            'initiator_id': log.get('initiator_id'),
+            'ip_address': log.get('ip_address')
         })
     
     # If no logs, create simulated logs
