@@ -70,6 +70,9 @@ const ChannelManagerModule = ({ user, tenant, onLogout }) => {
   const [syncLogs, setSyncLogs] = useState([]);
   const [syncSummary, setSyncSummary] = useState(null);
 
+  // Rate parity state
+  const [parityInfo, setParityInfo] = useState(null);
+
   // OTA Reservations state
   const [otaReservations, setOtaReservations] = useState([]);
   const [reservationFilter, setReservationFilter] = useState('pending');
