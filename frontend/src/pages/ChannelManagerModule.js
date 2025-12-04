@@ -147,6 +147,7 @@ const ChannelManagerModule = ({ user, tenant, onLogout }) => {
     loadOtaReservations();
     loadExceptions();
     loadSyncHistory();
+    loadRateParity();
   }, []);
 
   const loadOtaReservations = async () => {
