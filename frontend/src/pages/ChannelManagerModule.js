@@ -1039,6 +1039,8 @@ const ChannelManagerModule = ({ user, tenant, onLogout }) => {
                         <th className="text-left p-2">Durum</th>
                         <th className="text-left p-2">Kayıt</th>
                         <th className="text-left p-2">Süre (ms)</th>
+                        <th className="text-left p-2">Kaynak</th>
+                        <th className="text-left p-2">IP</th>
                         <th className="text-left p-2">Hata</th>
                       </tr>
                     </thead>
