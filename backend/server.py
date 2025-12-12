@@ -30102,12 +30102,6 @@ async def update_tenant_modules(
     tenant_doc["modules"] = get_tenant_modules(tenant_doc)
     return tenant_doc
 
-        elif log.get('status') == 'failed':
-            stats['failed'] += 1
-        
-        stats['total_records'] += log.get('records_published', 0)
-    
-    if stats['total_publishes'] > 0:
         stats['automation_rate'] = round(stats['auto_publishes'] / stats['total_publishes'] * 100, 1)
         stats['success_rate'] = round(stats['successful'] / stats['total_publishes'] * 100, 1)
     else:
