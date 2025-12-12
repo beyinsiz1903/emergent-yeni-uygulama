@@ -7639,7 +7639,8 @@ async def create_guest(
 async def get_guests(
     limit: int = 1000,
     offset: int = 0,
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
+    _: None = Depends(require_module("pms")),
 ):
     guests_raw = await db.guests.find({'tenant_id': current_user.tenant_id}, {'_id': 0}).skip(offset).limit(limit).to_list(limit)
     
