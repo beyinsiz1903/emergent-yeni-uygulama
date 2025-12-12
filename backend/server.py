@@ -30225,7 +30225,8 @@ async def get_current_subscription(
         'status': tenant.get('subscription_status', 'active'),
         'valid_until': tenant.get('subscription_valid_until'),
         'rooms_count': await db.rooms.count_documents({'tenant_id': current_user.tenant_id}),
-        'users_count': await db.users.count_documents({'tenant_id': current_user.tenant_id})
+        'users_count': await db.users.count_documents({'tenant_id': current_user.tenant_id}),
+        'modules': get_tenant_modules(tenant)
     }
 
 @api_router.post("/subscription/upgrade")
