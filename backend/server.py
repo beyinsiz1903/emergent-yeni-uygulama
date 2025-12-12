@@ -3647,7 +3647,11 @@ async def get_event_bookings(current_user: User = Depends(get_current_user)):
 # ============= AI CHATBOT & ANALYTICS (FAZ 4) =============
 
 @api_router.post("/ai/chat")
-async def ai_chat(message_data: dict, current_user: User = Depends(get_current_user)):
+async def ai_chat(
+    message_data: dict,
+    current_user: User = Depends(get_current_user),
+    _: None = Depends(require_module("ai")),
+):
     response_text = "Merhaba! Size nasıl yardımcı olabilirim?"
     if 'rezervasyon' in message_data['message'].lower():
         response_text = "Rezervasyon için lütfen tarih ve oda tipini belirtin."
@@ -3671,7 +3675,8 @@ async def get_sentiment(guest_id: str, current_user: User = Depends(get_current_
 async def get_ai_pricing_recommendation(
     room_type: str,
     target_date: str,
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
+    _: None = Depends(require_module("ai")),
 ):
     """AI-powered dynamic pricing recommendation"""
     from dynamic_pricing_engine import get_pricing_engine
@@ -8180,7 +8185,11 @@ async def update_room_service(service_id: str, updates: Dict[str, Any], current_
 # ============= INVOICES =============
 
 @api_router.post("/invoices", response_model=Invoice)
-async def create_invoice(invoice_data: InvoiceCreate, current_user: User = Depends(get_current_user)):
+async def create_invoice(
+    invoice_data: InvoiceCreate,
+    current_user: User = Depends(get_current_user),
+    _: None = Depends(require_module("invoices")),
+):
     count = await db.invoices.count_documents({'tenant_id': current_user.tenant_id})
     invoice_number = f"INV-{count + 1:05d}"
     due_date_dt = datetime.fromisoformat(invoice_data.due_date.replace('Z', '+00:00'))
@@ -8194,12 +8203,20 @@ async def create_invoice(invoice_data: InvoiceCreate, current_user: User = Depen
 
 @api_router.get("/invoices", response_model=List[Invoice])
 @cached(ttl=300, key_prefix="invoices_list")  # Cache for 5 min
-async def get_invoices(current_user: User = Depends(get_current_user)):
+async def get_invoices(
+    current_user: User = Depends(get_current_user),
+    _: None = Depends(require_module("invoices")),
+):
     invoices = await db.invoices.find({'tenant_id': current_user.tenant_id}, {'_id': 0}).to_list(1000)
     return invoices
 
 @api_router.put("/invoices/{invoice_id}")
-async def update_invoice(invoice_id: str, updates: Dict[str, Any], current_user: User = Depends(get_current_user)):
+async def update_invoice(
+    invoice_id: str,
+    updates: Dict[str, Any],
+    current_user: User = Depends(get_current_user),
+    _: None = Depends(require_module("invoices")),
+):
     await db.invoices.update_one({'id': invoice_id, 'tenant_id': current_user.tenant_id}, {'$set': updates})
     invoice_doc = await db.invoices.find_one({'id': invoice_id}, {'_id': 0})
     return invoice_doc
