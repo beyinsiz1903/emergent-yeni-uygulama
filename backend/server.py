@@ -2430,14 +2430,6 @@ async def require_admin(current_user: User = Depends(get_current_user)) -> User:
         )
     return current_user
 
-    expiry = datetime.now(timezone.utc) + timedelta(hours=expiry_hours)
-    token = secrets.token_urlsafe(32)
-    return jwt.encode({
-        'booking_id': booking_id,
-        'token': token,
-        'exp': expiry
-    }, JWT_SECRET, algorithm=JWT_ALGORITHM)
-
 # ============= AUTH ENDPOINTS =============
 
 @api_router.post("/auth/register", response_model=TokenResponse)
