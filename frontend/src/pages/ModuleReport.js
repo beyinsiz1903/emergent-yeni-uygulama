@@ -1,0 +1,167 @@
+import React, { useEffect, useMemo, useState } from 'react';
+import axios from 'axios';
+import Layout from '@/components/Layout';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+
+const BOOL_ICON = (val) => (val ? '✅' : '❌');
+
+const ModuleReport = ({ user, tenant, onLogout }) => {
+  const [rows, setRows] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [filter, setFilter] = useState('');
+  const [onlyWithAI, setOnlyWithAI] = useState(false);
+  const [onlyWithoutInvoices, setOnlyWithoutInvoices] = useState(false);
+
+  const loadReport = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await axios.get('/admin/module-report');
+      setRows(res.data?.rows || []);
+    } catch (err) {
+      console.error('Failed to load module report', err);
+      setError('Modül raporu yüklenirken bir hata oluştu');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadReport();
+  }, []);
+
+  const filteredRows = useMemo(() => {
+    return rows.filter((r) => {
+      if (filter) {
+        const name = (r.property_name || '').toLowerCase();
+        const loc = (r.location || '').toLowerCase();
+        const term = filter.toLowerCase();
+        if (!name.includes(term) && !loc.includes(term)) return false;
+      }
+      if (onlyWithAI && !r.mod_ai) return false;
+      if (onlyWithoutInvoices && r.mod_invoices) return false;
+      return true;
+    });
+  }, [rows, filter, onlyWithAI, onlyWithoutInvoices]);
+
+  return (
+    <Layout user={user} tenant={tenant} onLogout={onLogout} currentModule="admin-module-report">
+      <div className="p-4 md:p-6 space-y-4">
+        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <div>
+            <h1 className="text-2xl font-bold">Modül / Lisans Raporu</h1>
+            <p className="text-sm text-gray-600 max-w-2xl">
+              Tüm oteller için hangi modüllerin aktif olduğunu tek ekranda görüntüleyin. Bu tabloyu,
+              hangi otelin hangi paketi kullandığını hızlıca görmek için kullanabilirsiniz.
+            </p>
+          </div>
+          <div className="flex flex-col md:flex-row gap-2 md:items-center">
+            <input
+              type="text"
+              placeholder="Otel adı veya lokasyona göre filtrele..."
+              className="border rounded-md px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
+              value={filter}
+              onChange={(e) => setFilter(e.target.value)}
+            />
+            <label className="flex items-center gap-1 text-xs text-gray-700">
+              <input
+                type="checkbox"
+                className="h-3 w-3"
+                checked={onlyWithAI}
+                onChange={(e) => setOnlyWithAI(e.target.checked)}
+              />
+              <span>Yalnızca AI kullanan oteller</span>
+            </label>
+            <label className="flex items-center gap-1 text-xs text-gray-700">
+              <input
+                type="checkbox"
+                className="h-3 w-3"
+                checked={onlyWithoutInvoices}
+                onChange={(e) => setOnlyWithoutInvoices(e.target.checked)}
+              />
+              <span>Fatura modülü kapalı olanlar</span>
+            </label>
+          </div>
+        </div>
+
+        {error && (
+          <div className="p-3 rounded-md bg-red-50 text-red-700 text-sm">{error}</div>
+        )}
+
+        {loading ? (
+          <div className="text-sm text-gray-500">Modül raporu yükleniyor...</div>
+        ) : (
+          <Card className="overflow-hidden">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm flex items-center justify-between">
+                <span>Otellere Göre Modül Durumu</span>
+                <span className="text-xs text-gray-500">
+                  Toplam {filteredRows.length} / {rows.length} otel
+                </span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-0">
+              <div className="overflow-x-auto">
+                <table className="min-w-full text-xs border-t">
+                  <thead className="bg-gray-50 border-b">
+                    <tr className="text-left whitespace-nowrap">
+                      <th className="px-3 py-2 font-medium text-gray-700">Otel</th>
+                      <th className="px-3 py-2 font-medium text-gray-700">Lokasyon</th>
+                      <th className="px-3 py-2 font-medium text-gray-700">Plan</th>
+                      <th className="px-3 py-2 font-medium text-gray-700">PMS</th>
+                      <th className="px-3 py-2 font-medium text-gray-700">Mobil</th>
+                      <th className="px-3 py-2 font-medium text-gray-700">HK Mobil</th>
+                      <th className="px-3 py-2 font-medium text-gray-700">Revenue Mobil</th>
+                      <th className="px-3 py-2 font-medium text-gray-700">GM</th>
+                      <th className="px-3 py-2 font-medium text-gray-700">Rapor</th>
+                      <th className="px-3 py-2 font-medium text-gray-700">Fatura</th>
+                      <th className="px-3 py-2 font-medium text-gray-700">AI Genel</th>
+                      <th className="px-3 py-2 font-medium text-gray-700">AI Chatbot</th>
+                      <th className="px-3 py-2 font-medium text-gray-700">AI Pricing</th>
+                      <th className="px-3 py-2 font-medium text-gray-700">AI WhatsApp</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredRows.map((r) => (
+                      <tr key={r.tenant_id || r.property_name} className="border-b hover:bg-gray-50/60">
+                        <td className="px-3 py-2">
+                          <div className="flex flex-col">
+                            <span className="font-medium text-gray-800">{r.property_name || 'Otel'}</span>
+                            {r.tenant_id && (
+                              <span className="text-[10px] text-gray-400">ID: {r.tenant_id}</span>
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-3 py-2 text-gray-600">{r.location || '-'}</td>
+                        <td className="px-3 py-2">
+                          <Badge variant="outline" className="text-[10px] uppercase">
+                            {r.subscription_tier || 'basic'}
+                          </Badge>
+                        </td>
+                        <td className="px-3 py-2">{BOOL_ICON(r.mod_pms)}</td>
+                        <td className="px-3 py-2">{BOOL_ICON(r.mod_pms_mobile)}</td>
+                        <td className="px-3 py-2">{BOOL_ICON(r.mod_mobile_housekeeping)}</td>
+                        <td className="px-3 py-2">{BOOL_ICON(r.mod_mobile_revenue)}</td>
+                        <td className="px-3 py-2">{BOOL_ICON(r.mod_gm_dashboards)}</td>
+                        <td className="px-3 py-2">{BOOL_ICON(r.mod_reports)}</td>
+                        <td className="px-3 py-2">{BOOL_ICON(r.mod_invoices)}</td>
+                        <td className="px-3 py-2">{BOOL_ICON(r.mod_ai)}</td>
+                        <td className="px-3 py-2">{BOOL_ICON(r.mod_ai_chatbot)}</td>
+                        <td className="px-3 py-2">{BOOL_ICON(r.mod_ai_pricing)}</td>
+                        <td className="px-3 py-2">{BOOL_ICON(r.mod_ai_whatsapp)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+      </div>
+    </Layout>
+  );
+};
+
+export default ModuleReport;
