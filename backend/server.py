@@ -38231,7 +38231,8 @@ async def reject_request(
 async def get_team_performance(
     department: Optional[str] = None,
     period: str = 'month',
-    credentials: HTTPAuthorizationCredentials = Depends(security)
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+    _: None = Depends(require_module("gm_dashboards")),
 ):
     """Get team performance metrics"""
     current_user = await get_current_user(credentials)
