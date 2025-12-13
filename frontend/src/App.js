@@ -164,6 +164,7 @@ function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [user, setUser] = useState(null);
   const [tenant, setTenant] = useState(null);
+  const [modules, setModules] = useState(null);
   const [loading, setLoading] = useState(true);
 
   usePushNotifications(isAuthenticated ? user : null);
