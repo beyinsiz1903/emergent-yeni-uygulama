@@ -18768,7 +18768,8 @@ async def get_pricing_insights(
 @cached(ttl=60, key_prefix="mobile_hk_my_tasks")  # Cache for 1 min
 async def get_my_housekeeping_tasks(
     status: str = None,
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
+    _: None = Depends(require_module("mobile_housekeeping")),
 ):
     """Get tasks assigned to current user"""
     query = {
