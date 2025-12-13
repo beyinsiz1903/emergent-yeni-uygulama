@@ -2359,6 +2359,8 @@ MODULE_DEFAULTS: Dict[str, bool] = {
     # Ana modüller
     "pms": True,
     "pms_mobile": True,
+    "mobile_housekeeping": True,
+    "mobile_revenue": True,
     "gm_dashboards": True,
     "reports": True,
     "invoices": True,
