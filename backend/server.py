@@ -11893,6 +11893,50 @@ async def export_revenue_detail_excel(
         days = (co_date - ci_date).days or 1
         daily_amount = (b.get('total_amount') or 0) / days
 
+
+
+@api_router.get("/reports/forecast-detail/excel")
+async def export_forecast_detail_excel(
+    start_date: str,
+    end_date: str,
+    current_user: User = Depends(get_current_user),
+    _: None = Depends(require_module("reports")),
+):
+    """Forecasted occupancy and revenue detail by date using existing forecast logic.
+
+    NOTE: This uses get_forecast endpoint internally if available.
+    """
+    # Reuse get_forecast if defined
+    try:
+        forecast_response = await get_forecast(
+            days=(datetime.fromisoformat(end_date) - datetime.fromisoformat(start_date)).days + 1,
+            current_user=current_user,
+            _=None,
+        )
+    except Exception:
+        forecast_response = {}
+
+    headers = ['Date', 'Expected Occupancy %', 'Expected Revenue']
+    data: List[List[Any]] = []
+
+    for item in forecast_response.get('days', []):
+        data.append([
+            item.get('date'),
+            item.get('expected_occupancy_pct', 0),
+            item.get('expected_revenue', 0),
+        ])
+
+    title = f"Forecast Detail {start_date} to {end_date}"
+    wb = create_excel_workbook(
+        title=title,
+        headers=headers,
+        data=data,
+        sheet_name="Forecast Detail",
+    )
+
+    filename = f"forecast_detail_{start_date}_to_{end_date}.xlsx"
+    return excel_response(wb, filename)
+
         for i in range(days):
             d = ci_date + timedelta(days=i)
             key = (
