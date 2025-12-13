@@ -134,32 +134,84 @@ const AdminTenants = ({ user, tenant, onLogout }) => {
           <div className="text-sm text-gray-500">Oteller yükleniyor...</div>
         ) : (
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {tenants.map((t) => (
-              <Card key={t.id || t._id}>
-                <CardHeader>
-                  <CardTitle className="text-base">
-                    {t.property_name || t.name || 'Otel'}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-2">
-                    {MODULE_KEYS.map(({ key, label }) => {
-                      const enabled = (t.modules && t.modules[key]) !== false;
-                      return (
-                        <div key={key} className="flex items-center justify-between py-1">
-                          <span className="text-sm text-gray-700">{label}</span>
-                          <Switch
-                            checked={enabled}
-                            disabled={saving}
-                            onCheckedChange={(val) => handleToggle(t.id || t._id, key, val)}
-                          />
+            {tenants
+              .filter((t) => {
+                if (!filter) return true;
+                const name = (t.property_name || t.name || '').toLowerCase();
+                return name.includes(filter.toLowerCase());
+              })
+              .map((t) => (
+                <Card key={t.id || t._id} className="flex flex-col h-full">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-base flex items-center justify-between">
+                      <span>{t.property_name || t.name || 'Otel'}</span>
+                      {t.subscription_tier && (
+                        <span className="text-xs px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-100">
+                          {t.subscription_tier}
+                        </span>
+                      )}
+                    </CardTitle>
+                    {t.location && (
+                      <p className="text-xs text-gray-500 mt-1">{t.location}</p>
+                    )}
+                  </CardHeader>
+                  <CardContent className="pt-0 flex-1 flex flex-col gap-4">
+                    {MODULE_GROUPS.map((group) => (
+                      <div key={group.id} className="border rounded-md p-2 bg-gray-50/60">
+                        <div className="mb-1">
+                          <p className="text-xs font-semibold text-gray-800">{group.title}</p>
+                          <p className="text-[11px] text-gray-500 leading-snug">
+                            {group.description}
+                          </p>
                         </div>
-                      );
-                    })}
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+                        <div className="space-y-1.5">
+                          {group.items.map(({ key, label, hint }) => {
+                            const enabled = (t.modules && t.modules[key]) !== false;
+                            return (
+                              <div
+                                key={key}
+                                className="flex items-center justify-between py-0.5 gap-2"
+                              >
+                                <TooltipProvider>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <span className="text-xs text-gray-700 cursor-help">
+                                        {label}
+                                      </span>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      <p className="max-w-xs text-xs">{hint}</p>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
+                                <Switch
+                                  checked={enabled}
+                                  disabled={saving}
+                                  onCheckedChange={(val) => handleToggle(t.id || t._id, key, val)}
+                                />
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    ))}
+                    <div className="mt-1 text-[11px] text-gray-500 flex items-center justify-between">
+                      <span>
+                        Son güncelleme:
+                        <span className="font-medium ml-1">
+                          {t.updated_at ? new Date(t.updated_at).toLocaleString() : 'Bilgi yok'}
+                        </span>
+                      </span>
+                      <Link
+                        to="/pms"
+                        className="text-[11px] text-blue-600 hover:underline"
+                      >
+                        Bu otel gibi gör
+                      </Link>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
           </div>
         )}
       </div>
