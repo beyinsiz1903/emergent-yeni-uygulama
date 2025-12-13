@@ -3695,7 +3695,7 @@ async def get_ai_pricing_recommendation(
     room_type: str,
     target_date: str,
     current_user: User = Depends(get_current_user),
-    _: None = Depends(require_module("ai")),
+    _: None = Depends(require_module("ai_pricing")),
 ):
     """AI-powered dynamic pricing recommendation"""
     from dynamic_pricing_engine import get_pricing_engine
