@@ -708,7 +708,7 @@ function App() {
           <Route
             path="/mobile"
             element={
-              isAuthenticated ? (
+              isAuthenticated && modules?.pms_mobile !== false ? (
                 <MobileDashboard user={user} onLogout={handleLogout} />
               ) : (
                 <Navigate to="/auth" replace />
@@ -838,7 +838,7 @@ function App() {
           <Route
             path="/executive"
             element={
-              isAuthenticated ? (
+              isAuthenticated && modules?.gm_dashboards !== false ? (
                 <ExecutiveDashboard user={user} />
               ) : (
                 <Navigate to="/auth" replace />
