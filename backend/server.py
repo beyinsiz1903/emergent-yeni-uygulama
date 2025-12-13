@@ -3669,7 +3669,7 @@ async def get_event_bookings(current_user: User = Depends(get_current_user)):
 async def ai_chat(
     message_data: dict,
     current_user: User = Depends(get_current_user),
-    _: None = Depends(require_module("ai")),
+    _: None = Depends(require_module("ai_chatbot")),
 ):
     response_text = "Merhaba! Size nasıl yardımcı olabilirim?"
     if 'rezervasyon' in message_data['message'].lower():
