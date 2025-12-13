@@ -102,16 +102,26 @@ const AdminTenants = ({ user, tenant, onLogout }) => {
   return (
     <Layout user={user} tenant={tenant} onLogout={onLogout} currentModule="admin-tenants">
       <div className="p-4 md:p-6 space-y-4">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div>
             <h1 className="text-2xl font-bold">Otel Modül Yönetimi</h1>
-            <p className="text-sm text-gray-600">
-              Her otel için hangi modüllerin aktif olacağını buradan yönetebilirsiniz.
+            <p className="text-sm text-gray-600 max-w-2xl">
+              Her otel için hangi modüllerin aktif olacağını buradan yönetin. Aşağıdaki anahtarlar
+              PMS, Mobil, GM, Raporlama ve Yapay Zeka özelliklerini paket paket açıp kapatmanızı sağlar.
             </p>
           </div>
-          <Button variant="outline" size="sm" onClick={loadTenants} disabled={loading}>
-            Yenile
-          </Button>
+          <div className="flex flex-col md:flex-row gap-2 md:items-center">
+            <input
+              type="text"
+              placeholder="Otel adına göre filtrele..."
+              className="border rounded-md px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
+              value={filter}
+              onChange={(e) => setFilter(e.target.value)}
+            />
+            <Button variant="outline" size="sm" onClick={loadTenants} disabled={loading}>
+              Yenile
+            </Button>
+          </div>
         </div>
 
         {error && (
