@@ -1680,9 +1680,16 @@ metadata:
 
 test_plan:
   current_focus:
-    - "Module-based Authorization System Testing"
+    - "Login Flow with Demo User"
+    - "Dashboard Module Cards Display (All Modules Open)"
+    - "Top Navigation Menu (All Modules Open)"
+    - "Page Navigation and Route Access (All Modules Open)"
+    - "Admin Tenants Module Configuration"
+    - "Restricted Modules Scenario - UI Behavior"
+    - "Route Guards for Restricted Modules"
   stuck_tasks: []
   test_all: false
+  test_priority: "high_first"
   test_priority: "high_first"
 
 agent_communication:
