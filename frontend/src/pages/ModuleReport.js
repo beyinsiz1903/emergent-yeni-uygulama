@@ -47,6 +47,70 @@ const ModuleReport = ({ user, tenant, onLogout }) => {
     });
   }, [rows, filter, onlyWithAI, onlyWithoutInvoices]);
 
+  const handleExportCsv = () => {
+    if (!filteredRows.length) return;
+
+    const headers = [
+      'tenant_id',
+      'property_name',
+      'location',
+      'subscription_tier',
+      'pms',
+      'pms_mobile',
+      'mobile_housekeeping',
+      'mobile_revenue',
+      'gm_dashboards',
+      'reports',
+      'invoices',
+      'ai',
+      'ai_chatbot',
+      'ai_pricing',
+      'ai_whatsapp',
+      'ai_predictive',
+      'ai_reputation',
+      'ai_revenue_autopilot',
+      'ai_social_radar',
+    ];
+
+    const lines = [];
+    lines.push(headers.join(','));
+
+    filteredRows.forEach((r) => {
+      const row = [
+        r.tenant_id || '',
+        (r.property_name || '').replace(/,/g, ' '),
+        (r.location || '').replace(/,/g, ' '),
+        r.subscription_tier || 'basic',
+        r.mod_pms ? '1' : '0',
+        r.mod_pms_mobile ? '1' : '0',
+        r.mod_mobile_housekeeping ? '1' : '0',
+        r.mod_mobile_revenue ? '1' : '0',
+        r.mod_gm_dashboards ? '1' : '0',
+        r.mod_reports ? '1' : '0',
+        r.mod_invoices ? '1' : '0',
+        r.mod_ai ? '1' : '0',
+        r.mod_ai_chatbot ? '1' : '0',
+        r.mod_ai_pricing ? '1' : '0',
+        r.mod_ai_whatsapp ? '1' : '0',
+        r.mod_ai_predictive ? '1' : '0',
+        r.mod_ai_reputation ? '1' : '0',
+        r.mod_ai_revenue_autopilot ? '1' : '0',
+        r.mod_ai_social_radar ? '1' : '0',
+      ];
+      lines.push(row.join(','));
+    });
+
+    const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', 'module_report.csv');
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <Layout user={user} tenant={tenant} onLogout={onLogout} currentModule="admin-module-report">
       <div className="p-4 md:p-6 space-y-4">
