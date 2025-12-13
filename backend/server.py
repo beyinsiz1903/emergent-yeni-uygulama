@@ -2423,6 +2423,15 @@ def require_module(module_name: str):
             )
 
         modules = get_tenant_modules(tenant_doc)
+
+        # Eğer detaylı bir AI alt modu isteniyorsa ve ana 'ai' kapalıysa direkt engelle
+        if module_name.startswith("ai_"):
+            if not modules.get("ai", False):
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="AI modülleri bu otel için aktif değil",
+                )
+
         if not modules.get(module_name, False):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
