@@ -255,7 +255,7 @@ const Dashboard = ({ user, tenant, modules, onLogout }) => {
     return () => clearTimeout(timer);
   }, [loadDashboardStats, loadAIBriefing]);
 
-  const modules = useMemo(() => [
+  const visibleModules = useMemo(() => [
     {
       title: t('nav.pms'),
       description: t('dashboard.propertyManagement'),
