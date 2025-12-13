@@ -995,6 +995,18 @@ function App() {
               )
             }
           />
+          <Route
+            path="/admin/tenants"
+            element={
+              isAuthenticated && user?.role === 'admin' ? (
+                <Suspense fallback={<LoadingFallback />}>
+                  <AdminTenants user={user} tenant={tenant} onLogout={handleLogout} />
+                </Suspense>
+              ) : (
+                <Navigate to="/auth" replace />
+              )
+            }
+          />
           
           {/* New 5-Star Hotel Features */}
           <Route
