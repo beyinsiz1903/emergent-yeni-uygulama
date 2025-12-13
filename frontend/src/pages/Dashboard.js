@@ -561,6 +561,21 @@ const Dashboard = ({ user, tenant, modules, onLogout }) => {
     }
   ], [t, stats]);
 
+  // Backend modül yetkilerine göre kartları filtrele
+  const filteredModules = useMemo(() => {
+    if (!modules) return visibleModules;
+
+    return visibleModules.filter((m) => {
+      // Basit eşleme: ana modülleri backend modules ile bağlıyoruz
+      if (m.path === '/pms') return modules.pms !== false;
+      if (m.path === '/reports' || m.path === '/flash-report') return modules.reports !== false;
+      if (m.path === '/invoices' || m.path === '/efatura' || m.path === '/e-fatura') return modules.invoices !== false;
+      if (m.category === 'ai' || m.path === '/ai-pms') return modules.ai !== false;
+      // Diğer modüller şimdilik her zaman görünür
+      return true;
+    });
+  }, [visibleModules, modules]);
+
   // Kategorilere göre modülleri grupla
   const categorizedModules = useMemo(() => {
     const categories = {
