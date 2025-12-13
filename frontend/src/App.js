@@ -344,7 +344,7 @@ function App() {
             path="/"
             element={
               isAuthenticated ? (
-                <Dashboard user={user} tenant={tenant} onLogout={handleLogout} />
+                <Dashboard user={user} tenant={tenant} modules={modules} onLogout={handleLogout} />
               ) : (
                 <LandingPage />
               )
@@ -364,7 +364,7 @@ function App() {
             path="/dashboard-simple"
             element={
               isAuthenticated ? (
-                <Dashboard user={user} tenant={tenant} onLogout={handleLogout} />
+                <Dashboard user={user} tenant={tenant} modules={modules} onLogout={handleLogout} />
               ) : (
                 <Navigate to="/auth" replace />
               )
