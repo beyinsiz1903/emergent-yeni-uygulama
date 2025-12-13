@@ -51,6 +51,7 @@ const AdminTenants = ({ user, tenant, onLogout }) => {
   const [saving, setSaving] = useState(false);
   const [tenants, setTenants] = useState([]);
   const [error, setError] = useState(null);
+  const [filter, setFilter] = useState('');
 
   const loadTenants = async () => {
     setLoading(true);
