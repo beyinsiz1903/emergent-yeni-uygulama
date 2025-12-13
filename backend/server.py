@@ -30068,6 +30068,38 @@ async def list_tenants(current_user: User = Depends(require_admin)):
     return {"tenants": tenants}
 
 
+@api_router.get("/admin/module-report")
+async def get_module_report(current_user: User = Depends(require_admin)):
+    """Return a flattened module/license report for all tenants.
+
+    This is optimized for UI & export use cases and avoids leaking internal Mongo fields.
+    """
+    tenants = await db.tenants.find({}, {"_id": 0}).to_list(2000)
+
+    report_rows = []
+    for tenant in tenants:
+        modules = get_tenant_modules(tenant)
+
+        row = {
+            "tenant_id": tenant.get("id"),
+            "property_name": tenant.get("property_name"),
+            "location": tenant.get("location"),
+            "subscription_tier": tenant.get("subscription_tier", "basic"),
+        }
+
+        # Flatten all known module keys
+        for key, value in modules.items():
+            try:
+                row[f"mod_{key}"] = bool(value)
+            except Exception:
+                row[f"mod_{key}"] = False
+
+        report_rows.append(row)
+
+    return {"rows": report_rows, "count": len(report_rows)}
+
+
+
 @api_router.patch("/admin/tenants/{tenant_id}/modules")
 async def update_tenant_modules(
     tenant_id: str,
