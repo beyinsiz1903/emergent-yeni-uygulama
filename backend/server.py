@@ -4320,7 +4320,8 @@ async def update_room_rate(rate_data: dict, current_user: User = Depends(get_cur
 @api_router.post("/ai-concierge/whatsapp")
 async def ai_whatsapp_concierge(
     message_data: dict,
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
+    _: None = Depends(require_module("ai_whatsapp")),
 ):
     """AI WhatsApp Concierge - Otomatik misafir hizmeti"""
     # Support both phone and guest_phone
