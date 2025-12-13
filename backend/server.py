@@ -30126,13 +30126,6 @@ async def update_tenant_modules(
 
     tenant_doc["modules"] = get_tenant_modules(tenant_doc)
     return tenant_doc
-    
-    return {
-        'logs': logs,
-        'total_count': total_count,
-        'returned_count': len(logs),
-        'skip': skip,
-        'limit': limit,
         'stats': stats
     }
 
