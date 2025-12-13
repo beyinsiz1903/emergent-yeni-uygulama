@@ -1122,10 +1122,54 @@ function App() {
           <Route path="/staff-management" element={isAuthenticated ? <Suspense fallback={<LoadingFallback />}><StaffManagement user={user} tenant={tenant} onLogout={handleLogout} /></Suspense> : <Navigate to="/auth" replace />} />
           <Route path="/guest-journey" element={isAuthenticated ? <Suspense fallback={<LoadingFallback />}><GuestJourney user={user} tenant={tenant} onLogout={handleLogout} /></Suspense> : <Navigate to="/auth" replace />} />
           <Route path="/arrival-list" element={isAuthenticated ? <Suspense fallback={<LoadingFallback />}><ArrivalList user={user} tenant={tenant} onLogout={handleLogout} /></Suspense> : <Navigate to="/auth" replace />} />
-          <Route path="/ai-whatsapp-concierge" element={isAuthenticated ? <Suspense fallback={<LoadingFallback />}><AIWhatsAppConcierge user={user} tenant={tenant} onLogout={handleLogout} /></Suspense> : <Navigate to="/auth" replace />} />
-          <Route path="/predictive-analytics" element={isAuthenticated ? <Suspense fallback={<LoadingFallback />}><PredictiveAnalytics user={user} tenant={tenant} onLogout={handleLogout} /></Suspense> : <Navigate to="/auth" replace />} />
-          <Route path="/social-media-radar" element={isAuthenticated ? <Suspense fallback={<LoadingFallback />}><SocialMediaRadar user={user} tenant={tenant} onLogout={handleLogout} /></Suspense> : <Navigate to="/auth" replace />} />
-          <Route path="/revenue-autopilot" element={isAuthenticated ? <Suspense fallback={<LoadingFallback />}><RevenueAutopilot user={user} tenant={tenant} onLogout={handleLogout} /></Suspense> : <Navigate to="/auth" replace />} />
+          <Route
+            path="/ai-whatsapp-concierge"
+            element={
+              isAuthenticated && modules?.ai_whatsapp !== false ? (
+                <Suspense fallback={<LoadingFallback />}>
+                  <AIWhatsAppConcierge user={user} tenant={tenant} onLogout={handleLogout} />
+                </Suspense>
+              ) : (
+                <Navigate to="/auth" replace />
+              )
+            }
+          />
+          <Route
+            path="/predictive-analytics"
+            element={
+              isAuthenticated && modules?.ai_predictive !== false ? (
+                <Suspense fallback={<LoadingFallback />}>
+                  <PredictiveAnalytics user={user} tenant={tenant} onLogout={handleLogout} />
+                </Suspense>
+              ) : (
+                <Navigate to="/auth" replace />
+              )
+            }
+          />
+          <Route
+            path="/social-media-radar"
+            element={
+              isAuthenticated && modules?.ai_social_radar !== false ? (
+                <Suspense fallback={<LoadingFallback />}>
+                  <SocialMediaRadar user={user} tenant={tenant} onLogout={handleLogout} />
+                </Suspense>
+              ) : (
+                <Navigate to="/auth" replace />
+              )
+            }
+          />
+          <Route
+            path="/revenue-autopilot"
+            element={
+              isAuthenticated && modules?.ai_revenue_autopilot !== false ? (
+                <Suspense fallback={<LoadingFallback />}>
+                  <RevenueAutopilot user={user} tenant={tenant} onLogout={handleLogout} />
+                </Suspense>
+              ) : (
+                <Navigate to="/auth" replace />
+              )
+            }
+          />
           <Route path="/hr-complete" element={isAuthenticated ? <Suspense fallback={<LoadingFallback />}><HRComplete user={user} tenant={tenant} onLogout={handleLogout} /></Suspense> : <Navigate to="/auth" replace />} />
           <Route path="/fnb-complete" element={isAuthenticated ? <Suspense fallback={<LoadingFallback />}><FnBComplete user={user} tenant={tenant} onLogout={handleLogout} /></Suspense> : <Navigate to="/auth" replace />} />
           <Route path="/fnb/beo-generator" element={isAuthenticated ? <Suspense fallback={<LoadingFallback />}><FnbBeoGenerator user={user} tenant={tenant} onLogout={handleLogout} /></Suspense> : <Navigate to="/auth" replace />} />
