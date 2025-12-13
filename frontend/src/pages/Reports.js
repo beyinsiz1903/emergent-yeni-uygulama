@@ -383,8 +383,9 @@ const Reports = ({ user, tenant, onLogout }) => {
         </Card>
 
         {/* Info Card */}
-        <Card className="mt-6 bg-blue-50 border-blue-200">
-          <CardContent className="pt-6 flex items-start justify-between gap-4">
+        {activeSection === 'excel' && (
+          <Card className="mt-6 bg-blue-50 border-blue-200">
+            <CardContent className="pt-6 flex items-start justify-between gap-4">
             <div className="flex gap-3 flex-1">
               <FileText className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
               <div>
