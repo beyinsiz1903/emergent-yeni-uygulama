@@ -1590,15 +1590,15 @@ backend:
 frontend:
   - task: "Login Flow with Demo User"
     implemented: true
-    working: "NA"
+    working: true
     file: "/app/frontend/src/pages/AuthPage.js"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
-        - working: "NA"
+        - working: true
           agent: "testing"
-          comment: "Need to test login with demo@hotel.com / demo123 credentials"
+          comment: "✅ Login flow working perfectly. Successfully logged in with demo@hotel.com / demo123 credentials. Redirected from landing page to dashboard after authentication."
 
   - task: "Dashboard Module Cards Display (All Modules Open)"
     implemented: true
