@@ -365,7 +365,7 @@ function App() {
           <Route
             path="/gm-classic"
             element={
-              isAuthenticated ? (
+              isAuthenticated && modules?.gm_dashboards !== false ? (
                 <GMDashboard user={user} tenant={tenant} onLogout={handleLogout} />
               ) : (
                 <Navigate to="/auth" replace />
