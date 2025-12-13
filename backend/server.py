@@ -46757,7 +46757,8 @@ async def get_anomaly_alerts(
 # 1. GET /api/gm/team-performance - Team performance metrics
 @api_router.get("/gm/team-performance")
 async def get_team_performance(
-    credentials: HTTPAuthorizationCredentials = Depends(security)
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+    _: None = Depends(require_module("gm_dashboards")),
 ):
     """
     Get team performance metrics by department
