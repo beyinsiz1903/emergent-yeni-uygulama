@@ -8,7 +8,9 @@ import { Button } from '@/components/ui/button';
 const MODULE_KEYS = [
   // PMS ve çekirdek modüller
   { key: 'pms', label: 'PMS (Masaüstü)' },
-  { key: 'pms_mobile', label: 'PMS Mobil & Mobil Uygulamalar' },
+  { key: 'pms_mobile', label: 'PMS Mobil Ana Erişim' },
+  { key: 'mobile_housekeeping', label: 'Mobil Housekeeping' },
+  { key: 'mobile_revenue', label: 'Mobil Revenue' },
   { key: 'gm_dashboards', label: 'GM & Executive Dashboardlar' },
 
   // Raporlama & Finans
