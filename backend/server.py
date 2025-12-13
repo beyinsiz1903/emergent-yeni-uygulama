@@ -5873,6 +5873,112 @@ async def get_flash_report(
                 '$lte': today_end.isoformat()
             }
         }, {'_id': 0, 'total_amount': 1}).to_list(1000)
+
+
+@api_router.get("/reports/official-guest-list")
+async def get_official_guest_list(
+    date: Optional[str] = None,
+    current_user: User = Depends(get_current_user),
+    _: None = Depends(require_module("reports")),
+):
+    """Resmi misafir listesi (Maliye / resmi denetimler için).
+
+    Verilen tarihte (veya bugün) otelde konaklayan tüm misafirleri ve konaklama
+    bilgilerini döner. Check-in <= tarih <= Check-out koşulunu kullanır.
+    """
+    target_date = datetime.now(timezone.utc).date() if not date else datetime.fromisoformat(date).date()
+
+    # Tarihi gün başlangıç/bitiş aralığına çevir
+    day_start = datetime.combine(target_date, datetime.min.time()).replace(tzinfo=timezone.utc)
+    day_end = datetime.combine(target_date, datetime.max.time()).replace(tzinfo=timezone.utc)
+
+    # İlgili tarihte otelde konaklayan rezervasyonlar
+    bookings_cursor = db.bookings.find(
+        {
+            'tenant_id': current_user.tenant_id,
+            'check_in': {'$lte': day_end.isoformat()},
+            'check_out': {'$gte': day_start.isoformat()},
+            'status': {'$nin': ['cancelled', 'no_show']},
+        },
+        {
+            '_id': 0,
+            'id': 1,
+            'guest_id': 1,
+            'guest_name': 1,
+            'room_number': 1,
+            'room_id': 1,
+            'check_in': 1,
+            'check_out': 1,
+            'adults': 1,
+            'children': 1,
+            'total_amount': 1,
+            'billing_tax_number': 1,
+            'billing_address': 1,
+            'company_id': 1,
+            'market_segment': 1,
+        },
+    )
+
+    bookings = await bookings_cursor.to_list(5000)
+
+    # Misafir bilgilerini toplamak için guest_id set'i
+    guest_ids = {b['guest_id'] for b in bookings if b.get('guest_id')}
+
+    guests_by_id = {}
+    if guest_ids:
+        guests_cursor = db.guests.find(
+            {'tenant_id': current_user.tenant_id, 'id': {'$in': list(guest_ids)}},
+            {
+                '_id': 0,
+                'id': 1,
+                'first_name': 1,
+                'last_name': 1,
+                'national_id': 1,
+                'passport_number': 1,
+                'country': 1,
+                'city': 1,
+                'date_of_birth': 1,
+            },
+        )
+        guest_docs = await guests_cursor.to_list(5000)
+        guests_by_id = {g['id']: g for g in guest_docs}
+
+    rows = []
+    for b in bookings:
+        g = guests_by_id.get(b.get('guest_id'))
+
+        full_name = b.get('guest_name')
+        if not full_name and g:
+            full_name = f"{g.get('first_name', '')} {g.get('last_name', '')}".strip()
+
+        row = {
+            'booking_id': b.get('id'),
+            'guest_name': full_name,
+            'national_id': (g or {}).get('national_id'),
+            'passport_number': (g or {}).get('passport_number'),
+            'country': (g or {}).get('country'),
+            'city': (g or {}).get('city'),
+            'date_of_birth': (g or {}).get('date_of_birth'),
+            'room_number': b.get('room_number'),
+            'check_in': b.get('check_in'),
+            'check_out': b.get('check_out'),
+            'adults': b.get('adults', 1),
+            'children': b.get('children', 0),
+            'total_amount': b.get('total_amount', 0.0),
+            'billing_tax_number': b.get('billing_tax_number'),
+            'billing_address': b.get('billing_address'),
+            'company_id': b.get('company_id'),
+            'market_segment': b.get('market_segment'),
+        }
+
+        rows.append(row)
+
+    return {
+        'date': target_date.isoformat(),
+        'count': len(rows),
+        'rows': rows,
+    }
+
         fnb_revenue = sum([o.get('total_amount', 0) for o in fnb_orders])
     except:
         pass
