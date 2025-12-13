@@ -1414,7 +1414,15 @@ agent_communication:
 #====================================================================================================
 
 user_problem_statement: |
-  Syroce - Modern Hotel PMS Logo Integration & Demo User Setup
+  Otel Bazlı Modül Yetkilendirme Frontend UI Testleri
+  
+  HEDEF SENARYOLAR:
+  1) Genel Kontroller - Login sayfası üzerinden demo kullanıcı ile giriş yap (demo@hotel.com / demo123)
+  2) Tüm modüller açık senaryosu (varsayılan tenant) - Dashboard'ta PMS, Raporlar, Faturalar, AI, Mobil, GM kartlarının görünümü
+  3) Modüller kısıtlı senaryo - Admin üzerinden konfigüre et ve UI davranışlarını test et
+  4) Admin / Otel Yönetimi sayfası - /admin/tenants sayfasında modül switch'lerinin çalışması
+  
+  Previous: Syroce - Modern Hotel PMS Logo Integration & Demo User Setup
   
   COMPLETED:
   1. Logo Design & Integration - Modern minimal logo (blue-turkuaz gradient, S + hotel roof)
