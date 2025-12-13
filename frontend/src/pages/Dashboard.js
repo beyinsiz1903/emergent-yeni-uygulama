@@ -587,7 +587,7 @@ const Dashboard = ({ user, tenant, modules, onLogout }) => {
       management: { title: '📊 Management & Reports', color: 'indigo', modules: [] }
     };
 
-    modules.forEach(module => {
+    filteredModules.forEach(module => {
       const category = module.category || 'core';
       if (categories[category]) {
         categories[category].modules.push(module);
