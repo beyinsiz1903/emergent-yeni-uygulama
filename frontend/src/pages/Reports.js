@@ -410,9 +410,11 @@ const Reports = ({ user, tenant, onLogout }) => {
               </Button>
             </div>
           </CardContent>
-        </Card>
+          </Card>
+        )}
 
         {/* Night Audit Section */}
+        {activeSection === 'night_audit' && (
         <div className="mt-10">
           <h2 className="text-xl font-semibold text-gray-900 mb-4 flex items-center gap-2">
             <Calendar className="w-5 h-5 text-blue-600" />
