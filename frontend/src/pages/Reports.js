@@ -162,17 +162,46 @@ const Reports = ({ user, tenant, onLogout }) => {
           <p className="text-gray-600">Select and download comprehensive reports in Excel format</p>
         </div>
 
-        {/* Add Report Button */}
-        <div className="mb-6">
-          {!showSelector ? (
-            <Button 
-              onClick={() => setShowSelector(true)}
-              className="bg-blue-600 hover:bg-blue-700"
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              Add Report to Download
-            </Button>
-          ) : (
+        {/* Section Tabs */}
+        <div className="mb-4 flex gap-2 border-b pb-2 text-sm">
+          <button
+            type="button"
+            onClick={() => setActiveSection('excel')}
+            className={`px-3 py-1 rounded-t-md border-b-2 text-xs md:text-sm ${
+              activeSection === 'excel'
+                ? 'border-blue-600 text-blue-700 font-semibold'
+                : 'border-transparent text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            Excel Raporları
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveSection('night_audit')}
+            className={`px-3 py-1 rounded-t-md border-b-2 text-xs md:text-sm ${
+              activeSection === 'night_audit'
+                ? 'border-blue-600 text-blue-700 font-semibold'
+                : 'border-transparent text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            Night Audit
+          </button>
+        </div>
+
+        {/* Excel Reports Section */}
+        {activeSection === 'excel' && (
+          <>
+            {/* Add Report Button */}
+            <div className="mb-6">
+              {!showSelector ? (
+                <Button 
+                  onClick={() => setShowSelector(true)}
+                  className="bg-blue-600 hover:bg-blue-700"
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add Report to Download
+                </Button>
+              ) : (
             <Card className="border-2 border-blue-500">
               <CardHeader>
                 <div className="flex items-center justify-between">
