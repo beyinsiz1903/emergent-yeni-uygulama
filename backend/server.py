@@ -48961,6 +48961,60 @@ async def get_corporate_rates(
     }
 
 
+@api_router.get("/corporate/rate-plans")
+async def get_corporate_rate_plans(
+    company_id: Optional[str] = None,
+    current_user: User = Depends(get_current_user)
+):
+    """Get corporate rate plans"""
+    # Get rate plans from database
+    query = {'tenant_id': current_user.tenant_id}
+    if company_id:
+        query['company_id'] = company_id
+    
+    rate_plans = await db.corporate_rate_plans.find(query, {'_id': 0}).to_list(100)
+    
+    # If no data, return mock data for UI
+    if not rate_plans:
+        rate_plans = [
+            {
+                'id': str(uuid.uuid4()),
+                'company_name': 'Tech Solutions Ltd.',
+                'plan_name': 'Standard Corporate Plan',
+                'room_type': 'Standard',
+                'discount_percentage': 25,
+                'base_rate': 2000,
+                'contract_rate': 1500,
+                'min_nights': 1,
+                'max_nights': 30,
+                'valid_from': '2025-01-01',
+                'valid_until': '2025-12-31',
+                'blackout_dates': [],
+                'status': 'active'
+            },
+            {
+                'id': str(uuid.uuid4()),
+                'company_name': 'Finance Corp',
+                'plan_name': 'Executive Plan',
+                'room_type': 'Deluxe',
+                'discount_percentage': 20,
+                'base_rate': 2800,
+                'contract_rate': 2240,
+                'min_nights': 2,
+                'max_nights': 14,
+                'valid_from': '2025-01-01',
+                'valid_until': '2025-12-31',
+                'blackout_dates': ['2025-12-24', '2025-12-31'],
+                'status': 'active'
+            }
+        ]
+    
+    return {
+        'rate_plans': rate_plans,
+        'count': len(rate_plans)
+    }
+
+
 # 4. GET /api/corporate/alerts - Contract expiry alerts
 @api_router.get("/corporate/alerts")
 async def get_corporate_alerts(
