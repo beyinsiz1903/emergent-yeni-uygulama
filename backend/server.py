@@ -12151,15 +12151,6 @@ async def export_channel_distribution_excel(
     filename = f"channel_distribution_{start_date}_to_{end_date}.xlsx"
     return excel_response(wb, filename)
 
-            'amount': round(mtd_collections, 2),
-            'collection_rate_percentage': round(collection_rate, 2)
-        },
-        'accounting_invoices': {
-            'pending_count': pending_invoice_count,
-            'pending_total': round(pending_invoice_total, 2)
-        }
-    }
-
 
 @api_router.get("/pos/auto-post-settings")
 @cached(ttl=600, key_prefix="pos_auto_post")  # Cache for 10 min
