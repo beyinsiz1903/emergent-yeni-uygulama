@@ -69,10 +69,8 @@ const AuthPage = ({ onLogin }) => {
       // Then call onLogin
       onLogin(response.data.access_token, response.data.user, response.data.tenant);
       
-      // Force full page reload to home
-      setTimeout(() => {
-        window.location.href = '/';
-      }, 300);
+      // Navigate using React Router instead of full page reload
+      navigate('/');
     } catch (error) {
       console.error('❌ Login error:', error);
       console.error('Error response:', error.response);
@@ -89,10 +87,8 @@ const AuthPage = ({ onLogin }) => {
       const response = await axios.post('/auth/login', guestLoginData);
       toast.success('Welcome back!');
       onLogin(response.data.access_token, response.data.user, response.data.tenant);
-      // Force full page reload to ensure state is updated
-      setTimeout(() => {
-        window.location.href = '/guest-portal';
-      }, 500);
+      // Navigate using React Router
+      navigate('/guest-portal');
     } catch (error) {
       toast.error(error.response?.data?.detail || 'Login failed');
     } finally {
@@ -109,10 +105,8 @@ const AuthPage = ({ onLogin }) => {
       console.log('✅ Register response:', response.data);
       toast.success('Registration successful!');
       onLogin(response.data.access_token, response.data.user, response.data.tenant);
-      // Force full page reload to ensure state is updated
-      setTimeout(() => {
-        window.location.href = '/';
-      }, 500);
+      // Navigate using React Router
+      navigate('/');
     } catch (error) {
       console.error('❌ Registration error:', error);
       console.error('❌ Error response:', error.response?.data);
@@ -129,10 +123,8 @@ const AuthPage = ({ onLogin }) => {
       const response = await axios.post('/auth/register-guest', guestRegisterData);
       toast.success('Account created! Welcome!');
       onLogin(response.data.access_token, response.data.user, response.data.tenant);
-      // Force full page reload to ensure state is updated
-      setTimeout(() => {
-        window.location.href = '/guest-portal';
-      }, 500);
+      // Navigate using React Router
+      navigate('/guest-portal');
     } catch (error) {
       toast.error(error.response?.data?.detail || 'Registration failed');
     } finally {
