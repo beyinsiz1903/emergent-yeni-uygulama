@@ -4,8 +4,11 @@ import Layout from '@/components/Layout';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from '@/components/ui/tooltip';
 import { Link } from 'react-router-dom';
+import { Calendar, Clock } from 'lucide-react';
 
 const MODULE_GROUPS = [
   {
