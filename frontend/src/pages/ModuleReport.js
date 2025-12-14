@@ -4,6 +4,9 @@ import Layout from '@/components/Layout';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 
 const BOOL_ICON = (val) => (val ? '✅' : '❌');
 
@@ -14,6 +17,18 @@ const ModuleReport = ({ user, tenant, onLogout }) => {
   const [filter, setFilter] = useState('');
   const [onlyWithAI, setOnlyWithAI] = useState(false);
   const [onlyWithoutInvoices, setOnlyWithoutInvoices] = useState(false);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const [createForm, setCreateForm] = useState({
+    property_name: '',
+    email: '',
+    password: '',
+    name: '',
+    phone: '',
+    address: '',
+    location: '',
+    description: ''
+  });
 
   const loadReport = async () => {
     setLoading(true);
@@ -46,6 +61,34 @@ const ModuleReport = ({ user, tenant, onLogout }) => {
       return true;
     });
   }, [rows, filter, onlyWithAI, onlyWithoutInvoices]);
+
+  const handleCreateTenant = async (e) => {
+    e.preventDefault();
+    setCreating(true);
+    setError(null);
+    
+    try {
+      await axios.post('/admin/tenants', createForm);
+      setShowCreateModal(false);
+      setCreateForm({
+        property_name: '',
+        email: '',
+        password: '',
+        name: '',
+        phone: '',
+        address: '',
+        location: '',
+        description: ''
+      });
+      await loadReport(); // Reload list
+      alert('Otel başarıyla oluşturuldu!');
+    } catch (err) {
+      console.error('Failed to create tenant', err);
+      setError(err.response?.data?.detail || 'Otel oluşturulurken bir hata oluştu');
+    } finally {
+      setCreating(false);
+    }
+  };
 
   const handleExportCsv = () => {
     if (!filteredRows.length) return;
@@ -123,6 +166,132 @@ const ModuleReport = ({ user, tenant, onLogout }) => {
             </p>
           </div>
           <div className="flex flex-col md:flex-row gap-2 md:items-center">
+            <Dialog open={showCreateModal} onOpenChange={setShowCreateModal}>
+              <DialogTrigger asChild>
+                <Button variant="default" size="sm" className="text-xs bg-blue-600 hover:bg-blue-700 text-white">
+                  ➕ Yeni Otel Oluştur
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                <DialogHeader>
+                  <DialogTitle>Yeni Otel Oluştur</DialogTitle>
+                </DialogHeader>
+                <form onSubmit={handleCreateTenant} className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="property_name">Otel Adı *</Label>
+                      <Input
+                        id="property_name"
+                        required
+                        value={createForm.property_name}
+                        onChange={(e) => setCreateForm({ ...createForm, property_name: e.target.value })}
+                        placeholder="Örn: Grand Hotel İstanbul"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="location">Lokasyon</Label>
+                      <Input
+                        id="location"
+                        value={createForm.location}
+                        onChange={(e) => setCreateForm({ ...createForm, location: e.target.value })}
+                        placeholder="Örn: İstanbul, Türkiye"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="address">Adres *</Label>
+                    <Input
+                      id="address"
+                      required
+                      value={createForm.address}
+                      onChange={(e) => setCreateForm({ ...createForm, address: e.target.value })}
+                      placeholder="Otel adresi"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="description">Açıklama</Label>
+                    <Input
+                      id="description"
+                      value={createForm.description}
+                      onChange={(e) => setCreateForm({ ...createForm, description: e.target.value })}
+                      placeholder="Otel hakkında kısa bilgi"
+                    />
+                  </div>
+
+                  <div className="border-t pt-4 mt-4">
+                    <h3 className="font-semibold mb-3">Admin Kullanıcı Bilgileri</h3>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="name">Admin Adı *</Label>
+                        <Input
+                          id="name"
+                          required
+                          value={createForm.name}
+                          onChange={(e) => setCreateForm({ ...createForm, name: e.target.value })}
+                          placeholder="Örn: Ahmet Yılmaz"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="phone">Telefon *</Label>
+                        <Input
+                          id="phone"
+                          required
+                          value={createForm.phone}
+                          onChange={(e) => setCreateForm({ ...createForm, phone: e.target.value })}
+                          placeholder="+90 5XX XXX XX XX"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4 mt-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="email">Email *</Label>
+                        <Input
+                          id="email"
+                          type="email"
+                          required
+                          value={createForm.email}
+                          onChange={(e) => setCreateForm({ ...createForm, email: e.target.value })}
+                          placeholder="admin@otel.com"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="password">Şifre *</Label>
+                        <Input
+                          id="password"
+                          type="password"
+                          required
+                          value={createForm.password}
+                          onChange={(e) => setCreateForm({ ...createForm, password: e.target.value })}
+                          placeholder="En az 6 karakter"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {error && (
+                    <div className="p-3 rounded-md bg-red-50 text-red-700 text-sm">{error}</div>
+                  )}
+
+                  <div className="flex justify-end gap-2 pt-4">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setShowCreateModal(false)}
+                      disabled={creating}
+                    >
+                      İptal
+                    </Button>
+                    <Button type="submit" disabled={creating}>
+                      {creating ? 'Oluşturuluyor...' : 'Otel Oluştur'}
+                    </Button>
+                  </div>
+                </form>
+              </DialogContent>
+            </Dialog>
+
             <input
               type="text"
               placeholder="Otel adı veya lokasyona göre filtrele..."
