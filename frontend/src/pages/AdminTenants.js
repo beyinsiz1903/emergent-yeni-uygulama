@@ -187,6 +187,35 @@ const AdminTenants = ({ user, tenant, onLogout }) => {
                     {t.location && (
                       <p className="text-xs text-gray-500 mt-1">{t.location}</p>
                     )}
+                    <div className="text-xs text-gray-600 mt-2 space-y-1">
+                      <div className="flex items-center gap-1">
+                        <Calendar className="w-3 h-3" />
+                        <span>Başlangıç: {t.subscription_start_date ? new Date(t.subscription_start_date).toLocaleDateString('tr-TR') : 'Belirlenmemiş'}</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <Clock className="w-3 h-3" />
+                        <span>Bitiş: {t.subscription_end_date ? new Date(t.subscription_end_date).toLocaleDateString('tr-TR') : 'Sınırsız'}</span>
+                      </div>
+                      {t.subscription_end_date && (
+                        <div className="mt-1">
+                          <span className={`text-xs px-2 py-0.5 rounded ${
+                            new Date(t.subscription_end_date) > new Date() 
+                              ? 'bg-green-100 text-green-700' 
+                              : 'bg-red-100 text-red-700'
+                          }`}>
+                            {new Date(t.subscription_end_date) > new Date() ? '✅ Aktif' : '⚠️ Süresi Dolmuş'}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
+                      className="w-full mt-2"
+                      onClick={() => openSubscriptionModal(t)}
+                    >
+                      📅 Üyelik Süresini Güncelle
+                    </Button>
                   </CardHeader>
                   <CardContent className="pt-0 flex-1 flex flex-col gap-4">
                     {MODULE_GROUPS.map((group) => (
