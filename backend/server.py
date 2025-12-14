@@ -30874,10 +30874,60 @@ async def get_maintenance_prediction_logs(
 
 # ============= SUBSCRIPTION & PRICING ENDPOINTS =============
 
+class SubscriptionUpdateRequest(BaseModel):
+    """Subscription duration update request"""
+    subscription_days: Optional[int] = None  # None = unlimited
+
 from subscription_models import (
     SubscriptionTier, SubscriptionPlan, SUBSCRIPTION_PLANS,
     has_feature_access, get_feature_comparison, FeatureFlag
 )
+
+
+@api_router.patch("/admin/tenants/{tenant_id}/subscription")
+async def update_tenant_subscription(
+    tenant_id: str,
+    payload: SubscriptionUpdateRequest,
+    current_user: User = Depends(require_super_admin)
+):
+    """Update subscription duration for a tenant (SUPER ADMIN only)"""
+    
+    # Find tenant
+    tenant = await db.tenants.find_one({"id": tenant_id})
+    if not tenant:
+        raise HTTPException(status_code=404, detail="Otel bulunamadı")
+    
+    # Calculate new dates
+    start_date = datetime.now(timezone.utc)
+    end_date = None
+    
+    if payload.subscription_days:
+        end_date = start_date + timedelta(days=payload.subscription_days)
+    
+    # Update tenant
+    update_data = {
+        "subscription_start_date": start_date.isoformat(),
+        "subscription_end_date": end_date.isoformat() if end_date else None,
+        "subscription_status": "active"
+    }
+    
+    result = await db.tenants.update_one(
+        {"id": tenant_id},
+        {"$set": update_data}
+    )
+    
+    if result.modified_count == 0:
+        raise HTTPException(status_code=400, detail="Subscription güncellenemedi")
+    
+    return {
+        "success": True,
+        "message": "Üyelik süresi başarıyla güncellendi",
+        "tenant_id": tenant_id,
+        "subscription_start": start_date.isoformat(),
+        "subscription_end": end_date.isoformat() if end_date else "Sınırsız",
+        "subscription_days": payload.subscription_days or "Sınırsız"
+    }
+
 
 @api_router.get("/subscription/plans")
 async def get_subscription_plans():
