@@ -11982,6 +11982,18 @@ async def export_forecast_detail_excel(
             row['nights'],
             round(row['revenue'], 2),
             round(adr, 2),
+        ])
+
+    title = f"Revenue Detail {start_date} to {end_date}"
+    wb = create_excel_workbook(
+        title=title,
+        headers=headers,
+        data=data,
+        sheet_name="Revenue Detail",
+    )
+
+    filename = f"revenue_detail_{start_date}_to_{end_date}.xlsx"
+    return excel_response(wb, filename)
 
 
 @api_router.get("/reports/operations-daily-summary/excel")
