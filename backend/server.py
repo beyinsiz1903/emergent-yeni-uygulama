@@ -12047,27 +12047,7 @@ async def export_operations_daily_summary_excel(
     filename = f"operations_daily_summary_{target.date().isoformat()}.xlsx"
     return excel_response(wb, filename)
 
-        ])
-
-    title = f"Revenue Detail {start_date} to {end_date}"
-    wb = create_excel_workbook(
-        title=title,
-        headers=headers,
-        data=data,
-        sheet_name="Revenue Detail",
-    )
-
-    filename = f"revenue_detail_{start_date}_to_{end_date}.xlsx"
-    return excel_response(wb, filename)
-
-        'tenant_id': current_user.tenant_id,
-        'processed_at': {
-            '$gte': month_start_dt.isoformat(),
-            '$lte': today_end.isoformat()
-        }
-    }).to_list(10000)
-    
-    mtd_collections = sum(payment.get('amount', 0) for payment in mtd_payments)
+ 
     
     # 4. Calculate Collection Rate (MTD Collections / MTD Revenue)
     mtd_charges = await db.folio_charges.find({
