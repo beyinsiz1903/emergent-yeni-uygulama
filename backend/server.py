@@ -142,7 +142,8 @@ security = HTTPBearer()
 # ============= ENUMS =============
 
 class UserRole(str, Enum):
-    ADMIN = "admin"  # Full access - Owner/IT
+    SUPER_ADMIN = "super_admin"  # Platform admin - can manage all hotels
+    ADMIN = "admin"  # Full access - Owner/IT (single hotel)
     SUPERVISOR = "supervisor"  # Management oversight
     FRONT_DESK = "front_desk"  # Reservations, check-in/out
     HOUSEKEEPING = "housekeeping"  # Room status, tasks
@@ -2445,10 +2446,27 @@ def require_module(module_name: str):
 
 async def require_admin(current_user: User = Depends(get_current_user)) -> User:
     """Allow only admin users (otel yöneticileri) to access admin endpoints."""
-    if current_user.role != UserRole.ADMIN:
+    if current_user.role != UserRole.ADMIN and current_user.role != UserRole.SUPER_ADMIN:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Bu işlemi sadece yönetici kullanıcılar yapabilir",
+        )
+    return current_user
+
+
+async def require_super_admin(current_user: User = Depends(get_current_user)) -> User:
+    """Allow only super admin users (platform yöneticileri) to access super admin endpoints.
+    
+    Super admin can:
+    - View all hotels/tenants
+    - Create new hotels
+    - Manage module subscriptions for all hotels
+    - View system-wide reports
+    """
+    if current_user.role != UserRole.SUPER_ADMIN:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Bu işlemi sadece platform yöneticileri yapabilir",
         )
     return current_user
 
@@ -30606,11 +30624,11 @@ class TenantModulesUpdate(BaseModel):
 
 
 @api_router.get("/admin/tenants")
-async def list_tenants(current_user: User = Depends(require_admin)):
-    """List all hotels/tenants for super admin users.
+async def list_tenants(current_user: User = Depends(require_super_admin)):
+    """List all hotels/tenants for super admin users ONLY.
 
-    NOTE: Şu anda super admin mantığı UserRole.ADMIN üzerinden çalışıyor.
-    İleride isterseniz ayrı bir süper admin rolü ekleyebiliriz.
+    NOTE: Sadece SUPER_ADMIN rolüne sahip kullanıcılar tüm otelleri görebilir.
+    Normal ADMIN kullanıcılar (hotel yöneticileri) bu endpoint'e erişemez.
     """
     tenants = await db.tenants.find({}, {"_id": 0}).to_list(1000)
 
@@ -30622,9 +30640,10 @@ async def list_tenants(current_user: User = Depends(require_admin)):
 
 
 @api_router.get("/admin/module-report")
-async def get_module_report(current_user: User = Depends(require_admin)):
+async def get_module_report(current_user: User = Depends(require_super_admin)):
     """Return a flattened module/license report for all tenants.
 
+    ONLY for SUPER_ADMIN - shows all hotels in the system.
     This is optimized for UI & export use cases and avoids leaking internal Mongo fields.
     """
     tenants = await db.tenants.find({}, {"_id": 0}).to_list(2000)
@@ -30655,9 +30674,9 @@ async def get_module_report(current_user: User = Depends(require_admin)):
 @api_router.post("/admin/tenants")
 async def create_tenant(
     payload: TenantRegister,
-    current_user: User = Depends(require_admin)
+    current_user: User = Depends(require_super_admin)
 ):
-    """Create a new hotel/tenant (Admin only)"""
+    """Create a new hotel/tenant (SUPER ADMIN only)"""
     
     # Check if tenant with same email already exists
     existing = await db.tenants.find_one({"email": payload.email})
@@ -30709,9 +30728,9 @@ async def create_tenant(
 async def update_tenant_modules(
     tenant_id: str,
     payload: TenantModulesUpdate,
-    current_user: User = Depends(require_admin),
+    current_user: User = Depends(require_super_admin),
 ):
-    """Update enabled modules for a specific hotel.
+    """Update enabled modules for a specific hotel (SUPER ADMIN only).
 
     Body örneği:
     {
