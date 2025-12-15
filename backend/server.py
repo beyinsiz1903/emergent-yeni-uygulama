@@ -2480,33 +2480,35 @@ async def require_super_admin(current_user: User = Depends(get_current_user)) ->
 
 # ============= AUTH ENDPOINTS =============
 
+class MakeSuperAdminRequest(BaseModel):
+    """Request to make a user super admin"""
+    email: str
+    setup_password: str
+
 @api_router.post("/setup/make-super-admin")
-async def setup_make_super_admin(
-    email: str,
-    setup_password: str = "EMERGENT_SUPER_SETUP_2024"
-):
+async def setup_make_super_admin(request: MakeSuperAdminRequest):
     """One-time setup: Make any user super_admin
     
-    ONLY USE FOR INITIAL SETUP! Remove after first use.
+    ONLY USE FOR INITIAL SETUP!
     Default password: EMERGENT_SUPER_SETUP_2024
     """
     # Security check
-    if setup_password != "EMERGENT_SUPER_SETUP_2024":
+    if request.setup_password != "EMERGENT_SUPER_SETUP_2024":
         raise HTTPException(status_code=403, detail="Invalid setup password")
     
     # Update ALL users with this email to super_admin (all tenants)
     result = await db.users.update_many(
-        {"email": email},
+        {"email": request.email},
         {"$set": {"role": "super_admin"}}
     )
     
     if result.matched_count == 0:
-        raise HTTPException(status_code=404, detail=f"No user found with email: {email}")
+        raise HTTPException(status_code=404, detail=f"No user found with email: {request.email}")
     
     return {
         "success": True,
         "message": f"Updated {result.modified_count} user(s) to super_admin",
-        "email": email,
+        "email": request.email,
         "updated_count": result.modified_count
     }
 
