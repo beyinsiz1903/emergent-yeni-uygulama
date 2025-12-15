@@ -255,7 +255,12 @@ function App() {
   }, []);
 
   const handleLogin = (token, userData, tenantData) => {
-    console.log('🔐 handleLogin called with:', { token: token?.substring(0, 20) + '...', userData, tenantData });
+    console.log('🔐 handleLogin called with:', { 
+      token: token?.substring(0, 20) + '...', 
+      userData: userData,
+      userRole: userData?.role,
+      tenantData: tenantData 
+    });
     
     // IMPORTANT: Clear old data first to prevent stale data
     localStorage.clear();

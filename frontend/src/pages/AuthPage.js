@@ -57,7 +57,9 @@ const AuthPage = ({ onLogin }) => {
       console.log('🔐 Attempting login with:', hotelLoginData);
       console.log('📡 Axios baseURL:', axios.defaults.baseURL);
       const response = await axios.post('/auth/login', hotelLoginData);
-      console.log('✅ Login successful:', response.data);
+      console.log('✅ Login successful - FULL RESPONSE:', response.data);
+      console.log('👤 User object from backend:', response.data.user);
+      console.log('🎭 User role from backend:', response.data.user?.role);
       
       // Store auth data first
       localStorage.setItem('token', response.data.access_token);
