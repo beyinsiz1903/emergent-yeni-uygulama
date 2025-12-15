@@ -2480,6 +2480,37 @@ async def require_super_admin(current_user: User = Depends(get_current_user)) ->
 
 # ============= AUTH ENDPOINTS =============
 
+@api_router.post("/setup/make-super-admin")
+async def setup_make_super_admin(
+    email: str,
+    setup_password: str = "EMERGENT_SUPER_SETUP_2024"
+):
+    """One-time setup: Make any user super_admin
+    
+    ONLY USE FOR INITIAL SETUP! Remove after first use.
+    Default password: EMERGENT_SUPER_SETUP_2024
+    """
+    # Security check
+    if setup_password != "EMERGENT_SUPER_SETUP_2024":
+        raise HTTPException(status_code=403, detail="Invalid setup password")
+    
+    # Update ALL users with this email to super_admin (all tenants)
+    result = await db.users.update_many(
+        {"email": email},
+        {"$set": {"role": "super_admin"}}
+    )
+    
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail=f"No user found with email: {email}")
+    
+    return {
+        "success": True,
+        "message": f"Updated {result.modified_count} user(s) to super_admin",
+        "email": email,
+        "updated_count": result.modified_count
+    }
+
+
 @api_router.post("/auth/register", response_model=TokenResponse)
 async def register_tenant(data: TenantRegister):
     existing = await db.users.find_one({'email': data.email})
