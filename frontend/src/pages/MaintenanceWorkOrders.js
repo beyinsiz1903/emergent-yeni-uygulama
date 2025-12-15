@@ -183,7 +183,7 @@ const MaintenanceWorkOrders = ({ user, tenant, onLogout }) => {
   };
 
   return (
-    <Layout user={user} tenant={tenant} onLogout={onLogout} currentModule="pms">
+    <Layout user={user} tenant={tenant} onLogout={onLogout} currentModule="maintenance">
       <div className="p-4 md:p-6 max-w-6xl mx-auto space-y-4">
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
