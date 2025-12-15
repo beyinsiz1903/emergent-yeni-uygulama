@@ -30742,6 +30742,74 @@ async def create_tenant(
     }
 
 
+@api_router.get("/admin/users")
+async def list_all_users(
+    email_filter: Optional[str] = None,
+    role_filter: Optional[str] = None,
+    tenant_id_filter: Optional[str] = None,
+    current_user: User = Depends(require_super_admin)
+):
+    """List all users in the system (SUPER ADMIN only)"""
+    
+    query = {}
+    if email_filter:
+        query['email'] = {'$regex': email_filter, '$options': 'i'}
+    if role_filter:
+        query['role'] = role_filter
+    if tenant_id_filter:
+        query['tenant_id'] = tenant_id_filter
+    
+    users = await db.users.find(query, {'_id': 0, 'hashed_password': 0, 'password_hash': 0}).to_list(100)
+    
+    return {
+        "users": users,
+        "count": len(users)
+    }
+
+
+@api_router.patch("/admin/users/{user_id}/role")
+async def update_user_role(
+    user_id: str,
+    payload: UpdateUserRoleRequest,
+    current_user: User = Depends(require_super_admin)
+):
+    """Update user role (SUPER ADMIN only)
+    
+    Allows super admin to change any user's role including making other super admins.
+    """
+    
+    # Validate role
+    valid_roles = [role.value for role in UserRole]
+    if payload.role not in valid_roles:
+        raise HTTPException(
+            status_code=400, 
+            detail=f"Invalid role. Valid roles: {', '.join(valid_roles)}"
+        )
+    
+    # Find user
+    target_user = await db.users.find_one({"id": user_id})
+    if not target_user:
+        raise HTTPException(status_code=404, detail="Kullanıcı bulunamadı")
+    
+    # Update role
+    result = await db.users.update_one(
+        {"id": user_id},
+        {"$set": {"role": payload.role}}
+    )
+    
+    if result.modified_count == 0:
+        raise HTTPException(status_code=400, detail="Role güncellenemedi")
+    
+    return {
+        "success": True,
+        "message": f"Kullanıcı role'ü başarıyla güncellendi: {payload.role}",
+        "user_id": user_id,
+        "user_email": target_user.get('email'),
+        "old_role": target_user.get('role'),
+        "new_role": payload.role
+    }
+
+
 @api_router.patch("/admin/tenants/{tenant_id}/modules")
 async def update_tenant_modules(
     tenant_id: str,
