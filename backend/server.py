@@ -49151,7 +49151,7 @@ async def get_corporate_rate_plans(
     company_id: Optional[str] = None,
     current_user: User = Depends(get_current_user)
 ):
-    """Get corporate rate plans"""
+    """Get corporate rate plans - REAL DATA from database"""
     # Get rate plans from database
     query = {'tenant_id': current_user.tenant_id}
     if company_id:
@@ -49159,41 +49159,7 @@ async def get_corporate_rate_plans(
     
     rate_plans = await db.corporate_rate_plans.find(query, {'_id': 0}).to_list(100)
     
-    # If no data, return mock data for UI
-    if not rate_plans:
-        rate_plans = [
-            {
-                'id': str(uuid.uuid4()),
-                'company_name': 'Tech Solutions Ltd.',
-                'plan_name': 'Standard Corporate Plan',
-                'room_type': 'Standard',
-                'discount_percentage': 25,
-                'base_rate': 2000,
-                'contract_rate': 1500,
-                'min_nights': 1,
-                'max_nights': 30,
-                'valid_from': '2025-01-01',
-                'valid_until': '2025-12-31',
-                'blackout_dates': [],
-                'status': 'active'
-            },
-            {
-                'id': str(uuid.uuid4()),
-                'company_name': 'Finance Corp',
-                'plan_name': 'Executive Plan',
-                'room_type': 'Deluxe',
-                'discount_percentage': 20,
-                'base_rate': 2800,
-                'contract_rate': 2240,
-                'min_nights': 2,
-                'max_nights': 14,
-                'valid_from': '2025-01-01',
-                'valid_until': '2025-12-31',
-                'blackout_dates': ['2025-12-24', '2025-12-31'],
-                'status': 'active'
-            }
-        ]
-    
+    # If no data in DB, return empty
     return {
         'rate_plans': rate_plans,
         'count': len(rate_plans)
@@ -53731,17 +53697,14 @@ async def get_gdpr_data_requests(
     status: Optional[str] = None,
     current_user: User = Depends(get_current_user)
 ):
-    """Get GDPR data access/deletion requests"""
+    """Get GDPR data access/deletion requests - REAL DATA from database"""
     query = {'tenant_id': current_user.tenant_id}
     if status:
         query['status'] = status
     
     requests_data = await db.gdpr_requests.find(query, {'_id': 0}).sort('created_at', -1).to_list(100)
     
-    # If no data, return empty with structure
-    if not requests_data:
-        requests_data = []
-    
+    # Return real data (empty if none)
     return {
         'requests': requests_data,
         'count': len(requests_data),
@@ -53752,61 +53715,48 @@ async def get_gdpr_data_requests(
 
 @api_router.get("/compliance/certifications")
 async def get_compliance_certifications(current_user: User = Depends(get_current_user)):
-    """Get compliance certifications (GDPR, PCI-DSS, ISO27001)"""
+    """Get compliance certifications - REAL DATA from database"""
     
     # Get from database
     certs = await db.certifications.find({
         'tenant_id': current_user.tenant_id
     }, {'_id': 0}).to_list(10)
     
-    # If no data, return default certifications
-    if not certs:
-        certs = [
-            {
-                'name': 'GDPR Compliance',
-                'status': 'certified',
-                'issued_date': '2024-01-15',
-                'expiry_date': '2025-01-15',
-                'last_audit': '2024-10-01',
-                'coverage': 'Data Protection & Privacy',
-                'score': 95
-            },
-            {
-                'name': 'PCI-DSS Level 1',
-                'status': 'certified',
-                'issued_date': '2024-03-01',
-                'expiry_date': '2025-03-01',
-                'last_audit': '2024-11-15',
-                'coverage': 'Payment Card Security',
-                'score': 98
-            },
-            {
-                'name': 'ISO 27001',
-                'status': 'in_progress',
-                'issued_date': None,
-                'expiry_date': None,
-                'last_audit': '2024-12-01',
-                'coverage': 'Information Security Management',
-                'score': 87
-            }
-        ]
-    
+    # If no data, return empty
     return {
         'certifications': certs,
         'count': len(certs),
         'certified_count': sum(1 for c in certs if c.get('status') == 'certified'),
-        'compliance_score': sum(c.get('score', 0) for c in certs) / len(certs) if certs else 0
+        'compliance_score': (sum(c.get('score', 0) for c in certs) / len(certs)) if certs else 0
     }
 
 
 @api_router.get("/pos/menu-engineering")
 async def get_menu_engineering(current_user: User = Depends(get_current_user)):
-    """Menu engineering analysis (Stars, Plowhorses, Puzzles, Dogs)"""
+    """Menu engineering analysis (Stars, Plowhorses, Puzzles, Dogs) - REAL DATA"""
     
-    # Get menu items with sales data
+    # Get menu items with sales data from database
     menu_items = await db.pos_menu_items.find({
         'tenant_id': current_user.tenant_id
     }, {'_id': 0}).to_list(200)
+    
+    # If no menu items, return empty structure
+    if not menu_items:
+        return {
+            'items': [],
+            'summary': {
+                'stars_count': 0,
+                'plowhorses_count': 0,
+                'puzzles_count': 0,
+                'dogs_count': 0
+            },
+            'categories': {
+                'Stars': [],
+                'Plowhorses': [],
+                'Puzzles': [],
+                'Dogs': []
+            }
+        }
     
     # Calculate profitability and popularity
     analyzed_items = []
@@ -53874,45 +53824,36 @@ async def get_compset_real_time_prices(
     room_type: str = 'Standard',
     current_user: User = Depends(get_current_user)
 ):
-    """Get real-time competitor prices"""
+    """Get competitor prices - REAL DATA from compset database
     
-    # In production, this would call external APIs (Booking.com, Expedia, etc.)
-    # For now, return mock data with realistic pricing
+    Note: In production, this would integrate with:
+    - Booking.com API
+    - Expedia API  
+    - OTA Insight
+    For now, uses manually entered competitor data from database
+    """
     
-    competitors = [
-        {
-            'hotel_name': 'Grand Hotel Downtown',
-            'distance_km': 0.5,
-            'stars': 5,
-            'price': 2200,
-            'availability': 'Available',
-            'source': 'Booking.com'
-        },
-        {
-            'hotel_name': 'City Center Inn',
-            'distance_km': 0.8,
-            'stars': 4,
-            'price': 1800,
-            'availability': 'Few rooms left',
-            'source': 'Expedia'
-        },
-        {
-            'hotel_name': 'Business Suites',
-            'distance_km': 1.2,
-            'stars': 4,
-            'price': 2000,
-            'availability': 'Available',
-            'source': 'Agoda'
-        },
-        {
-            'hotel_name': 'Comfort Lodge',
-            'distance_km': 2.0,
-            'stars': 3,
-            'price': 1500,
-            'availability': 'Available',
-            'source': 'Hotels.com'
+    # Get competitor data from database
+    competitors = await db.competitor_prices.find({
+        'tenant_id': current_user.tenant_id,
+        'check_in_date': check_in_date,
+        'room_type': room_type
+    }, {'_id': 0}).to_list(20)
+    
+    # If no data, return empty (no mock data)
+    if not competitors:
+        return {
+            'check_in_date': check_in_date,
+            'room_type': room_type,
+            'competitors': [],
+            'market_average': 0,
+            'recommendation': {
+                'suggested_price': 0,
+                'strategy': 'No competitor data available',
+                'confidence': 0
+            },
+            'last_updated': datetime.now(timezone.utc).isoformat()
         }
-    ]
     
     avg_price = sum(c['price'] for c in competitors) / len(competitors)
     
@@ -53922,7 +53863,7 @@ async def get_compset_real_time_prices(
         'competitors': competitors,
         'market_average': round(avg_price, 2),
         'recommendation': {
-            'suggested_price': round(avg_price * 0.95, 2),  # 5% below market
+            'suggested_price': round(avg_price * 0.95, 2),
             'strategy': 'Price competitively to maximize occupancy',
             'confidence': 85
         },
