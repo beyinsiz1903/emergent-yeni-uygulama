@@ -2513,6 +2513,37 @@ async def setup_make_super_admin(request: MakeSuperAdminRequest):
     }
 
 
+@api_router.post("/setup/make-me-super-admin")
+async def make_me_super_admin(
+    setup_password: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Make YOURSELF super_admin (requires login)
+    
+    ONLY USE FOR INITIAL SETUP!
+    Safer than email-based because you must be logged in.
+    """
+    # Security check
+    if setup_password != "EMERGENT_SUPER_SETUP_2024":
+        raise HTTPException(status_code=403, detail="Invalid setup password")
+    
+    # Update current logged-in user to super_admin
+    result = await db.users.update_one(
+        {"id": current_user.id},
+        {"$set": {"role": "super_admin"}}
+    )
+    
+    if result.modified_count == 0:
+        raise HTTPException(status_code=400, detail="Role güncellenemedi veya zaten super_admin")
+    
+    return {
+        "success": True,
+        "message": "Artık super_admin'siniz! Lütfen logout yapıp tekrar giriş yapın.",
+        "email": current_user.email,
+        "user_id": current_user.id
+    }
+
+
 @api_router.post("/auth/register", response_model=TokenResponse)
 async def register_tenant(data: TenantRegister):
     existing = await db.users.find_one({'email': data.email})
