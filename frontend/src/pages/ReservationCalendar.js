@@ -229,16 +229,23 @@ const ReservationCalendar = ({ user, tenant, onLogout }) => {
     }
   };
 
-  const loadEnterpriseData = async () => {
+  const loadEnterpriseData = async ({ roomsCount } = {}) => {
     try {
+      // If there are no rooms for this tenant, Enterprise metrics are meaningless.
+      if (typeof roomsCount === 'number' && roomsCount === 0) {
+        setRateLeakages([]);
+        setAvailabilityHeatmap([]);
+        return;
+      }
+
       const startDate = currentDate.toISOString().split('T')[0];
       const endDate = new Date(currentDate.getTime() + daysToShow * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-      
+
       const [leakageRes, heatmapRes] = await Promise.all([
         axios.get(`/enterprise/rate-leakage?start_date=${startDate}&end_date=${endDate}`).catch(() => ({ data: { leakages: [] } })),
         axios.get(`/enterprise/availability-heatmap?start_date=${startDate}&end_date=${endDate}`).catch(() => ({ data: { heatmap: [] } }))
       ]);
-      
+
       setRateLeakages(leakageRes.data.leakages || []);
       setAvailabilityHeatmap(heatmapRes.data.heatmap || []);
     } catch (error) {
@@ -926,7 +933,10 @@ const ReservationCalendar = ({ user, tenant, onLogout }) => {
   const toggleAIMode = () => {
     const newState = !showAIPanel;
     setShowAIPanel(newState);
+
     if (newState) {
+      // Prevent misleading AI metrics if there is no data context
+      if ((calendarMeta.rooms || 0) === 0) return;
       loadAIRecommendations();
     }
   };
@@ -934,7 +944,10 @@ const ReservationCalendar = ({ user, tenant, onLogout }) => {
   const toggleDeluxeMode = () => {
     const newState = !showDeluxePanel;
     setShowDeluxePanel(newState);
+
     if (newState) {
+      // Prevent misleading Deluxe+ metrics if there is no data context
+      if ((calendarMeta.rooms || 0) === 0) return;
       loadDeluxeFeatures();
     }
   };
