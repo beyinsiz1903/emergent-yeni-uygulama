@@ -86,7 +86,9 @@ const PMSModule = ({ user, tenant, onLogout }) => {
   const [quickFilters, setQuickFilters] = useState({
     roomType: '',
     bookingStatus: '',
-    paymentStatus: ''
+    paymentStatus: '',
+    roomView: '',
+    amenity: ''
   });
   
   // Bulk selection states
