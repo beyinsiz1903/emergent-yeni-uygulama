@@ -31,10 +31,10 @@ import uuid
 
 # Configuration
 BACKEND_URL = "https://code-review-helper-12.preview.emergentagent.com/api"
-TEST_EMAIL = "demo@hotel.com"
-TEST_PASSWORD = "demo123"
+TEST_EMAIL = "muratsutay@hotmail.com"
+TEST_PASSWORD = "murat1903"
 
-class PMSBookingsTester:
+class PMSRoomsBulkTester:
     def __init__(self):
         self.session = None
         self.auth_token = None
