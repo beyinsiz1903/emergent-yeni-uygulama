@@ -39,7 +39,7 @@ BACKEND_URL = "https://code-review-helper-12.preview.emergentagent.com/api"
 TEST_EMAIL = "muratsutay@hotmail.com"
 TEST_PASSWORD = "murat1903"
 
-class PMSRoomsBulkTester:
+class CSVImportTester:
     def __init__(self):
         self.session = None
         self.auth_token = None
