@@ -761,14 +761,81 @@ const PMSModule = ({ user, tenant, onLogout }) => {
   const handleCreateRoom = async (e) => {
     e.preventDefault();
     try {
-      await axios.post('/pms/rooms', newRoom);
+      await axios.post('/pms/rooms', {
+        ...newRoom,
+        view: newRoom.view || null,
+        bed_type: newRoom.bed_type || null,
+      });
       toast.success('Room created');
       setOpenDialog(null);
       loadData();
-      setNewRoom({ room_number: '', room_type: 'standard', floor: 1, capacity: 2, base_price: 100, amenities: [] });
+      setNewRoom({
+        room_number: '',
+        room_type: 'standard',
+        floor: 1,
+        capacity: 2,
+        base_price: 100,
+        amenities: [],
+        view: '',
+        bed_type: ''
+      });
     } catch (error) {
       toast.error('Failed to create room');
     }
+  };
+
+  const handleBulkCreateRange = async (e) => {
+    e.preventDefault();
+    try {
+      const res = await axios.post('/pms/rooms/bulk/range', {
+        ...bulkRange,
+        prefix: bulkRange.prefix || null,
+        view: bulkRange.view || null,
+        bed_type: bulkRange.bed_type || null,
+      });
+      toast.success(`Bulk range complete: ${res.data.created} created, ${res.data.skipped} skipped`);
+      setOpenDialog(null);
+      loadData();
+    } catch (error) {
+      toast.error(error?.response?.data?.detail || 'Bulk range failed');
+    }
+  };
+
+  const handleBulkCreateTemplate = async (e) => {
+    e.preventDefault();
+    try {
+      const res = await axios.post('/pms/rooms/bulk/template', {
+        ...bulkTemplate,
+        prefix: bulkTemplate.prefix || null,
+        view: bulkTemplate.view || null,
+        bed_type: bulkTemplate.bed_type || null,
+      });
+      toast.success(`Bulk template complete: ${res.data.created} created, ${res.data.skipped} skipped`);
+      setOpenDialog(null);
+      loadData();
+    } catch (error) {
+      toast.error(error?.response?.data?.detail || 'Bulk template failed');
+    }
+  };
+
+  const downloadRoomsCsvTemplate = () => {
+    const header = ['room_number','room_type','floor','capacity','base_price','view','bed_type','amenities'].join(',');
+    const example = ['A101','deluxe','1','2','150','sea','king','wifi|balcony'].join(',');
+    const csv = `${header}\n${example}\n`;
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', 'rooms-import-template.csv');
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleBulkImportCsv = async (e) => {
+    e.preventDefault();
+    toast.info('CSV import MVP: Backend endpoint will be added next.');
   };
 
   const handleCreateGuest = async (e) => {
