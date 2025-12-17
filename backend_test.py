@@ -458,14 +458,12 @@ class PMSRoomsBulkTester:
 
     # ============= MAIN TEST EXECUTION =============
 
-    # ============= MAIN TEST EXECUTION =============
-
     async def run_all_tests(self):
-        """Run comprehensive PMS Bookings backend testing"""
-        print("🚀 PMS BOOKINGS BACKEND FLOW TESTING")
-        print("Testing BookingsTab/VirtualizedBookingList veri yapısı doğrulaması")
+        """Run comprehensive PMS Rooms Bulk Features backend testing"""
+        print("🚀 PMS ROOMS BULK FEATURES BACKEND TESTING")
+        print("Testing the new PMS Rooms bulk features on preview backend")
         print("Base URL: https://code-review-helper-12.preview.emergentagent.com/api")
-        print("Login: demo@hotel.com / demo123")
+        print("Login: muratsutay@hotmail.com / murat1903")
         print("=" * 80)
         
         # Setup
@@ -475,21 +473,18 @@ class PMSRoomsBulkTester:
             print("❌ Authentication failed. Cannot proceed with tests.")
             return
         
-        # Create test data
-        if not await self.create_test_data():
-            print("⚠️ Test data creation failed. Some tests may not work properly.")
+        # Clean up existing test rooms
+        await self.cleanup_test_rooms()
         
-        # Run all PMS Bookings tests
+        # Run all PMS Rooms Bulk tests
         print("\n" + "="*60)
-        print("📅 PMS BOOKINGS BACKEND ENDPOINT TESTING")
+        print("🏨 PMS ROOMS BULK FEATURES TESTING")
         print("="*60)
         
-        await self.test_pms_bookings_default_endpoint()
-        await self.test_pms_bookings_with_limit()
-        await self.test_pms_bookings_with_date_range()
-        await self.test_folio_booking_endpoint()
-        await self.test_payments_booking_endpoint()
-        await self.test_performance_benchmarks()
+        await self.test_bulk_rooms_range_creation()
+        await self.test_rooms_filtering()
+        await self.test_bulk_rooms_template_creation()
+        await self.test_room_image_upload()
         
         # Cleanup
         await self.cleanup_session()
