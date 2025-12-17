@@ -837,7 +837,30 @@ const PMSModule = ({ user, tenant, onLogout }) => {
 
   const handleBulkImportCsv = async (e) => {
     e.preventDefault();
-    toast.info('CSV import MVP: Backend endpoint will be added next.');
+
+    if (!bulkCsvFile) {
+      toast.error('Lütfen bir CSV dosyası seçin');
+      return;
+    }
+
+    try {
+      const formData = new FormData();
+      formData.append('file', bulkCsvFile);
+
+      const res = await axios.post('/pms/rooms/import-csv', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+
+      toast.success(`CSV import: ${res.data.created} created, ${res.data.skipped} skipped, ${res.data.errors} errors`);
+      if (res.data.errors > 0) {
+        console.warn('CSV import errors:', res.data.error_rows);
+      }
+      setOpenDialog(null);
+      setBulkCsvFile(null);
+      loadData();
+    } catch (error) {
+      toast.error(error?.response?.data?.detail || 'CSV import failed');
+    }
   };
 
   const handleCreateGuest = async (e) => {
