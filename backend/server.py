@@ -6781,7 +6781,7 @@ async def get_rooms(
     """Get rooms with pagination - Optimized for large properties (550+ rooms)"""
     
     # For small queries with filters, skip cache
-    use_cache = (offset == 0 and not status and not room_type and limit >= 100)
+    use_cache = (offset == 0 and not status and not room_type and not view and not amenity and limit >= 100)
     
     # Try Redis cache first (FASTEST!) - only for full list
     if use_cache:
