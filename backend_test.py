@@ -119,80 +119,74 @@ class PMSRoomsBulkTester:
     # ============= PMS ROOMS BULK FEATURES TESTS =============
 
     async def test_bulk_rooms_range_creation(self):
-        """Test GET /api/pms/bookings (default parametrelerle)"""
-        print("\n📅 Testing PMS Bookings Endpoint (Default Parameters)...")
-        print("🎯 OBJECTIVE: BookingsTab/VirtualizedBookingList veri yapısı doğrulaması")
+        """Test POST /api/pms/rooms/bulk/range - Create rooms A101-A105"""
+        print("\n🏨 Testing Bulk Rooms Range Creation (A101-A105)...")
+        print("🎯 OBJECTIVE: Create 5 deluxe rooms with range A101-A105")
         
-        test_cases = [
-            {
-                "name": "Get all bookings - default parameters",
-                "params": {},
-                "expected_status": 200,
-                "required_fields": ["id", "guest_id", "room_id", "status", "total_amount", "check_in", "check_out"],
-                "optional_fields": ["guest_name", "room_number"],
-                "expected_response_type": "list"
-            }
-        ]
+        bulk_range_payload = {
+            "prefix": "A",
+            "start_number": 101,
+            "end_number": 105,
+            "floor": 1,
+            "room_type": "deluxe",
+            "capacity": 2,
+            "base_price": 150,
+            "amenities": ["wifi", "balcony"],
+            "view": "sea",
+            "bed_type": "king"
+        }
         
-        passed = 0
-        total = len(test_cases)
-        response_times = []
-        
-        for test_case in test_cases:
-            try:
-                url = f"{BACKEND_URL}/pms/bookings"
-                if test_case["params"]:
-                    params = "&".join([f"{k}={v}" for k, v in test_case["params"].items()])
-                    url += f"?{params}"
+        try:
+            start_time = datetime.now()
+            async with self.session.post(f"{BACKEND_URL}/pms/rooms/bulk/range", 
+                                       json=bulk_range_payload, 
+                                       headers=self.get_headers()) as response:
+                end_time = datetime.now()
+                response_time = (end_time - start_time).total_seconds() * 1000
                 
-                start_time = datetime.now()
-                async with self.session.get(url, headers=self.get_headers()) as response:
-                    end_time = datetime.now()
-                    response_time = (end_time - start_time).total_seconds() * 1000
-                    response_times.append(response_time)
+                if response.status == 200:
+                    data = await response.json()
+                    created_count = data.get("created", 0)
                     
-                    if response.status == test_case["expected_status"]:
-                        data = await response.json()
+                    if created_count == 5:
+                        print(f"  ✅ Bulk range creation: PASSED ({response_time:.1f}ms)")
+                        print(f"      📊 Expected: 5 rooms, Created: {created_count}")
+                        print(f"      📊 Room range: A101-A105")
+                        print(f"      📊 Room type: deluxe, View: sea, Bed: king")
+                        print(f"      📊 Amenities: {bulk_range_payload['amenities']}")
                         
-                        # Verify response is a list
-                        if isinstance(data, list):
-                            if data:  # If bookings exist, check structure
-                                booking = data[0]
-                                missing_fields = [field for field in test_case["required_fields"] if field not in booking]
-                                optional_present = [field for field in test_case["optional_fields"] if field in booking]
-                                
-                                if not missing_fields:
-                                    print(f"  ✅ {test_case['name']}: PASSED ({response_time:.1f}ms)")
-                                    print(f"      📊 Sample booking: ID={booking.get('id', 'N/A')[:8]}...")
-                                    print(f"      📊 Status: {booking.get('status', 'N/A')}, Amount: {booking.get('total_amount', 'N/A')}")
-                                    print(f"      📊 Required fields: ✅ All present")
-                                    print(f"      📊 Optional fields present: {optional_present}")
-                                    print(f"      📊 Total bookings returned: {len(data)}")
-                                    passed += 1
-                                else:
-                                    print(f"  ❌ {test_case['name']}: Missing required fields {missing_fields}")
-                            else:
-                                print(f"  ✅ {test_case['name']}: PASSED - No bookings found ({response_time:.1f}ms)")
-                                passed += 1
-                        else:
-                            print(f"  ❌ {test_case['name']}: Expected list response, got {type(data)}")
+                        # Store created room info for later tests
+                        self.created_test_data['bulk_rooms'].extend([f"A{i}" for i in range(101, 106)])
+                        
+                        self.test_results.append({
+                            "endpoint": "POST /api/pms/rooms/bulk/range",
+                            "passed": 1, "total": 1, "success_rate": "100.0%",
+                            "avg_response_time": f"{response_time:.1f}ms"
+                        })
                     else:
-                        error_text = await response.text()
-                        print(f"  ❌ {test_case['name']}: Expected {test_case['expected_status']}, got {response.status}")
-                        if response.status == 500:
-                            print(f"      🔍 500 Error Details: {error_text[:300]}...")
-                        
-            except Exception as e:
-                print(f"  ❌ {test_case['name']}: Error {e}")
-        
-        avg_response_time = sum(response_times) / len(response_times) if response_times else 0
-        print(f"      ⏱️ Average Response Time: {avg_response_time:.1f}ms")
-        
-        self.test_results.append({
-            "endpoint": "GET /api/pms/bookings (default)",
-            "passed": passed, "total": total, "success_rate": f"{passed/total*100:.1f}%",
-            "avg_response_time": f"{avg_response_time:.1f}ms"
-        })
+                        print(f"  ❌ Bulk range creation: Expected 5 rooms, got {created_count}")
+                        self.test_results.append({
+                            "endpoint": "POST /api/pms/rooms/bulk/range",
+                            "passed": 0, "total": 1, "success_rate": "0.0%",
+                            "avg_response_time": f"{response_time:.1f}ms"
+                        })
+                else:
+                    error_text = await response.text()
+                    print(f"  ❌ Bulk range creation: Expected 200, got {response.status}")
+                    print(f"      🔍 Error Details: {error_text[:300]}...")
+                    self.test_results.append({
+                        "endpoint": "POST /api/pms/rooms/bulk/range",
+                        "passed": 0, "total": 1, "success_rate": "0.0%",
+                        "avg_response_time": f"{response_time:.1f}ms"
+                    })
+                    
+        except Exception as e:
+            print(f"  ❌ Bulk range creation: Error {e}")
+            self.test_results.append({
+                "endpoint": "POST /api/pms/rooms/bulk/range",
+                "passed": 0, "total": 1, "success_rate": "0.0%",
+                "avg_response_time": "N/A"
+            })
 
     async def test_pms_bookings_with_limit(self):
         """Test GET /api/pms/bookings?limit=100"""
