@@ -1,23 +1,23 @@
 #!/usr/bin/env python3
 """
-PMS BOOKINGS BACKEND FLOW TESTING
-Test PMS Bookings backend akışını test et - BookingsTab/VirtualizedBookingList veri yapısı doğrulaması
+PMS ROOMS BULK FEATURES BACKEND TESTING
+Test the new PMS Rooms bulk features on preview backend.
 
-OBJECTIVE: /api/pms/bookings ve BookingsTab/VirtualizedBookingList'in dayandığı veri yapısının stabil olduğunu,
-hata vermediğini ve performans hedeflerini karşıladığını doğrulamak.
+OBJECTIVE: Test the new bulk room creation endpoints and room image upload functionality
 
 TARGET ENDPOINTS:
-1. GET /api/pms/bookings (default parametrelerle)
-2. GET /api/pms/bookings?limit=100
-3. GET /api/pms/bookings?start_date=YYYY-MM-DD&end_date=YYYY-MM-DD (7 günlük periyot)
-4. GET /api/folio/booking/{booking_id} (varsa)
-5. GET /api/payments/booking/{booking_id} (varsa)
+1. POST /api/pms/rooms/bulk/range - Create rooms with range (A101-A105)
+2. GET /api/pms/rooms?room_type=deluxe&view=sea&amenity=wifi&limit=200 - Filter rooms
+3. POST /api/pms/rooms/bulk/template - Create rooms with template (B1-B3)
+4. POST /api/pms/rooms/{room_id}/images - Upload room image
+5. Verify room data structure and filtering
 
 EXPECTED RESULTS:
-- Tüm çağrılar HTTP 200 dönmeli, 500/ValidationError olmamalı
-- Booking nesnelerinde gerekli alanlar: id, guest_id, room_id, status, total_amount, check_in, check_out
-- Mümkünse guest_name ve room_number (veya UI'nin bunları başka yerden çekebileceği net olsun)
-- Response süreleri kabaca raporlanacak (ortalama ms seviyesinde)
+- All calls should return HTTP 200, no 500/ValidationError
+- Bulk creation should return created count
+- Room filtering should work with multiple parameters
+- Image upload should return proper image path
+- All room objects should contain required fields
 """
 
 import asyncio
