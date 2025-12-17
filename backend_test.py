@@ -495,13 +495,13 @@ class PMSRoomsBulkTester:
     def print_test_summary(self):
         """Print comprehensive test summary"""
         print("\n" + "=" * 80)
-        print("📊 PMS BOOKINGS BACKEND FLOW TEST RESULTS")
+        print("📊 PMS ROOMS BULK FEATURES TEST RESULTS")
         print("=" * 80)
         
         total_passed = 0
         total_tests = 0
         
-        print("\n📅 ENDPOINT TEST RESULTS:")
+        print("\n🏨 ENDPOINT TEST RESULTS:")
         print("-" * 70)
         
         for result in self.test_results:
@@ -517,40 +517,37 @@ class PMSRoomsBulkTester:
             total_passed += passed
             total_tests += total
         
-        # Performance summary
-        if hasattr(self, 'performance_results'):
-            print("\n⚡ PERFORMANCE SUMMARY:")
-            print("-" * 70)
-            for perf in self.performance_results:
-                target_met = "✅" if 5 <= perf["avg_time"] <= 15 else "⚠️" if perf["avg_time"] <= 50 else "❌"
-                print(f"{target_met} {perf['endpoint']}: {perf['avg_time']:.1f}ms avg (range: {perf['min_time']:.1f}-{perf['max_time']:.1f}ms)")
-        
         print("\n" + "=" * 80)
         overall_success_rate = (total_passed / total_tests * 100) if total_tests > 0 else 0
         print(f"📈 OVERALL SUCCESS RATE: {total_passed}/{total_tests} ({overall_success_rate:.1f}%)")
         
         # Final assessment
         if overall_success_rate >= 90:
-            print("🎉 SONUÇ: PMS Bookings backend: production-ready ✅")
-            print("   Tüm endpoint'ler HTTP 200 dönüyor, veri yapısı stabil")
+            print("🎉 RESULT: PMS Rooms Bulk Features: production-ready ✅")
+            print("   All bulk endpoints working, room creation and filtering successful")
         elif overall_success_rate >= 75:
-            print("✅ SONUÇ: PMS Bookings backend: mostly ready")
-            print("   Çoğu endpoint çalışıyor, küçük sorunlar var")
+            print("✅ RESULT: PMS Rooms Bulk Features: mostly ready")
+            print("   Most endpoints working, minor issues present")
         elif overall_success_rate >= 50:
-            print("⚠️ SONUÇ: PMS Bookings backend: partial issues")
-            print("   Bazı endpoint'ler çalışıyor, önemli sorunlar var")
+            print("⚠️ RESULT: PMS Rooms Bulk Features: partial issues")
+            print("   Some endpoints working, significant issues present")
         else:
-            print("❌ SONUÇ: PMS Bookings backend: critical issues")
-            print("   Büyük backend sorunları, acil müdahale gerekli")
+            print("❌ RESULT: PMS Rooms Bulk Features: critical issues")
+            print("   Major backend problems, immediate attention required")
         
-        print("\n🔍 DOĞRULANAN NOKTALAR:")
-        print("• GET /api/pms/bookings: Gerekli alanlar (id, guest_id, room_id, status, total_amount, check_in, check_out)")
-        print("• HTTP 500/ValidationError yok")
-        print("• BookingsTab/VirtualizedBookingList için uygun veri yapısı")
-        print("• Pagination (limit parameter) çalışıyor")
-        print("• Date range filtering (7-day period) çalışıyor")
-        print("• Folio ve payment endpoint'leri test edildi")
-        print("• Response süreleri raporlandı")
+        print("\n🔍 VERIFIED FEATURES:")
+        print("• POST /api/pms/rooms/bulk/range: Bulk room creation with range (A101-A105)")
+        print("• GET /api/pms/rooms (filtered): Room filtering by type, view, amenities")
+        print("• POST /api/pms/rooms/bulk/template: Bulk room creation with template (B1-B3)")
+        print("• POST /api/pms/rooms/{room_id}/images: Room image upload functionality")
+        print("• Room data structure validation and response verification")
+        print("• HTTP 200 responses and proper error handling")
+        
+        print("\n📋 TEST SUMMARY:")
+        print(f"• Bulk Range Creation: {'✅' if any('bulk/range' in r['endpoint'] and r['passed'] > 0 for r in self.test_results) else '❌'}")
+        print(f"• Room Filtering: {'✅' if any('filtered' in r['endpoint'] and r['passed'] > 0 for r in self.test_results) else '❌'}")
+        print(f"• Bulk Template Creation: {'✅' if any('bulk/template' in r['endpoint'] and r['passed'] > 0 for r in self.test_results) else '❌'}")
+        print(f"• Image Upload: {'✅' if any('images' in r['endpoint'] and r['passed'] > 0 for r in self.test_results) else '❌'}")
         
         print("\n" + "=" * 80)
 
