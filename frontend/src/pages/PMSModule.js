@@ -2378,3 +2378,4 @@ const PMSModule = ({ user, tenant, onLogout }) => {
           </TabsContent>
         </Tabs>
 
+        {/* Dialogs and Modals */}
