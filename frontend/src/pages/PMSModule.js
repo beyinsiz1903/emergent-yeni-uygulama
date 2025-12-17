@@ -3663,7 +3663,7 @@ const PMSModule = ({ user, tenant, onLogout }) => {
               </div>
 
               <div className="text-sm text-gray-500 bg-blue-50 p-3 rounded">
-                ℹ️ This company will be created with "Pending" status. Sales team can complete the profile later with contracted rates and payment terms.
+                ℹ️ This company will be created with &quot;Pending&quot; status. Sales team can complete the profile later with contracted rates and payment terms.
               </div>
 
               <Button type="submit" className="w-full">Create Company</Button>
