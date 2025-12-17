@@ -347,101 +347,114 @@ class PMSRoomsBulkTester:
                 "avg_response_time": "N/A"
             })
 
-    async def test_folio_booking_endpoint(self):
-        """Test GET /api/folio/booking/{booking_id} - Folio endpoint for bookings"""
-        print("\n💰 Testing Folio Booking Endpoint...")
+    async def test_room_image_upload(self):
+        """Test POST /api/pms/rooms/{room_id}/images - Upload room image"""
+        print("\n📸 Testing Room Image Upload...")
+        print("🎯 OBJECTIVE: Upload image to A101 room and verify response")
         
-        # Get a booking ID for testing
-        booking_id = None
-        if self.created_test_data['bookings']:
-            booking_id = self.created_test_data['bookings'][0]
-        else:
-            # Try to get a booking from the bookings endpoint
-            try:
-                async with self.session.get(f"{BACKEND_URL}/pms/bookings", headers=self.get_headers()) as response:
-                    if response.status == 200:
-                        bookings = await response.json()
-                        if bookings:
-                            booking_id = bookings[0]["id"]
-            except:
-                pass
+        # First, get the room ID for A101
+        room_id = None
+        try:
+            async with self.session.get(f"{BACKEND_URL}/pms/rooms?limit=200", 
+                                      headers=self.get_headers()) as response:
+                if response.status == 200:
+                    rooms = await response.json()
+                    a101_room = next((room for room in rooms if room.get('room_number') == 'A101'), None)
+                    if a101_room:
+                        room_id = a101_room['id']
+                        print(f"      📊 Found A101 room ID: {room_id[:8]}...")
+                    else:
+                        print("  ⚠️ A101 room not found for image upload test")
+        except Exception as e:
+            print(f"  ⚠️ Error finding A101 room: {e}")
         
-        if not booking_id:
-            print("  ⚠️ No booking available for testing folio endpoint")
+        if not room_id:
+            print("  ⚠️ No room available for testing image upload")
             self.test_results.append({
-                "endpoint": "GET /api/folio/booking/{booking_id}",
+                "endpoint": "POST /api/pms/rooms/{room_id}/images",
                 "passed": 0, "total": 1, "success_rate": "0.0%",
                 "avg_response_time": "N/A"
             })
             return
         
-        test_cases = [
-            {
-                "name": "Get folio for booking",
-                "booking_id": booking_id,
-                "expected_status": [200, 404],  # 200 if folio exists, 404 if not found
-                "expected_fields": ["id", "booking_id", "folio_number", "balance"]
+        try:
+            # Create a simple test image (1x1 pixel PNG)
+            import base64
+            # Minimal PNG image data (1x1 transparent pixel)
+            png_data = base64.b64decode(
+                'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChAI9jU8'
+                'AAABJRU5ErkJggg=='
+            )
+            
+            # Prepare multipart form data
+            form_data = aiohttp.FormData()
+            form_data.add_field('image', png_data, filename='test_room_image.png', content_type='image/png')
+            
+            # Remove Content-Type header to let aiohttp set it for multipart
+            headers = {
+                "Authorization": f"Bearer {self.auth_token}"
             }
-        ]
-        
-        passed = 0
-        total = len(test_cases)
-        response_times = []
-        
-        for test_case in test_cases:
-            try:
-                url = f"{BACKEND_URL}/folio/booking/{test_case['booking_id']}"
+            
+            start_time = datetime.now()
+            async with self.session.post(f"{BACKEND_URL}/pms/rooms/{room_id}/images", 
+                                       data=form_data, 
+                                       headers=headers) as response:
+                end_time = datetime.now()
+                response_time = (end_time - start_time).total_seconds() * 1000
                 
-                start_time = datetime.now()
-                async with self.session.get(url, headers=self.get_headers()) as response:
-                    end_time = datetime.now()
-                    response_time = (end_time - start_time).total_seconds() * 1000
-                    response_times.append(response_time)
+                if response.status == 200:
+                    data = await response.json()
                     
-                    if response.status in test_case["expected_status"]:
-                        if response.status == 200:
-                            data = await response.json()
-                            # Handle both single folio and list of folios
-                            if isinstance(data, list) and data:
-                                folio = data[0]  # Take first folio
-                                missing_fields = [field for field in test_case["expected_fields"] if field not in folio]
-                                if not missing_fields:
-                                    print(f"  ✅ {test_case['name']}: PASSED - Folio found ({response_time:.1f}ms)")
-                                    print(f"      📊 Folio: {folio.get('folio_number', 'N/A')} - Balance: {folio.get('balance', 'N/A')}")
-                                    passed += 1
-                                else:
-                                    print(f"  ❌ {test_case['name']}: Missing required fields {missing_fields}")
-                            elif isinstance(data, dict):
-                                missing_fields = [field for field in test_case["expected_fields"] if field not in data]
-                                if not missing_fields:
-                                    print(f"  ✅ {test_case['name']}: PASSED - Folio found ({response_time:.1f}ms)")
-                                    print(f"      📊 Folio: {data.get('folio_number', 'N/A')} - Balance: {data.get('balance', 'N/A')}")
-                                    passed += 1
-                                else:
-                                    print(f"  ❌ {test_case['name']}: Missing required fields {missing_fields}")
-                            else:
-                                print(f"  ✅ {test_case['name']}: PASSED - Empty folio response ({response_time:.1f}ms)")
-                                passed += 1
-                        else:  # 404
-                            print(f"  ✅ {test_case['name']}: PASSED - No folio found (expected) ({response_time:.1f}ms)")
-                            passed += 1
-                    else:
-                        error_text = await response.text()
-                        print(f"  ❌ {test_case['name']}: Expected {test_case['expected_status']}, got {response.status}")
-                        if response.status == 500:
-                            print(f"      🔍 500 Error Details: {error_text[:300]}...")
+                    # Check if response contains images array with upload path
+                    if 'images' in data and isinstance(data['images'], list):
+                        images = data['images']
+                        upload_paths = [img for img in images if '/api/uploads/' in str(img)]
                         
-            except Exception as e:
-                print(f"  ❌ {test_case['name']}: Error {e}")
-        
-        avg_response_time = sum(response_times) / len(response_times) if response_times else 0
-        print(f"      ⏱️ Average Response Time: {avg_response_time:.1f}ms")
-        
-        self.test_results.append({
-            "endpoint": "GET /api/folio/booking/{booking_id}",
-            "passed": passed, "total": total, "success_rate": f"{passed/total*100:.1f}%",
-            "avg_response_time": f"{avg_response_time:.1f}ms"
-        })
+                        if upload_paths:
+                            print(f"  ✅ Room image upload: PASSED ({response_time:.1f}ms)")
+                            print(f"      📊 Room ID: {room_id[:8]}...")
+                            print(f"      📊 Images in response: {len(images)}")
+                            print(f"      📊 Upload paths found: {len(upload_paths)}")
+                            print(f"      📊 Sample path: {upload_paths[0]}")
+                            
+                            self.test_results.append({
+                                "endpoint": "POST /api/pms/rooms/{room_id}/images",
+                                "passed": 1, "total": 1, "success_rate": "100.0%",
+                                "avg_response_time": f"{response_time:.1f}ms"
+                            })
+                        else:
+                            print(f"  ❌ Room image upload: No /api/uploads/ paths in response")
+                            print(f"      📊 Response images: {images}")
+                            self.test_results.append({
+                                "endpoint": "POST /api/pms/rooms/{room_id}/images",
+                                "passed": 0, "total": 1, "success_rate": "0.0%",
+                                "avg_response_time": f"{response_time:.1f}ms"
+                            })
+                    else:
+                        print(f"  ❌ Room image upload: No 'images' array in response")
+                        print(f"      📊 Response keys: {list(data.keys()) if isinstance(data, dict) else 'Not a dict'}")
+                        self.test_results.append({
+                            "endpoint": "POST /api/pms/rooms/{room_id}/images",
+                            "passed": 0, "total": 1, "success_rate": "0.0%",
+                            "avg_response_time": f"{response_time:.1f}ms"
+                        })
+                else:
+                    error_text = await response.text()
+                    print(f"  ❌ Room image upload: Expected 200, got {response.status}")
+                    print(f"      🔍 Error Details: {error_text[:300]}...")
+                    self.test_results.append({
+                        "endpoint": "POST /api/pms/rooms/{room_id}/images",
+                        "passed": 0, "total": 1, "success_rate": "0.0%",
+                        "avg_response_time": f"{response_time:.1f}ms"
+                    })
+                    
+        except Exception as e:
+            print(f"  ❌ Room image upload: Error {e}")
+            self.test_results.append({
+                "endpoint": "POST /api/pms/rooms/{room_id}/images",
+                "passed": 0, "total": 1, "success_rate": "0.0%",
+                "avg_response_time": "N/A"
+            })
 
     async def test_payments_booking_endpoint(self):
         """Test GET /api/payments/booking/{booking_id} - Payments endpoint for bookings"""
