@@ -2047,7 +2047,7 @@ const PMSModule = ({ user, tenant, onLogout }) => {
                     <div className="text-center py-8 text-gray-500">
                       <MessageSquare className="w-12 h-12 mx-auto mb-4 opacity-50" />
                       <p>No templates available</p>
-                      <p className="text-sm">Click "Load Templates" to fetch available templates</p>
+                      <p className="text-sm">Click &quot;Load Templates&quot; to fetch available templates</p>
                     </div>
                   ) : (
                     <div className="space-y-2">
