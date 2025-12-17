@@ -29,11 +29,8 @@ DEFAULT_PUSH_CHANNELS = [
     'maintenance',
     'finance',
     'executive'
-from fastapi import UploadFile, File
-from fastapi.staticfiles import StaticFiles
-import pathlib
-
 ]
+
 from websocket_server import broadcast_kitchen_orders
 import qrcode
 import io
