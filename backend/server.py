@@ -6879,6 +6879,15 @@ async def get_rooms(
     return rooms
 
 
+
+class RoomCsvImportResponse(BaseModel):
+    created: int
+    skipped: int
+    errors: int
+    skipped_room_numbers: List[str] = []
+    error_rows: List[Dict[str, Any]] = []  # {row_number, error}
+
+
 class RoomBulkRangeRequest(BaseModel):
     """Create many rooms quickly using a numeric range.
 
