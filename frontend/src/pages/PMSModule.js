@@ -1816,48 +1816,25 @@ const PMSModule = ({ user, tenant, onLogout }) => {
                       </Button>
                     </div>
                     <CardDescription>{guest.email}</CardDescription>
-                    </div>
-                    <CardDescription className="capitalize text-xs">{room.room_type} • Floor {room.floor} • ${room.base_price}/night</CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-3 text-sm">
-                    
-                    {/* Current Guest Information */}
-                    {currentBooking && currentGuest && (
-                      <div className="bg-blue-50 rounded-lg p-3 space-y-2 border border-blue-200">
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs font-semibold text-blue-900 flex items-center gap-1">
-                            <User className="w-3 h-3" />
-                            Current Guest
-                          </span>
-                          <Button 
-                            size="sm" 
-                            variant="ghost" 
-                            className="h-6 px-2 text-xs"
-                            onClick={() => {
-                              setSelectedGuest(currentGuest);
-                              setOpenDialog('guestinfo');
-                            }}
-                          >
-                            View Profile
-                          </Button>
-                        </div>
-                        <div className="space-y-1">
-                          <div className="font-medium text-sm text-gray-900">{currentGuest.name || currentGuest.email}</div>
-                          <div className="flex items-center gap-2 text-xs text-gray-600">
-                            <LogIn className="w-3 h-3" />
-                            Check-in: {new Date(currentBooking.check_in).toLocaleDateString()}
-                          </div>
-                          <div className="flex items-center gap-2 text-xs text-gray-600">
-                            <LogOut className="w-3 h-3" />
-                            Check-out: {new Date(currentBooking.check_out).toLocaleDateString()}
-                          </div>
-                        </div>
-                        
-                        {/* Quick Actions */}
-                        <div className="grid grid-cols-2 gap-2 pt-2 border-t border-blue-200">
-                          <Button 
-                            size="sm" 
-                            variant="outline" 
+                    <div className="space-y-2">
+                      <div><strong>Phone:</strong> {guest.phone || 'N/A'}</div>
+                      <div><strong>ID Number:</strong> {guest.id_number || 'N/A'}</div>
+                      <div><strong>Address:</strong> {guest.address || 'N/A'}</div>
+                    </div>
+                    <div className="flex gap-2 pt-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
+                          setNewBooking(prev => ({...prev, guest_id: guest.id}));
+                          setOpenDialog('newbooking');
+                        }}
+                      >
+                        <Plus className="w-4 h-4 mr-2" />
+                        New Booking
+                      </Button> 
                             className="h-8 text-xs"
                             onClick={async () => {
                               try {
