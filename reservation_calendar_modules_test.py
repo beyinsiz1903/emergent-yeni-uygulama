@@ -212,8 +212,13 @@ class ReservationCalendarModulesTest:
                 # Show revenue impact
                 revenue_impact = data.get('revenue_impact', {})
                 if revenue_impact:
-                    print(f"   Potential savings: ${revenue_impact.get('potential_savings', 0)}")
-                    print(f"   Direct booking gap: {revenue_impact.get('direct_booking_gap', 0)}%")
+                    if isinstance(revenue_impact, dict):
+                        print(f"   Potential savings: ${revenue_impact.get('potential_savings', 0)}")
+                        print(f"   Direct booking gap: {revenue_impact.get('direct_booking_gap', 0)}%")
+                    else:
+                        print(f"   Revenue impact (raw): {revenue_impact}")
+                else:
+                    print("   No revenue impact data available")
                 
                 result_key = 'deluxe_optimize_channel_mix_future' if is_future else 'deluxe_optimize_channel_mix_historical'
                 self.results[result_key] = {
