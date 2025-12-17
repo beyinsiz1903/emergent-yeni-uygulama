@@ -1668,7 +1668,27 @@ const PMSModule = ({ user, tenant, onLogout }) => {
               </Card>
             )}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {rooms.map((room) => {
+              {rooms
+                .filter((room) => {
+                  // roomType filter
+                  if (quickFilters.roomType && room.room_type !== quickFilters.roomType) return false;
+
+                  // view filter (substring match)
+                  if (quickFilters.roomView) {
+                    const v = (room.view || '').toLowerCase();
+                    if (!v.includes(quickFilters.roomView.toLowerCase())) return false;
+                  }
+
+                  // amenity filter (exact within array)
+                  if (quickFilters.amenity) {
+                    const a = quickFilters.amenity.toLowerCase();
+                    const ams = (room.amenities || []).map(x => String(x).toLowerCase());
+                    if (!ams.includes(a)) return false;
+                  }
+
+                  return true;
+                })
+                .map((room) => {
                 const roomBlock = roomBlocks.find(b => b.room_id === room.id && b.status === 'active');
                 // Find current booking for this room
                 const currentBooking = bookings.find(b => b.room_id === room.id && b.status === 'checked_in');
