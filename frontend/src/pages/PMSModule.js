@@ -1671,54 +1671,131 @@ const PMSModule = ({ user, tenant, onLogout }) => {
               {rooms
                 .filter((room) => {
                   // roomType filter
+                  if (quickFilters.roomType && room.room_type !== quickFilters.roomType) return false;
 
-                    {/* Room meta badges */}
-                    {(room.view || room.bed_type || (room.amenities || []).length > 0) && (
-                      <div className="flex flex-wrap gap-1 pt-1">
-                        {room.view && <Badge variant="outline" className="text-[10px]">View: {room.view}</Badge>}
-                        {room.bed_type && <Badge variant="outline" className="text-[10px]">Bed: {room.bed_type}</Badge>}
-                        {(room.amenities || []).slice(0, 3).map((a) => (
-                          <Badge key={a} variant="secondary" className="text-[10px]">{a}</Badge>
-                        ))}
-                        {(room.amenities || []).length > 3 && (
-                          <Badge variant="secondary" className="text-[10px]">+{(room.amenities || []).length - 3}</Badge>
-                        )}
-                      </div>
-                    )}
+                  // view filter (substring match)
+                  if (quickFilters.roomView) {
+                    const v = (room.view || '').toLowerCase();
+                    if (!v.includes(quickFilters.roomView.toLowerCase())) return false;
+                  }
 
-                    {/* Room photos preview */}
-                    {(room.images || []).length > 0 && (
-                      <div className="grid grid-cols-3 gap-2">
-                        {(room.images || []).slice(0, 3).map((src) => (
-                          <button
-                            key={src}
-                            type="button"
-                            className="h-16 rounded-md overflow-hidden border bg-gray-50"
-                            onClick={() => {
-                              setSelectedRoom(room);
-                              setOpenDialog('room-images');
-                            }}
-                            title="Fotoğrafları Gör"
-                          >
-                            <img src={src} alt="room" className="w-full h-full object-cover" />
-                          </button>
-                        ))}
-                      </div>
-                    )}
+                  // amenity filter (exact within array)
+                  if (quickFilters.amenity) {
+                    const a = quickFilters.amenity.toLowerCase();
+                    const ams = (room.amenities || []).map(x => String(x).toLowerCase());
+                    if (!ams.includes(a)) return false;
+                  }
 
-                    <div className="flex gap-2">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="flex-1"
-                        onClick={() => {
-                          setSelectedRoom(room);
-                          setOpenDialog('room-images');
+                  return true;
+                })
+                .map((room) => {
+                  const roomBlock = roomBlocks.find(b => b.room_id === room.id && b.status === 'active');
+                  // Find current booking for this room
+                  const currentBooking = bookings.find(b => b.room_id === room.id && b.status === 'checked_in');
+                  const currentGuest = currentBooking ? guests.find(g => g.id === currentBooking.guest_id) : null;
+                  
+                  return (
+                  <Card key={room.id} className={`${roomBlock ? 'border-2 border-red-400' : ''} ${currentBooking ? 'border-l-4 border-l-blue-500' : ''} ${selectedRooms.includes(room.id) ? 'ring-2 ring-purple-500' : ''}`}>
+                    <CardHeader className="relative pb-2">
+                      {/* Bulk Selection Checkbox */}
+                      {bulkRoomMode && (
+                        <input
+                          type="checkbox"
+                          className="absolute top-2 right-2 w-5 h-5 cursor-pointer z-20"
+                          checked={selectedRooms.includes(room.id)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setSelectedRooms([...selectedRooms, room.id]);
+                            } else {
+                              setSelectedRooms(selectedRooms.filter(id => id !== room.id));
+                            }
+                          }}
+                        />
+                      )}
+                      
+                      {/* New Booking + Button */}
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setOpenDialog('booking');
+                          setNewBooking(prev => ({...prev, room_id: room.id, room_number: room.room_number}));
                         }}
+                        className="absolute top-2 left-2 w-7 h-7 bg-blue-600 hover:bg-blue-700 text-white rounded-full flex items-center justify-center transition-all hover:scale-110 shadow-lg z-10"
+                        title="Yeni Rezervasyon Oluştur"
                       >
-                        Fotoğraflar
-                      </Button>
-                    </div>
+                        <Plus className="w-4 h-4" />
+                      </button>
+                      
+                      {roomBlock && (
+                        <div className="absolute top-2 right-2 flex gap-1">
+                          {roomBlock.type === 'out_of_order' && (
+                            <span className="px-2 py-1 text-xs font-bold bg-red-600 text-white rounded">OUT OF ORDER</span>
+                          )}
+                          {roomBlock.type === 'out_of_service' && (
+                            <span className="px-2 py-1 text-xs font-bold bg-orange-500 text-white rounded">OUT OF SERVICE</span>
+                          )}
+                          {roomBlock.type === 'maintenance' && (
+                            <span className="px-2 py-1 text-xs font-bold bg-yellow-600 text-white rounded">MAINTENANCE</span>
+                          )}
+                        </div>
+                      )}
+                      <div className="flex items-center justify-between">
+                        <CardTitle className="text-lg">Room {room.room_number}</CardTitle>
+                        <Badge variant={room.status === 'occupied' ? 'default' : room.status === 'available' ? 'secondary' : 'outline'}>
+                          {room.status}
+                        </Badge>
+                      </div>
+                      <CardDescription className="capitalize text-xs">{room.room_type} • Floor {room.floor} • ${room.base_price}/night</CardDescription>
+
+                      {/* Room meta badges */}
+                      {(room.view || room.bed_type || (room.amenities || []).length > 0) && (
+                        <div className="flex flex-wrap gap-1 pt-2">
+                          {room.view && <Badge variant="outline" className="text-[10px]">View: {room.view}</Badge>}
+                          {room.bed_type && <Badge variant="outline" className="text-[10px]">Bed: {room.bed_type}</Badge>}
+                          {(room.amenities || []).slice(0, 3).map((a) => (
+                            <Badge key={a} variant="secondary" className="text-[10px]">{a}</Badge>
+                          ))}
+                          {(room.amenities || []).length > 3 && (
+                            <Badge variant="secondary" className="text-[10px]">+{(room.amenities || []).length - 3}</Badge>
+                          )}
+                        </div>
+                      )}
+                    </CardHeader>
+                    <CardContent className="space-y-3 text-sm">
+
+                      {/* Room photos preview */}
+                      {(room.images || []).length > 0 && (
+                        <div className="grid grid-cols-3 gap-2">
+                          {(room.images || []).slice(0, 3).map((src) => (
+                            <button
+                              key={src}
+                              type="button"
+                              className="h-16 rounded-md overflow-hidden border bg-gray-50"
+                              onClick={() => {
+                                setSelectedRoom(room);
+                                setOpenDialog('room-images');
+                              }}
+                              title="Fotoğrafları Gör"
+                            >
+                              <img src={src} alt="room" className="w-full h-full object-cover" />
+                            </button>
+                          ))}
+                        </div>
+                      )}
+
+                      <div className="flex gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="flex-1"
+                          onClick={() => {
+                            setSelectedRoom(room);
+                            setOpenDialog('room-images');
+                          }}
+                        >
+                          Fotoğraflar
+                        </Button>
+                      </div>
 
                   if (quickFilters.roomType && room.room_type !== quickFilters.roomType) return false;
 
