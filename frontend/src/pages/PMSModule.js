@@ -1527,6 +1527,10 @@ const PMSModule = ({ user, tenant, onLogout }) => {
                   <CheckSquare className="w-4 h-4 mr-2" />
                   Bulk Mode
                 </Button>
+                <Button variant="outline" onClick={() => setOpenDialog('bulk-rooms')}>
+                  <Plus className="w-4 h-4 mr-2" />
+                  Hızlı / Çoklu Oda Ekle
+                </Button>
                 <Button onClick={() => setOpenDialog('room')}>
                   <Plus className="w-4 h-4 mr-2" />
                   Add Room
