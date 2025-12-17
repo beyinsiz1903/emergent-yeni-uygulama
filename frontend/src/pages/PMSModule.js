@@ -1798,13 +1798,8 @@ const PMSModule = ({ user, tenant, onLogout }) => {
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {guests.map((guest) => {
-                const roomBlock = roomBlocks.find(b => b.room_id === room.id && b.status === 'active');
-                // Find current booking for this room
-                const currentBooking = bookings.find(b => b.room_id === room.id && b.status === 'checked_in');
-                const currentGuest = currentBooking ? guests.find(g => g.id === currentBooking.guest_id) : null;
-                
                 return (
-                <Card key={room.id} className={`${roomBlock ? 'border-2 border-red-400' : ''} ${currentBooking ? 'border-l-4 border-l-blue-500' : ''} ${selectedRooms.includes(room.id) ? 'ring-2 ring-purple-500' : ''}`}>
+                <Card key={guest.id}>
                   <CardHeader className="relative pb-2">
                     {/* Bulk Selection Checkbox */}
                     {bulkRoomMode && (
