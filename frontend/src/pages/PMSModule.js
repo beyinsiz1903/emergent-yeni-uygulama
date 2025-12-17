@@ -2162,7 +2162,7 @@ const PMSModule = ({ user, tenant, onLogout }) => {
                 </Card>
                 <Card>
                   <CardHeader className="pb-2">
-                    <CardTitle className="text-sm">Today's Arrivals</CardTitle>
+                    <CardTitle className="text-sm">Today&apos;s Arrivals</CardTitle>
                   </CardHeader>
                   <CardContent>
                     <div className="text-3xl font-bold">{reports.daily.arrivals}</div>
