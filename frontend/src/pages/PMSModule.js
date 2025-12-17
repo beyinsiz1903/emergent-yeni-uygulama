@@ -2379,3 +2379,2871 @@ const PMSModule = ({ user, tenant, onLogout }) => {
         </Tabs>
 
         {/* Dialogs and Modals */}
+        <Dialog open={openDialog === 'folio'} onOpenChange={(open) => !open && setOpenDialog(null)}>
+          <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Guest Folio</DialogTitle>
+            </DialogHeader>
+            {folio && (
+              <div className="space-y-6">
+                {/* Charges */}
+                <div>
+                  <h3 className="font-semibold mb-2">Charges</h3>
+                  <div className="space-y-2">
+                    {folio.charges.map((charge, idx) => (
+                      <div key={idx} className="flex justify-between text-sm border-b pb-2">
+                        <div>
+                          <div className="font-medium">{charge.description}</div>
+                          <div className="text-xs text-gray-500 capitalize">{charge.charge_type}</div>
+                        </div>
+                        <div className="text-right">
+                          <div>${charge.total.toFixed(2)}</div>
+                          <div className="text-xs text-gray-500">{charge.quantity} × ${charge.amount}</div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  
+                  {/* Add Charge Form */}
+                  <form onSubmit={handleAddCharge} className="mt-4 p-4 bg-gray-50 rounded">
+                    <div className="grid grid-cols-2 gap-4">
+                      <Select value={newCharge.charge_type} onValueChange={(v) => setNewCharge({...newCharge, charge_type: v})}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="food">Food & Beverage</SelectItem>
+                          <SelectItem value="laundry">Laundry</SelectItem>
+                          <SelectItem value="minibar">Minibar</SelectItem>
+                          <SelectItem value="spa">Spa</SelectItem>
+                          <SelectItem value="phone">Phone</SelectItem>
+                          <SelectItem value="other">Other</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <Input
+                        placeholder="Description"
+                        value={newCharge.description}
+                        onChange={(e) => setNewCharge({...newCharge, description: e.target.value})}
+                        required
+                      />
+                      <Input
+                        type="number"
+                        step="0.01"
+                        placeholder="Amount"
+                        value={newCharge.amount}
+                        onChange={(e) => setNewCharge({...newCharge, amount: parseFloat(e.target.value)})}
+                        required
+                      />
+                      <Button type="submit">Add Charge</Button>
+                    </div>
+                  </form>
+                </div>
+
+                {/* Payments */}
+                <div>
+                  <h3 className="font-semibold mb-2">Payments</h3>
+                  <div className="space-y-2">
+                    {folio.payments.map((payment, idx) => (
+                      <div key={idx} className="flex justify-between text-sm border-b pb-2">
+                        <div>
+                          <div className="font-medium capitalize">{payment.method}</div>
+                          {payment.reference && <div className="text-xs text-gray-500">Ref: {payment.reference}</div>}
+                        </div>
+                        <div className="text-green-600 font-medium">${payment.amount.toFixed(2)}</div>
+                      </div>
+                    ))}
+                  </div>
+                  
+                  {/* Add Payment Form */}
+                  <form onSubmit={handleProcessPayment} className="mt-4 p-4 bg-gray-50 rounded">
+                    <div className="grid grid-cols-2 gap-4">
+                      <Input
+                        type="number"
+                        step="0.01"
+                        placeholder="Amount"
+                        value={newPayment.amount}
+                        onChange={(e) => setNewPayment({...newPayment, amount: parseFloat(e.target.value)})}
+                        required
+                      />
+                      <Select value={newPayment.method} onValueChange={(v) => setNewPayment({...newPayment, method: v})}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="cash">Cash</SelectItem>
+                          <SelectItem value="card">Card</SelectItem>
+                          <SelectItem value="bank_transfer">Bank Transfer</SelectItem>
+                          <SelectItem value="online">Online</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <Input
+                        placeholder="Reference (optional)"
+                        value={newPayment.reference}
+                        onChange={(e) => setNewPayment({...newPayment, reference: e.target.value})}
+                      />
+                      <Button type="submit">Process Payment</Button>
+                    </div>
+                  </form>
+                </div>
+
+                {/* Summary */}
+                <div className="border-t pt-4">
+                  <div className="flex justify-between text-lg font-bold">
+                    <span>Total Charges:</span>
+                    <span>${folio.total_charges.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between text-lg font-bold text-green-600">
+                    <span>Total Paid:</span>
+                    <span>${folio.total_paid.toFixed(2)}</span>
+                  </div>
+                  <div className={`flex justify-between text-2xl font-bold ${folio.balance > 0 ? 'text-red-600' : 'text-gray-600'}`}>
+                    <span>Balance:</span>
+                    <span>${folio.balance.toFixed(2)}</span>
+                  </div>
+                </div>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
+
+        {/* Room Dialog */}
+        <Dialog open={openDialog === 'room'} onOpenChange={(open) => !open && setOpenDialog(null)}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Create New Room</DialogTitle>
+            </DialogHeader>
+            <form onSubmit={handleCreateRoom} className="space-y-4">
+              <div>
+                <Label>Room Number</Label>
+                <Input value={newRoom.room_number} onChange={(e) => setNewRoom({...newRoom, room_number: e.target.value})} required />
+              </div>
+              <div>
+                <Label>Room Type</Label>
+                <Select value={newRoom.room_type} onValueChange={(v) => setNewRoom({...newRoom, room_type: v})}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="standard">Standard</SelectItem>
+                    <SelectItem value="deluxe">Deluxe</SelectItem>
+                    <SelectItem value="suite">Suite</SelectItem>
+                    <SelectItem value="presidential">Presidential</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label>Floor</Label>
+                  <Input type="number" value={newRoom.floor} onChange={(e) => setNewRoom({...newRoom, floor: parseInt(e.target.value)})} required />
+                </div>
+                <div>
+                  <Label>Capacity</Label>
+                  <Input type="number" value={newRoom.capacity} onChange={(e) => setNewRoom({...newRoom, capacity: parseInt(e.target.value)})} required />
+                </div>
+              </div>
+              <div>
+                <Label>Base Price</Label>
+                <Input type="number" step="0.01" value={newRoom.base_price} onChange={(e) => setNewRoom({...newRoom, base_price: parseFloat(e.target.value)})} required />
+              </div>
+              <Button type="submit" className="w-full">Create Room</Button>
+            </form>
+          </DialogContent>
+        </Dialog>
+
+        {/* Room Images Dialog */}
+        <Dialog open={openDialog === 'room-images'} onOpenChange={(open) => !open && setOpenDialog(null)}>
+          <DialogContent className="max-w-4xl">
+            <DialogHeader>
+              <DialogTitle>Oda Fotoğrafları {selectedRoom ? `- ${selectedRoom.room_number}` : ''}</DialogTitle>
+              <DialogDescription>
+                Bu özellik preview ortamında sunucu diskine yükler. Canlıda dosya kalıcılığı için daha sonra S3/Cloudinary önerilir.
+              </DialogDescription>
+            </DialogHeader>
+
+            {selectedRoom ? (
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                  {(selectedRoom.images || []).length === 0 ? (
+                    <div className="col-span-full text-sm text-gray-500">Henüz fotoğraf yüklenmemiş.</div>
+                  ) : (
+                    (selectedRoom.images || []).map((src) => (
+                      <a key={src} href={src} target="_blank" rel="noreferrer" className="block">
+                        <div className="h-32 rounded-lg overflow-hidden border bg-gray-50">
+                          <img src={src} alt="room" className="w-full h-full object-cover" />
+                        </div>
+                      </a>
+                    ))
+                  )}
+                </div>
+
+                <div className="border-t pt-4">
+                  <Label>Yeni Fotoğraf(lar) Yükle</Label>
+                  <Input
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    onChange={async (e) => {
+                      try {
+                        const files = Array.from(e.target.files || []);
+                        if (files.length === 0) return;
+
+                        const formData = new FormData();
+                        files.forEach((f) => formData.append('files', f));
+
+                        const res = await axios.post(`/pms/rooms/${selectedRoom.id}/images`, formData, {
+                          headers: { 'Content-Type': 'multipart/form-data' },
+                        });
+
+                        toast.success(`${res.data.uploaded} fotoğraf yüklendi`);
+
+                        // Refresh rooms, then refresh selectedRoom reference
+                        await loadData();
+                        // After loadData, close and re-open dialog to refresh selectedRoom from updated rooms list.
+                        // (Rooms state updates async; we keep the dialog open and optimistically append returned images.)
+                        setSelectedRoom(prev => prev ? ({ ...prev, images: res.data.images || prev.images }) : prev);
+                      } catch (err) {
+                        toast.error(err?.response?.data?.detail || 'Fotoğraf yüklenemedi');
+                      } finally {
+                        // clear input value
+                        e.target.value = '';
+                      }
+                    }}
+                  />
+                  <p className="text-[11px] text-gray-500 mt-1">JPEG/PNG/WEBP önerilir. Max 10MB/dosya.</p>
+                </div>
+
+                <div className="flex justify-end">
+                  <Button variant="outline" onClick={() => setOpenDialog(null)}>Kapat</Button>
+                </div>
+              </div>
+            ) : (
+              <div className="text-sm text-gray-500">Oda seçilmedi.</div>
+            )}
+          </DialogContent>
+        </Dialog>
+
+
+        {/* Bulk Rooms Dialog */}
+        <Dialog open={openDialog === 'bulk-rooms'} onOpenChange={(open) => !open && setOpenDialog(null)}>
+          <DialogContent className="max-w-3xl">
+            <DialogHeader>
+              <DialogTitle>Hızlı / Çoklu Oda Ekle</DialogTitle>
+              <DialogDescription>
+                100+ odayı tek tek eklemek yerine aralık (range), şablon (template) veya CSV ile içeri aktarabilirsiniz.
+              </DialogDescription>
+            </DialogHeader>
+
+            <Tabs value={bulkRoomTab} onValueChange={setBulkRoomTab} className="w-full">
+              <TabsList className="grid w-full grid-cols-3">
+                <TabsTrigger value="range">Aralık (Range)</TabsTrigger>
+                <TabsTrigger value="template">Şablon (Template)</TabsTrigger>
+                <TabsTrigger value="csv">CSV Import</TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="range" className="pt-4">
+                <form onSubmit={handleBulkCreateRange} className="space-y-4">
+                  <div className="grid grid-cols-3 gap-3">
+                    <div>
+                      <Label>Prefix (opsiyonel)</Label>
+                      <Input value={bulkRange.prefix} onChange={(e) => setBulkRange(p => ({ ...p, prefix: e.target.value }))} placeholder="A" />
+                    </div>
+                    <div>
+                      <Label>Başlangıç No</Label>
+                      <Input type="number" value={bulkRange.start_number} onChange={(e) => setBulkRange(p => ({ ...p, start_number: parseInt(e.target.value) }))} />
+                    </div>
+                    <div>
+                      <Label>Bitiş No</Label>
+                      <Input type="number" value={bulkRange.end_number} onChange={(e) => setBulkRange(p => ({ ...p, end_number: parseInt(e.target.value) }))} />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <Label>Oda Tipi</Label>
+                      <Select value={bulkRange.room_type} onValueChange={(v) => setBulkRange(p => ({ ...p, room_type: v }))}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="standard">Standard</SelectItem>
+                          <SelectItem value="deluxe">Deluxe</SelectItem>
+                          <SelectItem value="suite">Suite</SelectItem>
+                          <SelectItem value="presidential">Presidential</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label>Kat</Label>
+                      <Input type="number" value={bulkRange.floor} onChange={(e) => setBulkRange(p => ({ ...p, floor: parseInt(e.target.value) }))} />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-3">
+                    <div>
+                      <Label>Kapasite</Label>
+                      <Input type="number" value={bulkRange.capacity} onChange={(e) => setBulkRange(p => ({ ...p, capacity: parseInt(e.target.value) }))} />
+                    </div>
+                    <div>
+                      <Label>Base Price</Label>
+                      <Input type="number" step="0.01" value={bulkRange.base_price} onChange={(e) => setBulkRange(p => ({ ...p, base_price: parseFloat(e.target.value) }))} />
+                    </div>
+                    <div>
+                      <Label>Manzara</Label>
+                      <Input value={bulkRange.view} onChange={(e) => setBulkRange(p => ({ ...p, view: e.target.value }))} placeholder="sea/city/garden" />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <Label>Yatak Tipi</Label>
+                      <Input value={bulkRange.bed_type} onChange={(e) => setBulkRange(p => ({ ...p, bed_type: e.target.value }))} placeholder="king/twin/queen" />
+                    </div>
+                    <div>
+                      <Label>Amenities (| ile ayırın)</Label>
+                      <Input
+                        value={(bulkRange.amenities || []).join('|')}
+                        onChange={(e) => setBulkRange(p => ({ ...p, amenities: e.target.value.split('|').map(s => s.trim()).filter(Boolean) }))}
+                        placeholder="wifi|balcony|minibar"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex justify-end gap-2 pt-2">
+                    <Button type="button" variant="outline" onClick={() => setOpenDialog(null)}>Vazgeç</Button>
+                    <Button type="submit">Oluştur</Button>
+                  </div>
+                </form>
+              </TabsContent>
+
+              <TabsContent value="template" className="pt-4">
+                <form onSubmit={handleBulkCreateTemplate} className="space-y-4">
+                  <div className="grid grid-cols-3 gap-3">
+                    <div>
+                      <Label>Prefix (opsiyonel)</Label>
+                      <Input value={bulkTemplate.prefix} onChange={(e) => setBulkTemplate(p => ({ ...p, prefix: e.target.value }))} placeholder="B" />
+                    </div>
+                    <div>
+                      <Label>Start No</Label>
+                      <Input type="number" value={bulkTemplate.start_number} onChange={(e) => setBulkTemplate(p => ({ ...p, start_number: parseInt(e.target.value) }))} />
+                    </div>
+                    <div>
+                      <Label>Adet</Label>
+                      <Input type="number" value={bulkTemplate.count} onChange={(e) => setBulkTemplate(p => ({ ...p, count: parseInt(e.target.value) }))} />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <Label>Oda Tipi</Label>
+                      <Select value={bulkTemplate.room_type} onValueChange={(v) => setBulkTemplate(p => ({ ...p, room_type: v }))}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="standard">Standard</SelectItem>
+                          <SelectItem value="deluxe">Deluxe</SelectItem>
+                          <SelectItem value="suite">Suite</SelectItem>
+                          <SelectItem value="presidential">Presidential</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label>Kat</Label>
+                      <Input type="number" value={bulkTemplate.floor} onChange={(e) => setBulkTemplate(p => ({ ...p, floor: parseInt(e.target.value) }))} />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-3">
+                    <div>
+                      <Label>Kapasite</Label>
+                      <Input type="number" value={bulkTemplate.capacity} onChange={(e) => setBulkTemplate(p => ({ ...p, capacity: parseInt(e.target.value) }))} />
+                    </div>
+                    <div>
+                      <Label>Base Price</Label>
+                      <Input type="number" step="0.01" value={bulkTemplate.base_price} onChange={(e) => setBulkTemplate(p => ({ ...p, base_price: parseFloat(e.target.value) }))} />
+                    </div>
+                    <div>
+                      <Label>Manzara</Label>
+                      <Input value={bulkTemplate.view} onChange={(e) => setBulkTemplate(p => ({ ...p, view: e.target.value }))} placeholder="sea/city/garden" />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <Label>Yatak Tipi</Label>
+                      <Input value={bulkTemplate.bed_type} onChange={(e) => setBulkTemplate(p => ({ ...p, bed_type: e.target.value }))} placeholder="king/twin/queen" />
+                    </div>
+                    <div>
+                      <Label>Amenities (| ile ayırın)</Label>
+                      <Input
+                        value={(bulkTemplate.amenities || []).join('|')}
+                        onChange={(e) => setBulkTemplate(p => ({ ...p, amenities: e.target.value.split('|').map(s => s.trim()).filter(Boolean) }))}
+                        placeholder="wifi|balcony|minibar"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex justify-end gap-2 pt-2">
+                    <Button type="button" variant="outline" onClick={() => setOpenDialog(null)}>Vazgeç</Button>
+                    <Button type="submit">Oluştur</Button>
+                  </div>
+                </form>
+              </TabsContent>
+
+              <TabsContent value="csv" className="pt-4">
+                <form onSubmit={handleBulkImportCsv} className="space-y-4">
+                  <div className="text-sm text-gray-600">
+                    CSV kolonları: <span className="font-mono text-xs">room_number, room_type, floor, capacity, base_price, view, bed_type, amenities</span>
+                    <br />
+                    amenities alanında birden çok değer için <span className="font-mono text-xs">wifi|balcony|minibar</span> formatını kullan.
+                  </div>
+
+                  <div className="flex gap-2">
+                    <Button type="button" variant="outline" onClick={downloadRoomsCsvTemplate}>
+                      <Download className="w-4 h-4 mr-2" />
+                      Örnek CSV indir
+                    </Button>
+                  </div>
+
+                  <div>
+                    <Label>CSV Dosyası</Label>
+                    <Input type="file" accept=".csv,text/csv" onChange={(e) => setBulkCsvFile(e.target.files?.[0] || null)} />
+                  </div>
+
+                  <div className="text-xs text-gray-500">
+                    CSV import backend endpoint&apos;i bir sonraki adımda eklenecek. Şimdilik range/template ile hızlı oluşturma hazır.
+                  </div>
+
+                  <div className="flex justify-end gap-2 pt-2">
+                    <Button type="button" variant="outline" onClick={() => setOpenDialog(null)}>Kapat</Button>
+                    <Button type="submit" disabled={!bulkCsvFile}>Import</Button>
+                  </div>
+                </form>
+              </TabsContent>
+            </Tabs>
+          </DialogContent>
+        </Dialog>
+
+
+        {/* Guest Dialog */}
+        <Dialog open={openDialog === 'guest'} onOpenChange={(open) => !open && setOpenDialog(null)}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Register New Guest</DialogTitle>
+            </DialogHeader>
+            <form onSubmit={handleCreateGuest} className="space-y-4">
+              <div>
+                <Label>Name</Label>
+                <Input value={newGuest.name} onChange={(e) => setNewGuest({...newGuest, name: e.target.value})} required />
+              </div>
+              <div>
+                <Label>Email</Label>
+                <Input type="email" value={newGuest.email} onChange={(e) => setNewGuest({...newGuest, email: e.target.value})} required />
+              </div>
+              <div>
+                <Label>Phone</Label>
+                <Input value={newGuest.phone} onChange={(e) => setNewGuest({...newGuest, phone: e.target.value})} required />
+              </div>
+              <div>
+                <Label>ID Number</Label>
+                <Input value={newGuest.id_number} onChange={(e) => setNewGuest({...newGuest, id_number: e.target.value})} required />
+              </div>
+              <div>
+                <Label>Address</Label>
+                <Input value={newGuest.address} onChange={(e) => setNewGuest({...newGuest, address: e.target.value})} />
+              </div>
+              <Button type="submit" className="w-full">Register Guest</Button>
+            </form>
+          </DialogContent>
+        </Dialog>
+
+        {/* Booking Dialog */}
+        <Dialog open={openDialog === 'booking'} onOpenChange={(open) => !open && setOpenDialog(null)}>
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Create New Booking</DialogTitle>
+              <DialogDescription>Fill in the booking details below</DialogDescription>
+            </DialogHeader>
+            <form onSubmit={handleCreateBooking} className="space-y-6">
+              {/* Guest selection */}
+              <div className="grid grid-cols-2 gap-4 items-end">
+                <div>
+                  <Label>Guest *</Label>
+                  <Select value={newBooking.guest_id} onValueChange={(v) => setNewBooking({...newBooking, guest_id: v})}>
+                    <SelectTrigger><SelectValue placeholder="Select guest" /></SelectTrigger>
+                    <SelectContent>
+                      {guests.map(g => <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="flex justify-end">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setOpenDialog('guest')}
+                  >
+                    Register New Guest
+                  </Button>
+                </div>
+              </div>
+
+              {/* Multi-room rooms list */}
+              <div className="mt-4 border rounded-lg p-4 space-y-4 bg-slate-50">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="font-semibold text-sm">Rooms in this Booking</h3>
+                    <p className="text-xs text-slate-500">You can add multiple rooms under one reservation (family, small group, etc.).</p>
+                  </div>
+                  <Button type="button" variant="outline" size="sm" onClick={addRoomToMultiBooking}>
+                    <Plus className="w-4 h-4 mr-1" /> Add Room
+                  </Button>
+                </div>
+
+                <div className="space-y-3">
+                  {multiRoomBooking.map((room, index) => (
+                    <div key={index} className="border rounded-md bg-white p-3 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div className="font-medium text-sm">Room #{index + 1}</div>
+                        {multiRoomBooking.length > 1 && (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                            onClick={() => removeRoomFromMultiBooking(index)}
+                          >
+                            Remove
+                          </Button>
+                        )}
+                      </div>
+
+                      <div className="grid grid-cols-3 gap-3">
+                        <div>
+                          <Label className="text-xs">Room *</Label>
+                          <Select
+                            value={room.room_id}
+                            onValueChange={(v) => updateMultiRoomField(index, 'room_id', v)}
+                          >
+                            <SelectTrigger><SelectValue placeholder="Select room" /></SelectTrigger>
+                            <SelectContent>
+                              {rooms.filter(r => r.status === 'available').map(r => (
+                                <SelectItem key={r.id} value={r.id}>
+                                  Room {r.room_number} - {r.room_type}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div>
+                          <Label className="text-xs">Adults</Label>
+                          <Input
+                            type="number"
+                            min="1"
+                            value={room.adults}
+                            onChange={(e) => updateMultiRoomField(index, 'adults', e.target.value)}
+                          />
+                        </div>
+                        <div>
+                          <Label className="text-xs">Children</Label>
+                          <Input
+                            type="number"
+                            min="0"
+                            value={room.children}
+                            onChange={(e) => updateMultiRoomChildrenAges(index, e.target.value)}
+                          />
+                        </div>
+                      </div>
+
+                      {room.children > 0 && (
+                        <div>
+                          <Label className="text-xs">Children Ages</Label>
+                          <div className="grid grid-cols-4 gap-2 mt-1">
+                            {Array.from({ length: room.children }).map((_, ageIndex) => (
+                              <Input
+                                key={ageIndex}
+                                type="number"
+                                min="0"
+                                max="17"
+                                placeholder={`Child ${ageIndex + 1}`}
+                                value={room.children_ages?.[ageIndex] ?? ''}
+                                onChange={(e) => updateMultiRoomChildAge(index, ageIndex, e.target.value)}
+                              />
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      <div className="grid grid-cols-2 gap-3 pt-2 border-t mt-2">
+                        <div>
+                          <Label className="text-xs">Rate Plan</Label>
+                          <Select
+                            value={room.rate_plan || ''}
+                            onValueChange={(v) => {
+                              // Set rate plan and suggest base rate from selected plan
+                              const selected = ratePlans.find(rp => rp.code === v || rp.id === v);
+                              updateMultiRoomField(index, 'rate_plan', v);
+                              if (selected && selected.base_price) {
+                                updateMultiRoomField(index, 'base_rate', selected.base_price);
+                                if (!room.total_amount || room.total_amount === 0) {
+                                  updateMultiRoomField(index, 'total_amount', selected.base_price);
+                                }
+                              }
+                            }}
+                          >
+                            <SelectTrigger><SelectValue placeholder="Select rate plan" /></SelectTrigger>
+                            <SelectContent>
+                              {ratePlans.map(rp => (
+                                <SelectItem key={rp.id} value={rp.code || rp.id}>
+                                  {rp.name} ({rp.code}) - {rp.currency} {rp.base_price}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div>
+                          <Label className="text-xs">Package</Label>
+                          <Select
+                            value={room.package_code || ''}
+                            onValueChange={(v) => updateMultiRoomField(index, 'package_code', v)}
+                          >
+                            <SelectTrigger><SelectValue placeholder="No package" /></SelectTrigger>
+                            <SelectContent>
+                              {packages.map(pkg => (
+                                <SelectItem key={pkg.id} value={pkg.code}>
+                                  {pkg.name} ({pkg.code})
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-3 pt-2">
+                        <div>
+                          <Label className="text-xs">Base Rate</Label>
+                          <Input
+                            type="number"
+                            step="0.01"
+                            value={room.base_rate === 0 ? '' : room.base_rate}
+                            onChange={(e) => updateMultiRoomField(index, 'base_rate', e.target.value)}
+                          />
+                        </div>
+                        <div>
+                          <Label className="text-xs">Total Amount *</Label>
+                          <Input
+                            type="number"
+                            step="0.01"
+                            value={room.total_amount === 0 ? '' : room.total_amount}
+                            onChange={(e) => updateMultiRoomField(index, 'total_amount', e.target.value)}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Check-in and Check-out */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label>Check-in *</Label>
+                  <Input type="date" value={newBooking.check_in} onChange={(e) => setNewBooking({...newBooking, check_in: e.target.value})} required />
+                </div>
+                <div>
+                  <Label>Check-out *</Label>
+                  <Input type="date" value={newBooking.check_out} onChange={(e) => setNewBooking({...newBooking, check_out: e.target.value})} required />
+                </div>
+              </div>
+
+              {/* Adults and Children for summary (kept for compatibility but hidden) */}
+              <div className="hidden">
+                <Input 
+                  type="number" 
+                  min="1" 
+                  value={newBooking.adults} 
+                  onChange={(e) => {
+                    const adults = parseInt(e.target.value) || 1;
+                    setNewBooking({...newBooking, adults, guests_count: adults + newBooking.children});
+                  }} 
+                />
+                <Input 
+                  type="number" 
+                  min="0" 
+                  value={newBooking.children} 
+                  onChange={(e) => handleChildrenChange(e.target.value)} 
+                />
+              </div>
+
+              {/* Children Ages - Show only if children > 0 */}
+              {newBooking.children > 0 && (
+                <div>
+                  <Label>Children Ages</Label>
+                  <div className="grid grid-cols-4 gap-2 mt-2">
+                    {Array.from({ length: newBooking.children }).map((_, index) => (
+                      <Input
+                        key={index}
+                        type="number"
+                        min="0"
+                        max="17"
+                        placeholder={`Child ${index + 1} age`}
+                        value={newBooking.children_ages[index] || ''}
+                        onChange={(e) => handleChildAgeChange(index, e.target.value)}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Company Selection */}
+              <div>
+                <div className="flex justify-between items-center mb-2">
+                  <Label>Company (Optional)</Label>
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => setOpenDialog('company')}
+                  >
+                    <Plus className="w-4 h-4 mr-1" />
+                    New Company
+                  </Button>
+                </div>
+                <Select value={newBooking.company_id || "none"} onValueChange={handleCompanySelect}>
+                  <SelectTrigger><SelectValue placeholder="Select company (optional)" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">None</SelectItem>
+                    {companies.filter(c => c.status === 'active').map(c => (
+                      <SelectItem key={c.id} value={c.id}>{c.name} - {c.corporate_code}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Contracted Rate */}
+              {newBooking.company_id && (
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label>Contracted Rate</Label>
+                    <Select value={newBooking.contracted_rate} onValueChange={handleContractedRateSelect}>
+                      <SelectTrigger><SelectValue placeholder="Select rate" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="corp_std">Standard Corporate</SelectItem>
+                        <SelectItem value="corp_pref">Preferred Corporate</SelectItem>
+                        <SelectItem value="gov">Government Rate</SelectItem>
+                        <SelectItem value="ta">Travel Agent Rate</SelectItem>
+                        <SelectItem value="crew">Airline Crew Rate</SelectItem>
+                        <SelectItem value="mice">Event/Conference Rate</SelectItem>
+                        <SelectItem value="lts">Long Stay/Project Rate</SelectItem>
+                        <SelectItem value="tou">Tour Operator Rate</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label>Rate Type</Label>
+                    <Select value={newBooking.rate_type} onValueChange={(v) => setNewBooking({...newBooking, rate_type: v})}>
+                      <SelectTrigger><SelectValue placeholder="Select type" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="bar">BAR / Rack Rate</SelectItem>
+                        <SelectItem value="corporate">Corporate Rate</SelectItem>
+                        <SelectItem value="government">Government Rate</SelectItem>
+                        <SelectItem value="wholesale">Wholesale Rate</SelectItem>
+                        <SelectItem value="package">Package Rate</SelectItem>
+                        <SelectItem value="promotional">Promotional Rate</SelectItem>
+                        <SelectItem value="non_refundable">Non-Refundable</SelectItem>
+                        <SelectItem value="long_stay">Long Stay Rate</SelectItem>
+                        <SelectItem value="day_use">Day Use Rate</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              )}
+
+              {/* Market Segment and Cancellation Policy */}
+              {newBooking.company_id && (
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label>Market Segment</Label>
+                    <Select value={newBooking.market_segment} onValueChange={(v) => setNewBooking({...newBooking, market_segment: v})}>
+                      <SelectTrigger><SelectValue placeholder="Select segment" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="corporate">Corporate</SelectItem>
+                        <SelectItem value="leisure">Leisure</SelectItem>
+                        <SelectItem value="group">Group</SelectItem>
+                        <SelectItem value="mice">MICE/Event</SelectItem>
+                        <SelectItem value="government">Government</SelectItem>
+                        <SelectItem value="crew">Airline Crew</SelectItem>
+                        <SelectItem value="wholesale">Wholesale</SelectItem>
+                        <SelectItem value="long_stay">Long Stay</SelectItem>
+                        <SelectItem value="complimentary">Complimentary</SelectItem>
+                        <SelectItem value="other">Other</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label>Cancellation Policy</Label>
+                    <Select value={newBooking.cancellation_policy} onValueChange={(v) => setNewBooking({...newBooking, cancellation_policy: v})}>
+                      <SelectTrigger><SelectValue placeholder="Select policy" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="same_day">Same Day (18:00)</SelectItem>
+                        <SelectItem value="h24">24 Hours</SelectItem>
+                        <SelectItem value="h48">48 Hours</SelectItem>
+                        <SelectItem value="h72">72 Hours</SelectItem>
+                        <SelectItem value="d7">7 Days</SelectItem>
+                        <SelectItem value="d14">14 Days</SelectItem>
+                        <SelectItem value="non_refundable">Non-Refundable</SelectItem>
+                        <SelectItem value="flexible">Flexible</SelectItem>
+                        <SelectItem value="special_event">Special Event</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              )}
+
+              {/* Billing Information */}
+              {newBooking.company_id && (
+                <div className="space-y-4 border-t pt-4">
+                  <h3 className="font-semibold">Billing Information</h3>
+                  <div>
+                    <Label>Billing Address</Label>
+                    <Textarea 
+                      value={newBooking.billing_address} 
+                      onChange={(e) => setNewBooking({...newBooking, billing_address: e.target.value})}
+                      rows={2}
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label>Tax Number</Label>
+                      <Input 
+                        value={newBooking.billing_tax_number} 
+                        onChange={(e) => setNewBooking({...newBooking, billing_tax_number: e.target.value})}
+                      />
+
+              {/* Multi-room section placeholder: future enhancement */}
+
+                    </div>
+                    <div>
+                      <Label>Contact Person</Label>
+                      <Input 
+                        value={newBooking.billing_contact_person} 
+                        onChange={(e) => setNewBooking({...newBooking, billing_contact_person: e.target.value})}
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Channel selection (rate details managed per-room above) */}
+              <div className="grid grid-cols-3 gap-4 border-t pt-4">
+                <div className="col-span-2 text-xs text-gray-500 flex items-center">
+                  Per-room base rate and total amount are managed in the multi-room section above.
+                </div>
+                <div>
+                  <Label>Channel</Label>
+                  <Select value={newBooking.channel} onValueChange={(v) => setNewBooking({...newBooking, channel: v})}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="direct">Direct</SelectItem>
+                      <SelectItem value="booking_com">Booking.com</SelectItem>
+                      <SelectItem value="expedia">Expedia</SelectItem>
+                      <SelectItem value="airbnb">Airbnb</SelectItem>
+                      <SelectItem value="agoda">Agoda</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              {/* Override Reason - Show if rate is different from base */}
+              {false && newBooking.base_rate > 0 && newBooking.base_rate !== newBooking.total_amount && (
+                <div className="bg-yellow-50 border border-yellow-200 p-4 rounded">
+                  <Label className="text-yellow-800">Override Reason * (Required for rate change)</Label>
+                  <Textarea 
+                    value={newBooking.override_reason} 
+                    onChange={(e) => setNewBooking({...newBooking, override_reason: e.target.value})}
+                    placeholder="Explain why the rate is different from the base rate..."
+                    className="mt-2"
+                    required
+                  />
+                </div>
+              )}
+
+              <Button type="submit" className="w-full">Create Booking</Button>
+            </form>
+          </DialogContent>
+        </Dialog>
+
+        {/* Quick Company Create Dialog */}
+        <Dialog open={openDialog === 'company'} onOpenChange={(open) => !open && setOpenDialog(null)}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>Quick Company Creation</DialogTitle>
+              <DialogDescription>Create a new company profile (status: pending)</DialogDescription>
+            </DialogHeader>
+            <form onSubmit={handleCreateCompany} className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label>Company Name *</Label>
+                  <Input 
+                    value={newCompany.name} 
+                    onChange={(e) => setNewCompany({...newCompany, name: e.target.value})}
+                    required
+                  />
+                </div>
+                <div>
+                  <Label>Corporate Code</Label>
+                  <Input 
+                    value={newCompany.corporate_code} 
+                    onChange={(e) => setNewCompany({...newCompany, corporate_code: e.target.value})}
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label>Tax Number</Label>
+                  <Input 
+                    value={newCompany.tax_number} 
+                    onChange={(e) => setNewCompany({...newCompany, tax_number: e.target.value})}
+                  />
+                </div>
+                <div>
+                  <Label>Contact Person</Label>
+                  <Input 
+                    value={newCompany.contact_person} 
+                    onChange={(e) => setNewCompany({...newCompany, contact_person: e.target.value})}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <Label>Billing Address</Label>
+                <Textarea 
+                  value={newCompany.billing_address} 
+                  onChange={(e) => setNewCompany({...newCompany, billing_address: e.target.value})}
+                  rows={2}
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label>Contact Email</Label>
+                  <Input 
+                    type="email"
+                    value={newCompany.contact_email} 
+                    onChange={(e) => setNewCompany({...newCompany, contact_email: e.target.value})}
+                  />
+                </div>
+                <div>
+                  <Label>Contact Phone</Label>
+                  <Input 
+                    value={newCompany.contact_phone} 
+                    onChange={(e) => setNewCompany({...newCompany, contact_phone: e.target.value})}
+                  />
+                </div>
+              </div>
+
+              <div className="text-sm text-gray-500 bg-blue-50 p-3 rounded">
+                ℹ️ This company will be created with &quot;Pending&quot; status. Sales team can complete the profile later with contracted rates and payment terms.
+              </div>
+
+              <Button type="submit" className="w-full">Create Company</Button>
+            </form>
+          </DialogContent>
+        </Dialog>
+
+        {/* Folio View Dialog */}
+        <Dialog open={openDialog === 'folio-view'} onOpenChange={(open) => !open && setOpenDialog(null)}>
+          <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Folio Management</DialogTitle>
+              <DialogDescription>
+                {selectedFolio && `Folio ${selectedFolio.folio_number} - ${selectedFolio.folio_type.toUpperCase()}`}
+              </DialogDescription>
+            </DialogHeader>
+
+            {selectedFolio && (
+              <div className="space-y-6">
+                {/* Header Summary */}
+                <div className="bg-gradient-to-r from-blue-50 to-purple-50 p-6 rounded-lg border">
+                  <div className="grid grid-cols-3 gap-4">
+                    <div>
+                      <div className="text-sm text-gray-600">Guest</div>
+                      <div className="font-semibold">
+                        {guests.find(g => g.id === selectedFolio.guest_id)?.name || 'N/A'}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-sm text-gray-600">Booking</div>
+                      <div className="font-semibold">
+                        {(() => {
+                          const booking = bookings.find(b => b.id === selectedFolio.booking_id);
+                          if (!booking) return 'N/A';
+                          return `${new Date(booking.check_in).toLocaleDateString()} - ${new Date(booking.check_out).toLocaleDateString()}`;
+                        })()}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-sm text-gray-600">Current Balance</div>
+                      <div className={`text-2xl font-bold ${selectedFolio.balance > 0 ? 'text-red-600' : selectedFolio.balance < 0 ? 'text-green-600' : 'text-gray-600'}`}>
+                        ${selectedFolio.balance?.toFixed(2) || '0.00'}
+                      </div>
+                      <div className="text-xs text-gray-500">
+                        {selectedFolio.balance > 0 ? 'Guest owes hotel' : selectedFolio.balance < 0 ? 'Hotel owes guest' : 'Balanced'}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex gap-2">
+                  <Button onClick={() => setOpenDialog('post-charge')} variant="default">
+                    <Plus className="w-4 h-4 mr-2" />
+                    Post Charge
+                  </Button>
+                  <Button onClick={() => setOpenDialog('post-payment')} variant="default">
+                    <Plus className="w-4 h-4 mr-2" />
+                    Post Payment
+                  </Button>
+                </div>
+
+                {/* Charges and Payments Lists */}
+                <div className="grid grid-cols-2 gap-6">
+                  {/* Charges List */}
+                  <div>
+                    <h3 className="text-lg font-semibold mb-3 flex items-center">
+                      <ClipboardList className="w-5 h-5 mr-2" />
+                      Charges
+                    </h3>
+                    <div className="space-y-2 max-h-96 overflow-y-auto">
+                      {folioCharges.length === 0 ? (
+                        <div className="text-center text-gray-400 py-8">No charges posted</div>
+                      ) : 
+                        folioCharges.map((charge) => {
+                          // Check if this is a POS charge with line items
+                          const isPOSCharge = charge.charge_category === 'restaurant' || charge.charge_category === 'bar' || charge.charge_category === 'room_service';
+                          const hasLineItems = charge.line_items && charge.line_items.length > 0;
+                          const isExpanded = expandedChargeItems[charge.id];
+                          
+                          return (
+                          <Card key={charge.id} className={charge.voided ? 'opacity-50 bg-gray-50' : ''}>
+                            <CardContent className="p-4">
+                              <div 
+                                className={`flex justify-between items-start ${isPOSCharge && hasLineItems ? 'cursor-pointer hover:bg-gray-50' : ''}`}
+                                onClick={() => {
+                                  if (isPOSCharge && hasLineItems) {
+                                    setExpandedChargeItems(prev => ({
+                                      ...prev,
+                                      [charge.id]: !prev[charge.id]
+                                    }));
+                                  }
+                                }}
+                              >
+                                <div className="flex-1">
+                                  <div className="flex items-center gap-2">
+                                    <div className="font-semibold">{charge.description}</div>
+                                    {isPOSCharge && hasLineItems && (
+                                      <button className="text-blue-600 text-xs">
+                                        {isExpanded ? '▼ Hide Items' : '▶ Show Items'}
+                                      </button>
+                                    )}
+                                  </div>
+                                  <div className="text-sm text-gray-600">
+                                    {charge.charge_category.replace('_', ' ').toUpperCase()}
+                                  </div>
+                                  <div className="text-xs text-gray-500">
+                                    {new Date(charge.date).toLocaleDateString()} • Qty: {charge.quantity}
+                                  </div>
+                                  {charge.voided && (
+                                    <div className="text-xs text-red-600 mt-1">
+                                      VOIDED: {charge.void_reason}
+                                    </div>
+                                  )}
+                                </div>
+                                <div className="text-right">
+                                  <div className="font-bold">${charge.total.toFixed(2)}</div>
+                                  {charge.tax_amount > 0 && (
+                                    <div className="text-xs text-gray-500">
+                                      +${charge.tax_amount.toFixed(2)} tax
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+
+                              {/* POS Line Items Breakdown - NEW */}
+                              {isPOSCharge && hasLineItems && isExpanded && (
+                                <div className="mt-3 pt-3 border-t bg-blue-50/50 rounded p-3">
+                                  <div className="text-xs font-semibold text-gray-700 mb-2">POS Fiş Detayı:</div>
+                                  <div className="space-y-1.5">
+                                    {charge.line_items.map((item, idx) => (
+                                      <div key={idx} className="flex justify-between items-center text-sm">
+                                        <div className="flex-1">
+                                          <span className="font-medium text-gray-700">
+                                            {item.quantity} x {item.item_name}
+                                          </span>
+                                          {item.modifiers && item.modifiers.length > 0 && (
+                                            <div className="text-xs text-gray-500 ml-4">
+                                              ({item.modifiers.join(', ')})
+                                            </div>
+                                          )}
+                                        </div>
+                                        <span className="font-semibold text-gray-800">
+                                          ${(item.unit_price * item.quantity).toFixed(2)}
+                                        </span>
+                                      </div>
+                                    ))}
+                                  </div>
+                                  <div className="mt-2 pt-2 border-t flex justify-between text-sm">
+                                    <span className="font-semibold">Subtotal:</span>
+                                    <span className="font-bold">${charge.total.toFixed(2)}</span>
+                                  </div>
+                                </div>
+                              )}
+                            </CardContent>
+                          </Card>
+                        );
+                        })
+                      }
+                    </div>
+                    <div className="mt-4 pt-4 border-t">
+                      <div className="flex justify-between font-semibold">
+                        <span>Total Charges:</span>
+                        <span>${folioCharges.filter(c => !c.voided).reduce((sum, c) => sum + c.total, 0).toFixed(2)}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Payments List */}
+                  <div>
+                    <h3 className="text-lg font-semibold mb-3 flex items-center">
+                      <DollarSign className="w-5 h-5 mr-2" />
+                      Payments
+                    </h3>
+                    <div className="space-y-2 max-h-96 overflow-y-auto">
+                      {folioPayments.length === 0 ? (
+                        <div className="text-center text-gray-400 py-8">No payments posted</div>
+                      ) : (
+                        folioPayments.map((payment) => (
+                          <Card key={payment.id} className="bg-green-50">
+                            <CardContent className="p-4">
+                              <div className="flex justify-between items-start">
+                                <div className="flex-1">
+                                  <div className="font-semibold">{payment.method.toUpperCase()}</div>
+                                  <div className="text-sm text-gray-600">
+                                    {payment.payment_type.replace('_', ' ').toUpperCase()}
+                                  </div>
+                                  <div className="text-xs text-gray-500">
+                                    {new Date(payment.processed_at).toLocaleDateString()}
+                                  </div>
+                                  {payment.reference && (
+                                    <div className="text-xs text-gray-500">
+                                      Ref: {payment.reference}
+                                    </div>
+                                  )}
+                                </div>
+                                <div className="text-right">
+                                  <div className="font-bold text-green-600">${payment.amount.toFixed(2)}</div>
+                                </div>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        ))
+                      )}
+                    </div>
+                    <div className="mt-4 pt-4 border-t">
+                      <div className="flex justify-between font-semibold">
+                        <span>Total Payments:</span>
+                        <span className="text-green-600">${folioPayments.reduce((sum, p) => sum + p.amount, 0).toFixed(2)}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Net Balance */}
+                <div className="bg-gray-50 p-6 rounded-lg border-2 border-gray-300">
+                  <div className="flex justify-between items-center">
+                    <span className="text-xl font-semibold">Net Balance:</span>
+                    <span className={`text-3xl font-bold ${selectedFolio.balance > 0 ? 'text-red-600' : selectedFolio.balance < 0 ? 'text-green-600' : 'text-gray-600'}`}>
+                      ${selectedFolio.balance?.toFixed(2) || '0.00'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
+
+        {/* Post Charge Dialog */}
+        <Dialog open={openDialog === 'post-charge'} onOpenChange={(open) => !open && setOpenDialog('folio-view')}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Post Charge</DialogTitle>
+            </DialogHeader>
+            <form onSubmit={handlePostCharge} className="space-y-4">
+              <div>
+                <Label>Charge Category *</Label>
+                <Select value={newFolioCharge.charge_category} onValueChange={(v) => setNewFolioCharge({...newFolioCharge, charge_category: v})}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="room">Room</SelectItem>
+                    <SelectItem value="food">Food & Beverage</SelectItem>
+                    <SelectItem value="minibar">Minibar</SelectItem>
+                    <SelectItem value="spa">Spa</SelectItem>
+                    <SelectItem value="laundry">Laundry</SelectItem>
+                    <SelectItem value="phone">Phone</SelectItem>
+                    <SelectItem value="internet">Internet</SelectItem>
+                    <SelectItem value="parking">Parking</SelectItem>
+                    <SelectItem value="city_tax">City Tax</SelectItem>
+                    <SelectItem value="other">Other</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Description *</Label>
+                <Input 
+                  value={newFolioCharge.description} 
+                  onChange={(e) => setNewFolioCharge({...newFolioCharge, description: e.target.value})}
+                  placeholder="e.g., Room 101 - Night Charge"
+                  required
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label>Amount *</Label>
+                  <Input 
+                    type="number" 
+                    step="0.01"
+                    value={newFolioCharge.amount} 
+                    onChange={(e) => setNewFolioCharge({...newFolioCharge, amount: parseFloat(e.target.value) || 0})}
+                    required
+                  />
+                </div>
+                <div>
+                  <Label>Quantity *</Label>
+                  <Input 
+                    type="number" 
+                    min="1"
+                    value={newFolioCharge.quantity} 
+                    onChange={(e) => setNewFolioCharge({...newFolioCharge, quantity: parseFloat(e.target.value) || 1})}
+                    required
+                  />
+                </div>
+              </div>
+              <div className="flex items-center space-x-2">
+                <input 
+                  type="checkbox" 
+                  id="auto-tax"
+                  checked={newFolioCharge.auto_calculate_tax}
+                  onChange={(e) => setNewFolioCharge({...newFolioCharge, auto_calculate_tax: e.target.checked})}
+                  className="rounded"
+                />
+                <Label htmlFor="auto-tax" className="cursor-pointer">
+                  Auto-calculate city tax
+                </Label>
+              </div>
+              <Button type="submit" className="w-full">Post Charge</Button>
+            </form>
+          </DialogContent>
+        </Dialog>
+
+        {/* Post Payment Dialog */}
+        <Dialog open={openDialog === 'post-payment'} onOpenChange={(open) => !open && setOpenDialog('folio-view')}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Post Payment</DialogTitle>
+            </DialogHeader>
+            <form onSubmit={handlePostPayment} className="space-y-4">
+              <div>
+                <Label>Payment Method *</Label>
+                <Select value={newFolioPayment.method} onValueChange={(v) => setNewFolioPayment({...newFolioPayment, method: v})}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="cash">Cash</SelectItem>
+                    <SelectItem value="card">Credit/Debit Card</SelectItem>
+                    <SelectItem value="bank_transfer">Bank Transfer</SelectItem>
+                    <SelectItem value="online">Online Payment</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Payment Type *</Label>
+                <Select value={newFolioPayment.payment_type} onValueChange={(v) => setNewFolioPayment({...newFolioPayment, payment_type: v})}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="prepayment">Prepayment</SelectItem>
+                    <SelectItem value="deposit">Deposit</SelectItem>
+                    <SelectItem value="interim">Interim Payment</SelectItem>
+                    <SelectItem value="final">Final Payment</SelectItem>
+                    <SelectItem value="refund">Refund</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Amount *</Label>
+                <Input 
+                  type="number" 
+                  step="0.01"
+                  value={newFolioPayment.amount} 
+                  onChange={(e) => setNewFolioPayment({...newFolioPayment, amount: parseFloat(e.target.value) || 0})}
+                  required
+                />
+              </div>
+              <div>
+                <Label>Reference / Auth Code</Label>
+                <Input 
+                  value={newFolioPayment.reference} 
+                  onChange={(e) => setNewFolioPayment({...newFolioPayment, reference: e.target.value})}
+                  placeholder="e.g., AUTH123456"
+                />
+              </div>
+              <div>
+                <Label>Notes</Label>
+                <Textarea 
+                  value={newFolioPayment.notes} 
+                  onChange={(e) => setNewFolioPayment({...newFolioPayment, notes: e.target.value})}
+                  rows={2}
+                />
+              </div>
+              <Button type="submit" className="w-full">Post Payment</Button>
+            </form>
+          </DialogContent>
+        </Dialog>
+
+        {/* HK Task Dialog */}
+        <Dialog open={openDialog === 'hktask'} onOpenChange={(open) => !open && setOpenDialog(null)}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Create Housekeeping Task</DialogTitle>
+            </DialogHeader>
+            <form onSubmit={handleCreateHKTask} className="space-y-4">
+              <div>
+                <Label>Room</Label>
+                <Select value={newHKTask.room_id} onValueChange={(v) => setNewHKTask({...newHKTask, room_id: v})}>
+                  <SelectTrigger><SelectValue placeholder="Select room" /></SelectTrigger>
+                  <SelectContent>
+                    {rooms.map(r => <SelectItem key={r.id} value={r.id}>Room {r.room_number}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Task Type</Label>
+                <Select value={newHKTask.task_type} onValueChange={(v) => setNewHKTask({...newHKTask, task_type: v})}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="cleaning">Cleaning</SelectItem>
+                    <SelectItem value="inspection">Inspection</SelectItem>
+                    <SelectItem value="maintenance">Maintenance</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Priority</Label>
+                <Select value={newHKTask.priority} onValueChange={(v) => setNewHKTask({...newHKTask, priority: v})}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="low">Low</SelectItem>
+                    <SelectItem value="normal">Normal</SelectItem>
+                    <SelectItem value="high">High</SelectItem>
+                    <SelectItem value="urgent">Urgent</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Notes</Label>
+                <Textarea value={newHKTask.notes} onChange={(e) => setNewHKTask({...newHKTask, notes: e.target.value})} />
+              </div>
+              <Button type="submit" className="w-full">Create Task</Button>
+            </form>
+          </DialogContent>
+        </Dialog>
+
+        {/* Room Block Dialog */}
+        <Dialog open={openDialog === 'roomblock'} onOpenChange={(open) => !open && setOpenDialog(null)}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Block Room</DialogTitle>
+              <DialogDescription>
+                Create an Out of Order, Out of Service, or Maintenance block for a room
+              </DialogDescription>
+            </DialogHeader>
+            <form onSubmit={(e) => { e.preventDefault(); createRoomBlock(); }} className="space-y-4">
+              <div>
+                <Label>Room *</Label>
+                <Select value={selectedRoom?.id || ''} onValueChange={(v) => setSelectedRoom(rooms.find(r => r.id === v))}>
+                  <SelectTrigger><SelectValue placeholder="Select room" /></SelectTrigger>
+                  <SelectContent>
+                    {rooms.map(r => <SelectItem key={r.id} value={r.id}>Room {r.room_number} ({r.room_type})</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Block Type *</Label>
+                <Select value={newRoomBlock.type} onValueChange={(v) => setNewRoomBlock({...newRoomBlock, type: v})}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="out_of_order">Out of Order (Cannot be sold)</SelectItem>
+                    <SelectItem value="out_of_service">Out of Service</SelectItem>
+                    <SelectItem value="maintenance">Maintenance</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Reason *</Label>
+                <Input 
+                  value={newRoomBlock.reason} 
+                  onChange={(e) => setNewRoomBlock({...newRoomBlock, reason: e.target.value})}
+                  placeholder="e.g., Plumbing issue, Renovation"
+                  maxLength={200}
+                />
+              </div>
+              <div>
+                <Label>Details (optional)</Label>
+                <Textarea 
+                  value={newRoomBlock.details} 
+                  onChange={(e) => setNewRoomBlock({...newRoomBlock, details: e.target.value})}
+                  placeholder="Additional details about the block"
+                  rows={3}
+                />
+              </div>
+              <div>
+                <Label>Start Date *</Label>
+                <Input 
+                  type="date"
+                  value={newRoomBlock.start_date} 
+                  onChange={(e) => setNewRoomBlock({...newRoomBlock, start_date: e.target.value})}
+                />
+              </div>
+              <div>
+                <Label>End Date (optional - leave empty for open-ended)</Label>
+                <Input 
+                  type="date"
+                  value={newRoomBlock.end_date} 
+                  onChange={(e) => setNewRoomBlock({...newRoomBlock, end_date: e.target.value})}
+                />
+              </div>
+              <div className="flex items-center space-x-2">
+                <input 
+                  type="checkbox"
+                  id="allow_sell"
+                  checked={newRoomBlock.allow_sell}
+                  onChange={(e) => setNewRoomBlock({...newRoomBlock, allow_sell: e.target.checked})}
+                  className="h-4 w-4"
+                />
+                <Label htmlFor="allow_sell" className="cursor-pointer">
+                  Allow room to be sold during block period
+                </Label>
+              </div>
+              <Button type="submit" className="w-full">Create Room Block</Button>
+            </form>
+          </DialogContent>
+        </Dialog>
+
+        {/* View Room Blocks Dialog */}
+        <Dialog open={openDialog === 'viewblocks'} onOpenChange={(open) => !open && setOpenDialog(null)}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>Room Blocks - Room {selectedRoom?.room_number}</DialogTitle>
+              <DialogDescription>All blocks for this room</DialogDescription>
+            </DialogHeader>
+            <div className="space-y-3 max-h-96 overflow-y-auto">
+              {selectedRoom && roomBlocks.filter(b => b.room_id === selectedRoom.id).length === 0 && (
+                <div className="text-center text-gray-400 py-8">No blocks for this room</div>
+              )}
+              {selectedRoom && roomBlocks.filter(b => b.room_id === selectedRoom.id).map((block) => (
+                <Card key={block.id} className={`${
+                  block.status === 'cancelled' ? 'bg-gray-50' : 
+                  block.type === 'out_of_order' ? 'border-red-400' :
+                  block.type === 'out_of_service' ? 'border-orange-400' :
+                  'border-yellow-400'
+                }`}>
+                  <CardContent className="pt-4">
+                    <div className="flex justify-between items-start">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className={`px-2 py-1 text-xs font-bold rounded ${
+                            block.type === 'out_of_order' ? 'bg-red-600 text-white' :
+                            block.type === 'out_of_service' ? 'bg-orange-500 text-white' :
+                            'bg-yellow-600 text-white'
+                          }`}>
+                            {block.type === 'out_of_order' ? 'OUT OF ORDER' :
+                             block.type === 'out_of_service' ? 'OUT OF SERVICE' :
+                             'MAINTENANCE'}
+                          </span>
+                          <span className={`px-2 py-1 text-xs font-semibold rounded ${
+                            block.status === 'active' ? 'bg-green-100 text-green-700' :
+                            block.status === 'cancelled' ? 'bg-gray-200 text-gray-600' :
+                            'bg-yellow-100 text-yellow-700'
+                          }`}>
+                            {block.status}
+                          </span>
+                        </div>
+                        <div className="text-sm font-medium text-gray-900 mb-1">
+                          {block.reason}
+                        </div>
+                        {block.details && (
+                          <div className="text-xs text-gray-600 mb-2">
+                            {block.details}
+                          </div>
+                        )}
+                        <div className="text-xs text-gray-500">
+                          {new Date(block.start_date).toLocaleDateString()} - {
+                            block.end_date ? new Date(block.end_date).toLocaleDateString() : 'Open-ended'
+                          }
+                        </div>
+                        <div className="text-xs text-gray-500 mt-1">
+                          {block.allow_sell ? '✓ Can be sold' : '✗ Cannot be sold'}
+                        </div>
+                      </div>
+                      {block.status === 'active' && (
+                        <Button 
+                          size="sm" 
+                          variant="destructive" 
+                          onClick={() => {
+                            cancelRoomBlock(block.id);
+                            setOpenDialog(null);
+                          }}
+                        >
+                          Cancel
+                        </Button>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Guest 360° Profile Dialog */}
+        <Dialog open={openDialog === 'guest360'} onOpenChange={(open) => !open && setOpenDialog(null)}>
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="text-2xl">🌟 Guest 360° Profile</DialogTitle>
+              <DialogDescription>Complete guest intelligence and relationship data</DialogDescription>
+            </DialogHeader>
+            
+            {loadingGuest360 ? (
+              <div className="text-center py-12">
+                <div className="text-4xl mb-4">⏳</div>
+                <div>Loading guest profile...</div>
+              </div>
+            ) : guest360Data ? (
+              <div className="space-y-4">
+                {/* Quick Action Buttons - NEW */}
+                <div className="flex gap-2 p-4 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg border border-blue-200">
+                  <Button 
+                    onClick={() => {
+                      toast.success('Opening offer creation for ' + guest360Data.guest?.name);
+                      // TODO: Navigate to offer creation or open offer dialog
+                    }}
+                    className="flex-1 bg-green-600 hover:bg-green-700"
+                  >
+                    <Send className="w-4 h-4 mr-2" />
+                    Send Offer
+                  </Button>
+                  <Button 
+                    onClick={() => {
+                      // Scroll to notes section or auto-focus note input
+                      const noteInput = document.querySelector('textarea[placeholder*="note"]');
+                      if (noteInput) noteInput.focus();
+                      toast.info('Note section ready - add your note below');
+                    }}
+                    variant="outline"
+                    className="flex-1 border-blue-400 hover:bg-blue-50"
+                  >
+                    <FileText className="w-4 h-4 mr-2" />
+                    Add Note
+                  </Button>
+                  <Button 
+                    onClick={async () => {
+                      try {
+                        const preference = prompt('Enter room preference (e.g., High Floor, Sea View, Quiet Room):');
+                        if (preference) {
+                          await axios.post(`/crm/guest/add-tag?guest_id=${selectedGuest360}&tag=PREF: ${preference}`);
+                          toast.success('Room preference saved!');
+                          loadGuest360(selectedGuest360);
+                        }
+                      } catch (error) {
+                        toast.error('Failed to save preference');
+                      }
+                    }}
+                    variant="outline"
+                    className="flex-1 border-purple-400 hover:bg-purple-50"
+                  >
+                    <Star className="w-4 h-4 mr-2" />
+                    Block Room Preference
+                  </Button>
+                  <Button 
+                    onClick={() => {
+                      // Navigate to messaging center with pre-filled guest
+                      window.location.href = `/ota-messaging-hub?guest=${guest360Data.guest?.id}&name=${guest360Data.guest?.name}`;
+                    }}
+                    variant="outline"
+                    className="flex-1 border-orange-400 hover:bg-orange-50"
+                  >
+                    <MessageSquare className="w-4 h-4 mr-2" />
+                    Message Guest
+                  </Button>
+                </div>
+
+                {/* Identity Card */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg">Identity & Contact</CardTitle>
+                  </CardHeader>
+                  <CardContent className="grid grid-cols-2 gap-4">
+                    <div>
+                      <div className="text-sm text-gray-600">Name</div>
+                      <div className="font-semibold">{guest360Data.guest?.name}</div>
+                    </div>
+                    <div>
+                      <div className="text-sm text-gray-600">Email</div>
+                      <div className="font-semibold">{guest360Data.guest?.email}</div>
+                    </div>
+                    <div>
+                      <div className="text-sm text-gray-600">Phone</div>
+                      <div className="font-semibold">{guest360Data.guest?.phone}</div>
+                    </div>
+                    <div>
+                      <div className="text-sm text-gray-600">Country</div>
+                      <div className="font-semibold">{guest360Data.guest?.country || 'N/A'}</div>
+                    </div>
+                    <div>
+                      <div className="text-sm text-gray-600">Loyalty Status</div>
+                      <div className={`inline-block px-2 py-1 rounded text-sm font-bold ${
+                        guest360Data.profile?.loyalty_status === 'vip' ? 'bg-purple-600 text-white' :
+                        guest360Data.profile?.loyalty_status === 'gold' ? 'bg-yellow-500 text-white' :
+                        guest360Data.profile?.loyalty_status === 'silver' ? 'bg-gray-400 text-white' :
+                        'bg-blue-500 text-white'
+                      }`}>
+                        {guest360Data.profile?.loyalty_status?.toUpperCase() || 'STANDARD'}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-sm text-gray-600">Last Seen</div>
+                      <div className="font-semibold">
+                        {guest360Data.profile?.last_seen_date ? new Date(guest360Data.profile.last_seen_date).toLocaleDateString() : 'N/A'}
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+
+                {/* Loyalty Progress Card */}
+                <Card className="bg-gradient-to-r from-purple-50 to-pink-50 border-purple-200">
+                  <CardHeader>
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      <Crown className="w-5 h-5 text-purple-600" />
+                      Loyalty Program Status
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <div className="text-2xl font-bold">
+                          {guest360Data.profile?.loyalty_points || guest360Data.guest?.loyalty_points || 0} pts
+                        </div>
+                        <div className="text-sm text-gray-600">Current Balance</div>
+                      </div>
+                      <div className={`px-4 py-2 rounded-lg font-bold text-lg ${
+                        guest360Data.profile?.loyalty_status === 'vip' ? 'bg-purple-600 text-white' :
+                        guest360Data.profile?.loyalty_status === 'gold' ? 'bg-yellow-500 text-white' :
+                        guest360Data.profile?.loyalty_status === 'silver' ? 'bg-gray-400 text-white' :
+                        'bg-blue-500 text-white'
+                      }`}>
+                        {(guest360Data.profile?.loyalty_status || guest360Data.guest?.loyalty_tier || 'standard').toUpperCase()}
+                      </div>
+                    </div>
+                    
+                    {/* Progress to Next Tier */}
+                    <div>
+                      <div className="flex justify-between text-sm mb-1">
+                        <span className="text-gray-600">Progress to Next Tier</span>
+                        <span className="font-semibold">
+                          {(() => {
+                            const currentPoints = guest360Data.profile?.loyalty_points || guest360Data.guest?.loyalty_points || 0;
+                            const currentStatus = guest360Data.profile?.loyalty_status || guest360Data.guest?.loyalty_tier || 'standard';
+                            const thresholds = { standard: 1000, silver: 2500, gold: 5000, vip: 10000 };
+                            const nextTier = 
+                              currentStatus === 'standard' ? 'silver' :
+                              currentStatus === 'silver' ? 'gold' :
+                              currentStatus === 'gold' ? 'vip' :
+                              null;
+                            
+                            if (!nextTier) return 'MAX TIER';
+                            const needed = thresholds[nextTier] - currentPoints;
+                            return needed > 0 ? `${needed} pts to ${nextTier.toUpperCase()}` : 'Eligible for upgrade!';
+                          })()}
+                        </span>
+                      </div>
+                      <div className="w-full bg-gray-200 rounded-full h-3">
+                        <div 
+                          className="bg-gradient-to-r from-purple-600 to-pink-600 h-3 rounded-full transition-all"
+                          style={{ 
+                            width: `${(() => {
+                              const currentPoints = guest360Data.profile?.loyalty_points || guest360Data.guest?.loyalty_points || 0;
+                              const currentStatus = guest360Data.profile?.loyalty_status || guest360Data.guest?.loyalty_tier || 'standard';
+                              const thresholds = { standard: 1000, silver: 2500, gold: 5000, vip: 10000 };
+                              const current = thresholds[currentStatus] || 0;
+                              const nextTier = 
+                                currentStatus === 'standard' ? 'silver' :
+                                currentStatus === 'silver' ? 'gold' :
+                                currentStatus === 'gold' ? 'vip' :
+                                null;
+                              
+                              if (!nextTier) return 100;
+                              const next = thresholds[nextTier];
+                              const progress = ((currentPoints - current) / (next - current)) * 100;
+                              return Math.min(Math.max(progress, 0), 100);
+                            })()}%` 
+                          }}
+                        ></div>
+                      </div>
+                    </div>
+                    
+                    {/* Tier Benefits */}
+                    <div className="text-xs space-y-1">
+                      <div className="font-semibold mb-2">Current Benefits:</div>
+                      {guest360Data.profile?.loyalty_status === 'vip' || guest360Data.guest?.loyalty_tier === 'vip' ? (
+                        <>
+                          <div className="flex items-center gap-2">✨ Suite Upgrades</div>
+                          <div className="flex items-center gap-2">🎁 Welcome Gifts</div>
+                          <div className="flex items-center gap-2">🍾 Complimentary Services</div>
+                          <div className="flex items-center gap-2">⚡ Priority Check-in/out</div>
+                        </>
+                      ) : guest360Data.profile?.loyalty_status === 'gold' || guest360Data.guest?.loyalty_tier === 'gold' ? (
+                        <>
+                          <div className="flex items-center gap-2">🔄 Free Room Upgrade</div>
+                          <div className="flex items-center gap-2">☕ Complimentary Breakfast</div>
+                          <div className="flex items-center gap-2">📅 Late Check-out</div>
+                        </>
+                      ) : guest360Data.profile?.loyalty_status === 'silver' || guest360Data.guest?.loyalty_tier === 'silver' ? (
+                        <>
+                          <div className="flex items-center gap-2">💰 10% Discount</div>
+                          <div className="flex items-center gap-2">🎯 Points on Stays</div>
+                        </>
+                      ) : (
+                        <>
+                          <div className="flex items-center gap-2">⭐ Earn Points</div>
+                          <div className="flex items-center gap-2">📧 Exclusive Offers</div>
+                        </>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+
+
+                {/* Stats Dashboard */}
+                <div className="grid grid-cols-4 gap-4">
+                  <Card>
+                    <CardContent className="pt-4 text-center">
+                      <div className="text-3xl font-bold text-blue-600">{guest360Data.stats?.total_stays || 0}</div>
+                      <div className="text-sm text-gray-600">Total Stays</div>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardContent className="pt-4 text-center">
+                      <div className="text-3xl font-bold text-green-600">{guest360Data.stats?.total_nights || 0}</div>
+                      <div className="text-sm text-gray-600">Total Nights</div>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardContent className="pt-4 text-center">
+                      <div className="text-3xl font-bold text-purple-600">${guest360Data.stats?.lifetime_value || 0}</div>
+                      <div className="text-sm text-gray-600">Lifetime Value</div>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardContent className="pt-4 text-center">
+                      <div className="text-3xl font-bold text-orange-600">${guest360Data.stats?.average_adr || 0}</div>
+                      <div className="text-sm text-gray-600">Avg ADR</div>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                {/* Tags & Notes */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg">Tags & Notes</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <div>
+                      <div className="text-sm text-gray-600 mb-2">Tags:</div>
+                      <div className="flex flex-wrap gap-2">
+                        {guest360Data.guest?.tags?.map((tag, idx) => (
+                          <span key={idx} className="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs">
+                            {tag}
+                          </span>
+                        ))}
+                        <div className="flex gap-2">
+                          <Input 
+                            placeholder="Add tag..."
+                            value={guestTag}
+                            onChange={(e) => setGuestTag(e.target.value)}
+                            className="h-8 w-32"
+                          />
+                          <Button size="sm" onClick={addGuestTag}>Add</Button>
+                        </div>
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-sm text-gray-600 mb-2">Notes:</div>
+                      <div className="space-y-2 max-h-32 overflow-y-auto mb-2">
+                        {guest360Data.guest?.notes?.map((note, idx) => (
+                          <div key={idx} className="text-xs bg-gray-50 p-2 rounded">
+                            <div className="font-semibold">{note.created_by} - {new Date(note.created_at).toLocaleString()}</div>
+                            <div>{note.text}</div>
+                          </div>
+                        ))}
+                      </div>
+                      <div className="flex gap-2">
+                        <Textarea 
+                          placeholder="Add note..."
+                          value={guestNote}
+                          onChange={(e) => setGuestNote(e.target.value)}
+                          className="h-16"
+                        />
+                        <Button size="sm" onClick={addGuestNote}>Add Note</Button>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Booking History - Enhanced Timeline */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      <Calendar className="w-5 h-5" />
+                      Stay History Timeline
+                    </CardTitle>
+                    <CardDescription>
+                      {guest360Data.profile?.total_stays || 0} total stays • 
+                      ${(guest360Data.profile?.total_spending || 0).toFixed(0)} lifetime value
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3 max-h-96 overflow-y-auto">
+                      {guest360Data.recent_bookings && guest360Data.recent_bookings.length > 0 ? (
+                        guest360Data.recent_bookings.map((booking, idx) => {
+                          const nights = Math.ceil((new Date(booking.check_out) - new Date(booking.check_in)) / (1000 * 60 * 60 * 24));
+                          const adr = nights > 0 ? (booking.total_amount / nights).toFixed(0) : 0;
+                          
+                          return (
+                            <div key={idx} className="relative pl-8 pb-4 border-l-2 border-blue-300 last:border-0">
+                              {/* Timeline Dot */}
+                              <div className={`absolute left-[-9px] top-0 w-4 h-4 rounded-full ${
+                                booking.status === 'checked_out' ? 'bg-green-500' :
+                                booking.status === 'checked_in' ? 'bg-blue-500' :
+                                booking.status === 'confirmed' ? 'bg-yellow-500' :
+                                'bg-gray-400'
+                              } border-2 border-white`}></div>
+                              
+                              <div className="bg-gray-50 p-3 rounded-lg hover:bg-gray-100 transition">
+                                <div className="flex justify-between items-start mb-2">
+                                  <div>
+                                    <div className="font-semibold text-base">
+                                      {new Date(booking.check_in).toLocaleDateString('tr-TR', {
+                                        day: 'numeric',
+                                        month: 'long',
+                                        year: 'numeric'
+                                      })}
+                                    </div>
+                                    <div className="text-xs text-gray-600">
+                                      {nights} nights • Room {booking.room_number || '?'}
+                                    </div>
+                                  </div>
+                                  <Badge variant={
+                                    booking.status === 'checked_out' ? 'secondary' :
+                                    booking.status === 'checked_in' ? 'default' :
+                                    'outline'
+                                  }>
+                                    {booking.status}
+                                  </Badge>
+                                </div>
+                                
+                                <div className="grid grid-cols-3 gap-2 text-xs">
+                                  <div>
+                                    <div className="text-gray-600">Total</div>
+                                    <div className="font-bold text-green-600">${booking.total_amount?.toFixed(2)}</div>
+                                  </div>
+                                  <div>
+                                    <div className="text-gray-600">ADR</div>
+                                    <div className="font-bold">${adr}</div>
+                                  </div>
+                                  <div>
+                                    <div className="text-gray-600">Channel</div>
+                                    <div className="font-bold capitalize">{booking.ota_channel || booking.channel || 'Direct'}</div>
+                                  </div>
+                                </div>
+                                
+                                {booking.special_requests && (
+                                  <div className="mt-2 text-xs text-gray-600 italic">
+                                    💬 &quot;{booking.special_requests}&quot;
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })
+                      ) : (
+                        <div className="text-center text-gray-400 py-8">No booking history available</div>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Channel Distribution - Enhanced with Pie Chart */}
+                {guest360Data.stats?.channel_distribution && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-lg">Channel Distribution</CardTitle>
+                      <CardDescription>Booking sources breakdown</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="grid grid-cols-2 gap-4">
+                        {/* Pie Chart */}
+                        <div>
+                          <ResponsiveContainer width="100%" height={200}>
+                            <PieChart>
+                              <Pie
+                                data={Object.entries(guest360Data.stats.channel_distribution).map(([channel, count]) => ({
+                                  name: channel.charAt(0).toUpperCase() + channel.slice(1),
+                                  value: count
+                                }))}
+                                cx="50%"
+                                cy="50%"
+                                labelLine={false}
+                                label={({name, percent}) => `${name} ${(percent * 100).toFixed(0)}%`}
+                                outerRadius={80}
+                                fill="#8884d8"
+                                dataKey="value"
+                              >
+                                {Object.keys(guest360Data.stats.channel_distribution).map((entry, index) => {
+                                  const colors = ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899'];
+                                  return <Cell key={`cell-${index}`} fill={colors[index % colors.length]} />;
+                                })}
+                              </Pie>
+                              <Tooltip />
+                            </PieChart>
+                          </ResponsiveContainer>
+                        </div>
+                        
+                        {/* Stats */}
+                        <div className="flex flex-col justify-center gap-3">
+                          {Object.entries(guest360Data.stats.channel_distribution).map(([channel, count], index) => {
+                            const colors = ['bg-blue-500', 'bg-green-500', 'bg-orange-500', 'bg-purple-500', 'bg-pink-500'];
+                            return (
+                              <div key={channel} className="flex items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                  <div className={`w-3 h-3 ${colors[index % colors.length]} rounded`}></div>
+                                  <span className="text-sm capitalize">{channel}</span>
+                                </div>
+                                <span className="font-bold">{count}</span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+              </div>
+            ) : (
+              <div className="text-center py-12 text-gray-500">
+                Select a guest to view their 360° profile
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
+
+        {/* Booking Detail Dialog - Double-Click to Open */}
+        <Dialog open={openDialog === 'bookingDetail'} onOpenChange={(open) => !open && setOpenDialog(null)}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>📋 Booking Details</DialogTitle>
+              <DialogDescription>Full reservation information and actions</DialogDescription>
+            </DialogHeader>
+            
+            {selectedBookingDetail && (
+              <div className="space-y-4">
+                {/* Guest & Room Info */}
+                <div className="grid grid-cols-2 gap-4">
+                  <Card>
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-sm">Guest Information</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-2">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-600">Name:</span>
+                        <span className="font-semibold">
+                          {guests.find(g => g.id === selectedBookingDetail.guest_id)?.name || 'N/A'}
+                        </span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-600">Email:</span>
+                        <span className="text-xs">
+                          {guests.find(g => g.id === selectedBookingDetail.guest_id)?.email || 'N/A'}
+                        </span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-600">Phone:</span>
+                        <span className="text-xs">
+                          {guests.find(g => g.id === selectedBookingDetail.guest_id)?.phone || 'N/A'}
+                        </span>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-sm">Room & Dates</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-2">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-600">Room:</span>
+                        <span className="font-semibold">
+                          {rooms.find(r => r.id === selectedBookingDetail.room_id)?.room_number || 'N/A'}
+                        </span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-600">Check-in:</span>
+                        <span className="font-semibold">
+                          {new Date(selectedBookingDetail.check_in).toLocaleDateString()}
+                        </span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-600">Check-out:</span>
+                        <span className="font-semibold">
+                          {new Date(selectedBookingDetail.check_out).toLocaleDateString()}
+                        </span>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                {/* Financial & Corporate Info */}
+                <Card className="bg-gradient-to-r from-green-50 to-emerald-50">
+                  <CardContent className="pt-4 space-y-3">
+                    <div className="grid grid-cols-3 gap-4 text-center">
+                      <div>
+                        <div className="text-2xl font-bold text-green-700">
+                          ${selectedBookingDetail.total_amount || 0}
+                        </div>
+                        <div className="text-xs text-gray-600">Total Amount</div>
+                      </div>
+                      <div>
+                        <div className="text-2xl font-bold text-blue-700">
+                          {selectedBookingDetail.adults || 1}
+                        </div>
+                        <div className="text-xs text-gray-600">Adults</div>
+                      </div>
+                      <div>
+                        <div className="text-2xl font-bold text-purple-700">
+                          {selectedBookingDetail.status?.toUpperCase() || 'N/A'}
+                        </div>
+                        <div className="text-xs text-gray-600">Status</div>
+                      </div>
+                    </div>
+
+                    {selectedBookingDetail.company_id && (
+                      <div className="grid grid-cols-2 gap-4 text-xs text-left bg-white/60 p-3 rounded border border-emerald-100">
+                        <div className="space-y-1">
+                          <div className="text-[11px] font-semibold text-gray-700">Corporate</div>
+                          <div className="text-gray-800 font-medium">
+                            {(() => {
+                              const company = companies.find(c => c.id === selectedBookingDetail.company_id);
+                              return company ? company.name : 'Corporate Booking';
+                            })()}
+                          </div>
+                          <div className="text-[11px] text-gray-500">
+                            Code: {
+                              (() => {
+                                const company = companies.find(c => c.id === selectedBookingDetail.company_id);
+                                return company?.corporate_code || 'N/A';
+                              })()
+                            }
+                          </div>
+                        </div>
+                        <div className="space-y-1">
+                          <div className="text-[11px] font-semibold text-gray-700">Rate Details</div>
+                          <div className="text-[11px] text-gray-600">
+                            Contracted: <span className="font-medium">{selectedBookingDetail.contracted_rate || 'N/A'}</span>
+                          </div>
+                          <div className="text-[11px] text-gray-600">
+                            Segment: <span className="font-medium">{selectedBookingDetail.market_segment || 'corporate'}</span>
+                          </div>
+                          <div className="text-[11px] text-gray-600">
+                            Policy: <span className="font-medium">{selectedBookingDetail.cancellation_policy || 'standard'}</span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+
+                {/* Quick Actions */}
+                <div className="grid grid-cols-3 gap-2">
+                  <Button 
+                    size="sm"
+                    onClick={() => {
+                      loadBookingFolios(selectedBookingDetail.id);
+                      setOpenDialog(null);
+                    }}
+                    className="bg-green-600 hover:bg-green-700"
+                  >
+                    <DollarSign className="w-4 h-4 mr-1" />
+                    View Folio
+                  </Button>
+                  <Button 
+                    size="sm"
+                    variant="outline"
+                    onClick={() => {
+                      toast.info('Editing booking...');
+                      // TODO: Open edit form
+                    }}
+                  >
+                    <FileText className="w-4 h-4 mr-1" />
+                    Edit Details
+                  </Button>
+                  <Button 
+                    size="sm"
+                    variant="outline"
+                    className="border-red-400 text-red-700 hover:bg-red-50"
+                    onClick={() => {
+                      if (confirm('Cancel this booking?')) {
+                        toast.success('Booking cancelled');
+                        setOpenDialog(null);
+                      }
+                    }}
+                  >
+                    Cancel Booking
+                  </Button>
+                </div>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
+
+        {/* Floating Action Button - Quick Actions */}
+        {/* Maintenance Work Order Dialog */}
+        <Dialog open={maintenanceDialogOpen} onOpenChange={setMaintenanceDialogOpen}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Yeni Maintenance Work Order</DialogTitle>
+              <DialogDescription>
+                Oda {maintenanceForm.room_number} için mühendislik / bakım talebi oluşturun.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 mt-2">
+              <div>
+                <Label className="text-xs text-gray-600">Issue Type</Label>
+                <Select
+                  value={maintenanceForm.issue_type}
+                  onValueChange={(v) => setMaintenanceForm((prev) => ({ ...prev, issue_type: v }))}
+                >
+                  <SelectTrigger className="h-9 mt-1 text-sm">
+                    <SelectValue placeholder="Select issue type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="housekeeping_damage">Housekeeping Damage</SelectItem>
+                    <SelectItem value="plumbing">Plumbing</SelectItem>
+                    <SelectItem value="hvac">HVAC</SelectItem>
+                    <SelectItem value="electrical">Electrical</SelectItem>
+                    <SelectItem value="furniture">Furniture</SelectItem>
+                    <SelectItem value="other">Other</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label className="text-xs text-gray-600">Priority</Label>
+                <Select
+                  value={maintenanceForm.priority}
+                  onValueChange={(v) => setMaintenanceForm((prev) => ({ ...prev, priority: v }))}
+                >
+                  <SelectTrigger className="h-9 mt-1 text-sm">
+                    <SelectValue placeholder="Priority" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="low">Low</SelectItem>
+                    <SelectItem value="normal">Normal</SelectItem>
+                    <SelectItem value="high">High</SelectItem>
+                    <SelectItem value="urgent">Urgent</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label className="text-xs text-gray-600">Description</Label>
+                <Textarea
+                  className="mt-1 text-sm min-h-[80px]"
+                  value={maintenanceForm.description}
+                  onChange={(e) => setMaintenanceForm((prev) => ({ ...prev, description: e.target.value }))}
+                  placeholder="Short description of the issue (e.g., shower leaking, AC not cooling)…"
+                />
+              </div>
+            </div>
+            <div className="mt-4 flex justify-end gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setMaintenanceDialogOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                size="sm"
+                onClick={async () => {
+                  try {
+                    const payload = {
+                      room_id: maintenanceForm.room_id,
+                      room_number: maintenanceForm.room_number,
+                      issue_type: maintenanceForm.issue_type,
+                      priority: maintenanceForm.priority,
+                      source: 'housekeeping',
+                      description: maintenanceForm.description || undefined
+                    };
+                    const res = await axios.post('/maintenance/work-orders', payload, {
+                      headers: { Authorization: `Bearer ${localStorage.getItem('access_token')}` }
+                    });
+                    toast.success(`Maintenance work order created for room ${res.data.room_number || maintenanceForm.room_number}`);
+                    setMaintenanceDialogOpen(false);
+                  } catch (error) {
+                    console.error('Failed to create maintenance work order', error);
+                    toast.error('Maintenance work order could not be created');
+                  }
+                }}
+              >
+                Create Work Order
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* FloatingActionButton - Quick Actions (mirrors top toolbar) */}
+        <FloatingActionButton
+          actions={[
+            {
+              label: 'New Booking',
+              icon: <Plus className="w-5 h-5" />,
+              onClick: () => {
+                setOpenDialog('newbooking');
+                toast.info('Opening new booking form...');
+              }
+            },
+            {
+              label: 'New Guest',
+              icon: <UserPlus className="w-5 h-5" />,
+              onClick: () => setOpenDialog('newguest')
+            },
+            {
+              label: 'Flash Report',
+              icon: <FileText className="w-5 h-5" />,
+              onClick: async () => {
+                try {
+                  const response = await axios.get('/reports/flash-report');
+                  toast.success('Flash report generated!');
+                  console.log('Flash report:', response.data);
+                } catch (error) {
+                  toast.error('Failed to generate report');
+                }
+              }
+            },
+            {
+              label: 'Refresh Dashboard',
+              icon: <RefreshCw className="w-5 h-5" />,
+              onClick: () => loadData()
+            }
+          ]}
+        />
+
+        {/* Maintenance Work Order Dialog */}
+        <Dialog open={maintenanceDialogOpen} onOpenChange={setMaintenanceDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Yeni Maintenance Work Order</DialogTitle>
+            <DialogDescription>
+              Oda {maintenanceForm.room_number} için mühendislik / bakım talebi oluşturun.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 mt-2">
+            <div>
+              <Label className="text-xs text-gray-600">Issue Type</Label>
+              <Select
+                value={maintenanceForm.issue_type}
+                onValueChange={(v) => setMaintenanceForm((prev) => ({ ...prev, issue_type: v }))}
+              >
+                <SelectTrigger className="h-9 mt-1 text-sm">
+                  <SelectValue placeholder="Select issue type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="housekeeping_damage">Housekeeping Damage</SelectItem>
+                  <SelectItem value="plumbing">Plumbing</SelectItem>
+                  <SelectItem value="hvac">HVAC</SelectItem>
+                  <SelectItem value="electrical">Electrical</SelectItem>
+                  <SelectItem value="furniture">Furniture</SelectItem>
+                  <SelectItem value="other">Other</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label className="text-xs text-gray-600">Priority</Label>
+              <Select
+                value={maintenanceForm.priority}
+                onValueChange={(v) => setMaintenanceForm((prev) => ({ ...prev, priority: v }))}
+              >
+                <SelectTrigger className="h-9 mt-1 text-sm">
+                  <SelectValue placeholder="Priority" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="low">Low</SelectItem>
+                  <SelectItem value="normal">Normal</SelectItem>
+                  <SelectItem value="high">High</SelectItem>
+                  <SelectItem value="urgent">Urgent</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label className="text-xs text-gray-600">Description</Label>
+              <Textarea
+                className="mt-1 text-sm min-h-[80px]"
+                value={maintenanceForm.description}
+                onChange={(e) => setMaintenanceForm((prev) => ({ ...prev, description: e.target.value }))}
+                placeholder="Short description of the issue (e.g., shower leaking, AC not cooling)…"
+              />
+            </div>
+          </div>
+          <div className="mt-4 flex justify-end gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setMaintenanceDialogOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              size="sm"
+              onClick={async () => {
+                try {
+                  const payload = {
+                    room_id: maintenanceForm.room_id,
+                    room_number: maintenanceForm.room_number,
+                    issue_type: maintenanceForm.issue_type,
+                    priority: maintenanceForm.priority,
+                    source: 'housekeeping',
+                    description: maintenanceForm.description || undefined
+                  };
+                  const res = await axios.post(`${process.env.REACT_APP_BACKEND_URL}/maintenance/work-orders`, payload, {
+                    headers: { Authorization: `Bearer ${localStorage.getItem('access_token')}` }
+                  });
+                  toast.success(`Maintenance work order created for room ${res.data.room_number || maintenanceForm.room_number}`);
+                  setMaintenanceDialogOpen(false);
+                } catch (error) {
+                  console.error('Failed to create maintenance work order', error);
+                  toast.error('Maintenance work order could not be created');
+                }
+              }}
+            >
+              Create Work Order
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+      </div>
+
+        {/* Guest Info Dialog - Kimlik Bilgileri */}
+        <Dialog open={openDialog === 'guestinfo'} onOpenChange={(open) => !open && setOpenDialog(null)}>
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <User className="w-5 h-5" />
+                Guest Information
+              </DialogTitle>
+              <DialogDescription>
+                View and update guest personal and identification details
+              </DialogDescription>
+            </DialogHeader>
+            
+            {selectedGuest && (
+              <div className="space-y-6">
+                {/* Personal Information */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold border-b pb-2">Personal Information</h3>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label>Full Name</Label>
+                      <Input 
+                        value={selectedGuest.name || ''} 
+                        onChange={(e) => setSelectedGuest({...selectedGuest, name: e.target.value})}
+                        placeholder="Full Name"
+                      />
+                    </div>
+                    <div>
+                      <Label>Email</Label>
+                      <Input 
+                        type="email"
+                        value={selectedGuest.email || ''} 
+                        onChange={(e) => setSelectedGuest({...selectedGuest, email: e.target.value})}
+                        placeholder="email@example.com"
+                      />
+                    </div>
+                    <div>
+                      <Label>Phone</Label>
+                      <Input 
+                        value={selectedGuest.phone || ''} 
+                        onChange={(e) => setSelectedGuest({...selectedGuest, phone: e.target.value})}
+                        placeholder="+90 555 123 4567"
+                      />
+                    </div>
+                    <div>
+                      <Label>Date of Birth</Label>
+                      <Input 
+                        type="date"
+                        value={selectedGuest.date_of_birth?.split('T')[0] || ''} 
+                        onChange={(e) => setSelectedGuest({...selectedGuest, date_of_birth: e.target.value})}
+                      />
+                    </div>
+                    <div>
+                      <Label>Nationality</Label>
+                      <Input 
+                        value={selectedGuest.nationality || ''} 
+                        onChange={(e) => setSelectedGuest({...selectedGuest, nationality: e.target.value})}
+                        placeholder="TR"
+                      />
+                    </div>
+                    <div>
+                      <Label>Gender</Label>
+                      <Select 
+                        value={selectedGuest.gender || ''} 
+                        onValueChange={(v) => setSelectedGuest({...selectedGuest, gender: v})}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select gender" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="male">Male</SelectItem>
+                          <SelectItem value="female">Female</SelectItem>
+                          <SelectItem value="other">Other</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Identification Information */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold border-b pb-2">Identification Details</h3>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label>ID Type</Label>
+                      <Select 
+                        value={selectedGuest.id_type || 'passport'} 
+                        onValueChange={(v) => setSelectedGuest({...selectedGuest, id_type: v})}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="passport">Passport</SelectItem>
+                          <SelectItem value="national_id">National ID</SelectItem>
+                          <SelectItem value="drivers_license">Driver&apos;s License</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label>ID Number</Label>
+                      <Input 
+                        value={selectedGuest.id_number || ''} 
+                        onChange={(e) => setSelectedGuest({...selectedGuest, id_number: e.target.value})}
+                        placeholder="ID/Passport Number"
+                      />
+                    </div>
+                    <div>
+                      <Label>Issue Date</Label>
+                      <Input 
+                        type="date"
+                        value={selectedGuest.id_issue_date?.split('T')[0] || ''} 
+                        onChange={(e) => setSelectedGuest({...selectedGuest, id_issue_date: e.target.value})}
+                      />
+                    </div>
+                    <div>
+                      <Label>Expiry Date</Label>
+                      <Input 
+                        type="date"
+                        value={selectedGuest.id_expiry_date?.split('T')[0] || ''} 
+                        onChange={(e) => setSelectedGuest({...selectedGuest, id_expiry_date: e.target.value})}
+                      />
+                    </div>
+                    <div className="col-span-2">
+                      <Label>Issuing Authority</Label>
+                      <Input 
+                        value={selectedGuest.id_issuing_authority || ''} 
+                        onChange={(e) => setSelectedGuest({...selectedGuest, id_issuing_authority: e.target.value})}
+                        placeholder="e.g., Ministry of Interior"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Address Information */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold border-b pb-2">Address</h3>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="col-span-2">
+                      <Label>Street Address</Label>
+                      <Input 
+                        value={selectedGuest.address || ''} 
+                        onChange={(e) => setSelectedGuest({...selectedGuest, address: e.target.value})}
+                        placeholder="Street address"
+                      />
+                    </div>
+                    <div>
+                      <Label>City</Label>
+                      <Input 
+                        value={selectedGuest.city || ''} 
+                        onChange={(e) => setSelectedGuest({...selectedGuest, city: e.target.value})}
+                        placeholder="City"
+                      />
+                    </div>
+                    <div>
+                      <Label>Postal Code</Label>
+                      <Input 
+                        value={selectedGuest.postal_code || ''} 
+                        onChange={(e) => setSelectedGuest({...selectedGuest, postal_code: e.target.value})}
+                        placeholder="Postal code"
+                      />
+                    </div>
+                    <div>
+                      <Label>Country</Label>
+                      <Input 
+                        value={selectedGuest.country || ''} 
+                        onChange={(e) => setSelectedGuest({...selectedGuest, country: e.target.value})}
+                        placeholder="Country"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Additional Notes */}
+                <div className="space-y-2">
+                  <Label>Notes</Label>
+                  <Textarea 
+                    value={selectedGuest.notes || ''} 
+                    onChange={(e) => setSelectedGuest({...selectedGuest, notes: e.target.value})}
+                    placeholder="Additional notes about the guest..."
+                    rows={3}
+                  />
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex justify-end gap-2 pt-4 border-t">
+                  <Button variant="outline" onClick={() => setOpenDialog(null)}>
+                    Cancel
+                  </Button>
+                  <Button onClick={async () => {
+                    try {
+                      await axios.put(`/pms/guests/${selectedGuest.id}`, selectedGuest);
+                      toast.success('Guest information updated successfully');
+                      setOpenDialog(null);
+                      loadData();
+                    } catch (error) {
+                      toast.error('Failed to update guest information');
+                      console.error(error);
+                    }
+                  }}>
+                    <User className="w-4 h-4 mr-2" />
+                    Save Changes
+                  </Button>
+                </div>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
+
+        {/* Payment Dialog */}
+        <Dialog open={openDialog === 'payment'} onOpenChange={(open) => !open && setOpenDialog(null)}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Process Payment</DialogTitle>
+              <DialogDescription>
+                Record payment for this booking
+              </DialogDescription>
+            </DialogHeader>
+            
+            {selectedBooking && (
+              <div className="space-y-4">
+                <div>
+                  <Label>Amount</Label>
+                  <Input 
+                    type="number"
+                    value={paymentForm.amount}
+                    onChange={(e) => setPaymentForm({...paymentForm, amount: parseFloat(e.target.value)})}
+                    placeholder="0.00"
+                  />
+                </div>
+                <div>
+                  <Label>Payment Method</Label>
+                  <Select 
+                    value={paymentForm.method} 
+                    onValueChange={(v) => setPaymentForm({...paymentForm, method: v})}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="cash">Cash</SelectItem>
+                      <SelectItem value="card">Card</SelectItem>
+                      <SelectItem value="bank_transfer">Bank Transfer</SelectItem>
+                      <SelectItem value="cheque">Cheque</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>Payment Type</Label>
+                  <Select 
+                    value={paymentForm.payment_type} 
+                    onValueChange={(v) => setPaymentForm({...paymentForm, payment_type: v})}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="prepayment">Prepayment</SelectItem>
+                      <SelectItem value="deposit">Deposit</SelectItem>
+                      <SelectItem value="interim">Interim Payment</SelectItem>
+                      <SelectItem value="final">Final Payment</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>Reference</Label>
+                  <Input 
+                    value={paymentForm.reference}
+                    onChange={(e) => setPaymentForm({...paymentForm, reference: e.target.value})}
+                    placeholder="Transaction reference"
+                  />
+                </div>
+                <div>
+                  <Label>Notes</Label>
+                  <Textarea 
+                    value={paymentForm.notes}
+                    onChange={(e) => setPaymentForm({...paymentForm, notes: e.target.value})}
+                    placeholder="Payment notes..."
+                    rows={2}
+                  />
+                </div>
+                
+                <div className="flex justify-end gap-2 pt-4 border-t">
+                  <Button variant="outline" onClick={() => setOpenDialog(null)}>
+                    Cancel
+                  </Button>
+                  <Button onClick={async () => {
+                    try {
+                      // Get folio for this booking
+                      const folioRes = await axios.get(`/folio/booking/${selectedBooking.id}`);
+                      if (folioRes.data && folioRes.data.length > 0) {
+                        const folio = folioRes.data[0];
+                        await axios.post(`/folio/${folio.id}/payment`, paymentForm);
+                        toast.success('Payment recorded successfully');
+                        setOpenDialog(null);
+                        setPaymentForm({ amount: 0, method: 'card', payment_type: 'interim', reference: '', notes: '' });
+                        loadData();
+                      } else {
+                        toast.error('No folio found for this booking');
+                      }
+                    } catch (error) {
+                      toast.error('Failed to record payment');
+                      console.error(error);
+                    }
+                  }}>
+                    <DollarSign className="w-4 h-4 mr-2" />
+                    Record Payment
+                  </Button>
+                </div>
+              </div>
+            )}
+          </DialogContent>
+
+
+        {/* Find Available Rooms Dialog */}
+        <Dialog open={openDialog === 'findroom'} onOpenChange={(open) => !open && setOpenDialog(null)}>
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Home className="w-5 h-5" />
+                Find Available Rooms
+              </DialogTitle>
+              <DialogDescription>
+                Search for available rooms based on dates and preferences
+              </DialogDescription>
+            </DialogHeader>
+            
+            <div className="space-y-6">
+              {/* Search Criteria */}
+              <div className="grid grid-cols-2 gap-4 p-4 bg-gray-50 rounded-lg">
+                <div>
+                  <Label>Check-in Date *</Label>
+                  <Input 
+                    type="date"
+                    value={findRoomCriteria.check_in}
+                    onChange={(e) => setFindRoomCriteria({...findRoomCriteria, check_in: e.target.value})}
+                    min={new Date().toISOString().split('T')[0]}
+                  />
+                </div>
+                <div>
+                  <Label>Check-out Date *</Label>
+                  <Input 
+                    type="date"
+                    value={findRoomCriteria.check_out}
+                    onChange={(e) => setFindRoomCriteria({...findRoomCriteria, check_out: e.target.value})}
+                    min={findRoomCriteria.check_in || new Date().toISOString().split('T')[0]}
+                  />
+                </div>
+                <div>
+                  <Label>Room Type</Label>
+                  <Select 
+                    value={findRoomCriteria.room_type} 
+                    onValueChange={(v) => setFindRoomCriteria({...findRoomCriteria, room_type: v})}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Any type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="any">Any type</SelectItem>
+                      <SelectItem value="standard">Standard</SelectItem>
+                      <SelectItem value="deluxe">Deluxe</SelectItem>
+                      <SelectItem value="suite">Suite</SelectItem>
+                      <SelectItem value="presidential">Presidential</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>Number of Guests</Label>
+                  <Input 
+                    type="number"
+                    min="1"
+                    max="6"
+                    value={findRoomCriteria.guests}
+                    onChange={(e) => setFindRoomCriteria({...findRoomCriteria, guests: parseInt(e.target.value)})}
+                  />
+                </div>
+              </div>
+
+              <Button 
+                onClick={async () => {
+                  if (!findRoomCriteria.check_in || !findRoomCriteria.check_out) {
+                    toast.error('Please select check-in and check-out dates');
+                    return;
+                  }
+                  
+                  setLoadingAvailableRooms(true);
+                  try {
+                    const params = new URLSearchParams({
+                      check_in: findRoomCriteria.check_in,
+                      check_out: findRoomCriteria.check_out
+                    });
+                    
+                    if (findRoomCriteria.room_type) {
+                      params.append('room_type', findRoomCriteria.room_type);
+                    }
+                    
+                    const response = await axios.get(`/frontdesk/available-rooms?${params.toString()}`);
+                    setAvailableRooms(response.data.available_rooms || []);
+                    
+                    if (response.data.available_rooms.length === 0) {
+                      toast.info('No available rooms found for selected dates');
+                    } else {
+                      toast.success(`Found ${response.data.available_rooms.length} available rooms`);
+                    }
+                  } catch (error) {
+                    toast.error('Failed to search for rooms');
+                    console.error(error);
+                  } finally {
+                    setLoadingAvailableRooms(false);
+                  }
+                }}
+                disabled={loadingAvailableRooms}
+                className="w-full"
+              >
+                {loadingAvailableRooms ? (
+                  <>
+                    <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                    Searching...
+                  </>
+                ) : (
+                  <>
+                    <Home className="w-4 h-4 mr-2" />
+                    Search Available Rooms
+                  </>
+                )}
+              </Button>
+
+              {/* Results */}
+              {availableRooms.length > 0 && (
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between border-b pb-2">
+                    <h3 className="font-semibold text-lg">
+                      Available Rooms ({availableRooms.length})
+                    </h3>
+                    <Badge variant="secondary">
+                      {findRoomCriteria.check_in} to {findRoomCriteria.check_out}
+                    </Badge>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-96 overflow-y-auto">
+                    {availableRooms.map((room) => (
+                      <Card key={room.id} className="border-l-4 border-l-green-500">
+                        <CardContent className="p-4">
+                          <div className="space-y-2">
+                            <div className="flex items-center justify-between">
+                              <span className="text-lg font-semibold">Room {room.room_number}</span>
+                              <Badge>{room.room_type}</Badge>
+                            </div>
+                            <div className="text-sm text-gray-600 space-y-1">
+                              <div className="flex justify-between">
+                                <span>Floor:</span>
+                                <span className="font-medium">{room.floor}</span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span>Base Price:</span>
+                                <span className="font-medium text-blue-600">${room.base_price}/night</span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span>Capacity:</span>
+                                <span className="font-medium">{room.capacity || room.max_occupancy || 2} guests</span>
+                              </div>
+                              {room.amenities && room.amenities.length > 0 && (
+                                <div className="pt-2 border-t">
+                                  <span className="text-xs text-gray-500">
+                                    Amenities: {room.amenities.slice(0, 3).join(', ')}
+                                  </span>
+                                </div>
+                              )}
+                            </div>
+                            <Button 
+                              size="sm" 
+                              className="w-full mt-2"
+                              onClick={() => {
+                                setNewBooking({
+                                  ...newBooking,
+                                  room_id: room.id,
+                                  check_in: findRoomCriteria.check_in,
+                                  check_out: findRoomCriteria.check_out,
+                                  adults: findRoomCriteria.guests
+                                });
+                                setOpenDialog('booking');
+                                toast.success(`Room ${room.room_number} selected`);
+                              }}
+                            >
+                              Select This Room
+                            </Button>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        </Dialog>
+
+    </Layout>
+  );
+};
+
+export default PMSModule;
