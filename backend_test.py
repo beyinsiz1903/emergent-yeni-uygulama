@@ -401,13 +401,13 @@ C102,standard,1,2,90,city,queen,wifi"""
     def print_test_summary(self):
         """Print comprehensive test summary"""
         print("\n" + "=" * 80)
-        print("📊 PMS ROOMS BULK FEATURES TEST RESULTS")
+        print("📊 CSV IMPORT ENDPOINT TEST RESULTS")
         print("=" * 80)
         
         total_passed = 0
         total_tests = 0
         
-        print("\n🏨 ENDPOINT TEST RESULTS:")
+        print("\n📄 ENDPOINT TEST RESULTS:")
         print("-" * 70)
         
         for result in self.test_results:
@@ -429,31 +429,30 @@ C102,standard,1,2,90,city,queen,wifi"""
         
         # Final assessment
         if overall_success_rate >= 90:
-            print("🎉 RESULT: PMS Rooms Bulk Features: production-ready ✅")
-            print("   All bulk endpoints working, room creation and filtering successful")
+            print("🎉 RESULT: CSV Import Endpoint: production-ready ✅")
+            print("   All CSV import functionality working correctly")
         elif overall_success_rate >= 75:
-            print("✅ RESULT: PMS Rooms Bulk Features: mostly ready")
-            print("   Most endpoints working, minor issues present")
+            print("✅ RESULT: CSV Import Endpoint: mostly ready")
+            print("   Most functionality working, minor issues present")
         elif overall_success_rate >= 50:
-            print("⚠️ RESULT: PMS Rooms Bulk Features: partial issues")
-            print("   Some endpoints working, significant issues present")
+            print("⚠️ RESULT: CSV Import Endpoint: partial issues")
+            print("   Some functionality working, significant issues present")
         else:
-            print("❌ RESULT: PMS Rooms Bulk Features: critical issues")
+            print("❌ RESULT: CSV Import Endpoint: critical issues")
             print("   Major backend problems, immediate attention required")
         
         print("\n🔍 VERIFIED FEATURES:")
-        print("• POST /api/pms/rooms/bulk/range: Bulk room creation with range (A101-A105)")
-        print("• GET /api/pms/rooms (filtered): Room filtering by type, view, amenities")
-        print("• POST /api/pms/rooms/bulk/template: Bulk room creation with template (B1-B3)")
-        print("• POST /api/pms/rooms/{room_id}/images: Room image upload functionality")
-        print("• Room data structure validation and response verification")
+        print("• POST /api/pms/rooms/import-csv: CSV file upload and room creation")
+        print("• Duplicate detection: Skipping existing rooms on re-import")
+        print("• GET /api/pms/rooms?limit=300: Room verification and property validation")
+        print("• CSV parsing: room_number, room_type, floor, capacity, base_price, view, bed_type, amenities")
+        print("• Response structure: created, skipped, errors counts")
         print("• HTTP 200 responses and proper error handling")
         
         print("\n📋 TEST SUMMARY:")
-        print(f"• Bulk Range Creation: {'✅' if any('bulk/range' in r['endpoint'] and r['passed'] > 0 for r in self.test_results) else '❌'}")
-        print(f"• Room Filtering: {'✅' if any('filtered' in r['endpoint'] and r['passed'] > 0 for r in self.test_results) else '❌'}")
-        print(f"• Bulk Template Creation: {'✅' if any('bulk/template' in r['endpoint'] and r['passed'] > 0 for r in self.test_results) else '❌'}")
-        print(f"• Image Upload: {'✅' if any('images' in r['endpoint'] and r['passed'] > 0 for r in self.test_results) else '❌'}")
+        print(f"• First CSV Import: {'✅' if any('first' in r['endpoint'] and r['passed'] > 0 for r in self.test_results) else '❌'}")
+        print(f"• Second CSV Import (duplicates): {'✅' if any('second' in r['endpoint'] and r['passed'] > 0 for r in self.test_results) else '❌'}")
+        print(f"• Room Verification: {'✅' if any('limit=300' in r['endpoint'] and r['passed'] > 0 for r in self.test_results) else '❌'}")
         
         print("\n" + "=" * 80)
 
