@@ -6860,6 +6860,59 @@ async def get_rooms(
         
         # Map max_occupancy to capacity if needed
         if 'capacity' not in room and 'max_occupancy' in room:
+
+@api_router.post("/pms/rooms/{room_id}/images")
+async def upload_room_images(
+    room_id: str,
+    files: List[UploadFile] = File(...),
+    current_user: User = Depends(get_current_user),
+    _: None = Depends(require_module("pms")),
+):
+    room = await db.rooms.find_one({'id': room_id, 'tenant_id': current_user.tenant_id}, {'_id': 0})
+    if not room:
+        raise HTTPException(status_code=404, detail="Room not found")
+
+    # Store under tenant/room folders
+    room_folder = UPLOAD_DIR / current_user.tenant_id / 'rooms' / room_id
+    room_folder.mkdir(parents=True, exist_ok=True)
+
+    saved_urls: List[str] = []
+    for f in files:
+        # Basic content-type guard
+        if f.content_type and not f.content_type.startswith('image/'):
+            raise HTTPException(status_code=400, detail=f"Only image uploads allowed. Got: {f.content_type}")
+
+        ext = Path(f.filename or '').suffix.lower()[:10]
+        if ext not in ['.jpg', '.jpeg', '.png', '.webp', '.gif']:
+            # still allow if missing extension
+            ext = ext if ext else '.jpg'
+
+        filename = f"{uuid.uuid4()}{ext}"
+        dest = room_folder / filename
+
+        content = await f.read()
+        if not content:
+            continue
+        # 10MB per file safety (proxy limits may vary)
+        if len(content) > 10 * 1024 * 1024:
+            raise HTTPException(status_code=400, detail="Image too large (max 10MB)")
+
+        dest.write_bytes(content)
+        url = f"/api/uploads/{current_user.tenant_id}/rooms/{room_id}/{filename}"
+        saved_urls.append(url)
+
+    if not saved_urls:
+        return {"success": True, "uploaded": 0, "images": room.get('images', [])}
+
+    # Update room images array
+    await db.rooms.update_one(
+        {'id': room_id, 'tenant_id': current_user.tenant_id},
+        {'$push': {'images': {'$each': saved_urls}}}
+    )
+
+    updated = await db.rooms.find_one({'id': room_id, 'tenant_id': current_user.tenant_id}, {'_id': 0})
+    return {"success": True, "uploaded": len(saved_urls), "images": updated.get('images', [])}
+
             room['capacity'] = room['max_occupancy']
         elif 'capacity' not in room:
             room['capacity'] = 2
