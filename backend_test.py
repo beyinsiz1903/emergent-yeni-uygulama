@@ -45,7 +45,8 @@ class PMSRoomsBulkTester:
             'guests': [],
             'bookings': [],
             'rooms': [],
-            'folios': []
+            'folios': [],
+            'bulk_rooms': []
         }
 
     async def setup_session(self):
