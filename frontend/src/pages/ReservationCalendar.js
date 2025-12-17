@@ -121,11 +121,6 @@ const ReservationCalendar = ({ user, tenant, onLogout }) => {
     loadCalendarData();
   }, [currentDate, daysToShow]);
 
-  const loadCalendarData = async () => {
-    setLoading(true);
-    try {
-      // Calculate date range for calendar view
-      const startDate = new Date(currentDate);
   // Opens Reports tab Pickup Pace for a given arrival date
   const openPickupPaceForDate = (dateStr) => {
     if (!dateStr) return;
@@ -137,6 +132,12 @@ const ReservationCalendar = ({ user, tenant, onLogout }) => {
     }
     window.open('/pms?tab=reports', '_blank');
   };
+
+  const loadCalendarData = async () => {
+    setLoading(true);
+    try {
+      // Calculate date range for calendar view
+      const startDate = new Date(currentDate);
 
       startDate.setDate(startDate.getDate() - 7); // 1 week before
       const endDate = new Date(currentDate);
