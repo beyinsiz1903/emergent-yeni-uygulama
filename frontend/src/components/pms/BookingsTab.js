@@ -19,7 +19,7 @@ const BookingsTab = ({
   return (
     <TabsContent value="bookings" className="space-y-4">
       <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-semibold">Bookings ({bookingStats.total})</h2>
+        <h2 className="text-2xl font-semibold">Bookings ({bookingStats?.total ?? 0})</h2>
         <div className="flex gap-2">
           <Button variant="outline" onClick={() => setOpenDialog('findroom')}>
             <Home className="w-4 h-4 mr-2" />
@@ -37,14 +37,14 @@ const BookingsTab = ({
         <Card>
           <CardContent className="p-4">
             <div className="text-xs text-gray-600">Total Bookings</div>
-            <div className="text-2xl font-bold">{bookingStats.total}</div>
+            <div className="text-2xl font-bold">{bookingStats?.total ?? 0}</div>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4">
             <div className="text-xs text-gray-600">Confirmed</div>
             <div className="text-2xl font-bold text-blue-600">
-              {bookingStats.confirmed}
+              {bookingStats?.confirmed ?? 0}
             </div>
           </CardContent>
         </Card>
@@ -52,7 +52,7 @@ const BookingsTab = ({
           <CardContent className="p-4">
             <div className="text-xs text-gray-600">Checked In</div>
             <div className="text-2xl font-bold text-green-600">
-              {bookingStats.checkedIn}
+              {bookingStats?.checkedIn ?? 0}
             </div>
           </CardContent>
         </Card>
@@ -60,7 +60,7 @@ const BookingsTab = ({
           <CardContent className="p-4">
             <div className="text-xs text-gray-600">Total Revenue</div>
             <div className="text-2xl font-bold text-green-600">
-              ${bookingStats.totalRevenue.toFixed(0)}
+              ${(bookingStats?.totalRevenue ?? 0).toFixed(0)}
             </div>
           </CardContent>
         </Card>
@@ -68,7 +68,7 @@ const BookingsTab = ({
           <CardContent className="p-4">
             <div className="text-xs text-gray-600">Avg ADR</div>
             <div className="text-2xl font-bold text-purple-600">
-              ${bookingStats.avgAdr.toFixed(0)}
+              ${(bookingStats?.avgAdr ?? 0).toFixed(0)}
             </div>
           </CardContent>
         </Card>
