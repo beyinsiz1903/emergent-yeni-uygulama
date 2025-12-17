@@ -2381,7 +2381,7 @@ const PMSModule = ({ user, tenant, onLogout }) => {
         {/* Dialogs and Modals */}
 
         {/* Folio Dialog */}
-            <div className="grid grid-cols-4 gap-4">
+        <Dialog open={openDialog === 'folio'} onOpenChange={(open) => !open && setOpenDialog(null)}>
               <Card>
                 <CardContent className="p-4">
                   <div className="text-xs text-gray-600">Total Guests</div>
