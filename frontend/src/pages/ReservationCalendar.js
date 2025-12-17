@@ -1339,8 +1339,30 @@ const ReservationCalendar = ({ user, tenant, onLogout }) => {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
+
+              {/* Data Source / Empty Dataset Notice */}
+              {(calendarMeta.rooms || 0) === 0 ? (
+                <div className="bg-white/70 border border-purple-200 rounded-lg p-3 text-sm text-purple-900">
+                  <div className="font-semibold mb-1">Bu otel için oda kaydı bulunamadı.</div>
+                  <div className="text-xs text-purple-800/90">
+                    AI önerileri oda ve rezervasyon verisine göre hesaplanır. Önce oda ekleyin veya verisi olan bir tenant ile giriş yapın.
+                  </div>
+                </div>
+              ) : (calendarMeta.bookings || 0) === 0 ? (
+                <div className="bg-white/70 border border-purple-200 rounded-lg p-3 text-sm text-purple-900">
+                  <div className="font-semibold mb-1">Seçili tarih aralığında rezervasyon yok.</div>
+                  <div className="text-xs text-purple-800/90">
+                    Tarih aralığı: <span className="font-medium">{calendarMeta.start_date} → {calendarMeta.end_date}</span>. AI metrikleri bu aralıkta veri olmadığında gösterilmez.
+                  </div>
+                </div>
+              ) : (
+                <div className="text-[11px] text-purple-800/80">
+                  Veri kaynağı: {calendarMeta.rooms} oda, {calendarMeta.bookings} rezervasyon (aralık: {calendarMeta.start_date} → {calendarMeta.end_date})
+                </div>
+              )}
+
               {/* Overbooking Solutions */}
-              {aiOverbookingSolutions.length > 0 && (
+              {(calendarMeta.bookings || 0) > 0 && aiOverbookingSolutions.length > 0 && (
                 <div className="bg-white p-3 rounded-lg border-2 border-red-300">
                   <div className="text-sm font-semibold text-red-700 mb-2 flex items-center gap-2">
                     <span>🚨 Overbooking Conflicts ({aiOverbookingSolutions.length})</span>
@@ -1369,7 +1391,7 @@ const ReservationCalendar = ({ user, tenant, onLogout }) => {
               )}
 
               {/* Room Move Recommendations */}
-              {aiRoomMoves.length > 0 && (
+              {(calendarMeta.bookings || 0) > 0 && aiRoomMoves.length > 0 && (
                 <div className="bg-white p-3 rounded-lg border-2 border-blue-300">
                   <div className="text-sm font-semibold text-blue-700 mb-2">
                     💎 Smart Room Moves ({aiRoomMoves.length})
@@ -1404,7 +1426,7 @@ const ReservationCalendar = ({ user, tenant, onLogout }) => {
               )}
 
               {/* No-Show Risk Predictions */}
-              {aiNoShowPredictions.filter(p => p.risk_level !== 'low').length > 0 && (
+              {(calendarMeta.bookings || 0) > 0 && aiNoShowPredictions.filter(p => p.risk_level !== 'low').length > 0 && (
                 <div className="bg-white p-3 rounded-lg border-2 border-yellow-300">
                   <div className="text-sm font-semibold text-yellow-700 mb-2">
                     ⚠️ High No-Show Risk ({aiNoShowPredictions.filter(p => p.risk_level === 'high').length})
@@ -1437,7 +1459,7 @@ const ReservationCalendar = ({ user, tenant, onLogout }) => {
               )}
 
               {/* Rate Recommendations Summary */}
-              {aiRateRecommendations.length > 0 && (
+              {(calendarMeta.bookings || 0) > 0 && aiRateRecommendations.length > 0 && (
                 <div className="bg-white p-3 rounded-lg border-2 border-green-300">
                   <div className="text-sm font-semibold text-green-700 mb-2">
                     💰 Dynamic Rate Recommendations
@@ -1471,8 +1493,31 @@ const ReservationCalendar = ({ user, tenant, onLogout }) => {
                 </div>
               )}
 
+
+              {/* Data Source / Empty Dataset Notice */}
+              {(calendarMeta.rooms || 0) === 0 ? (
+                <div className="bg-white/70 border border-purple-200 rounded-lg p-3 text-sm text-purple-900">
+                  <div className="font-semibold mb-1">Bu otel için oda kaydı bulunamadı.</div>
+                  <div className="text-xs text-purple-800/90">
+                    Enterprise metrikleri oda ve rezervasyon verisine göre hesaplanır. Önce oda ekleyin veya verisi olan bir tenant ile giriş yapın.
+                  </div>
+                </div>
+              ) : (calendarMeta.bookings || 0) === 0 ? (
+                <div className="bg-white/70 border border-purple-200 rounded-lg p-3 text-sm text-purple-900">
+                  <div className="font-semibold mb-1">Seçili tarih aralığında rezervasyon yok.</div>
+                  <div className="text-xs text-purple-800/90">
+                    Tarih aralığı: <span className="font-medium">{calendarMeta.start_date} → {calendarMeta.end_date}</span>. Enterprise metrikleri bu aralıkta veri olmadığında gösterilmez.
+                  </div>
+                </div>
+              ) : (
+                <div className="text-[11px] text-purple-800/80">
+                  Veri kaynağı: {calendarMeta.rooms} oda, {calendarMeta.bookings} rezervasyon (aralık: {calendarMeta.start_date} → {calendarMeta.end_date})
+                </div>
+              )}
+
               {/* No AI recommendations */}
-              {aiOverbookingSolutions.length === 0 && aiRoomMoves.length === 0 && 
+              {(calendarMeta.bookings || 0) > 0 &&
+               aiOverbookingSolutions.length === 0 && aiRoomMoves.length === 0 &&
                aiNoShowPredictions.filter(p => p.risk_level !== 'low').length === 0 && (
                 <div className="text-center py-8 text-gray-500">
                   <div className="text-4xl mb-2">🤖</div>
@@ -1494,7 +1539,7 @@ const ReservationCalendar = ({ user, tenant, onLogout }) => {
             </CardHeader>
             <CardContent className="space-y-4">
               {/* Rate Leakage Alerts */}
-              {rateLeakages.length > 0 && (
+              {(calendarMeta.bookings || 0) > 0 && rateLeakages.length > 0 && (
                 <div>
                   <div className="text-sm font-semibold text-red-700 mb-2">
                     💸 Rate Leakage Detected ({rateLeakages.length} instances)
@@ -1529,6 +1574,7 @@ const ReservationCalendar = ({ user, tenant, onLogout }) => {
               )}
 
               {/* Heatmap Legend */}
+              {(calendarMeta.bookings || 0) > 0 && (
               <div>
                 <div className="text-sm font-semibold text-gray-700 mb-2">
                   📊 Availability Heatmap Legend
@@ -1556,9 +1602,10 @@ const ReservationCalendar = ({ user, tenant, onLogout }) => {
                   </div>
                 </div>
               </div>
+              )}
 
               {/* Quick Stats */}
-              {availabilityHeatmap.length > 0 && (
+              {(calendarMeta.bookings || 0) > 0 && availabilityHeatmap.length > 0 && (
                 <div className="grid grid-cols-3 gap-4 pt-3 border-t">
                   <div className="text-center">
                     <div className="text-xl font-bold text-red-600">
