@@ -188,86 +188,94 @@ class PMSRoomsBulkTester:
                 "avg_response_time": "N/A"
             })
 
-    async def test_pms_bookings_with_limit(self):
-        """Test GET /api/pms/bookings?limit=100"""
-        print("\n📊 Testing PMS Bookings Endpoint with Limit Parameter...")
+    async def test_rooms_filtering(self):
+        """Test GET /api/pms/rooms?room_type=deluxe&view=sea&amenity=wifi&limit=200"""
+        print("\n🔍 Testing Rooms Filtering (deluxe, sea view, wifi)...")
+        print("🎯 OBJECTIVE: Verify A101-A105 rooms appear in filtered results")
         
-        test_cases = [
-            {
-                "name": "Get bookings with limit=100",
-                "params": {"limit": 100},
-                "expected_status": 200,
-                "required_fields": ["id", "guest_id", "room_id", "status", "total_amount", "check_in", "check_out"],
-                "optional_fields": ["guest_name", "room_number"]
-            },
-            {
-                "name": "Get bookings with limit=50",
-                "params": {"limit": 50},
-                "expected_status": 200,
-                "required_fields": ["id", "guest_id", "room_id", "status", "total_amount", "check_in", "check_out"],
-                "optional_fields": ["guest_name", "room_number"]
-            }
-        ]
+        filter_params = {
+            "room_type": "deluxe",
+            "view": "sea", 
+            "amenity": "wifi",
+            "limit": 200
+        }
         
-        passed = 0
-        total = len(test_cases)
-        response_times = []
-        
-        for test_case in test_cases:
-            try:
-                url = f"{BACKEND_URL}/pms/bookings"
-                if test_case["params"]:
-                    params = "&".join([f"{k}={v}" for k, v in test_case["params"].items()])
-                    url += f"?{params}"
+        try:
+            params_str = "&".join([f"{k}={v}" for k, v in filter_params.items()])
+            url = f"{BACKEND_URL}/pms/rooms?{params_str}"
+            
+            start_time = datetime.now()
+            async with self.session.get(url, headers=self.get_headers()) as response:
+                end_time = datetime.now()
+                response_time = (end_time - start_time).total_seconds() * 1000
                 
-                start_time = datetime.now()
-                async with self.session.get(url, headers=self.get_headers()) as response:
-                    end_time = datetime.now()
-                    response_time = (end_time - start_time).total_seconds() * 1000
-                    response_times.append(response_time)
+                if response.status == 200:
+                    data = await response.json()
                     
-                    if response.status == test_case["expected_status"]:
-                        data = await response.json()
+                    if isinstance(data, list):
+                        # Look for our created rooms A101-A105
+                        created_rooms = [room for room in data if room.get('room_number') in ['A101', 'A102', 'A103', 'A104', 'A105']]
                         
-                        if isinstance(data, list):
-                            limit = test_case["params"]["limit"]
-                            actual_count = len(data)
+                        # Verify room structure and properties
+                        valid_rooms = []
+                        for room in created_rooms:
+                            required_fields = ["id", "room_number", "room_type", "view", "bed_type", "amenities"]
+                            missing_fields = [field for field in required_fields if field not in room]
                             
-                            if data:  # If bookings exist, check structure
-                                booking = data[0]
-                                missing_fields = [field for field in test_case["required_fields"] if field not in booking]
-                                optional_present = [field for field in test_case["optional_fields"] if field in booking]
-                                
-                                if not missing_fields:
-                                    print(f"  ✅ {test_case['name']}: PASSED ({response_time:.1f}ms)")
-                                    print(f"      📊 Requested limit: {limit}, Returned: {actual_count}")
-                                    print(f"      📊 Pagination working: {'✅' if actual_count <= limit else '❌'}")
-                                    print(f"      📊 Optional fields present: {optional_present}")
-                                    passed += 1
-                                else:
-                                    print(f"  ❌ {test_case['name']}: Missing required fields {missing_fields}")
-                            else:
-                                print(f"  ✅ {test_case['name']}: PASSED - No bookings found ({response_time:.1f}ms)")
-                                passed += 1
-                        else:
-                            print(f"  ❌ {test_case['name']}: Expected list response, got {type(data)}")
-                    else:
-                        error_text = await response.text()
-                        print(f"  ❌ {test_case['name']}: Expected {test_case['expected_status']}, got {response.status}")
-                        if response.status == 500:
-                            print(f"      🔍 500 Error Details: {error_text[:300]}...")
+                            if not missing_fields:
+                                # Check if room properties match our creation
+                                if (room.get('room_type') == 'deluxe' and 
+                                    room.get('view') == 'sea' and 
+                                    room.get('bed_type') == 'king' and
+                                    'wifi' in room.get('amenities', []) and
+                                    'balcony' in room.get('amenities', [])):
+                                    valid_rooms.append(room)
                         
-            except Exception as e:
-                print(f"  ❌ {test_case['name']}: Error {e}")
-        
-        avg_response_time = sum(response_times) / len(response_times) if response_times else 0
-        print(f"      ⏱️ Average Response Time: {avg_response_time:.1f}ms")
-        
-        self.test_results.append({
-            "endpoint": "GET /api/pms/bookings?limit=X",
-            "passed": passed, "total": total, "success_rate": f"{passed/total*100:.1f}%",
-            "avg_response_time": f"{avg_response_time:.1f}ms"
-        })
+                        if len(valid_rooms) >= 5:
+                            print(f"  ✅ Rooms filtering: PASSED ({response_time:.1f}ms)")
+                            print(f"      📊 Total rooms returned: {len(data)}")
+                            print(f"      📊 A101-A105 rooms found: {len(created_rooms)}")
+                            print(f"      📊 Valid rooms with correct properties: {len(valid_rooms)}")
+                            print(f"      📊 Sample room: {valid_rooms[0].get('room_number')} - {valid_rooms[0].get('room_type')}")
+                            print(f"      📊 View/Bed/Amenities verified: ✅")
+                            
+                            self.test_results.append({
+                                "endpoint": "GET /api/pms/rooms (filtered)",
+                                "passed": 1, "total": 1, "success_rate": "100.0%",
+                                "avg_response_time": f"{response_time:.1f}ms"
+                            })
+                        else:
+                            print(f"  ❌ Rooms filtering: Expected 5+ rooms, found {len(valid_rooms)} valid rooms")
+                            print(f"      📊 Created rooms found: {[r.get('room_number') for r in created_rooms]}")
+                            self.test_results.append({
+                                "endpoint": "GET /api/pms/rooms (filtered)",
+                                "passed": 0, "total": 1, "success_rate": "0.0%",
+                                "avg_response_time": f"{response_time:.1f}ms"
+                            })
+                    else:
+                        print(f"  ❌ Rooms filtering: Expected list response, got {type(data)}")
+                        self.test_results.append({
+                            "endpoint": "GET /api/pms/rooms (filtered)",
+                            "passed": 0, "total": 1, "success_rate": "0.0%",
+                            "avg_response_time": f"{response_time:.1f}ms"
+                        })
+                else:
+                    error_text = await response.text()
+                    print(f"  ❌ Rooms filtering: Expected 200, got {response.status}")
+                    print(f"      🔍 Error Details: {error_text[:300]}...")
+                    self.test_results.append({
+                        "endpoint": "GET /api/pms/rooms (filtered)",
+                        "passed": 0, "total": 1, "success_rate": "0.0%",
+                        "avg_response_time": f"{response_time:.1f}ms"
+                    })
+                    
+        except Exception as e:
+            print(f"  ❌ Rooms filtering: Error {e}")
+            self.test_results.append({
+                "endpoint": "GET /api/pms/rooms (filtered)",
+                "passed": 0, "total": 1, "success_rate": "0.0%",
+                "avg_response_time": "N/A"
+            })
 
     async def test_pms_bookings_with_date_range(self):
         """Test GET /api/pms/bookings?start_date=YYYY-MM-DD&end_date=YYYY-MM-DD (7 günlük periyot)"""
