@@ -4597,7 +4597,7 @@ const PMSModule = ({ user, tenant, onLogout }) => {
                                 
                                 {booking.special_requests && (
                                   <div className="mt-2 text-xs text-gray-600 italic">
-                                    💬 "{booking.special_requests}"
+                                    💬 &quot;{booking.special_requests}&quot;
                                   </div>
                                 )}
                               </div>
