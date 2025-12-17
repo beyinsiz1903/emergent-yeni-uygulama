@@ -2247,7 +2247,7 @@ const PMSModule = ({ user, tenant, onLogout }) => {
               <Card>
                 <CardHeader>
                   <CardTitle>Daily Flash Report</CardTitle>
-                  <CardDescription>Today's key metrics and performance</CardDescription>
+                  <CardDescription>Today&apos;s key metrics and performance</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -2315,7 +2315,7 @@ const PMSModule = ({ user, tenant, onLogout }) => {
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold">${posRevenue.restaurant}</div>
-                  <p className="text-xs text-gray-600">Today's Revenue</p>
+                  <p className="text-xs text-gray-600">Today&apos;s Revenue</p>
                 </CardContent>
               </Card>
 
@@ -2325,7 +2325,7 @@ const PMSModule = ({ user, tenant, onLogout }) => {
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold">${posRevenue.bar}</div>
-                  <p className="text-xs text-gray-600">Today's Revenue</p>
+                  <p className="text-xs text-gray-600">Today&apos;s Revenue</p>
                 </CardContent>
               </Card>
 
@@ -2335,7 +2335,7 @@ const PMSModule = ({ user, tenant, onLogout }) => {
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold">${posRevenue.room_service}</div>
-                  <p className="text-xs text-gray-600">Today's Revenue</p>
+                  <p className="text-xs text-gray-600">Today&apos;s Revenue</p>
                 </CardContent>
               </Card>
 
@@ -2345,7 +2345,7 @@ const PMSModule = ({ user, tenant, onLogout }) => {
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold">${posRevenue.total}</div>
-                  <p className="text-xs text-gray-600">Today's Total</p>
+                  <p className="text-xs text-gray-600">Today&apos;s Total</p>
                 </CardContent>
               </Card>
             </div>
