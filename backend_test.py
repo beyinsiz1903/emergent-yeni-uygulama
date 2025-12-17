@@ -274,93 +274,89 @@ C102,standard,1,2,90,city,queen,wifi"""
         print("\n🔍 Testing Rooms Verification (C101 and C102 existence)...")
         print("🎯 OBJECTIVE: Verify C101 and C102 exist with view/bed_type/amenities")
         
-        try:
-            # Use a filter to bypass cache and get fresh data from database
-            start_time = datetime.now()
-            async with self.session.get(f"{BACKEND_URL}/pms/rooms?limit=300&room_type=deluxe", 
-                                      headers=self.get_headers()) as response:
-                end_time = datetime.now()
-                response_time = (end_time - start_time).total_seconds() * 1000
-                
-                if response.status == 200:
-                    data = await response.json()
+        # Test both with and without filters to check cache vs database
+        test_scenarios = [
+            ("with filter (bypasses cache)", f"{BACKEND_URL}/pms/rooms?limit=300&room_type=deluxe"),
+            ("without filter (may use cache)", f"{BACKEND_URL}/pms/rooms?limit=300")
+        ]
+        
+        for scenario_name, url in test_scenarios:
+            print(f"\n  🔍 Testing {scenario_name}...")
+            
+            try:
+                start_time = datetime.now()
+                async with self.session.get(url, headers=self.get_headers()) as response:
+                    end_time = datetime.now()
+                    response_time = (end_time - start_time).total_seconds() * 1000
                     
-                    if isinstance(data, list):
-                        # Look for our imported rooms C101 and C102
-                        c101_room = next((room for room in data if room.get('room_number') == 'C101'), None)
-                        c102_room = next((room for room in data if room.get('room_number') == 'C102'), None)
+                    if response.status == 200:
+                        data = await response.json()
                         
-                        # Verify C101 properties
-                        c101_valid = False
-                        if c101_room:
-                            c101_valid = (
-                                c101_room.get('room_type') == 'deluxe' and
-                                c101_room.get('view') == 'sea' and
-                                c101_room.get('bed_type') == 'king' and
-                                'wifi' in c101_room.get('amenities', []) and
-                                'balcony' in c101_room.get('amenities', [])
-                            )
-                        
-                        # Verify C102 properties
-                        c102_valid = False
-                        if c102_room:
-                            c102_valid = (
-                                c102_room.get('room_type') == 'standard' and
-                                c102_room.get('view') == 'city' and
-                                c102_room.get('bed_type') == 'queen' and
-                                'wifi' in c102_room.get('amenities', [])
-                            )
-                        
-                        if c101_room and c102_room and c101_valid and c102_valid:
-                            print(f"  ✅ Rooms verification: PASSED ({response_time:.1f}ms)")
-                            print(f"      📊 Total rooms returned: {len(data)}")
-                            print(f"      📊 C101 found: ✅ (deluxe, sea, king, wifi|balcony)")
-                            print(f"      📊 C102 found: ✅ (standard, city, queen, wifi)")
-                            print(f"      📊 All properties verified: ✅")
+                        if isinstance(data, list):
+                            # Look for our imported rooms C101 and C102
+                            c101_room = next((room for room in data if room.get('room_number') == 'C101'), None)
+                            c102_room = next((room for room in data if room.get('room_number') == 'C102'), None)
                             
-                            self.test_results.append({
-                                "endpoint": "GET /api/pms/rooms?limit=300",
-                                "passed": 1, "total": 1, "success_rate": "100.0%",
-                                "avg_response_time": f"{response_time:.1f}ms"
-                            })
-                        else:
-                            print(f"  ❌ Rooms verification: Missing rooms or incorrect properties")
-                            print(f"      📊 C101 found: {'✅' if c101_room else '❌'}, valid: {'✅' if c101_valid else '❌'}")
-                            print(f"      📊 C102 found: {'✅' if c102_room else '❌'}, valid: {'✅' if c102_valid else '❌'}")
+                            print(f"    📊 Total rooms returned: {len(data)}")
+                            print(f"    📊 C101 found: {'✅' if c101_room else '❌'}")
+                            print(f"    📊 C102 found: {'✅' if c102_room else '❌'}")
+                            
                             if c101_room:
-                                print(f"      📊 C101 actual: {c101_room.get('room_type')}, {c101_room.get('view')}, {c101_room.get('bed_type')}, {c101_room.get('amenities')}")
+                                print(f"    📊 C101: {c101_room.get('room_type')}, {c101_room.get('view')}, {c101_room.get('bed_type')}, {c101_room.get('amenities')}")
                             if c102_room:
-                                print(f"      📊 C102 actual: {c102_room.get('room_type')}, {c102_room.get('view')}, {c102_room.get('bed_type')}, {c102_room.get('amenities')}")
+                                print(f"    📊 C102: {c102_room.get('room_type')}, {c102_room.get('view')}, {c102_room.get('bed_type')}, {c102_room.get('amenities')}")
                             
-                            self.test_results.append({
-                                "endpoint": "GET /api/pms/rooms?limit=300",
-                                "passed": 0, "total": 1, "success_rate": "0.0%",
-                                "avg_response_time": f"{response_time:.1f}ms"
-                            })
+                            # Verify C101 properties
+                            c101_valid = False
+                            if c101_room:
+                                c101_valid = (
+                                    c101_room.get('room_type') == 'deluxe' and
+                                    c101_room.get('view') == 'sea' and
+                                    c101_room.get('bed_type') == 'king' and
+                                    'wifi' in c101_room.get('amenities', []) and
+                                    'balcony' in c101_room.get('amenities', [])
+                                )
+                            
+                            # Verify C102 properties  
+                            c102_valid = False
+                            if c102_room:
+                                c102_valid = (
+                                    c102_room.get('room_type') == 'standard' and
+                                    c102_room.get('view') == 'city' and
+                                    c102_room.get('bed_type') == 'queen' and
+                                    'wifi' in c102_room.get('amenities', [])
+                                )
+                            
+                            if c101_room and c101_valid and (scenario_name.startswith("with filter") or (c102_room and c102_valid)):
+                                print(f"    ✅ {scenario_name}: PASSED ({response_time:.1f}ms)")
+                                
+                                # Only record success for the comprehensive test (without filter)
+                                if scenario_name.startswith("without filter"):
+                                    self.test_results.append({
+                                        "endpoint": "GET /api/pms/rooms?limit=300",
+                                        "passed": 1, "total": 1, "success_rate": "100.0%",
+                                        "avg_response_time": f"{response_time:.1f}ms"
+                                    })
+                                    return  # Exit early on success
+                            else:
+                                print(f"    ❌ {scenario_name}: Missing rooms or incorrect properties")
+                                print(f"        C101 valid: {'✅' if c101_valid else '❌'}, C102 valid: {'✅' if c102_valid else '❌'}")
+                        else:
+                            print(f"    ❌ {scenario_name}: Expected list response, got {type(data)}")
                     else:
-                        print(f"  ❌ Rooms verification: Expected list response, got {type(data)}")
-                        self.test_results.append({
-                            "endpoint": "GET /api/pms/rooms?limit=300",
-                            "passed": 0, "total": 1, "success_rate": "0.0%",
-                            "avg_response_time": f"{response_time:.1f}ms"
-                        })
-                else:
-                    error_text = await response.text()
-                    print(f"  ❌ Rooms verification: Expected 200, got {response.status}")
-                    print(f"      🔍 Error Details: {error_text[:300]}...")
-                    self.test_results.append({
-                        "endpoint": "GET /api/pms/rooms?limit=300",
-                        "passed": 0, "total": 1, "success_rate": "0.0%",
-                        "avg_response_time": f"{response_time:.1f}ms"
-                    })
-                    
-        except Exception as e:
-            print(f"  ❌ Rooms verification: Error {e}")
-            self.test_results.append({
-                "endpoint": "GET /api/pms/rooms?limit=300",
-                "passed": 0, "total": 1, "success_rate": "0.0%",
-                "avg_response_time": "N/A"
-            })
+                        error_text = await response.text()
+                        print(f"    ❌ {scenario_name}: Expected 200, got {response.status}")
+                        print(f"        Error: {error_text[:200]}...")
+                        
+            except Exception as e:
+                print(f"    ❌ {scenario_name}: Error {e}")
+        
+        # If we get here, both scenarios failed
+        self.test_results.append({
+            "endpoint": "GET /api/pms/rooms?limit=300",
+            "passed": 0, "total": 1, "success_rate": "0.0%",
+            "avg_response_time": "N/A"
+        })
 
     # No additional tests needed for CSV import scenario
 
