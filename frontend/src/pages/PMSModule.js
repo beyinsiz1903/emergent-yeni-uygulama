@@ -1562,6 +1562,61 @@ const PMSModule = ({ user, tenant, onLogout }) => {
                 </Button>
               </div>
             </div>
+
+            {/* Room Filters */}
+            <Card className="border-gray-200">
+              <CardContent className="p-4">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                  <div>
+                    <Label>Room Type</Label>
+                    <Select
+                      value={quickFilters.roomType}
+                      onValueChange={(v) => setQuickFilters(prev => ({ ...prev, roomType: v === 'all' ? '' : v }))}
+                    >
+                      <SelectTrigger><SelectValue placeholder="All" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All</SelectItem>
+                        <SelectItem value="standard">Standard</SelectItem>
+                        <SelectItem value="deluxe">Deluxe</SelectItem>
+                        <SelectItem value="suite">Suite</SelectItem>
+                        <SelectItem value="presidential">Presidential</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div>
+                    <Label>Manzara (View)</Label>
+                    <Input
+                      placeholder="sea/city/garden..."
+                      value={quickFilters.roomView}
+                      onChange={(e) => setQuickFilters(prev => ({ ...prev, roomView: e.target.value }))}
+                    />
+                  </div>
+
+                  <div>
+                    <Label>Amenity</Label>
+                    <Input
+                      placeholder="wifi"
+                      value={quickFilters.amenity}
+                      onChange={(e) => setQuickFilters(prev => ({ ...prev, amenity: e.target.value }))}
+                    />
+                    <p className="text-[11px] text-gray-500 mt-1">Tek bir amenity ile filtreler (örn: wifi)</p>
+                  </div>
+
+                  <div className="flex items-end">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="w-full"
+                      onClick={() => setQuickFilters(prev => ({ ...prev, roomType: '', roomView: '', amenity: '' }))}
+                    >
+                      Temizle
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
             
             {/* Bulk Actions Toolbar */}
             {bulkRoomMode && selectedRooms.length > 0 && (
