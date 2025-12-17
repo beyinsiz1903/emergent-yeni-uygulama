@@ -1671,6 +1671,55 @@ const PMSModule = ({ user, tenant, onLogout }) => {
               {rooms
                 .filter((room) => {
                   // roomType filter
+
+                    {/* Room meta badges */}
+                    {(room.view || room.bed_type || (room.amenities || []).length > 0) && (
+                      <div className="flex flex-wrap gap-1 pt-1">
+                        {room.view && <Badge variant="outline" className="text-[10px]">View: {room.view}</Badge>}
+                        {room.bed_type && <Badge variant="outline" className="text-[10px]">Bed: {room.bed_type}</Badge>}
+                        {(room.amenities || []).slice(0, 3).map((a) => (
+                          <Badge key={a} variant="secondary" className="text-[10px]">{a}</Badge>
+                        ))}
+                        {(room.amenities || []).length > 3 && (
+                          <Badge variant="secondary" className="text-[10px]">+{(room.amenities || []).length - 3}</Badge>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Room photos preview */}
+                    {(room.images || []).length > 0 && (
+                      <div className="grid grid-cols-3 gap-2">
+                        {(room.images || []).slice(0, 3).map((src) => (
+                          <button
+                            key={src}
+                            type="button"
+                            className="h-16 rounded-md overflow-hidden border bg-gray-50"
+                            onClick={() => {
+                              setSelectedRoom(room);
+                              setOpenDialog('room-images');
+                            }}
+                            title="Fotoğrafları Gör"
+                          >
+                            <img src={src} alt="room" className="w-full h-full object-cover" />
+                          </button>
+                        ))}
+                      </div>
+                    )}
+
+                    <div className="flex gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="flex-1"
+                        onClick={() => {
+                          setSelectedRoom(room);
+                          setOpenDialog('room-images');
+                        }}
+                      >
+                        Fotoğraflar
+                      </Button>
+                    </div>
+
                   if (quickFilters.roomType && room.room_type !== quickFilters.roomType) return false;
 
                   // view filter (substring match)
