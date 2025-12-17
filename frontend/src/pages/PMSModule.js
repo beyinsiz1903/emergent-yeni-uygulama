@@ -32,6 +32,8 @@ import {
   Star, Send, MessageSquare, UserPlus, ArrowRight, RefreshCw, User, Search, CheckSquare, Download, Clock, Crown
 } from 'lucide-react';
 import FloatingActionButton from '@/components/FloatingActionButton';
+import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip } from 'recharts';
+
 
 const PMSModule = ({ user, tenant, onLogout }) => {
   const { t } = useTranslation();
