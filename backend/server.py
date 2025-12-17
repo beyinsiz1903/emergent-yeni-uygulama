@@ -6773,6 +6773,8 @@ async def get_rooms(
     offset: int = 0,
     status: Optional[str] = None,
     room_type: Optional[str] = None,
+    view: Optional[str] = None,
+    amenity: Optional[str] = None,
     current_user: User = Depends(get_current_user),
     _: None = Depends(require_module("pms")),
 ):
