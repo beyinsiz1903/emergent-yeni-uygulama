@@ -116,9 +116,9 @@ class PMSRoomsBulkTester:
         except Exception as e:
             print(f"❌ Error during cleanup: {e}")
 
-    # ============= PMS BOOKINGS BACKEND TESTS =============
+    # ============= PMS ROOMS BULK FEATURES TESTS =============
 
-    async def test_pms_bookings_default_endpoint(self):
+    async def test_bulk_rooms_range_creation(self):
         """Test GET /api/pms/bookings (default parametrelerle)"""
         print("\n📅 Testing PMS Bookings Endpoint (Default Parameters)...")
         print("🎯 OBJECTIVE: BookingsTab/VirtualizedBookingList veri yapısı doğrulaması")
