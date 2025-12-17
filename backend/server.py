@@ -683,6 +683,10 @@ class RoomCreate(BaseModel):
     base_price: float
     amenities: List[str] = []
 
+    # Extended fields
+    view: Optional[str] = None  # e.g. sea, city, garden, mountain
+    bed_type: Optional[str] = None
+
 class Room(BaseModel):
     model_config = ConfigDict(extra="ignore")
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
@@ -695,6 +699,12 @@ class Room(BaseModel):
     price_per_night: Optional[float] = None
     status: RoomStatus = RoomStatus.AVAILABLE
     amenities: List[str] = []
+
+    # Extended fields
+    view: Optional[str] = None
+    bed_type: Optional[str] = None
+    images: List[str] = []  # stored paths/urls
+
     current_booking_id: Optional[str] = None
     last_cleaned: Optional[datetime] = None
     notes: Optional[str] = None
@@ -6844,6 +6854,174 @@ async def get_rooms(
     
     # Cache result in Redis for 30 seconds (only for full lists)
     if use_cache:
+
+class RoomBulkRangeRequest(BaseModel):
+    """Create many rooms quickly using a numeric range.
+
+    Supports:
+    - prefix (optional): e.g. "A" → A101, A102 ...
+
+@api_router.post("/pms/rooms/bulk/range", response_model=RoomBulkCreateResponse)
+async def bulk_create_rooms_range(
+    payload: RoomBulkRangeRequest,
+    current_user: User = Depends(get_current_user),
+    _: None = Depends(require_module("pms")),
+):
+    if payload.end_number < payload.start_number:
+        raise HTTPException(status_code=400, detail="end_number start_number'dan küçük olamaz")
+    if payload.end_number - payload.start_number + 1 > 2000:
+        raise HTTPException(status_code=400, detail="Tek seferde maksimum 2000 oda oluşturabilirsiniz")
+
+    prefix = (payload.prefix or "").strip()
+
+    created_rooms: List[Room] = []
+    skipped: List[str] = []
+
+    # Pre-fetch existing room numbers for tenant to avoid duplicates
+    existing = await db.rooms.find(
+        {"tenant_id": current_user.tenant_id},
+        {"_id": 0, "room_number": 1},
+    ).to_list(5000)
+    existing_numbers = set([r.get("room_number") for r in existing if r.get("room_number")])
+
+    docs = []
+    for n in range(payload.start_number, payload.end_number + 1):
+        room_number = f"{prefix}{n}"
+        if room_number in existing_numbers:
+            skipped.append(room_number)
+            continue
+
+        room = Room(
+            tenant_id=current_user.tenant_id,
+            room_number=room_number,
+            room_type=payload.room_type,
+            floor=payload.floor,
+            capacity=payload.capacity,
+            base_price=payload.base_price,
+            amenities=payload.amenities,
+            view=payload.view,
+            bed_type=payload.bed_type,
+        )
+        room_dict = room.model_dump()
+        room_dict['created_at'] = room_dict['created_at'].isoformat()
+        docs.append(room_dict)
+        created_rooms.append(room)
+
+    if docs:
+        await db.rooms.insert_many(docs)
+
+    return RoomBulkCreateResponse(
+        created=len(created_rooms),
+        skipped=len(skipped),
+        rooms=created_rooms,
+        skipped_room_numbers=skipped,
+    )
+
+
+@api_router.post("/pms/rooms/bulk/template", response_model=RoomBulkCreateResponse)
+async def bulk_create_rooms_template(
+    payload: RoomBulkTemplateRequest,
+    current_user: User = Depends(get_current_user),
+    _: None = Depends(require_module("pms")),
+):
+    if payload.count <= 0:
+        raise HTTPException(status_code=400, detail="count 0'dan büyük olmalı")
+    if payload.count > 2000:
+        raise HTTPException(status_code=400, detail="Tek seferde maksimum 2000 oda oluşturabilirsiniz")
+
+    prefix = (payload.prefix or "").strip()
+
+    existing = await db.rooms.find(
+        {"tenant_id": current_user.tenant_id},
+        {"_id": 0, "room_number": 1},
+    ).to_list(5000)
+    existing_numbers = set([r.get("room_number") for r in existing if r.get("room_number")])
+
+    created_rooms: List[Room] = []
+    skipped: List[str] = []
+    docs = []
+
+    current = payload.start_number
+    created_count = 0
+    safety = 0
+    while created_count < payload.count:
+        safety += 1
+        if safety > payload.count + 5000:
+            raise HTTPException(status_code=400, detail="Oda numarası üretiminde çok fazla çakışma oluştu")
+
+        room_number = f"{prefix}{current}"
+        current += 1
+
+        if room_number in existing_numbers:
+            skipped.append(room_number)
+            continue
+
+        room = Room(
+            tenant_id=current_user.tenant_id,
+            room_number=room_number,
+            room_type=payload.room_type,
+            floor=payload.floor,
+            capacity=payload.capacity,
+            base_price=payload.base_price,
+            amenities=payload.amenities,
+            view=payload.view,
+            bed_type=payload.bed_type,
+        )
+        room_dict = room.model_dump()
+        room_dict['created_at'] = room_dict['created_at'].isoformat()
+        docs.append(room_dict)
+        created_rooms.append(room)
+        created_count += 1
+
+    if docs:
+        await db.rooms.insert_many(docs)
+
+    return RoomBulkCreateResponse(
+        created=len(created_rooms),
+        skipped=len(skipped),
+        rooms=created_rooms,
+        skipped_room_numbers=skipped,
+    )
+
+    - start/end inclusive
+    - floor, room_type, capacity, base_price, view, bed_type, amenities
+    """
+
+    prefix: Optional[str] = None
+    start_number: int
+    end_number: int
+    floor: int
+    room_type: str
+    capacity: int = 2
+    base_price: float = 0
+    amenities: List[str] = []
+    view: Optional[str] = None
+    bed_type: Optional[str] = None
+
+class RoomBulkTemplateRequest(BaseModel):
+    """Create N rooms based on a template.
+
+    Supports prefix + starting number to auto-generate unique room_number values.
+    """
+
+    prefix: Optional[str] = None
+    start_number: int = 1
+    count: int
+    floor: int
+    room_type: str
+    capacity: int = 2
+    base_price: float = 0
+    amenities: List[str] = []
+    view: Optional[str] = None
+    bed_type: Optional[str] = None
+
+class RoomBulkCreateResponse(BaseModel):
+    created: int
+    skipped: int
+    rooms: List[Room] = []
+    skipped_room_numbers: List[str] = []
+
+
         try:
             from redis_cache import redis_cache
             if redis_cache:
