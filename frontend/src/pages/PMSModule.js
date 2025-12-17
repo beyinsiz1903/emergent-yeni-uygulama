@@ -1670,6 +1670,19 @@ const PMSModule = ({ user, tenant, onLogout }) => {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {rooms
                 .filter((room) => {
+                  if (quickFilters.roomType && room.room_type !== quickFilters.roomType) return false;
+
+                  if (quickFilters.roomView) {
+                    const v = (room.view || '').toLowerCase();
+                    if (!v.includes(quickFilters.roomView.toLowerCase())) return false;
+                  }
+
+                  if (quickFilters.amenity) {
+                    const a = quickFilters.amenity.toLowerCase();
+                    const ams = (room.amenities || []).map(x => String(x).toLowerCase());
+                    if (!ams.includes(a)) return false;
+                  }
+
                   return true;
                 })
                 .map((room) => {
