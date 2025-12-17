@@ -121,87 +121,77 @@ class CSVImportTester:
         except Exception as e:
             print(f"❌ Error during cleanup: {e}")
 
-    # ============= PMS ROOMS BULK FEATURES TESTS =============
+    # ============= CSV IMPORT TESTS =============
 
-    async def test_bulk_rooms_range_creation(self):
-        """Test POST /api/pms/rooms/bulk/range - Create rooms A101-A105"""
-        print("\n🏨 Testing Bulk Rooms Range Creation (A101-A105)...")
-        print("🎯 OBJECTIVE: Create 5 deluxe rooms with range A101-A105")
+    async def test_csv_import_first_time(self):
+        """Test POST /api/pms/rooms/import-csv - First import should create 2 rooms"""
+        print("\n📄 Testing CSV Import - First Time (should create 2 rooms)...")
+        print("🎯 OBJECTIVE: Import C101 and C102 rooms from CSV file")
         
-        bulk_range_payload = {
-            "prefix": "A",
-            "start_number": 101,
-            "end_number": 105,
-            "floor": 1,
-            "room_type": "deluxe",
-            "capacity": 2,
-            "base_price": 150,
-            "amenities": ["wifi", "balcony"],
-            "view": "sea",
-            "bed_type": "king"
-        }
+        # Create CSV content
+        csv_content = """room_number,room_type,floor,capacity,base_price,view,bed_type,amenities
+C101,deluxe,1,2,150,sea,king,wifi|balcony
+C102,standard,1,2,90,city,queen,wifi"""
         
         try:
+            # Prepare multipart form data
+            form_data = aiohttp.FormData()
+            form_data.add_field('file', csv_content.encode('utf-8'), 
+                              filename='rooms.csv', content_type='text/csv')
+            
+            # Remove Content-Type header to let aiohttp set it for multipart
+            headers = {
+                "Authorization": f"Bearer {self.auth_token}"
+            }
+            
             start_time = datetime.now()
-            async with self.session.post(f"{BACKEND_URL}/pms/rooms/bulk/range", 
-                                       json=bulk_range_payload, 
-                                       headers=self.get_headers()) as response:
+            async with self.session.post(f"{BACKEND_URL}/pms/rooms/import-csv", 
+                                       data=form_data, 
+                                       headers=headers) as response:
                 end_time = datetime.now()
                 response_time = (end_time - start_time).total_seconds() * 1000
                 
                 if response.status == 200:
                     data = await response.json()
-                    created_count = data.get("created", 0)
-                    skipped_count = data.get("skipped", 0)
+                    created = data.get("created", 0)
+                    skipped = data.get("skipped", 0)
+                    errors = data.get("errors", 0)
                     
                     print(f"      📊 Response data: {data}")
                     
-                    # Check if rooms were created OR already exist (skipped)
-                    total_processed = created_count + skipped_count
-                    if total_processed == 5:
-                        if created_count == 5:
-                            print(f"  ✅ Bulk range creation: PASSED - New rooms created ({response_time:.1f}ms)")
-                            print(f"      📊 Expected: 5 rooms, Created: {created_count}")
-                        elif skipped_count == 5:
-                            print(f"  ✅ Bulk range creation: PASSED - Rooms already exist ({response_time:.1f}ms)")
-                            print(f"      📊 Expected: 5 rooms, Skipped (existing): {skipped_count}")
-                        else:
-                            print(f"  ✅ Bulk range creation: PASSED - Mixed result ({response_time:.1f}ms)")
-                            print(f"      📊 Created: {created_count}, Skipped: {skipped_count}")
-                        
-                        print(f"      📊 Room range: A101-A105")
-                        print(f"      📊 Room type: deluxe, View: sea, Bed: king")
-                        print(f"      📊 Amenities: {bulk_range_payload['amenities']}")
-                        
-                        # Store created room info for later tests
-                        self.created_test_data['bulk_rooms'].extend([f"A{i}" for i in range(101, 106)])
+                    # Expected: created=2, skipped=0, errors=0
+                    if created == 2 and skipped == 0 and errors == 0:
+                        print(f"  ✅ CSV Import (first time): PASSED ({response_time:.1f}ms)")
+                        print(f"      📊 Created: {created}, Skipped: {skipped}, Errors: {errors}")
+                        print(f"      📊 Rooms imported: C101 (deluxe, sea, king), C102 (standard, city, queen)")
                         
                         self.test_results.append({
-                            "endpoint": "POST /api/pms/rooms/bulk/range",
+                            "endpoint": "POST /api/pms/rooms/import-csv (first)",
                             "passed": 1, "total": 1, "success_rate": "100.0%",
                             "avg_response_time": f"{response_time:.1f}ms"
                         })
                     else:
-                        print(f"  ❌ Bulk range creation: Expected 5 rooms total, got {total_processed} (created: {created_count}, skipped: {skipped_count})")
+                        print(f"  ❌ CSV Import (first time): Expected created=2, skipped=0, errors=0")
+                        print(f"      📊 Got created={created}, skipped={skipped}, errors={errors}")
                         self.test_results.append({
-                            "endpoint": "POST /api/pms/rooms/bulk/range",
+                            "endpoint": "POST /api/pms/rooms/import-csv (first)",
                             "passed": 0, "total": 1, "success_rate": "0.0%",
                             "avg_response_time": f"{response_time:.1f}ms"
                         })
                 else:
                     error_text = await response.text()
-                    print(f"  ❌ Bulk range creation: Expected 200, got {response.status}")
+                    print(f"  ❌ CSV Import (first time): Expected 200, got {response.status}")
                     print(f"      🔍 Error Details: {error_text[:300]}...")
                     self.test_results.append({
-                        "endpoint": "POST /api/pms/rooms/bulk/range",
+                        "endpoint": "POST /api/pms/rooms/import-csv (first)",
                         "passed": 0, "total": 1, "success_rate": "0.0%",
                         "avg_response_time": f"{response_time:.1f}ms"
                     })
                     
         except Exception as e:
-            print(f"  ❌ Bulk range creation: Error {e}")
+            print(f"  ❌ CSV Import (first time): Error {e}")
             self.test_results.append({
-                "endpoint": "POST /api/pms/rooms/bulk/range",
+                "endpoint": "POST /api/pms/rooms/import-csv (first)",
                 "passed": 0, "total": 1, "success_rate": "0.0%",
                 "avg_response_time": "N/A"
             })
