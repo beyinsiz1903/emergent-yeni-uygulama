@@ -29,7 +29,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { 
   BedDouble, Users, Calendar, Plus, CheckCircle, DollarSign, 
   ClipboardList, BarChart3, TrendingUp, UserCheck, LogIn, LogOut, Home, FileText, 
-  Star, Send, MessageSquare, UserPlus, ArrowRight, RefreshCw, User, Search, CheckSquare, Download, Clock
+  Star, Send, MessageSquare, UserPlus, ArrowRight, RefreshCw, User, Search, CheckSquare, Download, Clock, Crown
 } from 'lucide-react';
 import FloatingActionButton from '@/components/FloatingActionButton';
 
