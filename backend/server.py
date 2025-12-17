@@ -6829,6 +6829,10 @@ async def get_rooms(
         query['status'] = status
     if room_type:
         query['room_type'] = room_type
+    if view:
+        query['view'] = view
+    if amenity:
+        query['amenities'] = amenity
     
     # Fallback: Ultra-minimal projection with pagination
     projection = {'_id': 0, 'id': 1, 'room_number': 1, 'room_type': 1, 'status': 1, 'floor': 1, 'capacity': 1, 'max_occupancy': 1, 'base_price': 1, 'tenant_id': 1}
