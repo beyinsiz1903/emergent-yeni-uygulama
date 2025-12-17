@@ -13664,8 +13664,8 @@ async def get_audit_logs(
     current_user: User = Depends(get_current_user)
 ):
     """Get audit logs with filters"""
-    # Check permission
-    if not has_permission(current_user.role, Permission.VIEW_REPORTS):
+    # Access control: admin + super_admin
+    if current_user.role not in [UserRole.SUPER_ADMIN, UserRole.ADMIN]:
         raise HTTPException(status_code=403, detail="Insufficient permissions")
     
     query = {'tenant_id': current_user.tenant_id}
