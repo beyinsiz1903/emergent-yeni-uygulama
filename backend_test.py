@@ -98,12 +98,12 @@ class CSVImportTester:
         print("\n🧹 Cleaning up existing test rooms...")
         
         try:
-            # Get existing rooms with test prefixes
+            # Get existing rooms with test prefixes (C101, C102)
             async with self.session.get(f"{BACKEND_URL}/pms/rooms?limit=500", 
                                       headers=self.get_headers()) as response:
                 if response.status == 200:
                     rooms = await response.json()
-                    test_rooms = [room for room in rooms if room.get('room_number', '').startswith(('A10', 'B'))]
+                    test_rooms = [room for room in rooms if room.get('room_number', '').startswith('C10')]
                     
                     for room in test_rooms:
                         try:
