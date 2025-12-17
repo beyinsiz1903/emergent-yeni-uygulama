@@ -458,7 +458,7 @@ C102,standard,1,2,90,city,queen,wifi"""
 
 async def main():
     """Main test execution"""
-    tester = PMSRoomsBulkTester()
+    tester = CSVImportTester()
     await tester.run_all_tests()
 
 if __name__ == "__main__":
