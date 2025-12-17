@@ -196,91 +196,75 @@ C102,standard,1,2,90,city,queen,wifi"""
                 "avg_response_time": "N/A"
             })
 
-    async def test_rooms_filtering(self):
-        """Test GET /api/pms/rooms?room_type=deluxe&view=sea&amenity=wifi&limit=200"""
-        print("\n🔍 Testing Rooms Filtering (deluxe, sea view, wifi)...")
-        print("🎯 OBJECTIVE: Verify A101-A105 rooms appear in filtered results")
+    async def test_csv_import_second_time(self):
+        """Test POST /api/pms/rooms/import-csv - Second import should skip existing rooms"""
+        print("\n📄 Testing CSV Import - Second Time (should skip existing rooms)...")
+        print("🎯 OBJECTIVE: Import same CSV again, expect created=0, skipped=2")
         
-        filter_params = {
-            "room_type": "deluxe",
-            "view": "sea", 
-            "amenity": "wifi",
-            "limit": 200
-        }
+        # Same CSV content as before
+        csv_content = """room_number,room_type,floor,capacity,base_price,view,bed_type,amenities
+C101,deluxe,1,2,150,sea,king,wifi|balcony
+C102,standard,1,2,90,city,queen,wifi"""
         
         try:
-            params_str = "&".join([f"{k}={v}" for k, v in filter_params.items()])
-            url = f"{BACKEND_URL}/pms/rooms?{params_str}"
+            # Prepare multipart form data
+            form_data = aiohttp.FormData()
+            form_data.add_field('file', csv_content.encode('utf-8'), 
+                              filename='rooms.csv', content_type='text/csv')
+            
+            # Remove Content-Type header to let aiohttp set it for multipart
+            headers = {
+                "Authorization": f"Bearer {self.auth_token}"
+            }
             
             start_time = datetime.now()
-            async with self.session.get(url, headers=self.get_headers()) as response:
+            async with self.session.post(f"{BACKEND_URL}/pms/rooms/import-csv", 
+                                       data=form_data, 
+                                       headers=headers) as response:
                 end_time = datetime.now()
                 response_time = (end_time - start_time).total_seconds() * 1000
                 
                 if response.status == 200:
                     data = await response.json()
+                    created = data.get("created", 0)
+                    skipped = data.get("skipped", 0)
+                    errors = data.get("errors", 0)
                     
-                    if isinstance(data, list):
-                        # Look for our created rooms A101-A105
-                        created_rooms = [room for room in data if room.get('room_number') in ['A101', 'A102', 'A103', 'A104', 'A105']]
+                    print(f"      📊 Response data: {data}")
+                    
+                    # Expected: created=0, skipped=2, errors=0
+                    if created == 0 and skipped == 2 and errors == 0:
+                        print(f"  ✅ CSV Import (second time): PASSED ({response_time:.1f}ms)")
+                        print(f"      📊 Created: {created}, Skipped: {skipped}, Errors: {errors}")
+                        print(f"      📊 Rooms skipped: C101, C102 (already exist)")
                         
-                        # Verify room structure and properties
-                        valid_rooms = []
-                        for room in created_rooms:
-                            required_fields = ["id", "room_number", "room_type", "view", "bed_type", "amenities"]
-                            missing_fields = [field for field in required_fields if field not in room]
-                            
-                            if not missing_fields:
-                                # Check if room properties match our creation
-                                if (room.get('room_type') == 'deluxe' and 
-                                    room.get('view') == 'sea' and 
-                                    room.get('bed_type') == 'king' and
-                                    'wifi' in room.get('amenities', []) and
-                                    'balcony' in room.get('amenities', [])):
-                                    valid_rooms.append(room)
-                        
-                        if len(valid_rooms) >= 5:
-                            print(f"  ✅ Rooms filtering: PASSED ({response_time:.1f}ms)")
-                            print(f"      📊 Total rooms returned: {len(data)}")
-                            print(f"      📊 A101-A105 rooms found: {len(created_rooms)}")
-                            print(f"      📊 Valid rooms with correct properties: {len(valid_rooms)}")
-                            print(f"      📊 Sample room: {valid_rooms[0].get('room_number')} - {valid_rooms[0].get('room_type')}")
-                            print(f"      📊 View/Bed/Amenities verified: ✅")
-                            
-                            self.test_results.append({
-                                "endpoint": "GET /api/pms/rooms (filtered)",
-                                "passed": 1, "total": 1, "success_rate": "100.0%",
-                                "avg_response_time": f"{response_time:.1f}ms"
-                            })
-                        else:
-                            print(f"  ❌ Rooms filtering: Expected 5+ rooms, found {len(valid_rooms)} valid rooms")
-                            print(f"      📊 Created rooms found: {[r.get('room_number') for r in created_rooms]}")
-                            self.test_results.append({
-                                "endpoint": "GET /api/pms/rooms (filtered)",
-                                "passed": 0, "total": 1, "success_rate": "0.0%",
-                                "avg_response_time": f"{response_time:.1f}ms"
-                            })
-                    else:
-                        print(f"  ❌ Rooms filtering: Expected list response, got {type(data)}")
                         self.test_results.append({
-                            "endpoint": "GET /api/pms/rooms (filtered)",
+                            "endpoint": "POST /api/pms/rooms/import-csv (second)",
+                            "passed": 1, "total": 1, "success_rate": "100.0%",
+                            "avg_response_time": f"{response_time:.1f}ms"
+                        })
+                    else:
+                        print(f"  ❌ CSV Import (second time): Expected created=0, skipped=2, errors=0")
+                        print(f"      📊 Got created={created}, skipped={skipped}, errors={errors}")
+                        self.test_results.append({
+                            "endpoint": "POST /api/pms/rooms/import-csv (second)",
                             "passed": 0, "total": 1, "success_rate": "0.0%",
                             "avg_response_time": f"{response_time:.1f}ms"
                         })
                 else:
                     error_text = await response.text()
-                    print(f"  ❌ Rooms filtering: Expected 200, got {response.status}")
+                    print(f"  ❌ CSV Import (second time): Expected 200, got {response.status}")
                     print(f"      🔍 Error Details: {error_text[:300]}...")
                     self.test_results.append({
-                        "endpoint": "GET /api/pms/rooms (filtered)",
+                        "endpoint": "POST /api/pms/rooms/import-csv (second)",
                         "passed": 0, "total": 1, "success_rate": "0.0%",
                         "avg_response_time": f"{response_time:.1f}ms"
                     })
                     
         except Exception as e:
-            print(f"  ❌ Rooms filtering: Error {e}")
+            print(f"  ❌ CSV Import (second time): Error {e}")
             self.test_results.append({
-                "endpoint": "GET /api/pms/rooms (filtered)",
+                "endpoint": "POST /api/pms/rooms/import-csv (second)",
                 "passed": 0, "total": 1, "success_rate": "0.0%",
                 "avg_response_time": "N/A"
             })
