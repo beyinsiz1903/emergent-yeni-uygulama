@@ -1151,27 +1151,6 @@ const ReservationCalendar = ({ user, tenant, onLogout }) => {
                       title={`${formatDate(date)}: ${occ}% occupancy`}
                     >
 
-              {/* Data Source / Empty Dataset Notice */}
-              {(calendarMeta.rooms || 0) === 0 ? (
-                <div className="bg-white/70 border border-amber-200 rounded-lg p-3 text-sm text-amber-900">
-                  <div className="font-semibold mb-1">Bu otel için oda kaydı bulunamadı.</div>
-                  <div className="text-xs text-amber-800/90">
-                    Deluxe+ analizleri oda ve rezervasyon verisine göre hesaplanır. Önce oda ekleyin veya bu otelin verisi olan bir tenant ile giriş yapın.
-                  </div>
-                </div>
-              ) : (calendarMeta.bookings || 0) === 0 ? (
-                <div className="bg-white/70 border border-amber-200 rounded-lg p-3 text-sm text-amber-900">
-                  <div className="font-semibold mb-1">Seçili tarih aralığında rezervasyon yok.</div>
-                  <div className="text-xs text-amber-800/90">
-                    Tarih aralığı: <span className="font-medium">{calendarMeta.start_date} → {calendarMeta.end_date}</span>. Deluxe+ metrikleri bu aralıkta rezervasyon olmadığında yanıltıcı olabilir.
-                    İsterseniz takvimde farklı bir tarihe gidin veya test için bir rezervasyon oluşturun.
-                  </div>
-                </div>
-              ) : (
-                <div className="text-[11px] text-amber-800/80">
-                  Veri kaynağı: {calendarMeta.rooms} oda, {calendarMeta.bookings} rezervasyon (aralık: {calendarMeta.start_date} → {calendarMeta.end_date})
-                </div>
-              )}
 
                       <div className="h-8 bg-gray-200 rounded overflow-hidden">
                         <div
@@ -1228,6 +1207,28 @@ const ReservationCalendar = ({ user, tenant, onLogout }) => {
                           </Badge>
                         </div>
                         <div className="text-gray-600">
+
+              {/* Data Source / Empty Dataset Notice */}
+              {(calendarMeta.rooms || 0) === 0 ? (
+                <div className="bg-white/70 border border-amber-200 rounded-lg p-3 text-sm text-amber-900">
+                  <div className="font-semibold mb-1">Bu otel için oda kaydı bulunamadı.</div>
+                  <div className="text-xs text-amber-800/90">
+                    Deluxe+ analizleri oda ve rezervasyon verisine göre hesaplanır. Önce oda ekleyin veya bu otelin verisi olan bir tenant ile giriş yapın.
+                  </div>
+                </div>
+              ) : (calendarMeta.bookings || 0) === 0 ? (
+                <div className="bg-white/70 border border-amber-200 rounded-lg p-3 text-sm text-amber-900">
+                  <div className="font-semibold mb-1">Seçili tarih aralığında rezervasyon yok.</div>
+                  <div className="text-xs text-amber-800/90">
+                    Tarih aralığı: <span className="font-medium">{calendarMeta.start_date} → {calendarMeta.end_date}</span>. Deluxe+ metrikleri bu aralıkta rezervasyon olmadığında gösterilmez.
+                  </div>
+                </div>
+              ) : (
+                <div className="text-[11px] text-amber-800/80">
+                  Veri kaynağı: {calendarMeta.rooms} oda, {calendarMeta.bookings} rezervasyon (aralık: {calendarMeta.start_date} → {calendarMeta.end_date})
+                </div>
+              )}
+
                           {new Date(group.check_in).toLocaleDateString()} - {new Date(group.check_out).toLocaleDateString()}
                         </div>
                         <div className="flex justify-between mt-1">
@@ -1494,27 +1495,6 @@ const ReservationCalendar = ({ user, tenant, onLogout }) => {
               )}
 
 
-              {/* Data Source / Empty Dataset Notice */}
-              {(calendarMeta.rooms || 0) === 0 ? (
-                <div className="bg-white/70 border border-purple-200 rounded-lg p-3 text-sm text-purple-900">
-                  <div className="font-semibold mb-1">Bu otel için oda kaydı bulunamadı.</div>
-                  <div className="text-xs text-purple-800/90">
-                    Enterprise metrikleri oda ve rezervasyon verisine göre hesaplanır. Önce oda ekleyin veya verisi olan bir tenant ile giriş yapın.
-                  </div>
-                </div>
-              ) : (calendarMeta.bookings || 0) === 0 ? (
-                <div className="bg-white/70 border border-purple-200 rounded-lg p-3 text-sm text-purple-900">
-                  <div className="font-semibold mb-1">Seçili tarih aralığında rezervasyon yok.</div>
-                  <div className="text-xs text-purple-800/90">
-                    Tarih aralığı: <span className="font-medium">{calendarMeta.start_date} → {calendarMeta.end_date}</span>. Enterprise metrikleri bu aralıkta veri olmadığında gösterilmez.
-                  </div>
-                </div>
-              ) : (
-                <div className="text-[11px] text-purple-800/80">
-                  Veri kaynağı: {calendarMeta.rooms} oda, {calendarMeta.bookings} rezervasyon (aralık: {calendarMeta.start_date} → {calendarMeta.end_date})
-                </div>
-              )}
-
               {/* No AI recommendations */}
               {(calendarMeta.bookings || 0) > 0 &&
                aiOverbookingSolutions.length === 0 && aiRoomMoves.length === 0 &&
@@ -1558,6 +1538,28 @@ const ReservationCalendar = ({ user, tenant, onLogout }) => {
                           <div className="text-red-600 font-bold">
                             -${leak.difference_per_night}/nt
                           </div>
+
+              {/* Data Source / Empty Dataset Notice */}
+              {(calendarMeta.rooms || 0) === 0 ? (
+                <div className="bg-white/70 border border-purple-200 rounded-lg p-3 text-sm text-purple-900">
+                  <div className="font-semibold mb-1">Bu otel için oda kaydı bulunamadı.</div>
+                  <div className="text-xs text-purple-800/90">
+                    Enterprise metrikleri oda ve rezervasyon verisine göre hesaplanır. Önce oda ekleyin veya verisi olan bir tenant ile giriş yapın.
+                  </div>
+                </div>
+              ) : (calendarMeta.bookings || 0) === 0 ? (
+                <div className="bg-white/70 border border-purple-200 rounded-lg p-3 text-sm text-purple-900">
+                  <div className="font-semibold mb-1">Seçili tarih aralığında rezervasyon yok.</div>
+                  <div className="text-xs text-purple-800/90">
+                    Tarih aralığı: <span className="font-medium">{calendarMeta.start_date} → {calendarMeta.end_date}</span>. Enterprise metrikleri bu aralıkta veri olmadığında gösterilmez.
+                  </div>
+                </div>
+              ) : (
+                <div className="text-[11px] text-purple-800/80">
+                  Veri kaynağı: {calendarMeta.rooms} oda, {calendarMeta.bookings} rezervasyon (aralık: {calendarMeta.start_date} → {calendarMeta.end_date})
+                </div>
+              )}
+
                         </div>
                         <div className="text-gray-600 mt-1">
                           {leak.room_type} • {new Date(leak.check_in).toLocaleDateString()} - {new Date(leak.check_out).toLocaleDateString()}
