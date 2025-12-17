@@ -152,8 +152,45 @@ const PMSModule = ({ user, tenant, onLogout }) => {
   });
 
   const [newRoom, setNewRoom] = useState({
-    room_number: '', room_type: 'standard', floor: 1, capacity: 2, base_price: 100, amenities: []
+    room_number: '',
+    room_type: 'standard',
+    floor: 1,
+    capacity: 2,
+    base_price: 100,
+    amenities: [],
+    view: '',
+    bed_type: ''
   });
+
+  // Bulk room creation UI state
+  const [bulkRoomTab, setBulkRoomTab] = useState('range');
+  const [bulkRange, setBulkRange] = useState({
+    prefix: '',
+    start_number: 101,
+    end_number: 110,
+    floor: 1,
+    room_type: 'standard',
+    capacity: 2,
+    base_price: 100,
+    view: 'city',
+    bed_type: 'queen',
+    amenities: ['wifi']
+  });
+
+  const [bulkTemplate, setBulkTemplate] = useState({
+    prefix: 'B',
+    start_number: 1,
+    count: 10,
+    floor: 1,
+    room_type: 'deluxe',
+    capacity: 2,
+    base_price: 150,
+    view: 'sea',
+    bed_type: 'king',
+    amenities: ['wifi']
+  });
+
+  const [bulkCsvFile, setBulkCsvFile] = useState(null);
 
   const [newGuest, setNewGuest] = useState({
     name: '', email: '', phone: '', id_number: '', address: ''
