@@ -1834,50 +1834,549 @@ const PMSModule = ({ user, tenant, onLogout }) => {
                       >
                         <Plus className="w-4 h-4 mr-2" />
                         New Booking
-                      </Button> 
-                            className="h-8 text-xs"
-                            onClick={async () => {
-                              try {
-                                const folioRes = await axios.get(`/folio/booking/${currentBooking.id}`);
-                                if (folioRes.data && folioRes.data.length > 0) {
-                                  setSelectedFolio(folioRes.data[0]);
-                                  setOpenDialog('folio-view');
-                                  toast.success('Folio açıldı');
-                                } else {
-                                  toast.error('Folio bulunamadı');
-                                }
-                              } catch (error) {
-                                toast.error('Folio yüklenemedi');
-                              }
-                            }}
-                          >
-                            <FileText className="w-3 h-3 mr-1" />
-                            Folio
-                          </Button>
-                          <Button 
-                            size="sm" 
-                            variant="outline" 
-                            className="h-8 text-xs"
-                            onClick={() => {
-                              setSelectedBooking(currentBooking);
-                              setOpenDialog('payment');
-                            }}
-                          >
-                            <DollarSign className="w-3 h-3 mr-1" />
-                            Payment
-                          </Button>
-                          <Button 
-                            size="sm" 
-                            variant="outline" 
-                            className="h-8 text-xs"
-                            onClick={async () => {
-                              if (confirm('Check-out yapmak istediğinize emin misiniz?')) {
-                                try {
-                                  await axios.post(`/frontdesk/checkout/${currentBooking.id}`);
-                                  toast.success('Check-out başarılı');
-                                  loadData();
-                                } catch (error) {
-                                  toast.error(error.response?.data?.detail || 'Check-out başarısız');
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+                );
+              })}
+            </div>
+          </TabsContent>
+
+          {/* BOOKINGS TAB */}
+          <BookingsTab
+            groupedBookings={groupedBookings}
+            guests={guests}
+            rooms={rooms}
+            companies={companies}
+            handleCheckIn={handleCheckIn}
+            handleCheckOut={handleCheckOut}
+            loadBookingFolios={loadBookingFolios}
+            generateUpsellOffers={generateUpsellOffers}
+            loadGuest360={loadGuest360}
+            setSelectedGuest360={setSelectedGuest360}
+            setOpenDialog={setOpenDialog}
+            setSelectedBooking={setSelectedBooking}
+            toast={toast}
+          />
+
+          {/* UPSELL TAB */}
+          <TabsContent value="upsell" className="space-y-4">
+            <div className="flex justify-between items-center">
+              <h2 className="text-2xl font-semibold">🤖 AI Upsell & Revenue Optimization</h2>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <TrendingUp className="w-5 h-5" />
+                    Upsell Opportunities
+                  </CardTitle>
+                  <CardDescription>AI-generated upsell suggestions for current bookings</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {upsellOffers.length === 0 ? (
+                    <div className="text-center py-8 text-gray-500">
+                      <TrendingUp className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                      <p>No upsell offers generated yet</p>
+                      <p className="text-sm">Select a booking to generate AI-powered upsell suggestions</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {upsellOffers.map((offer, index) => (
+                        <div key={index} className="border rounded-lg p-4 space-y-2">
+                          <div className="flex justify-between items-start">
+                            <div>
+                              <h4 className="font-semibold">{offer.title}</h4>
+                              <p className="text-sm text-gray-600">{offer.description}</p>
+                            </div>
+                            <Badge variant="secondary">${offer.additional_revenue}</Badge>
+                          </div>
+                          <div className="flex justify-between items-center pt-2">
+                            <span className="text-xs text-gray-500">Confidence: {offer.confidence}%</span>
+                            <Button size="sm" variant="outline">
+                              Apply Offer
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <BarChart3 className="w-5 h-5" />
+                    Revenue Insights
+                  </CardTitle>
+                  <CardDescription>AI-powered revenue optimization suggestions</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                      <div className="flex items-center gap-2 mb-2">
+                        <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                        <span className="font-semibold text-green-800">Revenue Opportunity</span>
+                      </div>
+                      <p className="text-sm text-green-700">
+                        Increase ADR by 12% through strategic room upgrades and package offerings
+                      </p>
+                    </div>
+                    
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                      <div className="flex items-center gap-2 mb-2">
+                        <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                        <span className="font-semibold text-blue-800">Occupancy Optimization</span>
+                      </div>
+                      <p className="text-sm text-blue-700">
+                        Target corporate segment for weekday bookings to improve occupancy by 8%
+                      </p>
+                    </div>
+                    
+                    <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
+                      <div className="flex items-center gap-2 mb-2">
+                        <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
+                        <span className="font-semibold text-purple-800">Guest Satisfaction</span>
+                      </div>
+                      <p className="text-sm text-purple-700">
+                        Personalized amenity packages can increase guest satisfaction by 15%
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+
+          {/* MESSAGING TAB */}
+          <TabsContent value="messaging" className="space-y-4">
+            <div className="flex justify-between items-center">
+              <h2 className="text-2xl font-semibold">💬 Guest Communication</h2>
+              <Button onClick={loadMessageTemplates}>
+                <RefreshCw className="w-4 h-4 mr-2" />
+                Load Templates
+              </Button>
+            </div>
+            
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Send Message */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Send Message</CardTitle>
+                  <CardDescription>Send email, SMS, or WhatsApp messages to guests</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div>
+                    <Label>Channel</Label>
+                    <Select
+                      value={newMessage.channel}
+                      onValueChange={(v) => setNewMessage(prev => ({...prev, channel: v}))}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="email">📧 Email</SelectItem>
+                        <SelectItem value="sms">📱 SMS</SelectItem>
+                        <SelectItem value="whatsapp">💬 WhatsApp</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  <div>
+                    <Label>Recipient</Label>
+                    <Input
+                      placeholder={newMessage.channel === 'email' ? 'guest@example.com' : '+1234567890'}
+                      value={newMessage.recipient}
+                      onChange={(e) => setNewMessage(prev => ({...prev, recipient: e.target.value}))}
+                    />
+                  </div>
+                  
+                  {newMessage.channel === 'email' && (
+                    <div>
+                      <Label>Subject</Label>
+                      <Input
+                        placeholder="Message subject"
+                        value={newMessage.subject}
+                        onChange={(e) => setNewMessage(prev => ({...prev, subject: e.target.value}))}
+                      />
+                    </div>
+                  )}
+                  
+                  <div>
+                    <Label>Message</Label>
+                    <Textarea
+                      placeholder="Type your message here..."
+                      value={newMessage.body}
+                      onChange={(e) => setNewMessage(prev => ({...prev, body: e.target.value}))}
+                      rows={4}
+                    />
+                  </div>
+                  
+                  <Button onClick={sendMessage} className="w-full">
+                    <Send className="w-4 h-4 mr-2" />
+                    Send {newMessage.channel.toUpperCase()}
+                  </Button>
+                </CardContent>
+              </Card>
+
+              {/* Message Templates */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Message Templates</CardTitle>
+                  <CardDescription>Pre-defined message templates for common scenarios</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {messageTemplates.length === 0 ? (
+                    <div className="text-center py-8 text-gray-500">
+                      <MessageSquare className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                      <p>No templates available</p>
+                      <p className="text-sm">Click "Load Templates" to fetch available templates</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {messageTemplates.map((template) => (
+                        <div key={template.id} className="border rounded-lg p-3">
+                          <div className="flex justify-between items-start mb-2">
+                            <h4 className="font-semibold text-sm">{template.name}</h4>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => {
+                                setNewMessage(prev => ({
+                                  ...prev,
+                                  subject: template.subject || prev.subject,
+                                  body: template.body,
+                                  template_id: template.id
+                                }));
+                              }}
+                            >
+                              Use
+                            </Button>
+                          </div>
+                          <p className="text-xs text-gray-600">{template.description}</p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Sent Messages */}
+            {sentMessages.length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Recent Messages</CardTitle>
+                  <CardDescription>Recently sent messages</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    {sentMessages.slice(0, 5).map((message, index) => (
+                      <div key={index} className="border-l-4 border-blue-500 pl-4 py-2">
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <div className="font-semibold text-sm">{message.channel.toUpperCase()} to {message.recipient}</div>
+                            <div className="text-xs text-gray-600">{message.subject}</div>
+                          </div>
+                          <Badge variant="secondary">{message.status}</Badge>
+                        </div>
+                        <div className="text-xs text-gray-500 mt-1">
+                          {new Date(message.sent_at).toLocaleString()}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </TabsContent>
+
+          {/* REPORTS TAB */}
+          <TabsContent value="reports" className="space-y-4">
+            <div className="flex justify-between items-center">
+              <h2 className="text-2xl font-semibold">Reports & Analytics</h2>
+              <Button onClick={loadReports}>
+                <RefreshCw className="w-4 h-4 mr-2" />
+                Refresh Reports
+              </Button>
+            </div>
+
+            {/* Key Metrics Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium">Occupancy Rate</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">
+                    {reports.occupancy ? `${reports.occupancy.current_occupancy_rate}%` : 'Loading...'}
+                  </div>
+                  <p className="text-xs text-gray-600">
+                    {reports.occupancy ? `${reports.occupancy.occupied_rooms}/${reports.occupancy.total_rooms} rooms` : ''}
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium">ADR</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">
+                    {reports.revenue ? `$${reports.revenue.adr}` : 'Loading...'}
+                  </div>
+                  <p className="text-xs text-gray-600">Average Daily Rate</p>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium">RevPAR</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">
+                    {reports.revenue ? `$${reports.revenue.revpar}` : 'Loading...'}
+                  </div>
+                  <p className="text-xs text-gray-600">Revenue Per Available Room</p>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">
+                    {reports.revenue ? `$${reports.revenue.total_revenue}` : 'Loading...'}
+                  </div>
+                  <p className="text-xs text-gray-600">This Month</p>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Charts and Detailed Reports */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Occupancy Chart */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Occupancy Trend</CardTitle>
+                  <CardDescription>Daily occupancy for the current month</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {reports.occupancy && reports.occupancy.daily_data ? (
+                    <ResponsiveContainer width="100%" height={300}>
+                      <PickupPaceChart data={reports.occupancy.daily_data} />
+                    </ResponsiveContainer>
+                  ) : (
+                    <div className="h-[300px] flex items-center justify-center text-gray-500">
+                      <RefreshCw className="w-8 h-8 animate-spin mr-2" />
+                      Loading chart data...
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Revenue Breakdown */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Revenue Breakdown</CardTitle>
+                  <CardDescription>Revenue by source</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {reports.revenue && reports.revenue.breakdown ? (
+                    <ResponsiveContainer width="100%" height={300}>
+                      <PieChart>
+                        <Pie
+                          data={reports.revenue.breakdown}
+                          dataKey="amount"
+                          nameKey="source"
+                          cx="50%"
+                          cy="50%"
+                          outerRadius={100}
+                          fill="#8884d8"
+                        >
+                          {reports.revenue.breakdown.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={['#0088FE', '#00C49F', '#FFBB28', '#FF8042'][index % 4]} />
+                          ))}
+                        </Pie>
+                        <Tooltip />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  ) : (
+                    <div className="h-[300px] flex items-center justify-center text-gray-500">
+                      <RefreshCw className="w-8 h-8 animate-spin mr-2" />
+                      Loading chart data...
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Forecast */}
+            {reports.forecast && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>7-Day Forecast</CardTitle>
+                  <CardDescription>Predicted occupancy and revenue</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <ForecastGraph data={reports.forecast} />
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Daily Flash Report */}
+            {reports.dailyFlash && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Daily Flash Report</CardTitle>
+                  <CardDescription>Today's key metrics and performance</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-blue-600">{reports.dailyFlash.arrivals}</div>
+                      <div className="text-sm text-gray-600">Arrivals</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-green-600">{reports.dailyFlash.departures}</div>
+                      <div className="text-sm text-gray-600">Departures</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-purple-600">{reports.dailyFlash.inhouse}</div>
+                      <div className="text-sm text-gray-600">In-House</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-orange-600">${reports.dailyFlash.revenue}</div>
+                      <div className="text-sm text-gray-600">Revenue</div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </TabsContent>
+
+          {/* TASKS TAB */}
+          <TabsContent value="tasks" className="space-y-4">
+            <StaffTaskManager />
+          </TabsContent>
+
+          {/* FEEDBACK TAB */}
+          <TabsContent value="feedback" className="space-y-4">
+            <FeedbackSystem />
+          </TabsContent>
+
+          {/* ALLOTMENT TAB */}
+          <TabsContent value="allotment" className="space-y-4">
+            <AllotmentGrid />
+          </TabsContent>
+
+          {/* POS TAB */}
+          <TabsContent value="pos" className="space-y-4">
+            <div className="flex justify-between items-center">
+              <h2 className="text-2xl font-semibold">🍽️ Point of Sale Integration</h2>
+              <Button onClick={async () => {
+                try {
+                  const response = await axios.get('/pos/orders/today');
+                  setPosOrders(response.data.orders || []);
+                  setPosRevenue(response.data.revenue || { restaurant: 0, bar: 0, room_service: 0, total: 0 });
+                  toast.success('POS data refreshed');
+                } catch (error) {
+                  toast.error('Failed to load POS data');
+                }
+              }}>
+                <RefreshCw className="w-4 h-4 mr-2" />
+                Refresh POS Data
+              </Button>
+            </div>
+
+            {/* POS Revenue Summary */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium">Restaurant</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">${posRevenue.restaurant}</div>
+                  <p className="text-xs text-gray-600">Today's Revenue</p>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium">Bar</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">${posRevenue.bar}</div>
+                  <p className="text-xs text-gray-600">Today's Revenue</p>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium">Room Service</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">${posRevenue.room_service}</div>
+                  <p className="text-xs text-gray-600">Today's Revenue</p>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium">Total F&B</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">${posRevenue.total}</div>
+                  <p className="text-xs text-gray-600">Today's Total</p>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Recent POS Orders */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Recent Orders</CardTitle>
+                <CardDescription>Latest POS transactions</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {posOrders.length === 0 ? (
+                  <div className="text-center py-8 text-gray-500">
+                    <div className="text-4xl mb-4">🍽️</div>
+                    <p>No recent orders</p>
+                    <p className="text-sm">POS orders will appear here when available</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {posOrders.slice(0, 10).map((order) => (
+                      <div key={order.id} className="flex justify-between items-center p-3 border rounded-lg">
+                        <div>
+                          <div className="font-semibold">Order #{order.id}</div>
+                          <div className="text-sm text-gray-600">
+                            {order.outlet} • Room {order.room_number || 'N/A'}
+                          </div>
+                          <div className="text-xs text-gray-500">
+                            {new Date(order.created_at).toLocaleString()}
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <div className="font-bold">${order.total}</div>
+                          <Badge variant={order.status === 'completed' ? 'default' : 'secondary'}>
+                            {order.status}
+                          </Badge>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
                                 }
                               }
                             }}
