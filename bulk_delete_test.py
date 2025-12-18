@@ -267,7 +267,7 @@ class BulkDeleteTester:
             await self.create_bulk_rooms()
             
             delete_data = {
-                "prefix": "DEL",
+                "prefix": self.test_prefix,
                 "start_number": 1,
                 "end_number": 3,
                 "confirm_text": ""  # empty
