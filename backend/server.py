@@ -7059,6 +7059,90 @@ async def bulk_create_rooms_template(
         room_number = f"{prefix}{current}"
         current += 1
 
+@api_router.post("/pms/rooms/bulk/delete", response_model=RoomBulkDeleteResponse)
+async def bulk_delete_rooms(
+    payload: RoomBulkDeleteRequest,
+    current_user: User = Depends(get_current_user),
+    _: None = Depends(require_module("pms")),
+):
+    # Permission: admin + super_admin
+    if current_user.role not in [UserRole.SUPER_ADMIN, UserRole.ADMIN]:
+        raise HTTPException(status_code=403, detail="Insufficient permissions")
+
+    if (payload.confirm_text or '').strip().upper() != 'DELETE':
+        raise HTTPException(status_code=400, detail="Silme işlemini onaylamak için 'DELETE' yazmalısınız")
+
+    # Build target room_numbers list from payload
+    target_ids = set(payload.ids or [])
+    target_numbers = set([rn.strip() for rn in (payload.room_numbers or []) if rn and rn.strip()])
+
+    if payload.start_number is not None or payload.end_number is not None:
+        if payload.start_number is None or payload.end_number is None:
+            raise HTTPException(status_code=400, detail="Range için start_number ve end_number zorunlu")
+        if payload.end_number < payload.start_number:
+            raise HTTPException(status_code=400, detail="end_number start_number'dan küçük olamaz")
+        if payload.end_number - payload.start_number + 1 > 2000:
+            raise HTTPException(status_code=400, detail="Tek seferde maksimum 2000 oda silebilirsiniz")
+
+        prefix = (payload.prefix or '').strip()
+        for n in range(payload.start_number, payload.end_number + 1):
+            target_numbers.add(f"{prefix}{n}")
+
+    if not target_ids and not target_numbers:
+        raise HTTPException(status_code=400, detail="Silinecek oda seçilmedi")
+
+    # Fetch rooms for tenant
+    query: Dict[str, Any] = {"tenant_id": current_user.tenant_id, "is_active": True}
+    or_clauses = []
+    if target_ids:
+        or_clauses.append({"id": {"$in": list(target_ids)}})
+    if target_numbers:
+        or_clauses.append({"room_number": {"$in": list(target_numbers)}})
+    if or_clauses:
+        query["$or"] = or_clauses
+
+    rooms = await db.rooms.find(query, {"_id": 0, "id": 1, "room_number": 1}).to_list(5000)
+
+    # Determine blocked rooms: any active booking for those rooms
+    room_ids = [r['id'] for r in rooms]
+    if not room_ids:
+        return RoomBulkDeleteResponse(to_delete=0, deleted=0, blocked=0)
+
+    active_bookings = await db.bookings.find(
+        {
+            "tenant_id": current_user.tenant_id,
+            "room_id": {"$in": room_ids},
+            "status": {"$in": ["confirmed", "checked_in"]},
+            "is_active": True,
+        },
+        {"_id": 0, "room_id": 1},
+    ).to_list(5000)
+
+    blocked_room_ids = set([b.get('room_id') for b in active_bookings if b.get('room_id')])
+
+    to_delete_rooms = [r for r in rooms if r['id'] not in blocked_room_ids]
+    blocked_rooms = [r['room_number'] for r in rooms if r['id'] in blocked_room_ids]
+
+    now = datetime.now(timezone.utc).isoformat()
+
+    deleted_numbers: List[str] = []
+    if to_delete_rooms:
+        ids_to_delete = [r['id'] for r in to_delete_rooms]
+        deleted_numbers = [r['room_number'] for r in to_delete_rooms]
+        await db.rooms.update_many(
+            {"tenant_id": current_user.tenant_id, "id": {"$in": ids_to_delete}},
+            {"$set": {"is_active": False, "deleted_at": now}},
+        )
+
+    return RoomBulkDeleteResponse(
+        to_delete=len(rooms),
+        deleted=len(to_delete_rooms),
+        blocked=len(blocked_rooms),
+        blocked_rooms=blocked_rooms,
+        deleted_room_numbers=deleted_numbers,
+    )
+
+
         if room_number in existing_numbers:
             skipped.append(room_number)
             continue
