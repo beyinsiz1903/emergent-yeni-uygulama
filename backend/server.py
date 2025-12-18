@@ -7162,6 +7162,7 @@ async def bulk_delete_rooms(
         room_dict['created_at'] = room_dict['created_at'].isoformat()
         docs.append(room_dict)
         created_rooms.append(room)
+        existing_numbers.add(room_number)
         created_count += 1
 
     if docs:
