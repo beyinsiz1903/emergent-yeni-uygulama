@@ -114,8 +114,13 @@ class BulkDeleteTester:
         try:
             print(f"🏨 Creating bulk rooms DEL1-DEL3...")
             
+            # Use timestamp to ensure unique room numbers
+            import time
+            timestamp = str(int(time.time()))[-4:]  # Last 4 digits of timestamp
+            self.test_prefix = f"DEL{timestamp}"
+            
             bulk_data = {
-                "prefix": "DEL",
+                "prefix": self.test_prefix,
                 "start_number": 1,
                 "end_number": 3,
                 "floor": 1,
