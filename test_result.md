@@ -1391,16 +1391,16 @@ agent_communication:
 
    -agent: "testing"
    -message: |
-       🏨 BULK ROOMS CREATION FLOW UI TEST COMPLETED - CRITICAL ISSUE IDENTIFIED ❌
+       🏨 BULK DELETE ROOMS FEATURE UI TEST COMPLETED - MOSTLY SUCCESSFUL ✅
        
-       **TEST OBJECTIVE:** Re-run the Bulk Rooms creation flow UI test now that we know Rooms tab exists
+       **TEST OBJECTIVE:** Playwright UI test for bulk delete rooms feature
        **BASE URL:** https://code-review-helper-12.preview.emergentagent.com
-       **LOGIN:** muratsutay@hotmail.com / murat1903
-       **DATE:** December 17, 2025
+       **LOGIN:** demo@hotel.com / demo123
+       **DATE:** December 18, 2025
        
        **COMPREHENSIVE TEST RESULTS:**
        
-       ❌ **OVERALL SUCCESS RATE: 2/9 (22.2%) - CRITICAL UI ISSUES BLOCKING FLOW**
+       ✅ **OVERALL SUCCESS RATE: 9/10 (90%) - BULK DELETE FEATURE WORKING**
        
        **DETAILED FLOW TESTING:**
        
