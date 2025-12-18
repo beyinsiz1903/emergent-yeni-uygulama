@@ -1664,6 +1664,17 @@ const PMSModule = ({ user, tenant, onLogout }) => {
                       >
                         Update Status
                       </Button>
+
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        onClick={() => {
+                          setBulkDeleteConfirm('');
+                          setOpenDialog('bulk-delete-rooms');
+                        }}
+                      >
+                        Toplu Sil
+                      </Button>
                       <Button
                         size="sm"
                         variant="outline"
