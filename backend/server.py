@@ -6933,6 +6933,38 @@ class RoomBulkTemplateRequest(BaseModel):
 class RoomBulkCreateResponse(BaseModel):
     created: int
     skipped: int
+
+class RoomBulkDeleteRequest(BaseModel):
+    """Soft-delete many rooms in one request.
+
+    Supports:
+    - ids: explicit room ids
+    - room_numbers: explicit room numbers
+    - prefix + start/end numeric range
+
+    Safety:
+    - requires confirm_text == 'DELETE'
+    - blocks rooms with active/checked_in bookings in date range
+    """
+
+    ids: Optional[List[str]] = None
+    room_numbers: Optional[List[str]] = None
+
+    prefix: Optional[str] = None
+    start_number: Optional[int] = None
+    end_number: Optional[int] = None
+
+    confirm_text: str
+
+
+class RoomBulkDeleteResponse(BaseModel):
+    to_delete: int
+    deleted: int
+    blocked: int
+    blocked_rooms: List[str] = []
+    deleted_room_numbers: List[str] = []
+
+
     rooms: List[Room] = []
     skipped_room_numbers: List[str] = []
 
