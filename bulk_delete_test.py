@@ -156,8 +156,7 @@ class BulkDeleteTester:
             
             async with self.session.get(f"{BACKEND_URL}/pms/rooms?limit=500") as response:
                 if response.status == 200:
-                    data = await response.json()
-                    rooms = data.get('rooms', [])
+                    rooms = await response.json()  # API returns list directly
                     
                     found_rooms = []
                     for room in rooms:
