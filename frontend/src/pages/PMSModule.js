@@ -196,6 +196,9 @@ const PMSModule = ({ user, tenant, onLogout }) => {
 
   const [bulkCsvFile, setBulkCsvFile] = useState(null);
 
+  // Bulk delete UI
+  const [bulkDeleteConfirm, setBulkDeleteConfirm] = useState('');
+
   const [newGuest, setNewGuest] = useState({
     name: '', email: '', phone: '', id_number: '', address: ''
   });
