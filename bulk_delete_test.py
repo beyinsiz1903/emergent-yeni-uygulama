@@ -113,7 +113,7 @@ class BulkDeleteTester:
     async def create_bulk_rooms(self) -> bool:
         """Create bulk rooms for testing"""
         try:
-            print(f"🏨 Creating bulk rooms DEL1-DEL3...")
+            print(f"🏨 Creating bulk rooms {self.test_prefix}1-{self.test_prefix}3...")
             
             # Use timestamp to ensure unique room numbers
             import time
