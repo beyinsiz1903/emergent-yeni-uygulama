@@ -58,6 +58,7 @@ class BulkDeleteTester:
         self.user_id = None
         self.test_results = []
         self.created_rooms = []
+        self.test_prefix = "DEL"  # Will be updated with timestamp
 
     async def setup_session(self):
         """Initialize HTTP session"""
