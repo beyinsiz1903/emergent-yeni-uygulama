@@ -158,7 +158,7 @@ class BulkDeleteTester:
         """Verify rooms exist or don't exist"""
         try:
             action = "exist" if should_exist else "be deleted"
-            print(f"🔍 Verifying rooms DEL1-DEL3 {action}...")
+            print(f"🔍 Verifying rooms {self.test_prefix}1-{self.test_prefix}3 {action}...")
             
             async with self.session.get(f"{BACKEND_URL}/pms/rooms?limit=500") as response:
                 if response.status == 200:
