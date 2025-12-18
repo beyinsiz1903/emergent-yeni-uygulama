@@ -7059,6 +7059,39 @@ async def bulk_create_rooms_template(
         room_number = f"{prefix}{current}"
         current += 1
 
+        if room_number in existing_numbers:
+            skipped.append(room_number)
+            continue
+
+        room = Room(
+            tenant_id=current_user.tenant_id,
+            room_number=room_number,
+            room_type=payload.room_type,
+            floor=payload.floor,
+            capacity=payload.capacity,
+            base_price=payload.base_price,
+            amenities=payload.amenities,
+            view=payload.view,
+            bed_type=payload.bed_type,
+        )
+        room_dict = room.model_dump()
+        room_dict['created_at'] = room_dict['created_at'].isoformat()
+        docs.append(room_dict)
+        created_rooms.append(room)
+        existing_numbers.add(room_number)
+        created_count += 1
+
+    if docs:
+        await db.rooms.insert_many(docs)
+
+    return RoomBulkCreateResponse(
+        created=len(created_rooms),
+        skipped=len(skipped),
+        rooms=created_rooms,
+        skipped_room_numbers=skipped,
+    )
+
+
 @api_router.post("/pms/rooms/bulk/delete", response_model=RoomBulkDeleteResponse)
 async def bulk_delete_rooms(
     payload: RoomBulkDeleteRequest,
@@ -7072,7 +7105,6 @@ async def bulk_delete_rooms(
     if (payload.confirm_text or '').strip().upper() != 'DELETE':
         raise HTTPException(status_code=400, detail="Silme işlemini onaylamak için 'DELETE' yazmalısınız")
 
-    # Build target room_numbers list from payload
     target_ids = set(payload.ids or [])
     target_numbers = set([rn.strip() for rn in (payload.room_numbers or []) if rn and rn.strip()])
 
@@ -7091,7 +7123,6 @@ async def bulk_delete_rooms(
     if not target_ids and not target_numbers:
         raise HTTPException(status_code=400, detail="Silinecek oda seçilmedi")
 
-    # Fetch rooms for tenant
     query: Dict[str, Any] = {"tenant_id": current_user.tenant_id, "is_active": True}
     or_clauses = []
     if target_ids:
@@ -7103,7 +7134,6 @@ async def bulk_delete_rooms(
 
     rooms = await db.rooms.find(query, {"_id": 0, "id": 1, "room_number": 1}).to_list(5000)
 
-    # Determine blocked rooms: any active booking for those rooms
     room_ids = [r['id'] for r in rooms]
     if not room_ids:
         return RoomBulkDeleteResponse(to_delete=0, deleted=0, blocked=0)
@@ -7141,32 +7171,6 @@ async def bulk_delete_rooms(
         blocked_rooms=blocked_rooms,
         deleted_room_numbers=deleted_numbers,
     )
-
-
-        if room_number in existing_numbers:
-            skipped.append(room_number)
-            continue
-
-        room = Room(
-            tenant_id=current_user.tenant_id,
-            room_number=room_number,
-            room_type=payload.room_type,
-            floor=payload.floor,
-            capacity=payload.capacity,
-            base_price=payload.base_price,
-            amenities=payload.amenities,
-            view=payload.view,
-            bed_type=payload.bed_type,
-        )
-        room_dict = room.model_dump()
-        room_dict['created_at'] = room_dict['created_at'].isoformat()
-        docs.append(room_dict)
-        created_rooms.append(room)
-        existing_numbers.add(room_number)
-        created_count += 1
-
-    if docs:
-        await db.rooms.insert_many(docs)
 
 @api_router.post("/pms/rooms/import-csv", response_model=RoomCsvImportResponse)
 async def import_rooms_csv(
