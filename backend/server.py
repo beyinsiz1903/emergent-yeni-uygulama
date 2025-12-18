@@ -6836,7 +6836,7 @@ async def get_rooms(
                 return rooms
     
     # Build query with filters
-    query = {'tenant_id': current_user.tenant_id}
+    query = {'tenant_id': current_user.tenant_id, 'is_active': True}
     if status:
         query['status'] = status
     if room_type:
