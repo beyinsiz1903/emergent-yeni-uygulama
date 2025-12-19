@@ -625,7 +625,7 @@ async def create_partner_api_key(
 
 
 @api_router.get("/admin/api-keys")
-async def list_partner_api_keys(current_user: Any = Depends(require_super_admin)):
+async def list_partner_api_keys(current_user: Any = Depends(temp_require_super_admin)):
     keys = await db.api_keys.find({"tenant_id": current_user.tenant_id}, {"_id": 0, "key_hash": 0}).sort('created_at', -1).to_list(200)
     return {"keys": keys, "count": len(keys)}
 
