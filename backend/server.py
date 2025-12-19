@@ -583,6 +583,12 @@ async def temp_require_super_admin(credentials: HTTPAuthorizationCredentials = D
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Authentication failed")
 
 
+# Main require_super_admin function for use throughout the file
+async def require_super_admin(credentials: HTTPAuthorizationCredentials = Depends(security)):
+    """Require super admin authentication for admin endpoints"""
+    return await temp_require_super_admin(credentials)
+
+
 @api_router.post("/admin/api-keys")
 async def create_partner_api_key(
     name: str = Body(..., embed=True),
