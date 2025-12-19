@@ -9538,6 +9538,17 @@ async def update_booking(
         {'id': booking_id, 'tenant_id': current_user.tenant_id},
         {'$set': update_data}
     )
+
+    # Defaults for CM semantics if explicitly passed as null/empty
+    if 'source_channel' in update_data and not update_data['source_channel']:
+        update_data['source_channel'] = 'direct'
+    if 'origin' in update_data and not update_data['origin']:
+        update_data['origin'] = 'ui'
+    if 'hold_status' in update_data and not update_data['hold_status']:
+        update_data['hold_status'] = 'none'
+    if 'allocation_source' in update_data and not update_data['allocation_source']:
+        update_data['allocation_source'] = 'manual'
+
     
     # Get updated booking
     updated_booking = await db.bookings.find_one({'id': booking_id}, {'_id': 0})
