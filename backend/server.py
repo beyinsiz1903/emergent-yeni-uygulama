@@ -358,6 +358,23 @@ class CMRateInfo(BaseModel):
     board_code: Optional[str] = None  # RO/BB/HB/FB
 
 
+
+# CM partner webhook URL (push)
+CM_PARTNER_WEBHOOK_URL = os.environ.get('CM_PARTNER_WEBHOOK_URL', 'https://agency.syroce.com/webhooks/cm')
+
+
+async def cm_push_event(event: dict):
+    """Push CM events to partner webhook.
+
+    Best-effort delivery (no outbox/retry yet).
+    """
+    try:
+        import httpx
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            await client.post(CM_PARTNER_WEBHOOK_URL, json=event)
+    except Exception as e:
+        print(f"CM webhook push failed: {e}")
+
 class CMARIDay(BaseModel):
     date: str  # YYYY-MM-DD
     available: int
