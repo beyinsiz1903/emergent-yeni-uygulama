@@ -2882,22 +2882,6 @@ async def require_admin(current_user: User = Depends(get_current_user)) -> User:
     return current_user
 
 
-async def require_super_admin(current_user: User = Depends(get_current_user)) -> User:
-    """Allow only super admin users (platform yöneticileri) to access super admin endpoints.
-    
-    Super admin can:
-    - View all hotels/tenants
-    - Create new hotels
-    - Manage module subscriptions for all hotels
-    - View system-wide reports
-    """
-    if current_user.role != UserRole.SUPER_ADMIN:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Bu işlemi sadece platform yöneticileri yapabilir",
-        )
-    return current_user
-
 # ============= AUTH ENDPOINTS =============
 
 class MakeSuperAdminRequest(BaseModel):
