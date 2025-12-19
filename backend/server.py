@@ -380,6 +380,24 @@ class CMARIV2Response(BaseModel):
     room_types: List[CMARIRoomType]
 
 
+class CMARIResponseDay(BaseModel):
+    date: str  # YYYY-MM-DD
+    room_type: str
+    available: int
+    sold: int
+    stop_sell: bool = False
+    rate: Optional[float] = None
+    currency: str = "TRY"
+    rate_source: Optional[str] = None
+
+
+class CMARIResponse(BaseModel):
+    tenant_id: str
+    start_date: str
+    end_date: str
+    days: List[CMARIResponseDay]
+
+
 @api_router.get("/cm/ari", response_model=CMARIResponse)
 async def cm_get_ari(
     start_date: str,
