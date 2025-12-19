@@ -558,10 +558,35 @@ async def cm_get_ari(
     return CMARIResponse(tenant_id=tenant_id, start_date=start_date, end_date=end_date, days=days)
 
 
+# Temporary auth function for Channel Manager endpoints
+async def temp_require_super_admin(credentials: HTTPAuthorizationCredentials = Depends(security)):
+    """Temporary super admin check for Channel Manager endpoints"""
+    try:
+        token = credentials.credentials
+        payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
+        user_id = payload.get('user_id')
+        
+        if not user_id:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
+        
+        user_doc = await db.users.find_one({'$or': [{'id': user_id}, {'user_id': user_id}]}, {'_id': 0})
+        
+        if not user_doc:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found")
+        
+        user = User(**user_doc)
+        if user.role != UserRole.SUPER_ADMIN:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Super admin required")
+        
+        return user
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Authentication failed")
+
+
 @api_router.post("/admin/api-keys")
 async def create_partner_api_key(
     name: str = Body(..., embed=True),
-    current_user: Any = Depends(require_super_admin),
+    current_user: Any = Depends(temp_require_super_admin),
 ):
     """Create partner API key (super_admin only).
 
