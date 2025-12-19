@@ -17133,15 +17133,129 @@ metadata:
   test_sequence: 1
   run_ui: false
 
+  - task: "Channel Manager ARI v2 Endpoint Testing"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "testing"
+        comment: "🎉 CM ARI V2 ENDPOINT COMPREHENSIVE TESTING COMPLETED - 100% SUCCESS RATE! ✅ AUTHENTICATION: Successfully logged in as muratsutay@hotmail.com (super_admin role verified). ✅ API KEY CREATION: POST /api/admin/api-keys working perfectly - Created API key 427a8675-3dc5-4e66-ad1a-930402002258 for 'Syroce agency' with proper masking (0plB4A...aV1c). ✅ CM ARI V2 VALID KEY: GET /api/cm/ari/v2?start_date=2024-01-01&end_date=2024-01-07 with X-API-Key header returns HTTP 200 (50.0ms) with all required fields: hotel_id (b15417ce-3a11-4922-9851-707c40bca467), currency (TRY), date_from (2024-01-01), date_to (2024-01-07), room_types[] (2 room types found: deluxe and standard). ✅ NESTED STRUCTURE VERIFIED: Response contains proper nested structure - room_types[].days[] with complete data: date, available (6 deluxe, 10 standard), sold (0), restrictions (stop_sell, min_stay, cta, ctd, max_stay), rate (amount, currency, tax_included, source, rate_plan_id, board_code). ✅ SECURITY TESTING: Missing X-API-Key returns 401 'Missing API key' (31.7ms), Invalid X-API-Key returns 401 'Invalid API key' (30.7ms). ✅ ROOM TYPE FILTERING: room_type=deluxe parameter works correctly - returns only deluxe room type (1 room type instead of 2). ✅ SAMPLE RESPONSE KEYS VERIFIED: Main keys [hotel_id, currency, date_from, date_to, room_types], Room type keys [room_type_id, name, days], Day keys [date, available, sold, restrictions, rate], Restrictions keys [stop_sell, min_stay, cta, ctd, max_stay], Rate keys [amount, currency, tax_included, source, rate_plan_id, board_code]. ✅ PERFORMANCE: All API calls under 60ms (excellent response times). RESULT: CM ARI v2 endpoint is 100% PRODUCTION READY with complete nested structure, proper authentication, filtering, and error handling!"
+
 test_plan:
   current_focus:
-    - "Channel Manager API Key Creation"
-    - "Channel Manager ARI Endpoint - Valid Key"
-    - "Channel Manager ARI Endpoint - Missing Key Error"
-    - "Channel Manager ARI Endpoint - Invalid Key Error"
-    - "Channel Manager Demo Tenant Testing"
+    - "Channel Manager ARI v2 Endpoint Testing"
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
 
 agent_communication:
+  - agent: "testing"
+    message: |
+      🎯 CM ARI V2 ENDPOINT TESTING COMPLETED - PERFECT SUCCESS! 
+      
+      **TEST OBJECTIVE:** Test CM ARI v2 endpoint (nested) as requested in review
+      **BASE URL:** https://code-review-helper-12.preview.emergentagent.com/api
+      **DATE:** December 18, 2025
+      
+      **COMPREHENSIVE TEST RESULTS:**
+      
+      ✅ **OVERALL SUCCESS RATE: 6/6 (100.0%) - ALL TESTS PASSED**
+      
+      **DETAILED FLOW TESTING:**
+      
+      ✅ **STEP 1: SUPER ADMIN AUTHENTICATION (SUCCESS):**
+      - Credentials: muratsutay@hotmail.com / murat1903
+      - Response time: 333.7ms
+      - User: Murat Sutay with role "super_admin" ✅
+      - JWT token obtained and validated ✅
+      
+      ✅ **STEP 2: PARTNER API KEY CREATION (SUCCESS):**
+      - Endpoint: POST /api/admin/api-keys
+      - Request body: {"name": "Syroce agency"}
+      - Response time: 17.3ms
+      - API Key ID: 427a8675-3dc5-4e66-ad1a-930402002258
+      - Raw key: 0plB4AncKNSP6ZoO_5z035I0pOEYuKvzxBBePwdaV1c
+      - Masked key: 0plB4A...aV1c ✅
+      
+      ✅ **STEP 3: CM ARI V2 WITH VALID KEY (SUCCESS):**
+      - Endpoint: GET /api/cm/ari/v2?start_date=2024-01-01&end_date=2024-01-07
+      - Header: X-API-Key: [raw_key]
+      - Response time: 50.0ms
+      - HTTP Status: 200 ✅
+      - Required fields present: hotel_id, currency, date_from, date_to, room_types ✅
+      
+      **RESPONSE STRUCTURE ANALYSIS:**
+      - hotel_id: b15417ce-3a11-4922-9851-707c40bca467
+      - currency: TRY
+      - date_from: 2024-01-01
+      - date_to: 2024-01-07
+      - room_types count: 2 (deluxe, standard)
+      
+      **NESTED STRUCTURE VERIFIED:**
+      - Room Type 1: deluxe (6 available, 0 sold, rate: 150.0 TRY)
+      - Room Type 2: standard (10 available, 0 sold, rate: 90.0 TRY)
+      - Each room type contains 7 days (2024-01-01 to 2024-01-07)
+      - Each day contains: date, available, sold, restrictions, rate
+      - Restrictions: stop_sell, min_stay, cta, ctd, max_stay
+      - Rate: amount, currency, tax_included, source, rate_plan_id, board_code
+      
+      ✅ **STEP 4: MISSING API KEY ERROR (SUCCESS):**
+      - Endpoint: GET /api/cm/ari/v2 (no X-API-Key header)
+      - Response time: 31.7ms
+      - HTTP Status: 401 ✅
+      - Error message: "Missing API key" ✅
+      
+      ✅ **STEP 5: INVALID API KEY ERROR (SUCCESS):**
+      - Endpoint: GET /api/cm/ari/v2 (X-API-Key: invalid-api-key-12345)
+      - Response time: 30.7ms
+      - HTTP Status: 401 ✅
+      - Error message: "Invalid API key" ✅
+      
+      ✅ **STEP 6: ROOM TYPE FILTERING (SUCCESS):**
+      - Endpoint: GET /api/cm/ari/v2?room_type=deluxe
+      - Response time: 36.1ms
+      - HTTP Status: 200 ✅
+      - Filtering working: Only deluxe room type returned (1 instead of 2) ✅
+      - No crashes or errors with filtering ✅
+      
+      **SAMPLE RESPONSE KEYS REPORTED:**
+      - Main Response: [hotel_id, currency, date_from, date_to, room_types]
+      - Room Type: [room_type_id, name, days]
+      - Day: [date, available, sold, restrictions, rate]
+      - Restrictions: [stop_sell, min_stay, cta, ctd, max_stay]
+      - Rate: [amount, currency, tax_included, source, rate_plan_id, board_code]
+      
+      **PERFORMANCE METRICS:**
+      - Authentication: 333.7ms (excellent)
+      - API Key Creation: 17.3ms (ultra-fast)
+      - CM ARI v2 Valid: 50.0ms (excellent)
+      - Missing Key Error: 31.7ms (fast)
+      - Invalid Key Error: 30.7ms (fast)
+      - Room Type Filter: 36.1ms (excellent)
+      
+      **FINAL ASSESSMENT:**
+      
+      🎉 **RESULT: CM ARI V2 ENDPOINT 100% PRODUCTION READY**
+      
+      **SUCCESS CRITERIA MET (7/7):**
+      1. ✅ Login as muratsutay@hotmail.com / murat1903 (super_admin) working
+      2. ✅ Create partner API key via POST /api/admin/api-keys working
+      3. ✅ GET /api/cm/ari/v2 with X-API-Key returns 200 with proper structure
+      4. ✅ Response contains hotel_id, currency, date_from/date_to, room_types[]
+      5. ✅ Missing key returns 401 (security working)
+      6. ✅ room_type=deluxe filtering works without crashes
+      7. ✅ Sample response keys documented and verified
+      
+      **BUSINESS IMPACT:**
+      - Channel Manager partners can successfully access ARI v2 data
+      - Nested structure provides comprehensive availability and rate information
+      - Security measures prevent unauthorized access
+      - Room type filtering enables targeted data retrieval
+      - Performance is excellent for production use
+      
+      **RECOMMENDATION:**
+      CM ARI v2 endpoint is **PRODUCTION READY** with complete functionality, proper security, excellent performance, and comprehensive nested data structure. Ready for partner integration.
