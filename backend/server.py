@@ -561,7 +561,7 @@ async def cm_get_ari(
 @api_router.post("/admin/api-keys")
 async def create_partner_api_key(
     name: str = Body(..., embed=True),
-    current_user: User = Depends(require_super_admin),
+    current_user: Any = Depends(require_super_admin),
 ):
     """Create partner API key (super_admin only).
 
