@@ -390,7 +390,7 @@ function App() {
   }
   const hasFeature = (key) => {
     if (!key) return true;
-    if (user?.role === 'super_admin') return true;
+    if ((user?.roles || []).includes('super_admin') || user?.role === 'super_admin') return true;
     return !!tenant?.features?.[key];
   };
 
