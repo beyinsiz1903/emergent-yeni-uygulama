@@ -19800,7 +19800,7 @@ async def get_purchase_orders(current_user: User = Depends(get_current_user)):
     orders = await db.purchase_orders.find({'tenant_id': current_user.tenant_id}, {'_id': 0}).sort('created_at', -1).to_list(100)
     return {'orders': orders}
 
-@api_router.post("/marketplace/purchase-orders")
+@api_router.post("/marketplace/purchase-orders", dependencies=[Depends(require_feature("hidden_marketplace"))])
 async def create_purchase_order(
     order_data: dict,
     current_user: User = Depends(get_current_user)
