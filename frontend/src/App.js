@@ -135,16 +135,36 @@ axios.defaults.timeout = 30000;
 // Setup axios interceptor for token and caching
 axios.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+    const url = config.url || '';
+
+    const isPublicAuthEndpoint =
+      url.includes('/auth/login') ||
+      url.includes('/auth/register') ||
+      url.includes('/auth/forgot-password') ||
+      url.includes('/auth/reset-password');
+
+    if (!config.headers) {
+      config.headers = {};
     }
-    
+
+    // Only attach token for non-public endpoints
+    if (!isPublicAuthEndpoint) {
+      const token = localStorage.getItem('token');
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+      }
+    } else {
+      // Ensure no Authorization header is sent for public auth endpoints
+      if (config.headers.Authorization) {
+        delete config.headers.Authorization;
+      }
+    }
+
     // Add cache headers for GET requests
     if (config.method === 'get') {
       config.headers['Cache-Control'] = 'max-age=60'; // Cache for 60 seconds
     }
-    
+
     return config;
   },
   (error) => {
