@@ -17120,29 +17120,11 @@ logger = logging.getLogger(__name__)
 @app.on_event("startup")
 async def startup_db_seed():
     """Automatically seed database on startup if empty"""
-    try:
-        # Check if demo user exists
-        demo_user = await db.users.find_one({"email": "demo@hotel.com"})
-        if not demo_user:
-            print("🌱 Demo user not found, starting automatic seeding...")
-            import subprocess
-            result = subprocess.run(
-                ['python3', '/app/backend/seed_demo_data.py'],
-                capture_output=True,
-                text=True,
-                timeout=120
-            )
-            if result.returncode == 0:
-                print(result.stdout)
-                print("✅ Demo data seeded successfully!")
-            else:
-                print(f"⚠️ Seeding failed: {result.stderr}")
-        else:
-            print(f"✓ Demo user exists (demo@hotel.com), skipping seed")
-    except Exception as e:
-        print(f"⚠️ Startup seeding error: {str(e)}")
-    
-    # Initialize Redis cache
+    # NOTE: In deployment environments (Emergent), avoid heavy startup tasks
+    # that depend on optional packages (motor, redis) or long-running scripts.
+    # These can cause startup to fail or be very slow, leading to 520/health check issues.
+
+    # Initialize Redis cache (best-effort, non-fatal)
     try:
         print("🚀 Initializing Redis ultra-fast cache...")
         from redis_cache import init_redis_cache
@@ -17151,7 +17133,7 @@ async def startup_db_seed():
     except Exception as e:
         print(f"⚠️ Redis cache initialization: {str(e)}")
     
-    # Initialize cache warmer for instant responses
+    # Initialize cache warmer for instant responses (best-effort)
     try:
         print("🔥 Initializing ultra-fast cache warmer...")
         from cache_warmer import initialize_cache_warmer
