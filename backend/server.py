@@ -3095,7 +3095,7 @@ def require_feature(feature_key: str, not_found: bool = True):
     """
     async def _guard(current_user: User = Depends(get_current_user)):
         # super_admin bypass
-        if getattr(current_user, "role", None) == UserRole.SUPER_ADMIN:
+        if _is_super_admin(current_user):
             return current_user
 
         tenant_doc = await load_tenant_doc(current_user.tenant_id)
