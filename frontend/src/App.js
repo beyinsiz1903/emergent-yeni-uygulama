@@ -474,8 +474,10 @@ function App() {
           <Route
             path="/invoices"
             element={
-              isAuthenticated ? (
+              isAuthenticated && hasFeature('hidden_invoices_accounting') ? (
                 <InvoiceModule user={user} tenant={tenant} onLogout={handleLogout} />
+              ) : isAuthenticated ? (
+                <Navigate to="/" replace />
               ) : (
                 <Navigate to="/auth" replace />
               )
@@ -484,8 +486,10 @@ function App() {
           <Route
             path="/rms"
             element={
-              isAuthenticated ? (
+              isAuthenticated && hasFeature('hidden_rms') ? (
                 <RMSModule user={user} tenant={tenant} onLogout={handleLogout} />
+              ) : isAuthenticated ? (
+                <Navigate to="/" replace />
               ) : (
                 <Navigate to="/auth" replace />
               )
