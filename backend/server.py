@@ -144,6 +144,8 @@ JWT_EXPIRATION_HOURS = 168  # 7 days (24 * 7)
 app = FastAPI(
     title="RoomOps Platform",
     default_response_class=ORJSONResponse  # Ultra-fast JSON serialization
+)
+
 # Lightweight deployment health endpoint (no DB/Redis dependencies)
 @app.get("/health", include_in_schema=False)
 async def deployment_health_check():
@@ -154,8 +156,6 @@ async def deployment_health_check():
     """
     return {"status": "healthy"}
 
-
-)
 
 # Serve uploaded files (room images, etc.)
 UPLOAD_DIR = Path(os.environ.get('UPLOAD_DIR', '/app/backend/uploads'))
