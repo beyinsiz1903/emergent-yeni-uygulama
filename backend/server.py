@@ -9941,7 +9941,7 @@ async def create_order(order_data: OrderCreate, current_user: User = Depends(get
     await db.orders.insert_one(order_dict)
     return order
 
-@api_router.get("/marketplace/orders", response_model=List[Order])
+@api_router.get("/marketplace/orders", response_model=List[Order], dependencies=[Depends(require_feature("hidden_marketplace"))])
 @cached(ttl=300, key_prefix="marketplace_orders")  # Cache for 5 min
 async def get_orders(current_user: User = Depends(get_current_user)):
     orders = await db.orders.find({'tenant_id': current_user.tenant_id}, {'_id': 0}).to_list(1000)
