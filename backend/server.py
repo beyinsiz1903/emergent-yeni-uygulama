@@ -53706,6 +53706,9 @@ async def get_booking_trends(
 
 
 # Include router at the very end after ALL endpoints are defined
+# Mount health router so /health, /health/liveness, etc. are available without /api prefix
+app.include_router(health_router)
+
 app.include_router(api_router)
 
 # Include desktop enhancements router
