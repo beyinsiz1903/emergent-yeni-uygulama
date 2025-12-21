@@ -3118,7 +3118,7 @@ def require_feature(feature_key: str, not_found: bool = True):
 def require_super_admin(not_found: bool = True):
     """Sadece super_admin erişebilsin (world/advanced/comprehensive gibi)."""
     async def _guard(current_user: User = Depends(get_current_user)):
-        if getattr(current_user, "role", None) == UserRole.SUPER_ADMIN:
+        if _is_super_admin(current_user):
             return current_user
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND if not_found else status.HTTP_403_FORBIDDEN,
