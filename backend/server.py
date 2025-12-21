@@ -22570,7 +22570,7 @@ async def transfer_reservation_between_properties(
 # 7. Marketplace - Warehouse & Procurement
 # ========================================
 
-@api_router.get("/marketplace/products")
+@api_router.get("/marketplace/products", dependencies=[Depends(require_feature("hidden_marketplace"))])
 async def get_marketplace_products(
     category: str = None,
     current_user: User = Depends(get_current_user)
