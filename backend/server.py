@@ -1314,6 +1314,83 @@ async def create_audit_log(
     audit_dict['timestamp'] = audit_dict['timestamp'].isoformat()
     await db.audit_logs.insert_one(audit_dict)
 
+
+# ================== PLAN & FEATURES ==================
+
+FEATURES_BY_PLAN: Dict[str, Dict[str, bool]] = {
+    "core_small_hotel": {
+        # CORE
+        "core_dashboard": True,
+        "core_pms": True,
+        "core_rooms": True,
+        "core_rates_availability": True,
+        "core_bookings_frontdesk": True,
+        "core_calendar": True,
+        "core_guests_basic": True,
+        "core_housekeeping_basic": True,
+        "core_channel_basic": True,
+        "core_reports_basic": True,
+        "core_users_roles": True,
+
+        # HIDDEN (enterprise modüller)
+        "hidden_invoices_accounting": False,
+        "hidden_rms": False,
+        "hidden_ai": False,
+        "hidden_marketplace": False,
+        "hidden_monitoring_admin": False,
+        "hidden_multiproperty": False,
+        "hidden_graphql": False,
+
+        # FUTURE (şimdilik kapalı)
+        "future_crm": False,
+        "future_maintenance": False,
+        "future_pos": False,
+        "future_automation_rules": False,
+        "future_guest_portal": False,
+        "future_mobile_app": False,
+    },
+}
+
+
+def resolve_tenant_features(tenant_doc: Dict[str, Any]) -> Dict[str, bool]:
+    """Plan + overrides ile efektif feature set üretir."""
+    plan = (
+        (tenant_doc or {}).get("plan")
+        or (tenant_doc or {}).get("subscription_tier")
+        or "core_small_hotel"
+    )
+
+    base = FEATURES_BY_PLAN.get(plan, FEATURES_BY_PLAN["core_small_hotel"])
+    overrides = (tenant_doc or {}).get("features") or {}
+
+    merged = dict(base)
+    merged.update({k: bool(v) for k, v in overrides.items()})
+    return merged
+
+
+async def load_tenant_doc(tenant_id: str) -> Optional[Dict[str, Any]]:
+    """tenant_id hem id alanı hem de _id(ObjectId) için çalışsın."""
+    if not tenant_id:
+        return None
+
+    # 1) id alanı (UUID/string) ile dene
+    doc = await db.tenants.find_one({"id": tenant_id}, {"_id": 0})
+    if doc:
+        return doc
+
+    # 2) _id (ObjectId) ile dene
+    try:
+        oid = ObjectId(tenant_id)
+        doc = await db.tenants.find_one({"_id": oid})
+        if doc:
+            doc.pop("_id", None)
+            return doc
+    except Exception:
+        pass
+
+    return None
+
+
 # ============= MODELS =============
 
 class Tenant(BaseModel):
