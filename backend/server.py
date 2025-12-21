@@ -118,6 +118,9 @@ except ImportError as e:
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
 
+# Import health check router
+from health_check import health_router
+
 mongo_url = os.environ['MONGO_URL']
 # Optimized connection pool for high concurrency (550 rooms, 300+ daily transactions)
 client = AsyncIOMotorClient(
