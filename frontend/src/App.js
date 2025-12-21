@@ -388,6 +388,13 @@ function App() {
       </NotificationProvider>
     );
   }
+  const hasFeature = (key) => {
+    if (!key) return true;
+    if (user?.role === 'super_admin') return true;
+    return !!tenant?.features?.[key];
+  };
+
+
 
   // Hotel admin routes
   return (
