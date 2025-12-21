@@ -7,7 +7,7 @@ import asyncio
 import aiohttp
 import json
 
-BACKEND_URL = "https://code-review-helper-12.preview.emergentagent.com/api"
+BACKEND_URL = "https://uygulama-ilerleme.preview.emergentagent.com/api"
 TEST_EMAIL = "muratsutay@hotmail.com"
 TEST_PASSWORD = "murat1903"
 
