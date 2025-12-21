@@ -9920,7 +9920,7 @@ async def get_guest_loyalty_by_id(guest_id: str, current_user: User = Depends(ge
 
 # ============= MARKETPLACE =============
 
-@api_router.post("/marketplace/products", response_model=Product)
+@api_router.post("/marketplace/products", response_model=Product, dependencies=[Depends(require_feature("hidden_marketplace"))])
 async def create_product(product: Product):
     product_dict = product.model_dump()
     product_dict['created_at'] = product_dict['created_at'].isoformat()
