@@ -53817,7 +53817,11 @@ if desktop_router:
 # Include World-Class PMS Features (Aşama 1, 2, 3)
 try:
     from world_class_features import world_class_router
-    app.include_router(world_class_router, tags=["world-class-features"])
+    app.include_router(
+        world_class_router,
+        tags=["world-class-features"],
+        dependencies=[Depends(require_super_admin())],
+    )
     print("✅ World-Class PMS features included (116 endpoints): Group Management, Contactless, Sustainability, Voice AI, Blockchain, Metaverse, Advanced Analytics")
 except ImportError as e:
     print(f"⚠️ World-Class features not available: {e}")
@@ -53825,7 +53829,12 @@ except ImportError as e:
 # Include advanced features router
 try:
     from advanced_features_endpoints import advanced_router
-    app.include_router(advanced_router, prefix="/api", tags=["advanced-features"])
+    app.include_router(
+        advanced_router,
+        prefix="/api",
+        tags=["advanced-features"],
+        dependencies=[Depends(require_super_admin())],
+    )
     print("✅ Advanced features router included")
 except ImportError as e:
     print(f"⚠️ Advanced features not available: {e}")
@@ -53833,7 +53842,12 @@ except ImportError as e:
 # Include comprehensive modules router
 try:
     from comprehensive_modules_endpoints import router as comprehensive_router
-    app.include_router(comprehensive_router, prefix="/api", tags=["comprehensive-modules"])
+    app.include_router(
+        comprehensive_router,
+        prefix="/api",
+        tags=["comprehensive-modules"],
+        dependencies=[Depends(require_super_admin())],
+    )
     print("✅ Comprehensive modules router included")
 except ImportError as e:
     print(f"⚠️ Comprehensive modules not available: {e}")
@@ -53841,7 +53855,12 @@ except ImportError as e:
 # Include finance endpoints
 try:
     from finance_endpoints import finance_router
-    app.include_router(finance_router, prefix="/api", tags=["finance"])
+    app.include_router(
+        finance_router,
+        prefix="/api",
+        tags=["finance"],
+        dependencies=[Depends(require_feature("hidden_invoices_accounting"))],
+    )
     print("✅ Finance endpoints included")
 except ImportError as e:
     print(f"⚠️ Finance endpoints not available: {e}")
@@ -53849,7 +53868,11 @@ except ImportError as e:
 # Include monitoring endpoints
 try:
     from monitoring import monitoring_router
-    app.include_router(monitoring_router, tags=["monitoring"])
+    app.include_router(
+        monitoring_router,
+        tags=["monitoring"],
+        dependencies=[Depends(require_super_admin())],
+    )
     print("✅ Monitoring endpoints included")
 except ImportError as e:
     print(f"⚠️ Monitoring endpoints not available: {e}")
