@@ -53896,7 +53896,12 @@ except ImportError as e:
 # Include optimization endpoints (Enterprise Performance)
 try:
     from optimization_endpoints import optimization_router, init_optimization_managers
-    app.include_router(optimization_router, prefix="/api", tags=["optimization"])
+    app.include_router(
+        optimization_router,
+        prefix="/api",
+        tags=["optimization"],
+        dependencies=[Depends(require_feature("hidden_rms"))],
+    )
     print("✅ Optimization endpoints included")
 except ImportError as e:
     print(f"⚠️ Optimization endpoints not available: {e}")
