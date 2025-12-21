@@ -3542,29 +3542,13 @@ async def login(data: UserLogin):
     tenant = None
     if user.tenant_id:
         print(f"🔍 Looking for tenant with ID: {user.tenant_id}")
-        from bson import ObjectId
-        try:
-            # Try to find by _id (ObjectId) first
-            tenant_doc = await db.tenants.find_one({'_id': ObjectId(user.tenant_id)})
-            if tenant_doc:
-                print(f"✅ Tenant found by _id (ObjectId)")
-                tenant_doc.pop('_id', None)  # Remove _id
-                tenant = Tenant(**tenant_doc)
-            else:
-                # Fallback to id field
-                tenant_doc = await db.tenants.find_one({'id': user.tenant_id}, {'_id': 0})
-                if tenant_doc:
-                    print(f"✅ Tenant found by id field")
-                    tenant = Tenant(**tenant_doc)
-                else:
-                    print(f"❌ Tenant not found by any method")
-        except Exception as e:
-            print(f"⚠️ ObjectId conversion failed: {e}, trying id field...")
-            # If ObjectId conversion fails, try with id field
-            tenant_doc = await db.tenants.find_one({'id': user.tenant_id}, {'_id': 0})
-            if tenant_doc:
-                print(f"✅ Tenant found by id field (fallback)")
-                tenant = Tenant(**tenant_doc)
+        tenant_doc = await load_tenant_doc(user.tenant_id)
+        if tenant_doc:
+            print("✅ Tenant loaded successfully")
+            tenant_doc["features"] = resolve_tenant_features(tenant_doc)
+            tenant = Tenant(**tenant_doc)
+        else:
+            print("❌ Tenant not found by any method")
             else:
                 print(f"❌ Tenant still not found")
     
