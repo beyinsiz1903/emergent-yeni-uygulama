@@ -19795,7 +19795,7 @@ async def add_inventory_product(
     await db.marketplace_inventory.insert_one(product)
     return product
 
-@api_router.get("/marketplace/purchase-orders")
+@api_router.get("/marketplace/purchase-orders", dependencies=[Depends(require_feature("hidden_marketplace"))])
 async def get_purchase_orders(current_user: User = Depends(get_current_user)):
     orders = await db.purchase_orders.find({'tenant_id': current_user.tenant_id}, {'_id': 0}).sort('created_at', -1).to_list(100)
     return {'orders': orders}
