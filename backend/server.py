@@ -3166,7 +3166,11 @@ def require_super_admin(not_found: bool = True):
     return _guard
 
 
-            
+# Alternate row colors helper (for Excel exports)
+def apply_row_colors(ws, start_row=2):
+    """Apply alternating colors to Excel worksheet rows"""
+    for row_num, row in enumerate(ws.iter_rows(min_row=start_row), start=start_row):
+        for cell in row:
             # Alternate row colors
             if row_num % 2 == 0:
                 cell.fill = PatternFill(start_color="D9E1F2", end_color="D9E1F2", fill_type="solid")
