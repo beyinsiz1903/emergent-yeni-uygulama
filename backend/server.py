@@ -129,7 +129,9 @@ load_dotenv(ROOT_DIR / '.env')
 # Import health check router
 from health_check import health_router
 
-mongo_url = os.environ['MONGO_URL']
+mongo_url = os.environ.get('MONGO_URL', 'mongodb://localhost:27017/hotel_pms')  # Fallback for local dev
+db_name = os.environ.get('DB_NAME', 'hotel_pms')  # Fallback for local dev
+
 # Optimized connection pool for high concurrency (550 rooms, 300+ daily transactions)
 client = AsyncIOMotorClient(
     mongo_url,
@@ -143,7 +145,7 @@ client = AsyncIOMotorClient(
     retryReads=True,
     maxConnecting=10  # Allow more simultaneous connections
 )
-db = client[os.environ['DB_NAME']]
+db = client[db_name]
 
 # Expose db via app.state for use in health checks and other components
 app.state.db = db
