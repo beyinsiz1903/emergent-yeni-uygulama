@@ -1386,6 +1386,25 @@ async def load_tenant_doc(tenant_id: str) -> Optional[Dict[str, Any]]:
     if not tenant_id:
         return None
     
+    # Try by 'id' field first
+    doc = await db.tenants.find_one({"id": tenant_id}, {"_id": 0})
+    if doc:
+        return doc
+    
+    # Try by string _id (if tenant_id looks like ObjectId)
+    try:
+        from bson import ObjectId
+        if len(tenant_id) == 24:
+            doc = await db.tenants.find_one({"_id": ObjectId(tenant_id)})
+            if doc:
+                doc.pop("_id", None)
+                return doc
+    except Exception:
+        pass
+    
+    return None
+
+
 RejectReasonCode = Literal[
     "NO_AVAILABILITY",
     "PRICE_MISMATCH",
