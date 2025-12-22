@@ -1456,7 +1456,8 @@ class Tenant(BaseModel):
 class User(BaseModel):
     model_config = ConfigDict(extra="allow")  # Changed from "ignore" to "allow" to fix tenant_id loading
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
-    tenant_id: Optional[str] = None
+    tenant_id: Optional[str] = None  # Hotel ID
+    agency_id: Optional[str] = None  # Agency ID (new for agency users)
     email: EmailStr
     name: str
     role: UserRole
