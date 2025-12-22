@@ -690,6 +690,17 @@ function App() {
             }
           />
           <Route
+            path="/agency-requests"
+            element={
+              isAuthenticated ? (
+                <AgencyRequests user={user} tenant={tenant} onLogout={handleLogout} />
+              ) : (
+                <Navigate to="/auth" replace />
+              )
+            }
+          />
+
+          <Route
             path="/maintenance/assets"
             element={
               isAuthenticated ? (
