@@ -9721,8 +9721,11 @@ async def reject_booking(
         raise HTTPException(status_code=404, detail="Booking not found")
 
     # Idempotent: already rejected
-    if booking.get("status") == BookingStatus.CANCELLED.value or booking.get("status") == "rejected":
+    if booking.get("status") == "rejected":
         return {"status": "ok", "booking": booking}
+
+    if booking.get("status") == BookingStatus.CANCELLED.value:
+        raise HTTPException(status_code=409, detail="Booking already cancelled")
 
     if booking.get("status") != BookingStatus.PENDING.value:
         raise HTTPException(
