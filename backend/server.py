@@ -9738,7 +9738,7 @@ async def reject_booking(
     now = datetime.now(timezone.utc)
 
     rejection_fields = {
-        "status": "rejected",
+        "status": REJECTED_STATUS,
         "rejected_at": now,
         "rejected_by_user_id": current_user.id,
         "rejection": {
