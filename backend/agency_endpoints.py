@@ -199,23 +199,58 @@ async def compute_price_snapshot(
     check_out: str
 ) -> tuple[float, float, str, int]:
     """
-    TODO: Bu fonksiyonu mevcut rate_periods + rate_plans helper'larına bağla.
+    Gerçek fiyat hesaplama - rate_periods ve rate_plans kullanarak.
     
     Returns:
         (price_per_night, total_price, currency, nights)
     """
-    # PLACEHOLDER - Replace with real logic
+    from datetime import datetime
+    
     ci = datetime.fromisoformat(check_in)
     co = datetime.fromisoformat(check_out)
     nights = (co - ci).days
     
-    price_per_night = 1500.0
-    currency = "TRY"
-    total_price = price_per_night * max(nights, 1)
+    if nights < 1:
+        nights = 1
     
-    # TODO: Real implementation:
-    # price_per_night, currency = await get_rate_from_periods(db, hotel_id, room_type_id, rate_plan_id, check_in, check_out)
-    # total_price = price_per_night * nights
+    # Try rate_periods first (if rate_plan_id matches)
+    period = await db.rate_periods.find_one({
+        'tenant_id': hotel_id,
+        'room_type_id': room_type_id,
+        'rate_plan_id': rate_plan_id,
+        'start_date': {'$lte': check_out},
+        'end_date': {'$gte': check_in}
+    }, {'_id': 0})
+    
+    if period and period.get('rate') is not None:
+        price_per_night = float(period['rate'])
+        currency = period.get('currency', 'TRY')
+        total_price = price_per_night * nights
+        return price_per_night, total_price, currency, nights
+    
+    # Fallback to rate_plans
+    rate_plan = await db.rate_plans.find_one({
+        'tenant_id': hotel_id,
+        'id': rate_plan_id,
+        'is_active': True
+    }, {'_id': 0})
+    
+    if rate_plan and rate_plan.get('base_price') is not None:
+        price_per_night = float(rate_plan['base_price'])
+        currency = rate_plan.get('currency', 'TRY')
+        total_price = price_per_night * nights
+        return price_per_night, total_price, currency, nights
+    
+    # Last fallback: room base_price
+    room = await db.rooms.find_one({
+        'tenant_id': hotel_id,
+        'room_type': room_type_id,
+        'is_active': True
+    }, {'_id': 0, 'base_price': 1})
+    
+    price_per_night = float(room.get('base_price', 1500.0)) if room else 1500.0
+    currency = 'TRY'
+    total_price = price_per_night * nights
     
     return price_per_night, total_price, currency, nights
 
