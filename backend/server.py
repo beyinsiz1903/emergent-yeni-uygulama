@@ -54147,6 +54147,12 @@ try:
 except Exception as e:
     print(f"⚠️ WebSocket server not available: {e}")
 
+# Include agency booking request router
+if agency_router:
+    app.include_router(agency_router)
+    print("✅ Agency booking request routes included")
+
+
 
 # ============================================================================
 # OPERA CLOUD PARITY FEATURES - CRITICAL ENTERPRISE FUNCTIONALITY
