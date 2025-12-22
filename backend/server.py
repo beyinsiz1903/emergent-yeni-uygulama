@@ -9629,6 +9629,152 @@ async def get_booking_override_logs(booking_id: str, current_user: User = Depend
     return logs
 
 @api_router.post("/bookings/{booking_id}/override")
+
+@api_router.post("/bookings/{booking_id}/approve")
+async def approve_booking(
+    booking_id: str,
+    request: Request,
+    current_user: User = Depends(get_current_user),
+):
+    """Approve a pending booking (hotel-side).
+
+    - Only bookings with status=pending can be approved
+    - Idempotent: if already confirmed, returns current state
+    - Ownership: booking.tenant_id must match current_user.tenant_id
+    """
+    _ensure_hotel_context(current_user)
+
+    tenant_id = current_user.tenant_id
+
+    # Lookup booking
+    booking = await db.bookings.find_one({"id": booking_id, "tenant_id": tenant_id}, {"_id": 0})
+    if not booking:
+        raise HTTPException(status_code=404, detail="Booking not found")
+
+    # Idempotent: already confirmed
+    if booking.get("status") == BookingStatus.CONFIRMED.value:
+        return {"status": "ok", "booking": booking}
+
+    if booking.get("status") != BookingStatus.PENDING.value:
+        raise HTTPException(
+            status_code=409,
+            detail=f"Booking not in pending state: {booking.get('status')}",
+        )
+
+    now = datetime.now(timezone.utc)
+
+    # Atomic-ish: update only if still pending
+    res = await db.bookings.update_one(
+        {"id": booking_id, "tenant_id": tenant_id, "status": BookingStatus.PENDING.value},
+        {"$set": {
+            "status": BookingStatus.CONFIRMED.value,
+            "approved_at": now,
+            "approved_by_user_id": current_user.id,
+            "updated_at": now,
+        }},
+    )
+
+    if res.modified_count != 1:
+        # Re-load and check final status
+        fresh = await db.bookings.find_one({"id": booking_id, "tenant_id": tenant_id}, {"_id": 0})
+        if fresh and fresh.get("status") == BookingStatus.CONFIRMED.value:
+            return {"status": "ok", "booking": fresh}
+        raise HTTPException(status_code=409, detail="Booking approval in progress")
+
+    # Audit log (best-effort)
+    try:
+        await create_audit_log(
+            tenant_id=tenant_id,
+            user=current_user,
+            action="BOOKING_APPROVED",
+            entity_type="booking",
+            entity_id=booking_id,
+            changes={"status": BookingStatus.CONFIRMED.value},
+            ip_address=request.client.host if request.client else None,
+        )
+    except Exception as e:
+        print(f"⚠️ audit log failed (approve_booking): {e}")
+
+    final = await db.bookings.find_one({"id": booking_id, "tenant_id": tenant_id}, {"_id": 0})
+    return {"status": "ok", "booking": final}
+
+
+@api_router.post("/bookings/{booking_id}/reject")
+async def reject_booking(
+    booking_id: str,
+    payload: RejectRequest,
+    request: Request,
+    current_user: User = Depends(get_current_user),
+):
+    """Reject a pending booking with reason.
+
+    - Only bookings with status=pending can be rejected
+    - Idempotent: if already rejected, returns current state
+    - Ownership: booking.tenant_id must match current_user.tenant_id
+    """
+    _ensure_hotel_context(current_user)
+
+    tenant_id = current_user.tenant_id
+
+    booking = await db.bookings.find_one({"id": booking_id, "tenant_id": tenant_id}, {"_id": 0})
+    if not booking:
+        raise HTTPException(status_code=404, detail="Booking not found")
+
+    # Idempotent: already rejected
+    if booking.get("status") == BookingStatus.CANCELLED.value or booking.get("status") == "rejected":
+        return {"status": "ok", "booking": booking}
+
+    if booking.get("status") != BookingStatus.PENDING.value:
+        raise HTTPException(
+            status_code=409,
+            detail=f"Booking not in pending state: {booking.get('status')}",
+        )
+
+    now = datetime.now(timezone.utc)
+
+    rejection_fields = {
+        "status": "rejected",
+        "rejected_at": now,
+        "rejected_by_user_id": current_user.id,
+        "rejection": {
+            "reason_code": payload.reason_code,
+            "reason_note": payload.reason_note,
+        },
+        "updated_at": now,
+    }
+
+    res = await db.bookings.update_one(
+        {"id": booking_id, "tenant_id": tenant_id, "status": BookingStatus.PENDING.value},
+        {"$set": rejection_fields},
+    )
+
+    if res.modified_count != 1:
+        fresh = await db.bookings.find_one({"id": booking_id, "tenant_id": tenant_id}, {"_id": 0})
+        if fresh and fresh.get("status") == "rejected":
+            return {"status": "ok", "booking": fresh}
+        raise HTTPException(status_code=409, detail="Booking rejection in progress")
+
+    try:
+        await create_audit_log(
+            tenant_id=tenant_id,
+            user=current_user,
+            action="BOOKING_REJECTED",
+            entity_type="booking",
+            entity_id=booking_id,
+            changes={
+                "status": "rejected",
+                "reason_code": payload.reason_code,
+                "reason_note": payload.reason_note,
+            },
+            ip_address=request.client.host if request.client else None,
+        )
+    except Exception as e:
+        print(f"⚠️ audit log failed (reject_booking): {e}")
+
+    final = await db.bookings.find_one({"id": booking_id, "tenant_id": tenant_id}, {"_id": 0})
+    return {"status": "ok", "booking": final}
+
+
 async def create_rate_override(
     booking_id: str,
     new_rate: float,
