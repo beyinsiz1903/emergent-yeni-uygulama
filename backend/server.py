@@ -148,6 +148,7 @@ app = FastAPI(
 
 # Lightweight deployment health endpoint (no DB/Redis dependencies)
 @app.get("/health", include_in_schema=False)
+@app.get("/health/", include_in_schema=False)
 async def deployment_health_check():
     """Simple health endpoint used by Emergent deployment checks.
 
