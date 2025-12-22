@@ -10,7 +10,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Home, Hotel, FileText, TrendingUp, Award, ShoppingCart, User, LogOut, Menu, Network, Calendar, DollarSign, Smartphone, Settings as SettingsIcon, ChefHat, Wrench } from 'lucide-react';
+import { Home, Hotel, FileText, TrendingUp, Award, ShoppingCart, User, LogOut, Menu, Network, Calendar, DollarSign, Smartphone, Settings as SettingsIcon, ChefHat, Wrench, Building2 } from 'lucide-react';
 import LanguageSelector from '@/components/LanguageSelector';
 import NotificationBell from '@/components/NotificationBell';
 import PushSubscriptionManager from '@/components/PushSubscriptionManager';
