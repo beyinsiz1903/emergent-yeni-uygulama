@@ -1422,9 +1422,10 @@ class RejectRequest(BaseModel):
     reason_note: Optional[str] = Field(default=None, max_length=500)
 
 
-def _ensure_hotel_context(user: User):
-    if not getattr(user, "tenant_id", None):
-        raise HTTPException(status_code=403, detail="Hotel context required")
+# Will be defined after User class
+# def _ensure_hotel_context(user: User):
+#     if not getattr(user, "tenant_id", None):
+#         raise HTTPException(status_code=403, detail="Hotel context required")
 
 
 # ============= MODELS =============
@@ -1472,6 +1473,13 @@ class User(BaseModel):
     password: Optional[str] = Field(None, exclude=True)  # Exclude password from responses
 
 class TenantRegister(BaseModel):
+
+# Helper function (defined after User class)
+def _ensure_hotel_context(user: User):
+    """Ensure user has hotel/tenant context"""
+    if not getattr(user, "tenant_id", None):
+        raise HTTPException(status_code=403, detail="Hotel context required")
+
     property_name: str
     email: EmailStr
     password: str
