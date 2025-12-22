@@ -222,18 +222,18 @@ async def detailed_health_check(db=None, redis_client=None):
 
 @health_router.get("/db", include_in_schema=False)
 @health_router.get("/db/", include_in_schema=False)
-async def health_db_check():
+async def health_db_check(request: Request):
     """DB connectivity check.
     - No auth/guards
     - Fast fail
     - Useful for narrowing down 520 root cause
     """
     import time
-    from server import db  # reuse global db client from main app
     from fastapi.responses import ORJSONResponse
 
     t0 = time.time()
     try:
+        db = request.app.state.db
         await db.command("ping")
         ms = int((time.time() - t0) * 1000)
         return ORJSONResponse(
