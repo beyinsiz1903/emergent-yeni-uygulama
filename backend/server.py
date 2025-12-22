@@ -2250,6 +2250,8 @@ class Booking(BaseModel):
     guest_id: str
     room_id: str
 
+REJECTED_STATUS = "rejected"
+
     # CM / integration semantics (defaults chosen by user)
     source_channel: str = "direct"  # direct|agency|airbnb|booking|expedia|manual
     origin: str = "ui"  # ui|api|webhook|import
