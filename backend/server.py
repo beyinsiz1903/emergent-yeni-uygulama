@@ -17421,6 +17421,19 @@ async def startup_db_seed():
     # NOTE: In deployment environments (Emergent), avoid heavy startup tasks
     # that depend on optional packages (motor, redis) or long-running scripts.
     # These can cause startup to fail or be very slow, leading to 520/health check issues.
+    
+    # Create agency booking request indexes
+    try:
+        col = db.agency_booking_requests
+        await col.create_index([("idempotency_key", 1)], unique=True, name="uniq_idempotency_key")
+        await col.create_index([("status", 1), ("hotel_id", 1)], name="idx_status_hotel")
+        await col.create_index([("agency_id", 1), ("status", 1)], name="idx_agency_status")
+        await col.create_index([("expires_at", 1)], name="idx_expires_at")
+        await col.create_index([("created_at", -1)], name="idx_created_at_desc")
+        print("✅ Agency booking request indexes created")
+    except Exception as e:
+        print(f"⚠️ Agency booking request indexes error: {e}")
+
 
     # Initialize Redis cache (best-effort, non-fatal)
     try:
