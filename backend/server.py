@@ -3594,13 +3594,11 @@ async def login(data: UserLogin):
         print(f"🔍 Looking for tenant with ID: {user.tenant_id}")
         tenant_doc = await load_tenant_doc(user.tenant_id)
         if tenant_doc:
-            print("✅ Tenant loaded successfully")
+            print(f"✅ Tenant loaded successfully")
             tenant_doc["features"] = resolve_tenant_features(tenant_doc)
             tenant = Tenant(**tenant_doc)
         else:
             print("❌ Tenant not found by any method")
-            else:
-                print(f"❌ Tenant still not found")
     
     print(f"✅ Login successful for {user.email}")
     token = create_token(user.id, user.tenant_id)
