@@ -147,10 +147,6 @@ client = AsyncIOMotorClient(
 )
 db = client[db_name]
 
-# Expose db via app.state for use in health checks and other components
-app.state.db = db
-
-
 JWT_SECRET = os.environ.get('JWT_SECRET', 'hotel-pms-super-secret-key-change-in-production-2025')
 JWT_ALGORITHM = 'HS256'
 JWT_EXPIRATION_HOURS = 168  # 7 days (24 * 7)
@@ -159,6 +155,9 @@ app = FastAPI(
     title="RoomOps Platform",
     default_response_class=ORJSONResponse  # Ultra-fast JSON serialization
 )
+
+# Expose db via app.state for use in health checks and other components
+app.state.db = db
 
 # Lightweight deployment health endpoint (no DB/Redis dependencies)
 @app.get("/health", include_in_schema=False)
