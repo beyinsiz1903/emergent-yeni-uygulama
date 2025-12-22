@@ -116,12 +116,14 @@ except ImportError as e:
     desktop_router = None
 
 # Import agency booking request endpoints
-try:
-    from agency_endpoints import agency_router
-    print("✅ Agency booking request endpoints imported successfully")
-except ImportError as e:
-    print(f"⚠️ Agency endpoints not available: {e}")
-    agency_router = None
+# TEMPORARILY DISABLED FOR PRODUCTION DEBUG
+agency_router = None
+# try:
+#     from agency_endpoints import agency_router
+#     print("✅ Agency booking request endpoints imported successfully")
+# except ImportError as e:
+#     print(f"⚠️ Agency endpoints not available: {e}")
+#     agency_router = None
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
