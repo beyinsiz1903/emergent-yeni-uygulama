@@ -96,17 +96,65 @@ async def compute_soft_availability_and_restrictions(
     check_out: str
 ) -> tuple[int, dict]:
     """
-    TODO: Bu fonksiyonu mevcut availability + restrictions helper'larına bağla.
+    Gerçek availability ve restrictions hesaplama.
     
-    Şimdilik placeholder döndürüyor. Gerçek implementasyonda:
-    - /api/pms/rooms/availability endpoint'inin backend fonksiyonunu çağır
-    - rate_periods'tan min_stay/stop_sell/cta/ctd oku
+    server.py'deki check_room_availability logic'ini kullanır:
+    - Rooms - Bookings - Blocks = Available
+    - rate_periods'tan restrictions alır
     
     Returns:
         (available_rooms: int, restrictions: dict)
     """
-    # PLACEHOLDER - Replace with real logic
-    available = 5
+    # Get rooms for this type
+    rooms = await db.rooms.find({
+        'tenant_id': hotel_id,
+        'room_type': room_type_id,
+        'is_active': True
+    }, {'_id': 0, 'id': 1}).to_list(1000)
+    
+    if not rooms:
+        return 0, {
+            "stop_sell": True,
+            "min_stay": 1,
+            "max_stay": None,
+            "cta": False,
+            "ctd": False
+        }
+    
+    room_ids = [r['id'] for r in rooms]
+    total_rooms = len(room_ids)
+    
+    # Get bookings that overlap
+    bookings = await db.bookings.find({
+        'tenant_id': hotel_id,
+        'status': {'$in': ['confirmed', 'checked_in', 'guaranteed']},
+        'check_in': {'$lt': check_out},
+        'check_out': {'$gt': check_in},
+        'room_id': {'$in': room_ids}
+    }, {'_id': 0, 'room_id': 1}).to_list(1000)
+    
+    booked_room_ids = set(b['room_id'] for b in bookings)
+    
+    # Get blocks that overlap
+    blocks = await db.room_blocks.find({
+        'tenant_id': hotel_id,
+        'status': 'active',
+        'start_date': {'$lt': check_out},
+        '$or': [
+            {'end_date': {'$gt': check_in}},
+            {'end_date': None}
+        ],
+        'room_id': {'$in': room_ids}
+    }, {'_id': 0, 'room_id': 1, 'allow_sell': 1}).to_list(1000)
+    
+    blocked_room_ids = set(b['room_id'] for b in blocks if not b.get('allow_sell', False))
+    
+    # Calculate available
+    unavailable = booked_room_ids.union(blocked_room_ids)
+    available = total_rooms - len(unavailable)
+    
+    # Get restrictions from rate_periods (first check if any exists)
+    # Use first day of stay for restrictions check
     restrictions = {
         "stop_sell": False,
         "min_stay": 1,
@@ -115,11 +163,31 @@ async def compute_soft_availability_and_restrictions(
         "ctd": False
     }
     
-    # TODO: Real implementation:
-    # available = await check_availability_soft(db, hotel_id, room_type_id, check_in, check_out)
-    # restrictions = await get_restrictions(db, hotel_id, room_type_id, check_in, check_out)
+    # Check stop_sales (simple version - no operator_id yet)
+    stop_sell_doc = await db.stop_sales.find_one({
+        'tenant_id': hotel_id,
+        'active': True
+    }, {'_id': 0})
     
-    return available, restrictions
+    if stop_sell_doc:
+        restrictions['stop_sell'] = True
+    
+    # Check rate_periods for restrictions (use first available period)
+    period = await db.rate_periods.find_one({
+        'tenant_id': hotel_id,
+        'room_type_id': room_type_id,
+        'start_date': {'$lte': check_out},
+        'end_date': {'$gte': check_in}
+    }, {'_id': 0})
+    
+    if period:
+        restrictions['stop_sell'] = restrictions['stop_sell'] or bool(period.get('stop_sell', False))
+        restrictions['min_stay'] = int(period.get('min_stay', 1))
+        restrictions['max_stay'] = int(period['max_stay']) if period.get('max_stay') is not None else None
+        restrictions['cta'] = bool(period.get('cta', False))
+        restrictions['ctd'] = bool(period.get('ctd', False))
+    
+    return max(available, 0), restrictions
 
 
 async def compute_price_snapshot(
