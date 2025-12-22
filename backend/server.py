@@ -1472,14 +1472,13 @@ class User(BaseModel):
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     password: Optional[str] = Field(None, exclude=True)  # Exclude password from responses
 
-class TenantRegister(BaseModel):
-
 # Helper function (defined after User class)
 def _ensure_hotel_context(user: User):
     """Ensure user has hotel/tenant context"""
     if not getattr(user, "tenant_id", None):
         raise HTTPException(status_code=403, detail="Hotel context required")
 
+class TenantRegister(BaseModel):
     property_name: str
     email: EmailStr
     password: str
