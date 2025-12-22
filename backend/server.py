@@ -9755,7 +9755,7 @@ async def reject_booking(
 
     if res.modified_count != 1:
         fresh = await db.bookings.find_one({"id": booking_id, "tenant_id": tenant_id}, {"_id": 0})
-        if fresh and fresh.get("status") == "rejected":
+        if fresh and fresh.get("status") == REJECTED_STATUS:
             return {"status": "ok", "booking": fresh}
         raise HTTPException(status_code=409, detail="Booking rejection in progress")
 
