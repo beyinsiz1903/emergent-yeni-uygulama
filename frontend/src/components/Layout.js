@@ -28,6 +28,20 @@ const ICON_BY_KEY = {
   marketplace: ShoppingCart,
 };
 
+const FEATURE_ALIASES = {
+  dashboard: ['dashboard', 'core_dashboard'],
+  pms: ['pms', 'core_pms'],
+  reservation_calendar: ['reservation_calendar', 'core_calendar'],
+  rms: ['rms', 'core_rms', 'hidden_rms'],
+  ai: ['ai', 'hidden_ai'],
+  marketplace: ['marketplace', 'hidden_marketplace'],
+  channel_manager: ['channel_manager', 'core_channel_basic', 'channel_basic'],
+  invoices: ['invoices', 'core_invoice', 'finance_invoices', 'accounting_invoices'],
+  cost_management: ['cost_management', 'finance_costs', 'accounting_costs'],
+  reports_lite: ['reports_lite', 'core_reports_basic', 'reports_basic'],
+  settings_lite: ['settings_lite', 'core_users_roles', 'users_roles', 'settings_basic'],
+};
+
 const Layout = ({ children, user, tenant, onLogout, currentModule }) => {
   const navigate = useNavigate();
   const { t } = useTranslation();
