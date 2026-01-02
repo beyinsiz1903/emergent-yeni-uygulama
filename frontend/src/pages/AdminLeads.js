@@ -289,6 +289,33 @@ const AdminLeads = ({ user, tenant, onLogout }) => {
                           >
                             Notu Kaydet
                           </Button>
+                          <div className="flex gap-1 mt-1">
+                            <Button variant="outline" size="xs" asChild>
+                              <a href={`tel:${sanitizePhone(lead.phone)}`}>Ara</a>
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="xs"
+                              onClick={() => openLeadWhatsApp(lead)}
+                            >
+                              WhatsApp
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="xs"
+                              onClick={() => copyLeadSummary(lead)}
+                            >
+                              Kopyala
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="xs"
+                              onClick={() => copyLeadId(lead.lead_id || lead.id)}
+                              title="Lead ID kopyala"
+                            >
+                              ID
+                            </Button>
+                          </div>
                         </div>
                       </td>
                     </tr>
