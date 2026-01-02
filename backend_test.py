@@ -25,98 +25,132 @@ async def test_auth_login():
         try:
             # Test login endpoint
             login_url = f"{BASE_URL}/auth/login"
-            print(f"📍 Testing: POST {login_url}")
-            print(f"📧 Credentials: {TEST_CREDENTIALS['email']} / {TEST_CREDENTIALS['password']}")
+            print(f"📍 Test Edilen Endpoint: POST {login_url}")
+            print(f"📧 Kimlik Bilgileri: {TEST_CREDENTIALS['email']} / {TEST_CREDENTIALS['password']}")
+            print()
             
             start_time = datetime.now()
             async with session.post(login_url, json=TEST_CREDENTIALS) as response:
                 end_time = datetime.now()
                 response_time = (end_time - start_time).total_seconds() * 1000
                 
-                print(f"⏱️  Response Time: {response_time:.1f}ms")
+                print(f"⏱️  Yanıt Süresi: {response_time:.1f}ms")
                 print(f"📊 HTTP Status: {response.status}")
+                print()
                 
                 if response.status == 200:
                     data = await response.json()
                     
-                    # Extract tenant information
+                    # Extract requested fields
+                    user = data.get('user', {})
                     tenant = data.get('tenant', {})
-                    subscription_plan = tenant.get('subscription_plan') or tenant.get('plan', 'N/A')
-                    features = tenant.get('features', {})
                     
-                    print(f"✅ Login Successful")
-                    print(f"🏨 Tenant ID: {tenant.get('id', 'N/A')}")
-                    print(f"🏢 Property Name: {tenant.get('property_name', 'N/A')}")
-                    print(f"📋 Subscription Plan: {subscription_plan}")
-                    print(f"🔧 Features Count: {len(features)}")
+                    user_email = user.get('email', 'N/A')
+                    user_role = user.get('role', 'N/A')
+                    tenant_subscription_plan = tenant.get('subscription_plan') or tenant.get('plan', 'N/A')
                     
-                    # Analyze features structure
-                    print("\n📋 TENANT FEATURES ANALYSIS:")
-                    print("-" * 40)
+                    print("✅ LOGIN BAŞARILI!")
+                    print("=" * 40)
+                    print("📋 İSTENEN ALANLAR:")
+                    print(f"   user.email: {user_email}")
+                    print(f"   user.role: {user_role}")
+                    print(f"   tenant.subscription_plan: {tenant_subscription_plan}")
+                    print()
                     
-                    if features:
-                        # Get first 15 features for summary
-                        feature_items = list(features.items())[:15]
-                        
-                        print("First 15 Feature Keys:")
-                        for i, (key, value) in enumerate(feature_items, 1):
-                            status = "✅" if value else "❌"
-                            print(f"{i:2d}. {key}: {value} {status}")
-                        
-                        # Count true/false features
-                        true_count = sum(1 for v in features.values() if v)
-                        false_count = sum(1 for v in features.values() if not v)
-                        
-                        print(f"\n📊 Feature Summary:")
-                        print(f"   Total Features: {len(features)}")
-                        print(f"   Enabled (true): {true_count}")
-                        print(f"   Disabled (false): {false_count}")
-                        
-                        # Create summary response
-                        sample_features = {k: v for k, v in feature_items}
-                        
-                        summary = {
-                            "plan": subscription_plan,
-                            "sampleFeatures": sample_features,
-                            "totalFeatures": len(features),
-                            "enabledCount": true_count,
-                            "disabledCount": false_count
+                    # Additional context
+                    print("📋 EK BİLGİLER:")
+                    print(f"   user.name: {user.get('name', 'N/A')}")
+                    print(f"   user.tenant_id: {user.get('tenant_id', 'N/A')}")
+                    print(f"   tenant.id: {tenant.get('id', 'N/A')}")
+                    print(f"   tenant.property_name: {tenant.get('property_name', 'N/A')}")
+                    print()
+                    
+                    # Create result summary
+                    result = {
+                        "status": "success",
+                        "http_status": response.status,
+                        "response_time_ms": round(response_time, 1),
+                        "user": {
+                            "email": user_email,
+                            "role": user_role,
+                            "name": user.get('name'),
+                            "tenant_id": user.get('tenant_id')
+                        },
+                        "tenant": {
+                            "subscription_plan": tenant_subscription_plan,
+                            "id": tenant.get('id'),
+                            "property_name": tenant.get('property_name')
                         }
-                        
-                        print(f"\n🎯 SUMMARY RESPONSE:")
-                        print(json.dumps(summary, indent=2))
-                        
-                        return summary
-                    else:
-                        print("⚠️  No features found in tenant object")
-                        return {
-                            "plan": subscription_plan,
-                            "sampleFeatures": {},
-                            "error": "No features found"
-                        }
+                    }
+                    
+                    print("🎯 SONUÇ ÖZETİ:")
+                    print(json.dumps(result, indent=2, ensure_ascii=False))
+                    
+                    return result
                         
                 elif response.status == 401:
-                    error_data = await response.json()
-                    print(f"❌ Authentication Failed: {error_data.get('detail', 'Invalid credentials')}")
-                    return {
+                    try:
+                        error_data = await response.json()
+                        error_detail = error_data.get('detail', 'Invalid credentials')
+                    except:
+                        error_detail = 'Authentication failed'
+                    
+                    print("❌ KİMLİK DOĞRULAMA HATASI!")
+                    print(f"   Hata: {error_detail}")
+                    print()
+                    
+                    result = {
+                        "status": "failed",
+                        "http_status": response.status,
+                        "response_time_ms": round(response_time, 1),
                         "error": "Authentication failed",
-                        "status": response.status,
-                        "detail": error_data.get('detail', 'Invalid credentials')
+                        "detail": error_detail
                     }
+                    
+                    print("🎯 HATA ÖZETİ:")
+                    print(json.dumps(result, indent=2, ensure_ascii=False))
+                    
+                    return result
+                    
                 else:
-                    error_text = await response.text()
-                    print(f"❌ HTTP {response.status}: {error_text}")
-                    return {
+                    try:
+                        error_text = await response.text()
+                    except:
+                        error_text = f"HTTP {response.status} error"
+                    
+                    print(f"❌ HTTP HATASI: {response.status}")
+                    print(f"   Detay: {error_text}")
+                    print()
+                    
+                    result = {
+                        "status": "failed",
+                        "http_status": response.status,
+                        "response_time_ms": round(response_time, 1),
                         "error": f"HTTP {response.status}",
                         "detail": error_text
                     }
                     
+                    print("🎯 HATA ÖZETİ:")
+                    print(json.dumps(result, indent=2, ensure_ascii=False))
+                    
+                    return result
+                    
         except Exception as e:
-            print(f"❌ Request Failed: {str(e)}")
-            return {
+            print(f"❌ İSTEK HATASI: {str(e)}")
+            print()
+            
+            result = {
+                "status": "failed",
+                "http_status": None,
+                "response_time_ms": None,
                 "error": "Request failed",
                 "detail": str(e)
             }
+            
+            print("🎯 HATA ÖZETİ:")
+            print(json.dumps(result, indent=2, ensure_ascii=False))
+            
+            return result
 
 async def main():
     """Main test execution"""
