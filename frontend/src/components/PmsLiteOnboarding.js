@@ -38,16 +38,15 @@ export default function PmsLiteOnboarding({ tenant }) {
     },
     {
       n: 2,
-      title: "Fiyatları Tanımlayın",
-      desc: "Temel oda fiyatlarınızı ve kurallarınızı girin.",
-      // Eğer ayrı bir rates sekmesi yoksa, takvime yönlendirmek daha mantıklı
+      title: "Takvimi Kontrol Edin",
+      desc: "Doluluk ve fiyat planınızı takvim üzerinden gözden geçirin.",
       primary: { label: "Takvimi Aç", action: () => navigate("/app/reservation-calendar") },
     },
     {
       n: 3,
       title: "İlk Rezervasyonu Oluşturun",
       desc: "Test amaçlı bir rezervasyon oluşturup sistemi tamamlayın.",
-      primary: { label: "Rezervasyonlara Git", action: () => navigate("/app/pms#frontdesk") },
+      primary: { label: "Rezervasyonlara Git", action: () => navigate("/app/pms#bookings") },
     },
   ];
 
