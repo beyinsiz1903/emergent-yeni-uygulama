@@ -172,10 +172,25 @@ const AdminLeads = ({ user, tenant, onLogout }) => {
                   placeholder="İsim, otel, telefon..."
                 />
               </div>
-              <div className="flex items-end">
-                <Button onClick={loadLeads} disabled={loading} className="w-full">
-                  {loading ? "Yükleniyor..." : "Listeyi Yenile"}
-                </Button>
+              <div>
+                <Label>&nbsp;</Label>
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <input
+                      id="follow-up"
+                      type="checkbox"
+                      checked={followUpOnly}
+                      onChange={(e) => setFollowUpOnly(e.target.checked)}
+                      className="rounded border-slate-600"
+                    />
+                    <label htmlFor="follow-up" className="text-xs text-slate-300">
+                      Takip gerekli
+                    </label>
+                  </div>
+                  <Button onClick={loadLeads} disabled={loading} className="ml-auto">
+                    {loading ? "Yükleniyor..." : "Listeyi Yenile"}
+                  </Button>
+                </div>
               </div>
             </div>
           </CardContent>
