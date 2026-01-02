@@ -50070,7 +50070,7 @@ async def create_public_pms_lite_lead(request: PmsLiteLeadCreateRequest, user_ag
 
     await db.leads.insert_one(doc)
 
-    return {"ok": True, "lead_id": lead_uuid}
+    return {"ok": True, "lead_id": lead_uuid, "deduped": False}
 
 
 @api_router.get("/admin/leads")
