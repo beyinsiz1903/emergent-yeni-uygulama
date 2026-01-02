@@ -488,6 +488,16 @@ function App() {
             }
           />
           <Route
+            path="/app/pms"
+            element={
+              isAuthenticated ? (
+                <PMSModule user={user} tenant={tenant} onLogout={handleLogout} />
+              ) : (
+                <Navigate to="/auth" replace />
+              )
+            }
+          />
+          <Route
             path="/invoices"
             element={
               isAuthenticated && hasFeature('hidden_invoices_accounting') ? (
