@@ -1047,6 +1047,95 @@ const Dashboard = ({ user, tenant, modules, onLogout }) => {
                 ))}
               </Accordion>
             </div>
+
+const DashboardLite = ({ user, tenant, stats }) => {
+  return (
+    <Layout user={user} tenant={tenant} onLogout={() => {}} currentModule="dashboard">
+      <div className="p-4 md:p-6 space-y-4">
+        <div>
+          <h1 className="text-2xl md:text-3xl font-bold mb-1" style={{ fontFamily: 'Space Grotesk' }}>
+            Dashboard
+          </h1>
+          <p className="text-sm md:text-base text-gray-600">Günlük özet ve hızlı işlemler.</p>
+        </div>
+
+        {/* Core stat cards */}
+        {stats?.pms && (
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-4 gap-3">
+            <Card className="hover:shadow-md transition-shadow">
+              <CardContent className="p-4 text-center">
+                <div className="flex flex-col items-center space-y-2">
+                  <div className="p-2 bg-blue-100 rounded-lg">
+                    <BedDouble className="w-6 h-6 text-blue-500" />
+                  </div>
+                  <div className="text-2xl font-bold text-gray-900">{stats.pms.total_rooms}</div>
+                  <div className="text-xs font-medium text-gray-600">Toplam Oda</div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="hover:shadow-md transition-shadow">
+              <CardContent className="p-4 text-center">
+                <div className="flex flex-col items-center space-y-2">
+                  <div className="p-2 bg-green-100 rounded-lg">
+                    <Hotel className="w-6 h-6 text-green-500" />
+                  </div>
+                  <div className="text-2xl font-bold text-gray-900">{stats.pms.occupancy_rate.toFixed(1)}%</div>
+                  <div className="text-xs font-medium text-gray-600">Doluluk Oranı</div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="hover:shadow-md transition-shadow">
+              <CardContent className="p-4 text-center">
+                <div className="flex flex-col items-center space-y-2">
+                  <div className="p-2 bg-purple-100 rounded-lg">
+                    <Calendar className="w-6 h-6 text-purple-500" />
+                  </div>
+                  <div className="text-2xl font-bold text-gray-900">{stats.pms.today_checkins}</div>
+                  <div className="text-xs font-medium text-gray-600">Bugün Giriş</div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="hover:shadow-md transition-shadow">
+              <CardContent className="p-4 text-center">
+                <div className="flex flex-col items-center space-y-2">
+                  <div className="p-2 bg-orange-100 rounded-lg">
+                    <Users className="w-6 h-6 text-orange-500" />
+                  </div>
+                  <div className="text-2xl font-bold text-gray-900">{stats.pms.total_guests}</div>
+                  <div className="text-xs font-medium text-gray-600">Toplam Misafir</div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        {/* Quick actions */}
+        <div className="rounded-2xl border bg-white p-4">
+          <div className="text-sm font-medium text-gray-900">Hızlı İşlemler</div>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <Button size="sm" onClick={() => window.location.assign("/pms")}>Yeni Rezervasyon</Button>
+            <Button size="sm" variant="outline" onClick={() => window.location.assign("/reservation-calendar")}>
+              Takvimi Aç
+            </Button>
+            <Button size="sm" variant="outline" onClick={() => window.location.assign("/pms?tab=bookings")}>
+              Rezervasyonlar
+            </Button>
+          </div>
+        </div>
+      </div>
+    </Layout>
+  );
+};
+
+const DashboardFull = ({ user, tenant, modules, onLogout, stats, loading, aiBriefing, loadingAI, occupancyData, revenueData, trendData }) => {
+  const navigate = useNavigate();
+  const { t } = useTranslation();
+
+  const visibleModules = useMemo(() => [
+
           </>
         )}
       </div>
