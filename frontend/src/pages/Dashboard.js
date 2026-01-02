@@ -39,6 +39,10 @@ const Dashboard = ({ user, tenant, modules, onLogout }) => {
 
   const isLite = plan === "pms_lite";
 
+  if (isLite) {
+    return <DashboardLite user={user} tenant={tenant} stats={stats} />;
+  }
+
   const loadAIBriefing = useCallback(async () => {
     setLoadingAI(true);
     try {
