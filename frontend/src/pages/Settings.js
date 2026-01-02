@@ -213,6 +213,8 @@ const Settings = ({ user, tenant, onLogout }) => {
               </p>
               {/* Kullanıcı yönetimi bileşeni buraya bağlanacak */}
             </CardContent>
+              {/* Kullanıcı yönetimi bileşeni buraya bağlanacak */}
+
           </Card>
 
           <div className="flex justify-end">
