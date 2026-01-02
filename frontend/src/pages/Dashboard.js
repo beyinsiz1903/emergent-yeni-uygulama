@@ -1130,17 +1130,4 @@ const DashboardLite = ({ user, tenant, stats }) => {
   );
 };
 
-const DashboardFull = ({ user, tenant, modules, onLogout, stats, loading, aiBriefing, loadingAI, occupancyData, revenueData, trendData }) => {
-  const navigate = useNavigate();
-  const { t } = useTranslation();
-
-  const visibleModules = useMemo(() => [
-
-          </>
-        )}
-      </div>
-    </Layout>
-  );
-};
-
 export default Dashboard;
