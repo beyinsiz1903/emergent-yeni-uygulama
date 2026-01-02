@@ -1369,21 +1369,72 @@ FEATURES_BY_PLAN: Dict[str, Dict[str, bool]] = {
     },
 }
 
+# PMS Lite: bungalov segmenti için sadece core ekranlar
+FEATURES_BY_PLAN["pms_lite"] = {
+    # Menü/route whitelist için net, küçük bir set:
+    "dashboard": True,
+
+    # PMS çekirdeği (Rooms/Bookings/Guests)
+    "pms": True,
+    "rooms": True,
+    "bookings": True,
+    "guests": True,
+
+    # Takvim
+    "reservation_calendar": True,
+
+    # Lite raporlar (full reports değil)
+    "reports_lite": True,
+
+    # Lite settings (otel bilgisi + kullanıcılar gibi)
+    "settings_lite": True,
+}
+
 
 def resolve_tenant_features(tenant_doc: Dict[str, Any]) -> Dict[str, bool]:
     """Plan + overrides ile efektif feature set üretir."""
+    tenant_doc = tenant_doc or {}
+
+    # Plan alanını normalize et: subscription_plan > plan > subscription_tier > core_small_hotel
     plan = (
-        (tenant_doc or {}).get("plan")
-        or (tenant_doc or {}).get("subscription_tier")
+        tenant_doc.get("subscription_plan")
+        or tenant_doc.get("plan")
+        or tenant_doc.get("subscription_tier")
         or "core_small_hotel"
     )
 
-    base = FEATURES_BY_PLAN.get(plan, FEATURES_BY_PLAN["core_small_hotel"])
-    overrides = (tenant_doc or {}).get("features") or {}
+    # 1) Sistemde tanımlı bütün feature key’lerini topla
+    all_keys: set[str] = set()
+    for _plan, feats in FEATURES_BY_PLAN.items():
+        for k in (feats or {}).keys():
+            all_keys.add(k)
 
-    merged = dict(base)
-    merged.update({k: bool(v) for k, v in overrides.items()})
-    return merged
+    # 2) Default: hepsi kapalı
+    resolved: Dict[str, bool] = {k: False for k in all_keys}
+
+    # 3) Plan bazlı açık olanları uygula
+    plan_feats = FEATURES_BY_PLAN.get(plan) or FEATURES_BY_PLAN.get("core_small_hotel") or {}
+    for k, v in plan_feats.items():
+        resolved[k] = bool(v)
+
+    # 4) Tenant bazlı override (varsa) — ancak PMS Lite için whitelist dışına çıkılmasına izin verme
+    tenant_overrides = tenant_doc.get("features") or {}
+    if isinstance(tenant_overrides, dict):
+        if plan == "pms_lite":
+            # Sadece planın kendisinde tanımlı anahtarlar override edilebilir
+            for k in plan_feats.keys():
+                if k in tenant_overrides:
+                    resolved[k] = bool(tenant_overrides[k])
+        else:
+            # Diğer planlarda esnek override davranışını koru
+            for k in resolved.keys():
+                if k in tenant_overrides:
+                    resolved[k] = bool(tenant_overrides[k])
+
+    # 5) Plan bilgisini de features içine ekle (frontend kolaylığı için)
+    resolved["plan"] = plan
+
+    return resolved
 
 
 async def load_tenant_doc(tenant_id: str) -> Optional[Dict[str, Any]]:
