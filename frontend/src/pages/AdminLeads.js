@@ -25,11 +25,32 @@ const statusLabel = {
   won: "Kazanıldı",
 };
 
+const fmtDate = (iso) => {
+  if (!iso) return "-";
+  const d = new Date(iso);
+  return d.toLocaleString("tr-TR", {
+    day: "2-digit",
+    month: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+};
+
+const copyLeadId = async (id) => {
+  try {
+    await navigator.clipboard.writeText(id);
+    toast.success("Lead ID kopyalandı");
+  } catch {
+    toast.error("Kopyalanamadı");
+  }
+};
+
 const AdminLeads = ({ user, tenant, onLogout }) => {
   const [leads, setLeads] = useState([]);
   const [loading, setLoading] = useState(false);
   const [statusFilter, setStatusFilter] = useState("");
   const [search, setSearch] = useState("");
+  const [followUpOnly, setFollowUpOnly] = useState(false);
   const [updatingId, setUpdatingId] = useState(null);
   const [notes, setNotes] = useState({});
 
