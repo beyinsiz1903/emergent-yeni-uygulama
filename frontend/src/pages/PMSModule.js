@@ -155,6 +155,17 @@ const PMSModule = ({ user, tenant, onLogout }) => {
     return hash || 'frontdesk';
   });
 
+  // Hash change listener so that navigation with #tab updates the UI
+  useEffect(() => {
+    const onHashChange = () => {
+      const hash = window.location.hash.replace('#', '');
+      setActiveTab(hash || 'frontdesk');
+    };
+
+    window.addEventListener('hashchange', onHashChange);
+    return () => window.removeEventListener('hashchange', onHashChange);
+  }, []);
+
   const [newRoom, setNewRoom] = useState({
     room_number: '',
     room_type: 'standard',
