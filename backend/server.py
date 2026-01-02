@@ -1541,6 +1541,7 @@ class TenantRegister(BaseModel):
     location: Optional[str] = None
     description: Optional[str] = None
     subscription_days: Optional[int] = None  # Duration in days (30, 60, 90, 180, 365, None=unlimited)
+    subscription_plan: Optional[str] = None  # e.g. core_small_hotel, pms_lite
 
 class GuestRegister(BaseModel):
     email: EmailStr
