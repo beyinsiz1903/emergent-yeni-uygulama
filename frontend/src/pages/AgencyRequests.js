@@ -604,6 +604,7 @@ const AgencyRequests = () => {
             </Button>
           </DialogFooter>
         </Dialog>
+      </Dialog>
     </div>
   );
 };
