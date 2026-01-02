@@ -204,7 +204,7 @@ const Settings = ({ user, tenant, onLogout }) => {
             <CardHeader>
               <CardTitle>Kullanıcılar</CardTitle>
               <CardDescription>
-                PMS Lite için önerilen roller: Yönetici, Resepsiyon, Kat Hizmetleri.
+                Bu sürümde roller sade tutulmuştur.
               </CardDescription>
             </CardHeader>
             <CardContent>
