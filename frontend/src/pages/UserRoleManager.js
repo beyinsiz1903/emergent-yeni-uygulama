@@ -7,6 +7,13 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 
+const DEFAULT_ROLE_OPTIONS = [
+  { value: 'super_admin', label: 'Super Admin' },
+  { value: 'admin', label: 'Yönetici' },
+  { value: 'supervisor', label: 'Supervisor' },
+  { value: 'front_desk', label: 'Resepsiyon' },
+  { value: 'housekeeping', label: 'Kat Hizmetleri' },
+];
 const UserRoleManager = ({ user, tenant, onLogout, roleOptions }) => {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
