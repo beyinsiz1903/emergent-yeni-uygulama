@@ -17,6 +17,17 @@ import PushSubscriptionManager from '@/components/PushSubscriptionManager';
 import { NAV_ITEMS } from '@/config/navItems';
 import { normalizeFeatures } from '@/utils/featureFlags';
 
+const ICON_BY_KEY = {
+  dashboard: Home,
+  pms: Hotel,
+  reservation_calendar: Calendar,
+  reports: FileText,
+  settings: SettingsIcon,
+  rms: TrendingUp,
+  ai: Award,
+  marketplace: ShoppingCart,
+};
+
 const Layout = ({ children, user, tenant, onLogout, currentModule }) => {
   const navigate = useNavigate();
   const { t } = useTranslation();
@@ -111,7 +122,7 @@ const Layout = ({ children, user, tenant, onLogout, currentModule }) => {
                     return null;
                   }
                 }
-                const Icon = item.icon;
+                const Icon = item.icon || ICON_BY_KEY[item.key] || Home;
                 const isActive = currentModule === item.id;
                 return (
                   <Button
@@ -197,7 +208,7 @@ const Layout = ({ children, user, tenant, onLogout, currentModule }) => {
                     return null;
                   }
                 }
-                const Icon = item.icon;
+                const Icon = item.icon || ICON_BY_KEY[item.key] || Home;
                 const isActive = currentModule === item.id;
                 return (
                   <Button
