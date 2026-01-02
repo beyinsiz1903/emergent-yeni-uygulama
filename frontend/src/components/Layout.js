@@ -14,6 +14,8 @@ import { Home, Hotel, FileText, TrendingUp, Award, ShoppingCart, User, LogOut, M
 import LanguageSelector from '@/components/LanguageSelector';
 import NotificationBell from '@/components/NotificationBell';
 import PushSubscriptionManager from '@/components/PushSubscriptionManager';
+import { NAV_ITEMS } from '@/config/navItems';
+import { normalizeFeatures } from '@/utils/featureFlags';
 
 const Layout = ({ children, user, tenant, onLogout, currentModule }) => {
   const navigate = useNavigate();
