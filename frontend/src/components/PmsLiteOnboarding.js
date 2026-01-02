@@ -34,7 +34,7 @@ export default function PmsLiteOnboarding({ tenant }) {
       n: 1,
       title: "Oda Ekleyin",
       desc: "İlk kurulum için oda(lar)ınızı ekleyin.",
-      primary: { label: "Odalara Git", action: () => navigate("/app/pms?tab=rooms") },
+      primary: { label: "Odalara Git", action: () => navigate("/app/pms#rooms") },
     },
     {
       n: 2,
@@ -47,7 +47,7 @@ export default function PmsLiteOnboarding({ tenant }) {
       n: 3,
       title: "İlk Rezervasyonu Oluşturun",
       desc: "Test amaçlı bir rezervasyon oluşturup sistemi tamamlayın.",
-      primary: { label: "Rezervasyon Oluştur", action: () => navigate("/app/pms?tab=bookings") },
+      primary: { label: "Rezervasyonlara Git", action: () => navigate("/app/pms#frontdesk") },
     },
   ];
 
