@@ -71,6 +71,11 @@ const Layout = ({ children, user, tenant, onLogout, currentModule }) => {
       return false;
     }
 
+    // Super admin (full plan) için tüm modüller görünsün
+    if (!isLite && user?.role === 'super_admin') {
+      return true;
+    }
+
     // Full planlarda görünmesi GEREKEN çekirdek item'ler
     // Dashboard + PMS + Reports + Settings her zaman görünsün (feature flag'e bağımlı değil)
     if (

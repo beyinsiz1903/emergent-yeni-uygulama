@@ -542,7 +542,27 @@ function App() {
             }
           />
           <Route
+            path="/app/reservation-calendar"
+            element={
+              isAuthenticated ? (
+                <ReservationCalendar user={user} tenant={tenant} onLogout={handleLogout} />
+              ) : (
+                <Navigate to="/auth" replace />
+              )
+            }
+          />
+          <Route
             path="/settings"
+            element={
+              isAuthenticated ? (
+                <Settings user={user} tenant={tenant} onLogout={handleLogout} />
+              ) : (
+                <Navigate to="/auth" replace />
+              )
+            }
+          />
+          <Route
+            path="/app/settings"
             element={
               isAuthenticated ? (
                 <Settings user={user} tenant={tenant} onLogout={handleLogout} />
@@ -798,6 +818,16 @@ function App() {
           />
           <Route
             path="/reports"
+            element={
+              isAuthenticated ? (
+                <Reports user={user} tenant={tenant} onLogout={handleLogout} />
+              ) : (
+                <Navigate to="/auth" replace />
+              )
+            }
+          />
+          <Route
+            path="/app/reports"
             element={
               isAuthenticated ? (
                 <Reports user={user} tenant={tenant} onLogout={handleLogout} />
