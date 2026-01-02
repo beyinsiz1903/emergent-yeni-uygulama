@@ -63,6 +63,20 @@ const PmsLiteLanding = () => {
 
       const res = await axios.post("/leads", payload);
       if (res.data?.ok) {
+        const lead_id = res.data.lead_id;
+        const leadMessage = `Merhaba, Syroce PMS Lite için demo talebi oluşturdum.\n\nAd Soyad: ${payload.contact.full_name}\nTelefon: ${payload.contact.phone}\nOtel: ${payload.hotel.property_name}\nBölge: ${payload.hotel.location || "-"}\nOda Sayısı: ${payload.hotel.rooms_count}\n\nUygun olduğunuzda bilgi alabilir miyim?\n(Lead ID: ${lead_id})`;
+
+        setLastLead({
+          full_name: payload.contact.full_name,
+          phone: payload.contact.phone,
+          property_name: payload.hotel.property_name,
+          location: payload.hotel.location,
+          rooms_count: payload.hotel.rooms_count,
+          lead_id,
+          deduped: !!res.data.deduped,
+          message: leadMessage,
+        });
+
         toast.success("Talebiniz alındı, en kısa sürede sizi arayacağız.");
         setForm({
           full_name: "",
