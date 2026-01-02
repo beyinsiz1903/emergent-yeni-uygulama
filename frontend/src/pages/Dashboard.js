@@ -31,6 +31,13 @@ const Dashboard = ({ user, tenant, modules, onLogout }) => {
   const [trendData, setTrendData] = useState([]);
   const [heatmapData, setHeatmapData] = useState([]);
 
+  const plan =
+    tenant?.subscription_plan ||
+    tenant?.plan ||
+    tenant?.subscription_tier ||
+    "core_small_hotel";
+
+  const isLite = plan === "pms_lite";
 
   const loadAIBriefing = useCallback(async () => {
     setLoadingAI(true);
