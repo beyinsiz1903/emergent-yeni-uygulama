@@ -1126,11 +1126,21 @@ const DashboardLite = ({ user, tenant, stats }) => {
         <div className="rounded-2xl border bg-white p-4">
           <div className="text-sm font-medium text-gray-900">Hızlı İşlemler</div>
           <div className="mt-3 flex flex-wrap gap-2">
-            <Button size="sm" onClick={() => window.location.assign("/pms")}>Yeni Rezervasyon</Button>
-            <Button size="sm" variant="outline" onClick={() => window.location.assign("/reservation-calendar")}>
+            <Button size="sm" onClick={() => window.location.assign("/app/pms")}>
+              Yeni Rezervasyon
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => window.location.assign("/app/reservation-calendar")}
+            >
               Takvimi Aç
             </Button>
-            <Button size="sm" variant="outline" onClick={() => window.location.assign("/pms?tab=bookings")}>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => window.location.assign("/app/pms?tab=bookings")}
+            >
               Rezervasyonlar
             </Button>
           </div>
