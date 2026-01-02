@@ -18,6 +18,7 @@ const PmsLiteLanding = () => {
     rooms_count: "",
   });
   const [submitting, setSubmitting] = useState(false);
+  const [lastLead, setLastLead] = useState(null);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
