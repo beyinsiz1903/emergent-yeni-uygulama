@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Settings as SettingsIcon, Mail, MessageSquare, Phone, Key, AlertCircle, Cloud, RefreshCw, Server, Trash2 } from 'lucide-react';
+import { normalizeFeatures } from '@/utils/featureFlags';
 
 const Settings = ({ user, tenant, onLogout }) => {
   const [integrations, setIntegrations] = useState({
