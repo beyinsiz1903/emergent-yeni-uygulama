@@ -3658,6 +3658,9 @@ async def login(data: UserLogin):
         tenant_doc = await load_tenant_doc(user.tenant_id)
         if tenant_doc:
             print(f"✅ Tenant loaded successfully")
+            # Plan alanını normalize et ve efektif feature set üret
+            if not tenant_doc.get("subscription_plan"):
+                tenant_doc["subscription_plan"] = tenant_doc.get("plan") or tenant_doc.get("subscription_tier") or "core_small_hotel"
             tenant_doc["features"] = resolve_tenant_features(tenant_doc)
             tenant = Tenant(**tenant_doc)
         else:
