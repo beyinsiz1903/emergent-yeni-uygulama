@@ -72,7 +72,11 @@ const Layout = ({ children, user, tenant, onLogout, currentModule }) => {
     }
 
     // Full planlarda görünmesi GEREKEN çekirdek item'ler
-    if (!isLite && (item.key === 'reports' || item.key === 'settings')) {
+    // Dashboard + PMS + Reports + Settings her zaman görünsün (feature flag'e bağımlı değil)
+    if (
+      !isLite &&
+      (item.key === 'dashboard' || item.key === 'pms' || item.key === 'reports' || item.key === 'settings')
+    ) {
       return true;
     }
 
