@@ -1131,7 +1131,7 @@ const DashboardLite = ({ user, tenant, stats }) => {
         <div className="rounded-2xl border bg-white p-4">
           <div className="text-sm font-medium text-gray-900">Hızlı İşlemler</div>
           <div className="mt-3 flex flex-wrap gap-2">
-            <Button size="sm" onClick={() => window.location.assign("/app/pms")}>
+            <Button size="sm" onClick={() => window.location.assign("/app/pms#frontdesk")}>
               Yeni Rezervasyon
             </Button>
             <Button
@@ -1144,7 +1144,7 @@ const DashboardLite = ({ user, tenant, stats }) => {
             <Button
               size="sm"
               variant="outline"
-              onClick={() => window.location.assign("/app/pms?tab=bookings")}
+              onClick={() => window.location.assign("/app/pms#frontdesk")}
             >
               Rezervasyonlar
             </Button>
