@@ -1575,7 +1575,11 @@ const PMSModule = ({ user, tenant, onLogout }) => {
             {isLite && roomsCount === 0 && activeTab === 'rooms' && (
               <LiteSetupBanner
                 title="Başlamak için oda ekleyin"
-                desc="Oda ekledikten sonra rezervasyon ve takvim ekranları anlamlı şekilde dolacaktır."
+                desc="En hızlı yöntem: Hızlı / Çoklu Oda Ekle ile odaları tek seferde ekleyin."
+                actionLabel="Hızlı / Çoklu Oda Ekle"
+                onAction={() => setOpenDialog('bulk-rooms')}
+                secondaryLabel="Tek Oda Ekle"
+                onSecondary={() => setOpenDialog('room')}
               />
             )}
             <div className="flex justify-between items-center">
