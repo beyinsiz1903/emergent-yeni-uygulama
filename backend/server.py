@@ -1431,8 +1431,8 @@ def resolve_tenant_features(tenant_doc: Dict[str, Any]) -> Dict[str, bool]:
                 if k in tenant_overrides:
                     resolved[k] = bool(tenant_overrides[k])
 
-    # 5) Plan bilgisini de features içine ekle (frontend kolaylığı için)
-    resolved["plan"] = plan
+    # 5) Plan bilgisi zaten tenant.plan alanında mevcut, features'a eklemeye gerek yok
+    # resolved["plan"] = plan  # REMOVED: This was causing Pydantic validation error
 
     return resolved
 
