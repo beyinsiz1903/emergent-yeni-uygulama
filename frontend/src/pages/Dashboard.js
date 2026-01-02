@@ -260,7 +260,7 @@ const Dashboard = ({ user, tenant, modules, onLogout }) => {
     // Prefetch after 2 seconds
     const timer = setTimeout(prefetchRoutes, 2000);
     return () => clearTimeout(timer);
-  }, [loadDashboardStats, loadAIBriefing]);
+  }, [loadDashboardStats, loadAIBriefing, loadChartData]);
 
   const visibleModules = useMemo(() => [
     {
