@@ -211,6 +211,7 @@ const AdminLeads = ({ user, tenant, onLogout }) => {
                   <th className="px-2 py-1 text-left">İsim</th>
                   <th className="px-2 py-1 text-left">Telefon</th>
                   <th className="px-2 py-1 text-left">Status</th>
+                  <th className="px-2 py-1 text-left">Son işlem</th>
                   <th className="px-2 py-1 text-left">Not</th>
                   <th className="px-2 py-1 text-left">Aksiyon</th>
                 </tr>
