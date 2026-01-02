@@ -556,7 +556,7 @@ const AgencyRequests = () => {
 
       {/* Reject Modal */}
       <Dialog open={rejectModalOpen} onOpenChange={setRejectModalOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>Talebi Reddet</DialogTitle>
             <DialogDescription>
