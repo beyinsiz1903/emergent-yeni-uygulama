@@ -405,6 +405,7 @@ function App() {
         <div className="App">
           <Toaster position="top-right" />
           <BrowserRouter>
+          <PlanRouteGuard tenant={tenant}>
           <Routes>
           {/* Public Landing Page */}
           <Route path="/landing" element={<LandingPage />} />
