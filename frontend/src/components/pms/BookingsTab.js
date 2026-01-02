@@ -17,7 +17,11 @@ const BookingsTab = ({
   setSelectedBookingDetail,
   loadBookingFolios,
   toast,
+  isLite,
+  roomsCount,
+  activeTab,
 }) => {
+  const navigate = useNavigate();
   return (
     <TabsContent value="bookings" className="space-y-4">
       {isLite && roomsCount === 0 && activeTab === 'bookings' && (
