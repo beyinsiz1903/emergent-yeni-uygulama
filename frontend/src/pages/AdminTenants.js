@@ -179,6 +179,8 @@ const AdminTenants = ({ user, tenant, onLogout }) => {
             <Button variant="outline" size="sm" onClick={loadTenants} disabled={loading}>
               Yenile
             </Button>
+            {/* TODO: Yeni otel oluşturma formu burada plan seçimi ile eklenebilir */
+
           </div>
         </div>
 
