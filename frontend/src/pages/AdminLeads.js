@@ -248,7 +248,7 @@ const AdminLeads = ({ user, tenant, onLogout }) => {
                           className="text-xs"
                         />
                       </td>
-                      <td className="px-2 py-1 align-top w-40">
+                      <td className="px-2 py-1 align-top w-48">
                         <div className="flex flex-col gap-1">
                           <Select
                             onValueChange={(val) => handleUpdate(lead.lead_id, val)}
