@@ -1909,6 +1909,8 @@ const PMSModule = ({ user, tenant, onLogout }) => {
 
           {/* BOOKINGS TAB */}
           <BookingsTab
+            bookingStats={bookingStats}
+            bookings={bookings}
             groupedBookings={groupedBookings}
             guests={guests}
             rooms={rooms}
@@ -1921,7 +1923,11 @@ const PMSModule = ({ user, tenant, onLogout }) => {
             setSelectedGuest360={setSelectedGuest360}
             setOpenDialog={setOpenDialog}
             setSelectedBooking={setSelectedBooking}
+            setSelectedBookingDetail={setSelectedBookingDetail}
             toast={toast}
+            isLite={isLite}
+            roomsCount={roomsCount}
+            activeTab={activeTab}
           />
 
           {/* UPSELL TAB */}
