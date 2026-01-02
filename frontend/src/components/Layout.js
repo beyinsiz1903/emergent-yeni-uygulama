@@ -57,7 +57,17 @@ const Layout = ({ children, user, tenant, onLogout, currentModule }) => {
       return false;
     }
 
-    // Full planlarda feature-based visibility
+    // Full planlarda görünmesi GEREKEN çekirdek item'ler
+    if (!isLite && (item.key === 'reports' || item.key === 'settings')) {
+      return true;
+    }
+
+    // Full planlarda bazı modülleri feature flag'e bakmadan gösterebiliriz
+    if (!isLite && ['invoices', 'cost_management', 'channel_manager'].includes(item.key)) {
+      return true;
+    }
+
+    // Diğer durumlarda feature-based visibility
     if (!isLite && item.feature && normalizedFeatures) {
       if (!normalizedFeatures[item.feature]) {
         return false;
