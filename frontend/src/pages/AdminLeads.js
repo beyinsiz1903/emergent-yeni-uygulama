@@ -238,6 +238,7 @@ const AdminLeads = ({ user, tenant, onLogout }) => {
                       <td className="px-2 py-1 align-top">
                         <Badge variant="outline">{statusLabel[lead.status] || lead.status}</Badge>
                       </td>
+                      <td className="px-2 py-1 align-top text-xs text-slate-300">{lastOp}</td>
                       <td className="px-2 py-1 align-top w-48">
                         <Input
                           value={notes[lead.lead_id] ?? lead.note ?? ""}
