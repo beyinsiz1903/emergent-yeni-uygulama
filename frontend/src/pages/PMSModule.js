@@ -177,6 +177,21 @@ const PMSModule = ({ user, tenant, onLogout }) => {
     return () => window.removeEventListener('hashchange', onHashChange);
   }, []);
 
+  // Handle one-time dialog open requests from onboarding (Lite only)
+  useEffect(() => {
+    if (!isLite) return;
+    if (typeof window === 'undefined' || typeof window.localStorage === 'undefined') return;
+
+    const tenantId = tenant?.id || tenant?._id || tenant?.tenant_id || 'unknown';
+    const key = `pms_open_dialog_once:${tenantId}`;
+    const val = window.localStorage.getItem(key);
+
+    if (val && activeTab === 'rooms') {
+      setOpenDialog(val);
+      window.localStorage.removeItem(key);
+    }
+  }, [isLite, tenant, activeTab]);
+
   const [newRoom, setNewRoom] = useState({
     room_number: '',
     room_type: 'standard',
