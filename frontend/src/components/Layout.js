@@ -14,7 +14,7 @@ import { Home, Hotel, FileText, TrendingUp, Award, ShoppingCart, User, LogOut, M
 import LanguageSelector from '@/components/LanguageSelector';
 import NotificationBell from '@/components/NotificationBell';
 import PushSubscriptionManager from '@/components/PushSubscriptionManager';
-import { NAV_ITEMS } from '@/config/navItems';
+import { NAV_ITEMS, PMS_LITE_NAV_KEYS } from '@/config/navItems';
 import { normalizeFeatures } from '@/utils/featureFlags';
 
 const ICON_BY_KEY = {
