@@ -43,6 +43,8 @@ const MultiPropertyDashboard = lazy(() => import("@/pages/MultiPropertyDashboard
 const HousekeepingMobileApp = lazy(() => import("@/pages/HousekeepingMobileApp"));
 const AIEnhancedPMS = lazy(() => import("@/pages/AIEnhancedPMS"));
 const Reports = lazy(() => import("@/pages/Reports"));
+const PmsLiteLanding = lazy(() => import("@/pages/PmsLiteLanding"));
+const AdminLeads = lazy(() => import("@/pages/AdminLeads"));
 const OfficialGuestList = lazy(() => import("@/pages/OfficialGuestList"));
 const MobileDashboard = lazy(() => import("@/pages/MobileDashboard"));
 const MobileHousekeeping = lazy(() => import("@/pages/MobileHousekeeping"));
