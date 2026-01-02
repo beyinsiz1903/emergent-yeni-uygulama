@@ -11,7 +11,7 @@ import time
 from datetime import datetime
 
 # Test Configuration
-BASE_URL = "https://mimari-analiz.preview.emergentagent.com"
+BASE_URL = "https://hotelflow-fix.preview.emergentagent.com"
 API_BASE_URL = f"{BASE_URL}/api"
 
 async def test_connectivity():

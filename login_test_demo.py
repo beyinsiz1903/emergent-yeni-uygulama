@@ -31,7 +31,7 @@ import sys
 from datetime import datetime, timezone
 
 # Configuration
-BASE_URL = "https://mimari-analiz.preview.emergentagent.com/api"
+BASE_URL = "https://hotelflow-fix.preview.emergentagent.com/api"
 TEST_EMAIL = "demo@hotel.com"
 TEST_PASSWORD = "demo123"
 

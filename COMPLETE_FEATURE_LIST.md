@@ -218,7 +218,7 @@
 ## 📋 QUICK START GUIDE
 
 **Login:**
-- URL: https://mimari-analiz.preview.emergentagent.com
+- URL: https://hotelflow-fix.preview.emergentagent.com
 - Demo: demo@hotel.com / demo123
 
 **New User Registration:**

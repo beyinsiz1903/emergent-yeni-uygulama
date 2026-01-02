@@ -11,7 +11,7 @@ from datetime import datetime
 import uuid
 
 # Test Configuration
-BASE_URL = "https://mimari-analiz.preview.emergentagent.com/api"
+BASE_URL = "https://hotelflow-fix.preview.emergentagent.com/api"
 
 # Test credentials to try
 TEST_CREDENTIALS = [
