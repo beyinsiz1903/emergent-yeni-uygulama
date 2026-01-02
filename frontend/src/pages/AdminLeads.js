@@ -117,6 +117,7 @@ const AdminLeads = ({ user, tenant, onLogout }) => {
                     const params = new URLSearchParams();
                     if (statusFilter) params.append("status", statusFilter);
                     if (search) params.append("q", search);
+                    if (followUpOnly) params.append("follow_up", "1");
                     const qs = params.toString();
                     const res = await fetch(`/api/admin/leads/export.csv${qs ? `?${qs}` : ""}`);
                     if (!res.ok) {
