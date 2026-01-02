@@ -1300,6 +1300,7 @@ function App() {
           <Route path="/fnb/beo-generator" element={isAuthenticated ? <Suspense fallback={<LoadingFallback />}><FnbBeoGenerator user={user} tenant={tenant} onLogout={handleLogout} /></Suspense> : <Navigate to="/auth" replace />} />
           <Route path="/kitchen-display" element={isAuthenticated ? <Suspense fallback={<LoadingFallback />}><KitchenDisplay user={user} tenant={tenant} onLogout={handleLogout} /></Suspense> : <Navigate to="/auth" replace />} />
         </Routes>
+        </PlanRouteGuard>
         </BrowserRouter>
         <NotificationCenter />
       </div>
