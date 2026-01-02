@@ -2287,7 +2287,11 @@ const PMSModule = ({ user, tenant, onLogout }) => {
                       <div className="text-sm text-gray-600">In-House</div>
                     </div>
                     <div className="text-center">
-                      <div className="text-2xl font-bold text-orange-600">${reports.dailyFlash.revenue}</div>
+                      <div className="text-2xl font-bold text-orange-600">
+                      {reports.dailyFlash?.revenue
+                        ? `$${(reports.dailyFlash.revenue.total_revenue ?? 0).toFixed(2)}`
+                        : 'Loading...'}
+                    </div>
                       <div className="text-sm text-gray-600">Revenue</div>
                     </div>
                   </div>
