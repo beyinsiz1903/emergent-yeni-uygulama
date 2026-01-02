@@ -50126,6 +50126,118 @@ async def admin_list_pms_lite_leads(
         )
 
 
+
+
+@api_router.get("/admin/leads/export.csv")
+async def admin_export_pms_lite_leads_csv(
+    status: Optional[PmsLiteLeadStatus] = None,
+    q: Optional[str] = None,
+    follow_up: Optional[bool] = False,
+    current_user: User = Depends(get_current_user),
+):
+    """Export PMS Lite marketing leads as CSV for super admin."""
+    if current_user.role != UserRole.SUPER_ADMIN:
+        raise HTTPException(status_code=403, detail="Only super_admin can export leads")
+
+    from io import StringIO
+    import csv
+
+    query: Dict[str, Any] = {"source": "pms_lite_landing"}
+    if status:
+        query["status"] = status.value
+
+    if q:
+        regex = {"$regex": q, "$options": "i"}
+        query["$or"] = [
+            {"contact.full_name": regex},
+            {"contact.phone": regex},
+            {"contact.email": regex},
+            {"hotel.property_name": regex},
+            {"hotel.location": regex},
+        ]
+
+    docs: List[Dict[str, Any]] = []
+    async for lead in db.leads.find(query):
+        docs.append(lead)
+
+    now = datetime.now(timezone.utc)
+
+    if follow_up:
+        filtered: List[Dict[str, Any]] = []
+        for lead in docs:
+            s = lead.get("status", "new")
+            created = _parse_iso_dt(lead.get("created_at"))
+            last_contact = _parse_iso_dt(lead.get("last_contact_at"))
+
+            if s not in {"new", "contacted", "qualified"}:
+                continue
+
+            if s == "new":
+                if not created:
+                    continue
+                if (now - created).total_seconds() < 3600:
+                    continue
+                filtered.append(lead)
+            else:
+                cutoff = 24 * 3600
+                base = last_contact or created
+                if not base:
+                    continue
+                if (now - base).total_seconds() > cutoff:
+                    filtered.append(lead)
+        docs = filtered
+
+    output = StringIO()
+    # BOM for Excel UTF-8
+    output.write("\ufeff")
+    writer = csv.writer(output)
+
+    headers = [
+        "created_at",
+        "status",
+        "full_name",
+        "phone",
+        "email",
+        "property_name",
+        "location",
+        "rooms_count",
+        "lead_id",
+        "note",
+        "last_contact_at",
+        "status_changed_at",
+    ]
+    writer.writerow(headers)
+
+    for lead in docs:
+        contact = lead.get("contact", {})
+        hotel = lead.get("hotel", {})
+        row = [
+            lead.get("created_at") or "",
+            lead.get("status") or "",
+            contact.get("full_name") or "",
+            contact.get("phone") or "",
+            contact.get("email") or "",
+            hotel.get("property_name") or "",
+            hotel.get("location") or "",
+            hotel.get("rooms_count") or "",
+            lead.get("lead_id") or lead.get("id") or "",
+            lead.get("note") or "",
+            lead.get("last_contact_at") or "",
+            lead.get("status_changed_at") or "",
+        ]
+        writer.writerow(row)
+
+    csv_content = output.getvalue()
+    from fastapi.responses import Response
+
+    return Response(
+        content=csv_content,
+        media_type="text/csv; charset=utf-8",
+        headers={
+            "Content-Disposition": "attachment; filename=\"pms-lite-leads.csv\"",
+        },
+    )
+
 def _parse_iso_dt(value: Optional[str]) -> Optional[datetime]:
     if not value:
         return None
