@@ -60,6 +60,7 @@ const AdminLeads = ({ user, tenant, onLogout }) => {
       const params = new URLSearchParams();
       if (statusFilter) params.append("status", statusFilter);
       if (search) params.append("q", search);
+      if (followUpOnly) params.append("follow_up", "1");
       const res = await axios.get(`/admin/leads?${params.toString()}`);
       setLeads(res.data?.leads || []);
     } catch (e) {
