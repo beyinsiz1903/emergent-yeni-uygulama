@@ -603,7 +603,7 @@ const AgencyRequests = () => {
               )}
             </Button>
           </DialogFooter>
-        </Dialog>
+        </DialogContent>
       </Dialog>
     </div>
   );
