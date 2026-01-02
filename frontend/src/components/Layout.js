@@ -81,9 +81,11 @@ const Layout = ({ children, user, tenant, onLogout, currentModule }) => {
       return true;
     }
 
-    // Diğer durumlarda feature-based visibility
+    // Diğer durumlarda feature-based visibility (alias destekli)
     if (!isLite && item.feature && normalizedFeatures) {
-      if (!normalizedFeatures[item.feature]) {
+      const keys = FEATURE_ALIASES[item.feature] || [item.feature];
+      const ok = keys.some((k) => !!normalizedFeatures[k]);
+      if (!ok) {
         return false;
       }
     }
