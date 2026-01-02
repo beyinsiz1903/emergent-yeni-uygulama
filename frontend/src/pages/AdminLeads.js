@@ -224,9 +224,8 @@ const AdminLeads = ({ user, tenant, onLogout }) => {
                   </tr>
                 )}
                 {leads.map((lead) => {
-                  const created = lead.created_at
-                    ? new Date(lead.created_at).toLocaleString("tr-TR")
-                    : "-";
+                  const created = fmtDate(lead.created_at);
+                  const lastOp = fmtDate(lead.last_contact_at || lead.status_changed_at);
                   return (
                     <tr key={lead.lead_id} className="border-b last:border-0">
                       <td className="px-2 py-1 align-top whitespace-nowrap">{created}</td>
