@@ -23,6 +23,29 @@ const Layout = ({ children, user, tenant, onLogout, currentModule }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const navScrollRef = useRef(null);
 
+  // Normalize feature flags from tenant.features (supports both core_* and lite keys)
+  const normalizedFeatures = normalizeFeatures(tenant?.features || {});
+
+  // Filter navigation items based on feature flags and super admin rules
+  const navigation = NAV_ITEMS.filter((item) => {
+    // Super admin only items
+    if (item.requireSuperAdmin && user?.role !== 'super_admin') {
+      return false;
+    }
+
+    // Feature-based visibility
+    if (item.feature && normalizedFeatures) {
+      if (!normalizedFeatures[item.feature]) {
+        return false;
+      }
+    }
+
+    return true;
+  }).map((item) => ({
+    ...item,
+    name: item.i18nKey ? t(item.i18nKey) : item.label,
+  }));
+
   // Debug logging
   useEffect(() => {
     console.log('🔍 Layout Debug - User Info:', {
