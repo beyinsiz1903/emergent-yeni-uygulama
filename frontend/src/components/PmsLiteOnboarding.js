@@ -20,6 +20,28 @@ export default function PmsLiteOnboarding({ tenant }) {
     typeof window.localStorage !== "undefined" &&
     window.localStorage.getItem(key) === "true";
 
+  const [status, setStatus] = useState({ rooms_count: 0, bookings_count: 0 });
+  const [loading, setLoading] = useState(true);
+  const [step2Done, setStep2Done] = useState(false);
+
+  useEffect(() => {
+    const loadStatus = async () => {
+      try {
+        const res = await axios.get("/pms/setup-status");
+        setStatus({
+          rooms_count: res.data?.rooms_count ?? 0,
+          bookings_count: res.data?.bookings_count ?? 0,
+        });
+      } catch (e) {
+        console.warn("Failed to load PMS setup status", e);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadStatus();
+  }, []);
+
   const [step, setStep] = useState(1);
 
   if (done) return null;
