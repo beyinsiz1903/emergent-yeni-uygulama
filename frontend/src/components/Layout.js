@@ -51,6 +51,7 @@ const Layout = ({ children, user, tenant, onLogout, currentModule }) => {
   // Normalize feature flags from tenant.features (supports both core_* and lite keys)
   const normalizedFeatures = normalizeFeatures(tenant?.features || {});
 
+  // --- PLAN / ROLE NORMALIZATION ---
   const plan =
     tenant?.subscription_plan ||
     tenant?.plan ||
@@ -58,52 +59,91 @@ const Layout = ({ children, user, tenant, onLogout, currentModule }) => {
     'core_small_hotel';
 
   const isLite = plan === 'pms_lite';
+  const isSuperAdmin = user?.role === 'super_admin';
 
-  // Filter navigation items based on plan, feature flags and super admin rules
-  const navigation = NAV_ITEMS.filter((item) => {
-    // Lite planda sadece whitelist key'ler görünsün
-    if (isLite && !PMS_LITE_NAV_KEYS.has(item.key)) {
-      return false;
-    }
+  // --- HARD RULES ---
+  // PMS Lite: sadece whitelist
+  const LITE_KEYS = new Set([
+    'dashboard',
+    'reservation_calendar',
+    'pms',
+    'reports',
+    'settings',
+    // Eğer NAV_ITEMS'te bookings/guests gibi ayrı item'ler varsa buraya eklenebilir
+    // 'bookings',
+    // 'guests',
+  ]);
 
-    // Super admin only items
-    if (item.requireSuperAdmin && user?.role !== 'super_admin') {
-      return false;
-    }
+  // Full plan + normal admin: gizlenecek modüller
+  const HIDE_FOR_ADMIN = new Set([
+    'rms',
+    'invoices',
+    'cost_management',
+    'channel_manager',
+    'marketplace',
+    'ai',
+    'admin_leads', // sadece super_admin görsün
+  ]);
 
-    // Super admin (full plan) için tüm modüller görünsün
-    if (!isLite && user?.role === 'super_admin') {
-      return true;
-    }
+  // Full planlarda her zaman görünmesi gereken çekirdek menüler
+  const CORE_ALWAYS_ON = new Set([
+    'dashboard',
+    'reservation_calendar',
+    'pms',
+    'reports',
+    'settings',
+  ]);
 
-    // Full planlarda görünmesi GEREKEN çekirdek item'ler
-    // Dashboard + PMS + Reports + Settings her zaman görünsün (feature flag'e bağımlı değil)
-    if (
-      !isLite &&
-      (item.key === 'dashboard' || item.key === 'pms' || item.key === 'reports' || item.key === 'settings')
-    ) {
-      return true;
-    }
+  // --- FEATURE CHECK helper (alias destekli) ---
+  const hasFeature = (featureKey) => {
+    if (!featureKey) return true;
 
-    // Full planlarda bazı modülleri feature flag'e bakmadan gösterebiliriz
-    if (!isLite && ['invoices', 'cost_management', 'channel_manager'].includes(item.key)) {
-      return true;
-    }
+    if (CORE_ALWAYS_ON.has(featureKey)) return true;
 
-    // Diğer durumlarda feature-based visibility (alias destekli)
-    if (!isLite && item.feature && normalizedFeatures) {
-      const keys = FEATURE_ALIASES[item.feature] || [item.feature];
-      const ok = keys.some((k) => !!normalizedFeatures[k]);
-      if (!ok) {
+    const keys = FEATURE_ALIASES[featureKey] || [featureKey];
+    return keys.some((k) => !!normalizedFeatures[k]);
+  };
+
+  // --- FINAL NAV FILTER ---
+  const navigation = NAV_ITEMS
+    .filter((item) => {
+      // 1) PMS Lite → sadece whitelist
+      if (isLite) {
+        return LITE_KEYS.has(item.key);
+      }
+
+      // 2) Super admin (full) → her şey serbest
+      if (isSuperAdmin) {
+        return true;
+      }
+
+      // 3) Normal admin (full) → bazı modülleri gizle
+      if (HIDE_FOR_ADMIN.has(item.key)) {
         return false;
       }
-    }
 
-    return true;
-  }).map((item) => ({
-    ...item,
-    name: item.i18nKey ? t(item.i18nKey) : item.label,
-  }));
+      // 4) Full planlarda çekirdek menüler → her zaman görünür
+      if (CORE_ALWAYS_ON.has(item.key)) {
+        return true;
+      }
+
+      // 5) requireSuperAdmin → super_admin değilse gizle
+      if (item.requireSuperAdmin) {
+        return false;
+      }
+
+      // 6) Geri kalanlar → feature flag (alias destekli)
+      if (item.feature) {
+        return hasFeature(item.feature);
+      }
+
+      // 7) Default: göster
+      return true;
+    })
+    .map((item) => ({
+      ...item,
+      name: item.i18nKey ? t(item.i18nKey) : item.label,
+    }));
 
   // Debug logging
   useEffect(() => {
