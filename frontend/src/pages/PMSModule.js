@@ -1572,36 +1572,6 @@ const PMSModule = ({ user, tenant, onLogout }) => {
         </Card>
 
 
-        {/* PMS Lite için izinli sekmeler */}
-        {/* NOT: Bu sabitler JSX dışında tanımlanmalı, bu blok hatalı. Düzeltilmiş versiyon aşağıda tekrar eklenecek. */}
-        const LITE_TABS = new Set([
-          'frontdesk',
-          'housekeeping',
-          'rooms',
-          'guests',
-          'bookings',
-          'reports',
-        ]);
-
-        const allTabs = [
-          { key: 'frontdesk', label: t('pms.frontDesk'), icon: UserCheck, testId: 'tab-frontdesk' },
-          { key: 'housekeeping', label: t('pms.housekeeping'), icon: ClipboardList, testId: 'tab-housekeeping' },
-          { key: 'rooms', label: t('pms.rooms'), icon: BedDouble, testId: 'tab-rooms' },
-          { key: 'guests', label: t('pms.guests'), icon: Users, testId: 'tab-guests' },
-          { key: 'bookings', label: t('pms.bookings'), icon: Calendar, testId: 'tab-bookings' },
-          { key: 'upsell', label: '🤖 Upsell', icon: TrendingUp, testId: 'tab-upsell' },
-          { key: 'messaging', label: '💬 Messages', icon: null, testId: 'tab-messaging' },
-          { key: 'reports', label: t('pms.reports'), icon: FileText, testId: 'tab-reports' },
-          { key: 'tasks', label: '🔧 Tasks', icon: null, testId: 'tab-tasks' },
-          { key: 'feedback', label: '⭐ Feedback', icon: null, testId: 'tab-feedback' },
-          { key: 'allotment', label: '🏢 Allotment', icon: null, testId: 'tab-allotment' },
-          { key: 'pos', label: '🍽️ POS', icon: null, testId: 'tab-pos' },
-        ];
-
-        const visibleTabs = isLite
-          ? allTabs.filter((tab) => LITE_TABS.has(tab.key))
-          : allTabs;
-
         <Tabs
           value={activeTab}
           className="w-full"
