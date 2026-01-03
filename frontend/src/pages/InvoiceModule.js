@@ -243,7 +243,7 @@ const InvoiceModule = ({ user, tenant, onLogout }) => {
       await axios.post('/accounting/invoices', null, { params: newInvoice });
       toast.success('Invoice created successfully');
       setOpenDialog(null);
-      loadData();
+      // Refresh handled by main effect or page reload
     } catch (error) {
       toast.error('Failed to create invoice');
     }
