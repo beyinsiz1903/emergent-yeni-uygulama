@@ -202,12 +202,20 @@ const PMSModule = ({ user, tenant, onLogout }) => {
   useEffect(() => {
     const onHashChange = () => {
       const hash = window.location.hash.replace('#', '');
+
+      // Lite planda izinli olmayan bir hash gelirse frontdesk'e dön
+      if (isLite && hash && !LITE_TABS.has(hash)) {
+        setActiveTab('frontdesk');
+        window.location.hash = 'frontdesk';
+        return;
+      }
+
       setActiveTab(hash || 'frontdesk');
     };
 
     window.addEventListener('hashchange', onHashChange);
     return () => window.removeEventListener('hashchange', onHashChange);
-  }, []);
+  }, [isLite]);
 
   // Handle one-time dialog open requests from onboarding (Lite only)
   useEffect(() => {
