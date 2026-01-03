@@ -311,10 +311,41 @@ const InvoiceModule = ({ user, tenant, onLogout }) => {
     }
   };
 
+  // Props guard - user/tenant eksikken beyaz ekran yerine güvenli yükleme mesajı
+  if (!user || !tenant) {
+    return (
+      <Layout user={user} tenant={tenant} onLogout={onLogout} currentModule="invoices">
+        <div className="p-6 text-sm text-slate-600">Yükleniyor...</div>
+      </Layout>
+    );
+  }
+
+  // Role guard - sadece super_admin erişsin
+  if (user.role !== 'super_admin') {
+    return (
+      <Layout user={user} tenant={tenant} onLogout={onLogout} currentModule="invoices">
+        <div className="p-6 text-sm text-slate-600">Bu modüle erişim yetkiniz yok.</div>
+      </Layout>
+    );
+  }
+
   if (loading) {
     return (
       <Layout user={user} tenant={tenant} onLogout={onLogout} currentModule="invoices">
         <div className="p-6 text-center">Loading...</div>
+      </Layout>
+    );
+  }
+
+  if (fatal) {
+    return (
+      <Layout user={user} tenant={tenant} onLogout={onLogout} currentModule="invoices">
+        <div className="p-6 space-y-2">
+          <div className="text-sm font-medium text-red-600">Fatura modülü açılırken hata oluştu</div>
+          <pre className="text-xs bg-slate-950/80 text-slate-200 p-3 rounded-md overflow-auto">
+            {String(fatal)}
+          </pre>
+        </div>
       </Layout>
     );
   }
