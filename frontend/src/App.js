@@ -510,6 +510,18 @@ function App() {
             }
           />
           <Route
+            path="/app/invoices"
+            element={
+              isAuthenticated && hasFeature('hidden_invoices_accounting') ? (
+                <InvoiceModule user={user} tenant={tenant} onLogout={handleLogout} />
+              ) : isAuthenticated ? (
+                <Navigate to="/" replace />
+              ) : (
+                <Navigate to="/auth" replace />
+              )
+            }
+          />
+          <Route
             path="/rms"
             element={
               isAuthenticated && hasFeature('hidden_rms') ? (
@@ -522,7 +534,29 @@ function App() {
             }
           />
           <Route
+            path="/app/rms"
+            element={
+              isAuthenticated && hasFeature('hidden_rms') ? (
+                <RMSModule user={user} tenant={tenant} onLogout={handleLogout} />
+              ) : isAuthenticated ? (
+                <Navigate to="/" replace />
+              ) : (
+                <Navigate to="/auth" replace />
+              )
+            }
+          />
+          <Route
             path="/channel-manager"
+            element={
+              isAuthenticated ? (
+                <ChannelManagerModule user={user} tenant={tenant} onLogout={handleLogout} />
+              ) : (
+                <Navigate to="/auth" replace />
+              )
+            }
+          />
+          <Route
+            path="/app/channel-manager"
             element={
               isAuthenticated ? (
                 <ChannelManagerModule user={user} tenant={tenant} onLogout={handleLogout} />
@@ -1101,6 +1135,16 @@ function App() {
           />
           <Route
             path="/cost-management"
+            element={
+              isAuthenticated ? (
+                <CostManagement user={user} tenant={tenant} onLogout={handleLogout} />
+              ) : (
+                <Navigate to="/auth" replace />
+              )
+            }
+          />
+          <Route
+            path="/app/cost-management"
             element={
               isAuthenticated ? (
                 <CostManagement user={user} tenant={tenant} onLogout={handleLogout} />
