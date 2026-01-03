@@ -268,7 +268,7 @@ const InvoiceModule = ({ user, tenant, onLogout }) => {
       await axios.post('/accounting/suppliers', null, { params: newSupplier });
       toast.success('Supplier added');
       setOpenDialog(null);
-      loadData();
+      // Refresh handled by main effect
       setNewSupplier({ name: '', tax_office: '', tax_number: '', email: '', phone: '', address: '', category: 'general' });
     } catch (error) {
       toast.error('Failed to create supplier');
