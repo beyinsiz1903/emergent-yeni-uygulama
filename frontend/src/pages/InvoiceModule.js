@@ -18,6 +18,7 @@ import {
 
 const InvoiceModule = ({ user, tenant, onLogout }) => {
   const { t } = useTranslation();
+  const [fatal, setFatal] = useState(null);
   const [invoices, setInvoices] = useState([]);
   const [expenses, setExpenses] = useState([]);
   const [suppliers, setSuppliers] = useState([]);
