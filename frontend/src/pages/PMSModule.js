@@ -1608,15 +1608,17 @@ const PMSModule = ({ user, tenant, onLogout }) => {
           onValueChange={(v) => {
             // Sekme değeri hemen değişsin (UI anında tepki versin)
             setActiveTab(v);
+            window.location.hash = v;
           }}
         >
           <TabsList className="grid w-full grid-cols-12 gap-1">
             {visibleTabs.map((tab) => {
               const Icon = tab.icon;
+              const label = tab.labelKey ? t(tab.labelKey) : tab.labelText;
               return (
                 <TabsTrigger key={tab.key} value={tab.key} data-testid={tab.testId}>
                   {Icon ? <Icon className="w-4 h-4 mr-2" /> : null}
-                  {tab.label}
+                  {label}
                 </TabsTrigger>
               );
             })}
