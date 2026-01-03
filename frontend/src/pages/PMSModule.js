@@ -1532,6 +1532,35 @@ const PMSModule = ({ user, tenant, onLogout }) => {
         </Card>
 
 
+        {/* PMS Lite için izinli sekmeler */}
+        const LITE_TABS = new Set([
+          'frontdesk',
+          'housekeeping',
+          'rooms',
+          'guests',
+          'bookings',
+          'reports',
+        ]);
+
+        const allTabs = [
+          { key: 'frontdesk', label: t('pms.frontDesk'), icon: UserCheck, testId: 'tab-frontdesk' },
+          { key: 'housekeeping', label: t('pms.housekeeping'), icon: ClipboardList, testId: 'tab-housekeeping' },
+          { key: 'rooms', label: t('pms.rooms'), icon: BedDouble, testId: 'tab-rooms' },
+          { key: 'guests', label: t('pms.guests'), icon: Users, testId: 'tab-guests' },
+          { key: 'bookings', label: t('pms.bookings'), icon: Calendar, testId: 'tab-bookings' },
+          { key: 'upsell', label: '🤖 Upsell', icon: TrendingUp, testId: 'tab-upsell' },
+          { key: 'messaging', label: '💬 Messages', icon: null, testId: 'tab-messaging' },
+          { key: 'reports', label: t('pms.reports'), icon: FileText, testId: 'tab-reports' },
+          { key: 'tasks', label: '🔧 Tasks', icon: null, testId: 'tab-tasks' },
+          { key: 'feedback', label: '⭐ Feedback', icon: null, testId: 'tab-feedback' },
+          { key: 'allotment', label: '🏢 Allotment', icon: null, testId: 'tab-allotment' },
+          { key: 'pos', label: '🍽️ POS', icon: null, testId: 'tab-pos' },
+        ];
+
+        const visibleTabs = isLite
+          ? allTabs.filter((tab) => LITE_TABS.has(tab.key))
+          : allTabs;
+
         <Tabs
           value={activeTab}
           className="w-full"
@@ -1541,49 +1570,15 @@ const PMSModule = ({ user, tenant, onLogout }) => {
           }}
         >
           <TabsList className="grid w-full grid-cols-12 gap-1">
-            <TabsTrigger value="frontdesk" data-testid="tab-frontdesk">
-              <UserCheck className="w-4 h-4 mr-2" />
-              {t('pms.frontDesk')}
-            </TabsTrigger>
-            <TabsTrigger value="housekeeping" data-testid="tab-housekeeping">
-              <ClipboardList className="w-4 h-4 mr-2" />
-              {t('pms.housekeeping')}
-            </TabsTrigger>
-            <TabsTrigger value="rooms" data-testid="tab-rooms">
-              <BedDouble className="w-4 h-4 mr-2" />
-              {t('pms.rooms')}
-            </TabsTrigger>
-            <TabsTrigger value="guests" data-testid="tab-guests">
-              <Users className="w-4 h-4 mr-2" />
-              {t('pms.guests')}
-            </TabsTrigger>
-            <TabsTrigger value="bookings" data-testid="tab-bookings">
-              <Calendar className="w-4 h-4 mr-2" />
-              {t('pms.bookings')}
-            </TabsTrigger>
-            <TabsTrigger value="upsell" data-testid="tab-upsell">
-              <TrendingUp className="w-4 h-4 mr-2" />
-              🤖 Upsell
-            </TabsTrigger>
-            <TabsTrigger value="messaging" data-testid="tab-messaging">
-              💬 Messages
-            </TabsTrigger>
-            <TabsTrigger value="reports" data-testid="tab-reports">
-              <FileText className="w-4 h-4 mr-2" />
-              {t('pms.reports')}
-            </TabsTrigger>
-            <TabsTrigger value="tasks" data-testid="tab-tasks">
-              🔧 Tasks
-            </TabsTrigger>
-            <TabsTrigger value="feedback" data-testid="tab-feedback">
-              ⭐ Feedback
-            </TabsTrigger>
-            <TabsTrigger value="allotment" data-testid="tab-allotment">
-              🏢 Allotment
-            </TabsTrigger>
-            <TabsTrigger value="pos" data-testid="tab-pos">
-              🍽️ POS
-            </TabsTrigger>
+            {visibleTabs.map((tab) => {
+              const Icon = tab.icon;
+              return (
+                <TabsTrigger key={tab.key} value={tab.key} data-testid={tab.testId}>
+                  {Icon ? <Icon className="w-4 h-4 mr-2" /> : null}
+                  {tab.label}
+                </TabsTrigger>
+              );
+            })}
           </TabsList>
 
           {/* FRONT DESK TAB */}
