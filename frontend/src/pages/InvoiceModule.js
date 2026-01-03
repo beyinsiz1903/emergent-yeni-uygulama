@@ -281,7 +281,7 @@ const InvoiceModule = ({ user, tenant, onLogout }) => {
       await axios.post('/accounting/bank-accounts', null, { params: newBankAccount });
       toast.success('Bank account added');
       setOpenDialog(null);
-      loadData();
+      // Refresh handled by main effect
       setNewBankAccount({ name: '', bank_name: '', account_number: '', iban: '', currency: 'USD', balance: 0 });
     } catch (error) {
       toast.error('Failed to create bank account');
