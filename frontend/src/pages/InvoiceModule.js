@@ -305,7 +305,7 @@ const InvoiceModule = ({ user, tenant, onLogout }) => {
     try {
       await axios.put(`/accounting/invoices/${invoiceId}`, { status: newStatus });
       toast.success('Invoice status updated');
-      loadData();
+      // Refresh handled by main effect or manual reload
     } catch (error) {
       toast.error('Failed to update');
     }
