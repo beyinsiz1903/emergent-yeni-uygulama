@@ -1335,6 +1335,30 @@
 
    -agent: "testing"
    -message: |
+       🏨 LAYOUT.JS NAV FILTER & ROLE-BASED MENU VISIBILITY TEST STARTED
+       
+       **TEST OBJECTIVE:** Test new Layout.js navigation filter for role & plan-based menu visibility and problematic module access
+       **BASE URL:** https://hotelflow-fix.preview.emergentagent.com
+       **DATE:** January 3, 2026
+       **TIME:** 08:35 UTC
+       
+       **TESTING SCENARIOS:**
+       
+       **Scenario 1: Full plan + admin (demo@hotel.com / demo123)**
+       - Expected visible: Dashboard, PMS, Reservation Calendar, Reports, Settings (CORE_ALWAYS_ON)
+       - Expected hidden: RMS, Invoices, Cost Management, Channel Manager, Marketplace, AI, Leads
+       
+       **Scenario 2: PMS Lite plan tenant (if available)**
+       - Expected visible: Dashboard, Reservation Calendar, PMS, Reports, Settings (LITE_KEYS only)
+       - Expected hidden: All advanced modules
+       
+       **CRITICAL REQUIREMENTS:**
+       - Invoices/Fatura menu item should NOT be visible for admin users
+       - No white screen or React error overlay when clicking menu items
+       - Proper role-based filtering implementation verification
+
+   -agent: "testing"
+   -message: |
        🏨 PMS BULK ROOM CREATION & HEADER TRUNCATION TEST COMPLETED - MIXED RESULTS ⚠️
        
        **TEST OBJECTIVE:** Playwright UI test for two improvements:
