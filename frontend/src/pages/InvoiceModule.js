@@ -255,7 +255,7 @@ const InvoiceModule = ({ user, tenant, onLogout }) => {
       await axios.post('/accounting/expenses', null, { params: newExpense });
       toast.success('Expense recorded');
       setOpenDialog(null);
-      loadData();
+      // Refresh handled by main effect
       setNewExpense({ category: 'supplies', description: '', amount: 0, vat_rate: 18, date: new Date().toISOString().split('T')[0], supplier_id: '', payment_method: 'cash', notes: '' });
     } catch (error) {
       toast.error('Failed to create expense');
