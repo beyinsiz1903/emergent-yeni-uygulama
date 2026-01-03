@@ -1533,6 +1533,7 @@ const PMSModule = ({ user, tenant, onLogout }) => {
 
 
         {/* PMS Lite için izinli sekmeler */}
+        {/* NOT: Bu sabitler JSX dışında tanımlanmalı, bu blok hatalı. Düzeltilmiş versiyon aşağıda tekrar eklenecek. */}
         const LITE_TABS = new Set([
           'frontdesk',
           'housekeeping',
