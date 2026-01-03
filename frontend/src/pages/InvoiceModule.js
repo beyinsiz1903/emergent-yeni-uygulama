@@ -294,7 +294,7 @@ const InvoiceModule = ({ user, tenant, onLogout }) => {
       await axios.post('/accounting/inventory', null, { params: newInventoryItem });
       toast.success('Inventory item added');
       setOpenDialog(null);
-      loadData();
+      // Refresh handled by main effect
       setNewInventoryItem({ name: '', category: 'supplies', unit: 'piece', quantity: 0, unit_cost: 0, reorder_level: 10, sku: '' });
     } catch (error) {
       toast.error('Failed to create item');
