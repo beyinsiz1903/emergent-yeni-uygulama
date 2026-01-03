@@ -1146,7 +1146,7 @@ const InvoiceModule = ({ user, tenant, onLogout }) => {
                 <Select value={newExpense.supplier_id} onValueChange={(v) => setNewExpense({...newExpense, supplier_id: v})}>
                   <SelectTrigger><SelectValue placeholder="Select supplier" /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">None</SelectItem>
+                    <SelectItem value="none">None</SelectItem>
                     {suppliers.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
                   </SelectContent>
                 </Select>
