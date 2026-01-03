@@ -160,10 +160,42 @@ const PMSModule = ({ user, tenant, onLogout }) => {
     hkEfficiency: null
   });
   
-  // Active tab state - check URL hash on mount
+  // PMS Lite için izinli sekmeler
+  const LITE_TABS = new Set([
+    'frontdesk',
+    'housekeeping',
+    'rooms',
+    'guests',
+    'bookings',
+    'reports',
+  ]);
+
+  const ALL_TABS = [
+    { key: 'frontdesk', labelKey: 'pms.frontDesk', icon: UserCheck, testId: 'tab-frontdesk' },
+    { key: 'housekeeping', labelKey: 'pms.housekeeping', icon: ClipboardList, testId: 'tab-housekeeping' },
+    { key: 'rooms', labelKey: 'pms.rooms', icon: BedDouble, testId: 'tab-rooms' },
+    { key: 'guests', labelKey: 'pms.guests', icon: Users, testId: 'tab-guests' },
+    { key: 'bookings', labelKey: 'pms.bookings', icon: Calendar, testId: 'tab-bookings' },
+    { key: 'upsell', labelText: '🤖 Upsell', icon: TrendingUp, testId: 'tab-upsell' },
+    { key: 'messaging', labelText: '💬 Messages', icon: null, testId: 'tab-messaging' },
+    { key: 'reports', labelKey: 'pms.reports', icon: FileText, testId: 'tab-reports' },
+    { key: 'tasks', labelText: '🔧 Tasks', icon: null, testId: 'tab-tasks' },
+    { key: 'feedback', labelText: '⭐ Feedback', icon: null, testId: 'tab-feedback' },
+    { key: 'allotment', labelText: '🏢 Allotment', icon: null, testId: 'tab-allotment' },
+    { key: 'pos', labelText: '🍽️ POS', icon: null, testId: 'tab-pos' },
+  ];
+
+  const visibleTabs = isLite
+    ? ALL_TABS.filter((tab) => LITE_TABS.has(tab.key))
+    : ALL_TABS;
+
+  // Active tab state - check URL hash on mount (Lite'ta izinli olmayan hash gelirse frontdesk'e zorla)
   const [activeTab, setActiveTab] = useState(() => {
     const hash = window.location.hash.replace('#', '');
-    return hash || 'frontdesk';
+    if (hash && (!isLite || LITE_TABS.has(hash))) {
+      return hash;
+    }
+    return 'frontdesk';
   });
 
   // Hash change listener so that navigation with #tab updates the UI
