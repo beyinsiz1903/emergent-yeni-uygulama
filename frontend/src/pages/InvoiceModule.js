@@ -94,32 +94,40 @@ const InvoiceModule = ({ user, tenant, onLogout }) => {
   });
 
   useEffect(() => {
-    loadData();
-  }, []);
+    let mounted = true;
+    const loadData = async () => {
+      try {
+        const [invoicesRes, expensesRes, suppliersRes, bankRes, inventoryRes, dashRes] = await Promise.all([
+          axios.get('/accounting/invoices'),
+          axios.get('/accounting/expenses'),
+          axios.get('/accounting/suppliers'),
+          axios.get('/accounting/bank-accounts'),
+          axios.get('/accounting/inventory'),
+          axios.get('/accounting/dashboard')
+        ]);
+        
+        if (!mounted) return;
+        setInvoices(invoicesRes.data || []);
+        setExpenses(expensesRes.data || []);
+        setSuppliers(suppliersRes.data || []);
+        setBankAccounts(bankRes.data || []);
+        setInventory(inventoryRes.data?.items || []);
+        setDashboard(dashRes.data || null);
+      } catch (error) {
+        if (!mounted) return;
+        console.error('InvoiceModule loadData error:', error);
+        setFatal(error?.message || 'Failed to load accounting data');
+        toast.error('Failed to load accounting data');
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    };
 
-  const loadData = async () => {
-    try {
-      const [invoicesRes, expensesRes, suppliersRes, bankRes, inventoryRes, dashRes] = await Promise.all([
-        axios.get('/accounting/invoices'),
-        axios.get('/accounting/expenses'),
-        axios.get('/accounting/suppliers'),
-        axios.get('/accounting/bank-accounts'),
-        axios.get('/accounting/inventory'),
-        axios.get('/accounting/dashboard')
-      ]);
-      
-      setInvoices(invoicesRes.data);
-      setExpenses(expensesRes.data);
-      setSuppliers(suppliersRes.data);
-      setBankAccounts(bankRes.data);
-      setInventory(inventoryRes.data.items || []);
-      setDashboard(dashRes.data);
-    } catch (error) {
-      toast.error('Failed to load accounting data');
-    } finally {
-      setLoading(false);
-    }
-  };
+    loadData();
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   const loadCashFlow = async () => {
     try {
