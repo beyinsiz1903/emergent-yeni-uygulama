@@ -500,10 +500,12 @@ function App() {
           <Route
             path="/invoices"
             element={
-              isAuthenticated && hasFeature('hidden_invoices_accounting') ? (
-                <InvoiceModule user={user} tenant={tenant} onLogout={handleLogout} />
+              isAuthenticated && user?.role === 'super_admin' ? (
+                <Suspense fallback={<LoadingFallback />}>
+                  <InvoiceModule user={user} tenant={tenant} onLogout={handleLogout} />
+                </Suspense>
               ) : isAuthenticated ? (
-                <Navigate to="/" replace />
+                <Navigate to="/app/dashboard" replace />
               ) : (
                 <Navigate to="/auth" replace />
               )
@@ -512,10 +514,12 @@ function App() {
           <Route
             path="/app/invoices"
             element={
-              isAuthenticated && hasFeature('hidden_invoices_accounting') ? (
-                <InvoiceModule user={user} tenant={tenant} onLogout={handleLogout} />
+              isAuthenticated && user?.role === 'super_admin' ? (
+                <Suspense fallback={<LoadingFallback />}>
+                  <InvoiceModule user={user} tenant={tenant} onLogout={handleLogout} />
+                </Suspense>
               ) : isAuthenticated ? (
-                <Navigate to="/" replace />
+                <Navigate to="/app/dashboard" replace />
               ) : (
                 <Navigate to="/auth" replace />
               )
