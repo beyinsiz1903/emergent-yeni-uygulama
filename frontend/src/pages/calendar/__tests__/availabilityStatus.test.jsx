@@ -12,6 +12,7 @@ import {
   findCalendarConflicts,
   getCellOccupancyTint,
   isRoomOccupiedOnDay,
+  getActiveBookingsForRoomOnDate,
 } from '../calendarHelpers';
 
 describe('normalizeOccupancyStatus', () => {
@@ -147,6 +148,22 @@ describe('same-day room turnover', () => {
     ], [room]);
 
     expect(conflicts).toEqual([]);
+  });
+
+  it('dolu hücreye bırakıldığında, çıkış yapan eski kaydı değil o geceki takas adayını seçer', () => {
+    const bookings = [
+      {
+        id: 'departing-stay', room_id: 'room-102', status: 'confirmed',
+        check_in: '2026-09-04T14:00:00+03:00', check_out: '2026-09-05T12:00:00+03:00',
+      },
+      {
+        id: 'arriving-stay', room_id: 'room-102', status: 'confirmed',
+        check_in: '2026-09-05T14:00:00+03:00', check_out: '2026-09-06T12:00:00+03:00',
+      },
+    ];
+
+    expect(getActiveBookingsForRoomOnDate('room-102', '2026-09-05', bookings))
+      .toEqual([bookings[1]]);
   });
 
   it('aynı geceyi paylaşan aktif rezervasyonları çakışma olarak raporlar', () => {
