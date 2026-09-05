@@ -212,6 +212,56 @@ async def test_dispatch_missing_data_dead_and_alert(tenant, monkeypatch):
     assert "birth_date" not in alert["missing_fields"]
 
 
+async def test_auto_enqueue_blocks_checkout_without_confirmed_checkin(tenant, monkeypatch):
+    """Onaylanmamış girişten sonra otomatik çıkış işi açılmaz."""
+    from core import kbs_auto_enqueue
+    from core.tenant_db import get_system_db, tenant_context
+
+    monkeypatch.delenv("KBS_AUTO_ENQUEUE", raising=False)
+    sys_db = get_system_db()
+    booking_id = str(uuid.uuid4())
+    guest_id = str(uuid.uuid4())
+    with tenant_context(tenant):
+        await sys_db.bookings.insert_one(
+            {
+                "tenant_id": tenant,
+                "id": booking_id,
+                "guest_id": guest_id,
+                "guest_name": "KBS Kaydı Bekleyen Misafir",
+                "guest_nationality": "TC",
+                "room_number": "107",
+                "check_in": "2026-09-05T14:00:00+03:00",
+                "check_out": "2026-09-06T12:00:00+03:00",
+                "status": "checked_out",
+                "kbs_reported": False,
+            }
+        )
+        await sys_db.guests.insert_one(
+            {
+                "tenant_id": tenant,
+                "id": guest_id,
+                "nationality": "TC",
+                "id_number": "12345678901",
+            }
+        )
+
+    saved_db = kbs_auto_enqueue.db
+    kbs_auto_enqueue.db = sys_db
+    try:
+        result = await kbs_auto_enqueue.auto_enqueue_kbs(tenant, booking_id, "checkout")
+    finally:
+        kbs_auto_enqueue.db = saved_db
+
+    assert result is None
+    assert await sys_db.kbs_reports.count_documents(
+        {"_kind": QUEUE_KIND, "tenant_id": tenant, "booking_id": booking_id, "action": "checkout"}
+    ) == 0
+    alert = await sys_db.kbs_alerts.find_one(
+        {"tenant_id": tenant, "booking_id": booking_id, "kind": "checkin_not_confirmed"}
+    )
+    assert alert is not None
+
+
 async def test_dispatch_idempotent_no_double_send(tenant, monkeypatch):
     """Done iş ikinci koşuda yeniden claim edilmez."""
     from core.tenant_db import get_system_db

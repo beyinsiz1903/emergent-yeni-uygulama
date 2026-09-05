@@ -80,6 +80,39 @@ async def auto_enqueue_kbs(
             )
             return None
 
+        booking = await db.bookings.find_one(
+            {"tenant_id": tenant_id, "id": booking_id},
+            {"_id": 0, "guest_id": 1, "kbs_reported": 1, "kbs_test": 1},
+        )
+
+        # Kurumdan doğrulanmış bir giriş makbuzu yoksa otomatik çıkış
+        # bildirimi anlamsızdır: Jandarma bu isteği "tesiste kayıt yok"
+        # diye reddeder. Bu durumda sahte bir checkout kuyruğu yerine net bir
+        # operatör alarmı üretiriz. Haricen kaydedilmiş istisnai kayıtlar için
+        # resepsiyon yine bilinçli olarak force=true ile manuel gönderebilir.
+        if action == "checkout" and not (
+            (booking or {}).get("kbs_reported")
+            and not (booking or {}).get("kbs_test")
+        ):
+            await db.kbs_alerts.insert_one(
+                {
+                    "id": str(uuid.uuid4()),
+                    "tenant_id": tenant_id,
+                    "kind": "checkin_not_confirmed",
+                    "booking_id": booking_id,
+                    "action": action,
+                    "guest_name": snapshot.get("guest_name", ""),
+                    "room_number": snapshot.get("room_number", ""),
+                    "created_at": _now_iso(),
+                    "acknowledged": False,
+                }
+            )
+            logger.warning(
+                "KBS auto-enqueue blocked (check-in not confirmed): booking=%s",
+                booking_id,
+            )
+            return None
+
         ok, missing = validate_kbs_payload(snapshot)
         if not ok:
             await db.kbs_alerts.insert_one(
@@ -103,10 +136,6 @@ async def auto_enqueue_kbs(
             )
             return None
 
-        booking = await db.bookings.find_one(
-            {"tenant_id": tenant_id, "id": booking_id},
-            {"_id": 0, "guest_id": 1},
-        )
         now_iso = _now_iso()
         job = {
             "_kind": QUEUE_KIND,
