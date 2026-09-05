@@ -651,9 +651,22 @@ const CalendarGrid = ({
                                 // own drop handlers, dropping directly on an occupied card never
                                 // reaches the underlying cell, so an intended room swap appears
                                 // to do nothing.
-                                onDragOver={(e) => onDragOver(e, room.id, dateRange[startIdx])}
-                                onDragLeave={onDragLeave}
-                                onDrop={(e) => onDrop(e, room.id, dateRange[startIdx], booking.id)}
+                                onDragOver={(e) => {
+                                  e.stopPropagation();
+                                  onDragOver(e, room.id, dateRange[startIdx]);
+                                }}
+                                onDragLeave={(e) => {
+                                  e.stopPropagation();
+                                  onDragLeave(e);
+                                }}
+                                onDrop={(e) => {
+                                  // The card sits inside a calendar cell.  Do not let the
+                                  // same drop bubble to that cell: the second handler does
+                                  // not know the target booking and would turn a swap into a
+                                  // regular (and correctly rejected) room move.
+                                  e.stopPropagation();
+                                  onDrop(e, room.id, dateRange[startIdx], booking.id);
+                                }}
                                 onDoubleClick={() => onBookingDoubleClick(booking)}
                                 onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onBookingDoubleClick(booking); } }}
                                 className={`absolute rounded-sm text-white text-[10px] cursor-move z-20 group outline-none border border-white/25 focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-1 ${
