@@ -163,7 +163,28 @@ class FrontdeskService:
                     }
                 )
                 if blocker:
-                    return ServiceResult.fail("Room is occupied by another guest", "ROOM_NOT_READY")
+                    # The old English-only error forced the receptionist to infer
+                    # which reservation was still occupying the room. Resolve the
+                    # blocker name tenant-safely and make the required next action
+                    # explicit; never allow a second physical check-in meanwhile.
+                    guest = None
+                    blocker_guest_id = blocker.get("guest_id")
+                    if blocker_guest_id:
+                        guest = await self._db.guests.find_one(
+                            {"id": blocker_guest_id, "tenant_id": ctx.tenant_id},
+                            {"_id": 0, "name": 1},
+                        )
+
+                    from core.guest_name_utils import display_guest_name
+
+                    raw_name = (guest or {}).get("name") or blocker.get("guest_name")
+                    blocker_name = display_guest_name(raw_name, blocker_guest_id)
+                    room_number = room.get("room_number") or "atanan"
+                    return ServiceResult.fail(
+                        f"Oda {room_number}, {blocker_name} için hâlâ içeride görünüyor. "
+                        "Önce çıkış işlemini tamamlayın veya mevcut misafiri başka odaya taşıyın.",
+                        "ROOM_NOT_READY",
+                    )
             # Stale occupied status or no active blocker — allow check-in
         elif room_status not in ("available", "inspected"):
             return ServiceResult.fail("Room is not ready for check-in", "ROOM_NOT_READY")
