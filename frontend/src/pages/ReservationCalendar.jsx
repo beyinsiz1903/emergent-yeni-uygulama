@@ -23,6 +23,7 @@ import {
   MoveReasonDialog,
   FindRoomDialog,
   isBookingOnDate,
+  getActiveBookingsForRoomOnDate,
   findCalendarConflicts,
   toDateStringUTC,
   getDateRange,
@@ -1039,14 +1040,13 @@ const ReservationCalendar = ({ user, tenant, onLogout }) => {
     }
 
     const oldRoomId = draggingBooking.room_id;
-    const oldDate = new Date(draggingBooking.check_in);
-    if (oldRoomId === newRoomId && oldDate.toDateString() === newDate.toDateString()) {
+    const oldDateStr = toDateStringUTC(draggingBooking.check_in);
+    const targetDateStr = toDateStringUTC(newDate);
+    if (oldRoomId === newRoomId && oldDateStr === targetDateStr) {
       setDraggingBooking(null);
       return;
     }
 
-    const targetDateStr = newDate.toISOString().split('T')[0];
-    const oldDateStr = oldDate.toISOString().split('T')[0];
     const localToday = new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0];
     const minDate = hotelBusinessDate && hotelBusinessDate < localToday ? hotelBusinessDate : localToday;
     if (targetDateStr < minDate) {
@@ -1089,13 +1089,10 @@ const ReservationCalendar = ({ user, tenant, onLogout }) => {
     const targetBooking = targetBookingId
       ? bookings.find(candidate => candidate.id === targetBookingId)
       : null;
-    const targetBookings = targetBooking ? [targetBooking] : bookings.filter(candidate => (
-      candidate.id !== draggingBooking.id
-      && candidate.room_id === newRoomId
-      && ['confirmed', 'guaranteed', 'checked_in', 'pending'].includes(candidate.status)
-      && new Date(candidate.check_in) < newCheckOut
-      && new Date(candidate.check_out) > newCheckIn
-    ));
+    const targetBookings = targetBooking
+      ? [targetBooking]
+      : getActiveBookingsForRoomOnDate(newRoomId, newDate, bookings)
+        .filter(candidate => candidate.id !== draggingBooking.id);
     setDraggingBooking(null);
 
     if (targetDateStr === oldDateStr && targetBookings.length === 1) {

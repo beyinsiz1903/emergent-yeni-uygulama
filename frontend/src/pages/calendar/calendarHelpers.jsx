@@ -52,6 +52,25 @@ export const isBookingOnDate = (booking, date) => {
   return dayStr >= checkIn && dayStr < checkOut;
 };
 
+// Hedef hücreye bırakılan bir rezervasyon için yalnızca o gece gerçekten
+// konaklayan aktif kayıtlar takas adayıdır. Özellikle aynı gün çıkış yapan
+// önceki kayıt, saat bilgisi öğlene kadar sürse bile sonraki gecenin oda
+// takasını engellememelidir.
+export const ACTIVE_ROOM_BOOKING_STATUSES = new Set([
+  'confirmed',
+  'guaranteed',
+  'checked_in',
+  'pending',
+]);
+
+export const getActiveBookingsForRoomOnDate = (roomId, date, bookings = []) => (
+  bookings.filter((booking) => (
+    booking.room_id === roomId
+    && ACTIVE_ROOM_BOOKING_STATUSES.has(String(booking.status || '').toLowerCase())
+    && isBookingOnDate(booking, date)
+  ))
+);
+
 // Find genuine room conflicts using hotel-night dates, not arrival/departure
 // clock times. A stay is the half-open interval [check_in_date, check_out_date):
 // its checkout day is therefore available for the next guest's check-in.
