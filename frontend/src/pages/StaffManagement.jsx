@@ -164,6 +164,15 @@ const StaffManagement = () => {
     id: null
   });
   const [savingStaff, setSavingStaff] = useState(false);
+  // Form alanları özellikle hızlı girişte peş peşe değişebilir. Önceki render'ın
+  // state kopyasıyla güncellemek, React toplu güncelleme yaptığında başka bir
+  // alanın değerini geri alabiliyordu.
+  const updateStaffField = useCallback((field, value) => {
+    setStaffDialog(current => ({
+      ...current,
+      form: { ...current.form, [field]: value }
+    }));
+  }, []);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [newDept, setNewDept] = useState({
     name: '',
@@ -366,6 +375,7 @@ const StaffManagement = () => {
     const f = staffDialog.form;
     if (!f.name?.trim()) {
       toast.error('İsim zorunludur');
+      submitLockRef.current = false;
       return;
     }
     let payload;
@@ -758,43 +768,19 @@ const StaffManagement = () => {
           <form onSubmit={submitStaff} className="grid gap-3 md:grid-cols-2">
             <div className="md:col-span-2">
               <Label className="text-xs">{t("cm.pages_StaffManagement.ad_soyad")}</Label>
-              <Input required value={staffDialog.form.name} onChange={e => setStaffDialog({
-              ...staffDialog,
-              form: {
-                ...staffDialog.form,
-                name: e.target.value
-              }
-            })} />
+              <Input required value={staffDialog.form.name} onChange={e => updateStaffField('name', e.target.value)} />
             </div>
             <div>
               <Label className="text-xs">{t("cm.pages_StaffManagement.e_posta")}</Label>
-              <Input type="email" value={staffDialog.form.email} onChange={e => setStaffDialog({
-              ...staffDialog,
-              form: {
-                ...staffDialog.form,
-                email: e.target.value
-              }
-            })} />
+              <Input type="email" value={staffDialog.form.email} onChange={e => updateStaffField('email', e.target.value)} />
             </div>
             <div>
               <Label className="text-xs">{t("cm.pages_StaffManagement.telefon")}</Label>
-              <Input value={staffDialog.form.phone} onChange={e => setStaffDialog({
-              ...staffDialog,
-              form: {
-                ...staffDialog.form,
-                phone: e.target.value
-              }
-            })} />
+              <Input value={staffDialog.form.phone} onChange={e => updateStaffField('phone', e.target.value)} />
             </div>
             <div>
               <Label className="text-xs">{t("cm.pages_StaffManagement.departman")}</Label>
-              <select value={staffDialog.form.department} disabled={staffDialog.mode === 'edit' && staffDialog.derived} onChange={e => setStaffDialog({
-              ...staffDialog,
-              form: {
-                ...staffDialog.form,
-                department: e.target.value
-              }
-            })} className="w-full rounded-md border border-input px-3 py-2 text-sm disabled:opacity-60 disabled:cursor-not-allowed">
+              <select value={staffDialog.form.department} disabled={staffDialog.mode === 'edit' && staffDialog.derived} onChange={e => updateStaffField('department', e.target.value)} className="w-full rounded-md border border-input px-3 py-2 text-sm disabled:opacity-60 disabled:cursor-not-allowed">
                 <option value="">{t("cm.pages_StaffManagement._se\xE7in")}</option>
                 {departments.map(d => <option key={d.id} value={d.code || d.name}>{d.name}</option>)}
                 {departments.length === 0 && <>
@@ -808,36 +794,18 @@ const StaffManagement = () => {
             </div>
             <div>
               <Label className="text-xs">{t("cm.pages_StaffManagement.pozisyon")}</Label>
-              <Input list="positions-list" value={staffDialog.form.position} disabled={staffDialog.mode === 'edit' && staffDialog.derived} onChange={e => setStaffDialog({
-              ...staffDialog,
-              form: {
-                ...staffDialog.form,
-                position: e.target.value
-              }
-            })} />
+              <Input list="positions-list" value={staffDialog.form.position} disabled={staffDialog.mode === 'edit' && staffDialog.derived} onChange={e => updateStaffField('position', e.target.value)} />
               <datalist id="positions-list">
                 {positions.map(p => <option key={p.id} value={p.title} />)}
               </datalist>
             </div>
             <div>
               <Label className="text-xs">{t("cm.pages_StaffManagement.i_\u015Fe_giri\u015F")}</Label>
-              <Input type="date" value={staffDialog.form.hire_date} disabled={staffDialog.mode === 'edit' && staffDialog.derived} onChange={e => setStaffDialog({
-              ...staffDialog,
-              form: {
-                ...staffDialog.form,
-                hire_date: e.target.value
-              }
-            })} />
+              <Input type="date" value={staffDialog.form.hire_date} disabled={staffDialog.mode === 'edit' && staffDialog.derived} onChange={e => updateStaffField('hire_date', e.target.value)} />
             </div>
             <div>
               <Label className="text-xs">{t("cm.pages_StaffManagement.\xE7al\u0131\u015Fma_\u015Fekli")}</Label>
-              <select value={staffDialog.form.employment_type} disabled={staffDialog.mode === 'edit' && staffDialog.derived} onChange={e => setStaffDialog({
-              ...staffDialog,
-              form: {
-                ...staffDialog.form,
-                employment_type: e.target.value
-              }
-            })} className="w-full rounded-md border border-input px-3 py-2 text-sm disabled:opacity-60 disabled:cursor-not-allowed">
+              <select value={staffDialog.form.employment_type} disabled={staffDialog.mode === 'edit' && staffDialog.derived} onChange={e => updateStaffField('employment_type', e.target.value)} className="w-full rounded-md border border-input px-3 py-2 text-sm disabled:opacity-60 disabled:cursor-not-allowed">
                 <option value="full_time">{t("cm.pages_StaffManagement.tam_zamanl\u0131")}</option>
                 <option value="part_time">{t("cm.pages_StaffManagement.yar\u0131_zamanl\u0131")}</option>
                 <option value="seasonal">{t("cm.pages_StaffManagement.sezonluk")}</option>
@@ -847,33 +815,15 @@ const StaffManagement = () => {
             </div>
             <div>
               <Label className="text-xs">{t("cm.pages_StaffManagement.saatlik_\xFCcret_try_br\xFCt")}</Label>
-              <Input type="number" step="0.01" min="0" value={staffDialog.form.hourly_rate} placeholder={t("cm.pages_StaffManagement.bo\u015F_b\u0131rak\u0131rsan\u0131z_140_asgari")} disabled={staffDialog.mode === 'edit' && staffDialog.derived} onChange={e => setStaffDialog({
-              ...staffDialog,
-              form: {
-                ...staffDialog.form,
-                hourly_rate: e.target.value
-              }
-            })} />
+              <Input type="number" step="0.01" min="0" value={staffDialog.form.hourly_rate} placeholder={t("cm.pages_StaffManagement.bo\u015F_b\u0131rak\u0131rsan\u0131z_140_asgari")} disabled={staffDialog.mode === 'edit' && staffDialog.derived} onChange={e => updateStaffField('hourly_rate', e.target.value)} />
             </div>
             <div>
               <Label className="text-xs">{t("cm.pages_StaffManagement.ayl\u0131k_standart_saat")}</Label>
-              <Input type="number" step="1" min="0" value={staffDialog.form.monthly_hours} placeholder={t("cm.pages_StaffManagement.varsay\u0131lan_195")} disabled={staffDialog.mode === 'edit' && staffDialog.derived} onChange={e => setStaffDialog({
-              ...staffDialog,
-              form: {
-                ...staffDialog.form,
-                monthly_hours: e.target.value
-              }
-            })} />
+              <Input type="number" step="1" min="0" value={staffDialog.form.monthly_hours} placeholder={t("cm.pages_StaffManagement.varsay\u0131lan_195")} disabled={staffDialog.mode === 'edit' && staffDialog.derived} onChange={e => updateStaffField('monthly_hours', e.target.value)} />
             </div>
             <div>
               <Label className="text-xs">{t("cm.pages_StaffManagement.y\u0131ll\u0131k_i_zin_hakk\u0131_g\xFCn")}</Label>
-              <Input type="number" min="0" max="365" value={staffDialog.form.annual_leave_entitlement} disabled={staffDialog.mode === 'edit' && staffDialog.derived} onChange={e => setStaffDialog({
-              ...staffDialog,
-              form: {
-                ...staffDialog.form,
-                annual_leave_entitlement: e.target.value
-              }
-            })} />
+              <Input type="number" min="0" max="365" value={staffDialog.form.annual_leave_entitlement} disabled={staffDialog.mode === 'edit' && staffDialog.derived} onChange={e => updateStaffField('annual_leave_entitlement', e.target.value)} />
             </div>
             <DialogFooter className="md:col-span-2">
               <Button type="button" variant="outline" onClick={() => {

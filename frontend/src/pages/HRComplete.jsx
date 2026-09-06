@@ -105,12 +105,11 @@ const HRComplete = () => {
   const leavePage = useHRPagination('/hr/leave-requests', {}, { enabled: activeTab === 'leave' });
   const performancePage = useHRPagination('/hr/performance', {}, { enabled: activeTab === 'performance' });
   const perfMetrics = useMemo(() => {
-    if (!performancePage?.items) return { high_performers: 0, low_performers: 0 };
     return {
-      high_performers: performancePage.items.filter(i => parseFloat(i.overall_score) >= 8.0).length,
-      low_performers: performancePage.items.filter(i => parseFloat(i.overall_score) < 5.0).length,
+      high_performers: Number(performancePage.meta?.high_performers || 0),
+      low_performers: Number(performancePage.meta?.low_performers || 0),
     };
-  }, [performancePage.items]);
+  }, [performancePage.meta?.high_performers, performancePage.meta?.low_performers]);
 
   // Leave Dropdown & Form
   const [leaveCounts, setLeaveCounts] = useState({ pending: 0, approved: 0, rejected: 0 });
@@ -120,7 +119,7 @@ const HRComplete = () => {
   const [creatingLeave, setCreatingLeave] = useState(false);
 
   // Performance Form
-  const [perfAvg, setPerfAvg] = useState(0);
+  const perfAvg = Number(performancePage.meta?.avg_score || 0);
   const [perfTemplates, setPerfTemplates] = useState([]);
   const [perfForm, setPerfForm] = useState({
     staff_id: '', period: '', overall_score: '', strengths: '', improvement_areas: '', goals: '',
@@ -152,6 +151,19 @@ const HRComplete = () => {
   const [applicantsDialog, setApplicantsDialog] = useState({ open: false, job: null, list: [], counts: {} });
   const [applicantForm, setApplicantForm] = useState({ name: '', email: '', phone: '', notes: '', cv_url: '' });
   const [savingApplicant, setSavingApplicant] = useState(false);
+
+  // Aynı formdaki alanlar hızlıca doldurulduğunda React güncellemeleri
+  // gruplanabilir. Güncel olmayan form kopyasıyla yazmak, az önce girilmiş bir
+  // alanı (özellikle tarihleri) geri alabiliyordu.
+  const updateLeaveField = useCallback((field, value) => {
+    setLeaveForm(current => ({ ...current, [field]: value }));
+  }, []);
+  const updatePerfField = useCallback((field, value) => {
+    setPerfForm(current => ({ ...current, [field]: value }));
+  }, []);
+  const updateJobField = useCallback((field, value) => {
+    setJobForm(current => ({ ...current, [field]: value }));
+  }, []);
 
   // Leave balances cache (per staff_id)
   const [leaveBalances, setLeaveBalances] = useState({});
@@ -728,7 +740,7 @@ const HRComplete = () => {
       setCreatingLeave(true);
       await axios.post('/hr/leave-request', leaveForm);
       toast.success('İzin talebi oluşturuldu');
-      setLeaveForm({ ...leaveForm, start_date: '', end_date: '', reason: '' });
+      setLeaveForm(current => ({ ...current, start_date: '', end_date: '', reason: '' }));
       leavePage.refresh();
     } catch (error) {
       const msg = error.response?.data?.detail || 'İzin talebi oluşturulamadı';
@@ -786,7 +798,7 @@ const HRComplete = () => {
         competency_scores: perfForm.competency_scores || {},
       });
       toast.success('Performans değerlendirmesi kaydedildi');
-      setPerfForm({ ...perfForm, period: '', overall_score: '', strengths: '', improvement_areas: '', goals: '', competency_scores: {} });
+      setPerfForm(current => ({ ...current, period: '', overall_score: '', strengths: '', improvement_areas: '', goals: '', competency_scores: {} }));
       performancePage.refresh();
     } catch (error) {
       const msg = error.response?.data?.detail || 'Kaydedilemedi';
@@ -807,7 +819,7 @@ const HRComplete = () => {
       setCreatingJob(true);
       await axios.post('/hr/job-posting', jobForm);
       toast.success('İş ilanı yayınlandı');
-      setJobForm({ ...jobForm, title: '', location: '', salary_range: '', description: '' });
+      setJobForm(current => ({ ...current, title: '', location: '', salary_range: '', description: '' }));
       loadJobs();
     } catch (error) {
       const msg = error.response?.data?.detail || 'Yayınlanamadı';
@@ -1460,7 +1472,7 @@ const HRComplete = () => {
                         <Label className="text-xs font-semibold text-slate-600">Personel</Label>
                         <select
                           value={leaveForm.staff_id}
-                          onChange={(e) => setLeaveForm({ ...leaveForm, staff_id: e.target.value })}
+                          onChange={(e) => updateLeaveField('staff_id', e.target.value)}
                           className="w-full rounded-lg border-slate-200 bg-slate-50 px-3 py-2 text-sm focus:ring-teal-500"
                           data-testid="select-leave-staff"
                         >
@@ -1474,7 +1486,7 @@ const HRComplete = () => {
                         <Label className="text-xs font-semibold text-slate-600">İzin Türü</Label>
                         <select
                           value={leaveForm.leave_type}
-                          onChange={(e) => setLeaveForm({ ...leaveForm, leave_type: e.target.value })}
+                          onChange={(e) => updateLeaveField('leave_type', e.target.value)}
                           className="w-full rounded-lg border-slate-200 bg-slate-50 px-3 py-2 text-sm focus:ring-teal-500"
                         >
                           {Object.entries(LEAVE_TYPE_LABEL).map(([k, v]) => (
@@ -1486,12 +1498,12 @@ const HRComplete = () => {
                         <div className="space-y-1.5">
                           <Label className="text-xs font-semibold text-slate-600">Başlangıç</Label>
                           <Input type="date" value={leaveForm.start_date} className="rounded-lg border-slate-200 bg-slate-50"
-                            onChange={(e) => setLeaveForm({ ...leaveForm, start_date: e.target.value })} />
+                            onChange={(e) => updateLeaveField('start_date', e.target.value)} />
                         </div>
                         <div className="space-y-1.5">
                           <Label className="text-xs font-semibold text-slate-600">Bitiş</Label>
                           <Input type="date" value={leaveForm.end_date} className="rounded-lg border-slate-200 bg-slate-50"
-                            onChange={(e) => setLeaveForm({ ...leaveForm, end_date: e.target.value })} />
+                            onChange={(e) => updateLeaveField('end_date', e.target.value)} />
                         </div>
                       </div>
                       <div className="space-y-1.5">
@@ -1500,7 +1512,7 @@ const HRComplete = () => {
                           rows={3}
                           value={leaveForm.reason}
                           className="rounded-lg border-slate-200 bg-slate-50 resize-none"
-                          onChange={(e) => setLeaveForm({ ...leaveForm, reason: e.target.value })}
+                          onChange={(e) => updateLeaveField('reason', e.target.value)}
                           placeholder="Mazeret veya ek açıklama..."
                         />
                       </div>
@@ -1751,7 +1763,7 @@ const HRComplete = () => {
                         <Label className="text-xs font-semibold text-slate-600">Personel</Label>
                         <select
                           value={perfForm.staff_id}
-                          onChange={(e) => setPerfForm({ ...perfForm, staff_id: e.target.value })}
+                          onChange={(e) => updatePerfField('staff_id', e.target.value)}
                           className="w-full rounded-lg border-slate-200 bg-slate-50 px-3 py-2 text-sm focus:ring-teal-500"
                         >
                           <option value="">Seçiniz...</option>
@@ -1791,30 +1803,30 @@ const HRComplete = () => {
                       <div className="grid grid-cols-2 gap-3">
                         <div className="space-y-1.5">
                           <Label className="text-xs font-semibold text-slate-600">Dönem</Label>
-                          <Input value={perfForm.period} onChange={(e) => setPerfForm({ ...perfForm, period: e.target.value })} placeholder="2026 Q1" className="rounded-lg border-slate-200 bg-slate-50" />
+                          <Input value={perfForm.period} onChange={(e) => updatePerfField('period', e.target.value)} placeholder="2026 Q1" className="rounded-lg border-slate-200 bg-slate-50" />
                         </div>
                         <div className="space-y-1.5">
                           <Label className="text-xs font-semibold text-slate-600">Genel Puan (0–10)</Label>
                           <Input type="number" min="0" max="10" step="0.1"
                             value={perfForm.overall_score}
                             className="rounded-lg border-slate-200 bg-slate-50 font-bold"
-                            onChange={(e) => setPerfForm({ ...perfForm, overall_score: e.target.value })} />
+                            onChange={(e) => updatePerfField('overall_score', e.target.value)} />
                         </div>
                       </div>
                       <div className="space-y-1.5">
                         <Label className="text-xs font-semibold text-slate-600">Güçlü Yönler</Label>
                         <Textarea rows={2} value={perfForm.strengths} className="rounded-lg border-slate-200 bg-slate-50 resize-none text-sm"
-                          onChange={(e) => setPerfForm({ ...perfForm, strengths: e.target.value })} />
+                          onChange={(e) => updatePerfField('strengths', e.target.value)} />
                       </div>
                       <div className="space-y-1.5">
                         <Label className="text-xs font-semibold text-slate-600">Gelişim Alanları</Label>
                         <Textarea rows={2} value={perfForm.improvement_areas} className="rounded-lg border-slate-200 bg-slate-50 resize-none text-sm"
-                          onChange={(e) => setPerfForm({ ...perfForm, improvement_areas: e.target.value })} />
+                          onChange={(e) => updatePerfField('improvement_areas', e.target.value)} />
                       </div>
                       <div className="space-y-1.5">
                         <Label className="text-xs font-semibold text-slate-600">Hedefler</Label>
                         <Textarea rows={2} value={perfForm.goals} className="rounded-lg border-slate-200 bg-slate-50 resize-none text-sm"
-                          onChange={(e) => setPerfForm({ ...perfForm, goals: e.target.value })} />
+                          onChange={(e) => updatePerfField('goals', e.target.value)} />
                       </div>
                       <Button type="submit" disabled={creatingPerf} className="w-full bg-teal-600 hover:bg-teal-700 text-white rounded-lg shadow-sm py-5 mt-2">
                         {creatingPerf ? (
@@ -2200,24 +2212,24 @@ const HRComplete = () => {
                   <div className="space-y-1.5">
                     <Label className="text-xs font-semibold text-slate-600">Pozisyon <span className="text-rose-500">*</span></Label>
                     <Input required value={jobForm.title} className="rounded-lg border-slate-200 bg-slate-50 text-sm focus:bg-white"
-                      onChange={(e) => setJobForm({ ...jobForm, title: e.target.value })}
+                      onChange={(e) => updateJobField('title', e.target.value)}
                       placeholder="Örn: Resepsiyonist" />
                   </div>
                   <div className="space-y-1.5">
                     <Label className="text-xs font-semibold text-slate-600">Departman <span className="text-rose-500">*</span></Label>
                     <Input required value={jobForm.department} className="rounded-lg border-slate-200 bg-slate-50 text-sm focus:bg-white"
-                      onChange={(e) => setJobForm({ ...jobForm, department: e.target.value })}
+                      onChange={(e) => updateJobField('department', e.target.value)}
                       placeholder="Örn: front_desk" />
                   </div>
                   <div className="space-y-1.5">
                     <Label className="text-xs font-semibold text-slate-600">İhtiyaç Sayısı (Kişi)</Label>
                     <Input type="number" min="1" max="50" value={jobForm.headcount_needed} className="rounded-lg border-slate-200 bg-slate-50 font-bold text-sm focus:bg-white"
-                      onChange={(e) => setJobForm({ ...jobForm, headcount_needed: parseInt(e.target.value) || 1 })} />
+                      onChange={(e) => updateJobField('headcount_needed', parseInt(e.target.value) || 1)} />
                   </div>
                   <div className="space-y-1.5">
                     <Label className="text-xs font-semibold text-slate-600">Aciliyet</Label>
                     <select value={jobForm.urgency}
-                      onChange={(e) => setJobForm({ ...jobForm, urgency: e.target.value })}
+                      onChange={(e) => updateJobField('urgency', e.target.value)}
                       className="w-full rounded-lg border-slate-200 bg-slate-50 px-3 py-2 text-sm focus:bg-white focus:ring-teal-500">
                       <option value="low">Düşük</option>
                       <option value="normal">Normal</option>
@@ -2228,7 +2240,7 @@ const HRComplete = () => {
                   <div className="space-y-1.5">
                     <Label className="text-xs font-semibold text-slate-600">Çalışma Şekli</Label>
                     <select value={jobForm.employment_type}
-                      onChange={(e) => setJobForm({ ...jobForm, employment_type: e.target.value })}
+                      onChange={(e) => updateJobField('employment_type', e.target.value)}
                       className="w-full rounded-lg border-slate-200 bg-slate-50 px-3 py-2 text-sm focus:bg-white focus:ring-teal-500">
                       <option value="full_time">Tam Zamanlı</option>
                       <option value="part_time">Yarı Zamanlı</option>
@@ -2240,29 +2252,29 @@ const HRComplete = () => {
                   <div className="space-y-1.5">
                     <Label className="text-xs font-semibold text-slate-600">İhtiyaç Tarihi</Label>
                     <Input type="date" value={jobForm.needed_by} className="rounded-lg border-slate-200 bg-slate-50 text-sm focus:bg-white"
-                      onChange={(e) => setJobForm({ ...jobForm, needed_by: e.target.value })} />
+                      onChange={(e) => updateJobField('needed_by', e.target.value)} />
                   </div>
                   <div className="space-y-1.5">
                     <Label className="text-xs font-semibold text-slate-600">Ücret Aralığı (Öneri)</Label>
                     <Input value={jobForm.salary_range} className="rounded-lg border-slate-200 bg-slate-50 text-sm focus:bg-white"
-                      onChange={(e) => setJobForm({ ...jobForm, salary_range: e.target.value })}
+                      onChange={(e) => updateJobField('salary_range', e.target.value)}
                       placeholder="22.000 – 30.000 TL" />
                   </div>
                   <div className="space-y-1.5">
                     <Label className="text-xs font-semibold text-slate-600">Lokasyon</Label>
                     <Input value={jobForm.location} className="rounded-lg border-slate-200 bg-slate-50 text-sm focus:bg-white"
-                      onChange={(e) => setJobForm({ ...jobForm, location: e.target.value })} />
+                      onChange={(e) => updateJobField('location', e.target.value)} />
                   </div>
                   <div className="md:col-span-2 lg:col-span-3 space-y-1.5">
                     <Label className="text-xs font-semibold text-slate-600">Gerekçe (HR'a not)</Label>
                     <Textarea rows={2} value={jobForm.justification} className="rounded-lg border-slate-200 bg-slate-50 text-sm resize-none focus:bg-white"
-                      onChange={(e) => setJobForm({ ...jobForm, justification: e.target.value })}
+                      onChange={(e) => updateJobField('justification', e.target.value)}
                       placeholder="Örn: yaz sezonu için ek personel; mevcut kadronun yetersizliği vb." />
                   </div>
                   <div className="md:col-span-2 lg:col-span-3 space-y-1.5">
                     <Label className="text-xs font-semibold text-slate-600">Pozisyon Açıklaması</Label>
                     <Textarea rows={3} value={jobForm.description} className="rounded-lg border-slate-200 bg-slate-50 text-sm resize-none focus:bg-white"
-                      onChange={(e) => setJobForm({ ...jobForm, description: e.target.value })}
+                      onChange={(e) => updateJobField('description', e.target.value)}
                       placeholder="Sorumluluklar, beklentiler, gerekli niteliklere dair detaylar" />
                   </div>
                   <div className="md:col-span-2 lg:col-span-3 flex justify-end mt-2">
