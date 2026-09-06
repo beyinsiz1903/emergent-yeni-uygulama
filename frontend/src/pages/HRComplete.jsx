@@ -2418,17 +2418,17 @@ const HRComplete = () => {
                   </div>
                   <form onSubmit={submitApplicant} className="grid gap-3 md:grid-cols-2">
                     <Input placeholder="Ad Soyad *" value={applicantForm.name} className="rounded-lg border-slate-200 bg-slate-50 text-sm focus:bg-white"
-                      onChange={(e) => setApplicantForm({ ...applicantForm, name: e.target.value })} />
+                      onChange={(e) => setApplicantForm(prev => ({ ...prev, name: e.target.value }))} />
                     <Input placeholder="E-posta" type="email" value={applicantForm.email} className="rounded-lg border-slate-200 bg-slate-50 text-sm focus:bg-white"
-                      onChange={(e) => setApplicantForm({ ...applicantForm, email: e.target.value })} />
+                      onChange={(e) => setApplicantForm(prev => ({ ...prev, email: e.target.value }))} />
                     <Input placeholder="Telefon" value={applicantForm.phone} className="rounded-lg border-slate-200 bg-slate-50 text-sm focus:bg-white"
-                      onChange={(e) => setApplicantForm({ ...applicantForm, phone: e.target.value })} />
+                      onChange={(e) => setApplicantForm(prev => ({ ...prev, phone: e.target.value }))} />
                     <Input placeholder="CV URL (opsiyonel)" value={applicantForm.cv_url} className="rounded-lg border-slate-200 bg-slate-50 text-sm focus:bg-white"
-                      onChange={(e) => setApplicantForm({ ...applicantForm, cv_url: e.target.value })} />
+                      onChange={(e) => setApplicantForm(prev => ({ ...prev, cv_url: e.target.value }))} />
                     <div className="md:col-span-2">
                       <Textarea rows={2} placeholder="Notlar (deneyim, görüşme izlenimi, vb.)" className="rounded-lg border-slate-200 bg-slate-50 text-sm resize-none focus:bg-white"
                         value={applicantForm.notes}
-                        onChange={(e) => setApplicantForm({ ...applicantForm, notes: e.target.value })} />
+                        onChange={(e) => setApplicantForm(prev => ({ ...prev, notes: e.target.value }))} />
                     </div>
                     <div className="md:col-span-2 flex justify-end mt-1">
                       <Button type="submit" disabled={savingApplicant} className="bg-teal-600 hover:bg-teal-700 text-white rounded-lg px-6">
