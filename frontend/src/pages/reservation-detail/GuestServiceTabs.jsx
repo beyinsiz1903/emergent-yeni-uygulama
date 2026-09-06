@@ -8,7 +8,7 @@ import {
   Mail, MessageSquare, Phone, Plus, Send, Loader2,
   Clock, CreditCard, Home, History
 } from 'lucide-react';
-import { API, fmtTs, EmptyState, FormField, SelectField } from './helpers';
+import { API, fmtDate, fmtTs, EmptyState, FormField, SelectField } from './helpers';
 import { useTranslation } from 'react-i18next';
 
 export function CommunicationTab({ booking, onRefresh, communicationLogs }) {
@@ -162,6 +162,7 @@ export function HistoryTab({ history, roomMoves }) {
     vip_status_changed: 'VIP durumu', deposit_recorded: 'Depozito', deposit_refunded: 'Depozito iade',
     extra_charge_added: 'Ekstra ücret', daily_rates_updated: 'Fiyat güncelleme', guest_updated: 'Misafir güncelleme',
     communication_logged: 'İletişim', group_checkin: 'Grup giriş', group_checkout: 'Grup çıkış',
+    stay_dates_updated: 'Konaklama tarihleri güncellendi', reservation_modified: 'Rezervasyon güncellendi',
   };
   const colors = {
     payment_recorded: 'bg-emerald-100 text-emerald-700', transferred_to_cari: 'bg-amber-100 text-amber-700',
@@ -170,6 +171,18 @@ export function HistoryTab({ history, roomMoves }) {
     late_checkout: 'bg-teal-100 text-teal-700', marked_noshow: 'bg-red-100 text-red-700',
     deposit_recorded: 'bg-blue-100 text-blue-700', deposit_refunded: 'bg-red-100 text-red-700',
   };
+  const fieldLabels = {
+    check_in: 'Giriş tarihi', check_out: 'Çıkış tarihi', total_amount: 'Toplam tutar',
+    room_number: 'Oda', status: 'Durum', adults: 'Yetişkin', children: 'Çocuk',
+    guests_count: 'Konuk sayısı', rate_plan: 'Tarife planı', special_requests: 'Özel istekler',
+  };
+  const formatChangeValue = (field, value) => {
+    if (value === null || value === undefined || value === '') return '-';
+    if (field === 'check_in' || field === 'check_out') return fmtDate(value);
+    if (field === 'total_amount') return `${Number(value).toLocaleString('tr-TR')} TL`;
+    return String(value);
+  };
+  const visibleChanges = details => Object.entries(details?.changes || {}).filter(([field]) => field !== 'room_id');
 
   return (
     <div data-testid="history-tab" className="space-y-3">
@@ -191,6 +204,19 @@ export function HistoryTab({ history, roomMoves }) {
                   <span className="text-xs text-gray-400">{fmtTs(ev.created_at)}</span>
                 </div>
                 {ev.actor && <div className="text-xs text-gray-500">Yapan: {ev.actor}</div>}
+                {ev.details?.source && <div className="text-xs text-gray-500">Kaynak: {ev.details.source}{ev.details.channel ? ` · ${ev.details.channel}` : ''}</div>}
+                {visibleChanges(ev.details).length > 0 && (
+                  <div className="mt-2 space-y-1 rounded bg-slate-50 px-2 py-1.5 text-xs text-slate-700">
+                    {visibleChanges(ev.details).map(([field, value]) => (
+                      <div key={field}>
+                        <span className="font-medium">{fieldLabels[field] || field.replace(/_/g, ' ')}:</span>{' '}
+                        {field === 'special_requests'
+                          ? 'güncellendi'
+                          : `${formatChangeValue(field, value?.from)} → ${formatChangeValue(field, value?.to)}`}
+                      </div>
+                    ))}
+                  </div>
+                )}
                 {ev.details && Object.keys(ev.details).length > 0 && (
                   <div className="mt-1 text-xs text-gray-500 flex flex-wrap gap-2">
                     {ev.details.from_room && <span>{t('cm.pages_reservationdetail_GuestServiceTabs.eski')} {ev.details.from_room}</span>}

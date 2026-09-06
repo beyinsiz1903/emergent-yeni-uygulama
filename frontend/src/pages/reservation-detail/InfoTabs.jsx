@@ -58,11 +58,30 @@ const ACTIVITY_LABELS = {
   communication_logged: 'İletişim kaydedildi',
   group_checkin: 'Grup giriş',
   group_checkout: 'Grup çıkış',
+  stay_dates_updated: 'Konaklama tarihleri güncellendi',
+  reservation_modified: 'Rezervasyon güncellendi',
   checked_in: 'Giriş yapıldı',
   checked_out: 'Çıkış yapıldı',
   confirmed: 'Onaylandı'
 };
 const activityLabel = a => ACTIVITY_LABELS[a] || (a ? String(a).replace(/_/g, ' ') : 'İşlem');
+const changeLabel = field => ({
+  check_in: 'Giriş', check_out: 'Çıkış', total_amount: 'Toplam tutar', room_number: 'Oda',
+  status: 'Durum', adults: 'Yetişkin', children: 'Çocuk', guests_count: 'Konuk sayısı',
+  rate_plan: 'Tarife planı', special_requests: 'Özel istekler',
+}[field] || field.replace(/_/g, ' '));
+const compactChangeSummary = details => {
+  const changes = details?.changes || {};
+  const entries = Object.entries(changes).filter(([field]) => field !== 'room_id');
+  if (!entries.length) return details?.source || '';
+  const [field, value] = entries[0];
+  const from = field.includes('date') || field === 'check_in' || field === 'check_out'
+    ? fmtDate(value?.from) : value?.from;
+  const to = field.includes('date') || field === 'check_in' || field === 'check_out'
+    ? fmtDate(value?.to) : value?.to;
+  if (field === 'special_requests') return 'Özel istekler güncellendi';
+  return `${changeLabel(field)}: ${from ?? '-'} → ${to ?? '-'}`;
+};
 export function GeneralInfoTab({
   booking,
   guest,
@@ -390,6 +409,7 @@ export function GeneralInfoTab({
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="text-xs font-medium text-slate-800">{activityLabel(h.action)}</div>
+                    {compactChangeSummary(h.details) && <div className="text-[10px] text-slate-500 truncate">{compactChangeSummary(h.details)}</div>}
                     <div className="text-[10px] text-slate-400">{h.created_at ? fmtDateTime(h.created_at) : ''}{h.actor ? ` · ${h.actor}` : ''}</div>
                   </div>
                 </div>)}

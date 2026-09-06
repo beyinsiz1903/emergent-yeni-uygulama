@@ -21,6 +21,7 @@ from typing import Any
 
 from core.booking_realtime import publish_booking_change
 from core.database import db
+from shared_kernel.audit_helper import audit_log
 
 from ..connectors.hotelrunner_v2.auth import HotelRunnerAuth
 from ..connectors.hotelrunner_v2.connector_errors import ConnectorError
@@ -666,6 +667,13 @@ class ReservationImportService:
     async def _modify_pms_booking(self, tenant_id: str, imported: ImportedReservation):
         if not imported.pms_booking_id:
             return
+        existing = await db.bookings.find_one(
+            {"id": imported.pms_booking_id, "tenant_id": tenant_id},
+            {"_id": 0},
+        )
+        if not existing:
+            logger.warning("PMS booking %s disappeared before channel update", imported.pms_booking_id)
+            return
         updates = {
             "check_in": imported.arrival_date,
             "check_out": imported.departure_date,
@@ -686,10 +694,57 @@ class ReservationImportService:
         }
         if imported.room_type_mapped_id:
             updates["room_type"] = imported.room_type_mapped_id
+        changes = {
+            field: {"from": existing.get(field), "to": value}
+            for field, value in updates.items()
+            if field not in {"updated_at", "updated_by"} and existing.get(field) != value
+        }
         await db.bookings.update_one(
             {"id": imported.pms_booking_id, "tenant_id": tenant_id},
             {"$set": updates},
         )
+        if changes:
+            now = datetime.now(UTC).isoformat()
+            activity_action = (
+                "stay_dates_updated"
+                if {"check_in", "check_out"} & set(changes)
+                else "reservation_modified"
+            )
+            source_label = imported.channel_name or "Kanal / OTA"
+            correlation_id = f"channel-import:{imported.id}"
+            activity_details = {
+                "changed_fields": list(changes.keys()),
+                "changes": changes,
+                "source": "Kanal / OTA",
+                "channel": source_label,
+                "external_reservation_id": imported.external_reservation_id,
+                "correlation_id": correlation_id,
+            }
+            await db.reservation_activity_log.insert_one(
+                {
+                    "id": str(uuid.uuid4()),
+                    "tenant_id": tenant_id,
+                    "booking_id": imported.pms_booking_id,
+                    "action": activity_action,
+                    "actor": source_label,
+                    "details": activity_details,
+                    "correlation_id": correlation_id,
+                    "created_at": now,
+                }
+            )
+            await audit_log(
+                actor_id=None,
+                tenant_id=tenant_id,
+                property_id=imported.property_id,
+                entity_type="reservation",
+                entity_id=imported.pms_booking_id,
+                action="reservation_modified",
+                correlation_id=correlation_id,
+                metadata={
+                    "activity_action": activity_action,
+                    **activity_details,
+                },
+            )
         await publish_booking_change(
             tenant_id=tenant_id,
             booking_id=imported.pms_booking_id,
