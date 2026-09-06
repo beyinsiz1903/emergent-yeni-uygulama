@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
-import { validateCityLedgerPayment } from '@/pages/CityLedgerAccounts';
+import {
+  getCityLedgerPaymentAllocations,
+  validateCityLedgerPayment,
+  validateCityLedgerPaymentAllocations,
+} from '@/pages/CityLedgerAccounts';
 
 describe('CityLedgerAccounts payment guards', () => {
   it('accepts a finite payment within the outstanding balance', () => {
@@ -22,5 +26,32 @@ describe('CityLedgerAccounts payment guards', () => {
 
   it('rejects payment above the outstanding balance', () => {
     expect(validateCityLedgerPayment('10.01', 10)).toBe('Ödeme tutarı açık bakiyeyi aşamaz');
+  });
+
+  it('builds a payment allocation only for rooms with a positive entered amount', () => {
+    const rooms = [{ booking_id: 'booking-101', open_amount: 100 }, { booking_id: 'booking-102', open_amount: 50 }];
+    expect(getCityLedgerPaymentAllocations(rooms, { 'booking-101': '25', 'booking-102': '' })).toEqual([
+      { booking_id: 'booking-101', amount: 25 },
+    ]);
+  });
+
+  it('allows a general payment when no room is selected', () => {
+    expect(validateCityLedgerPaymentAllocations('50', [{ booking_id: 'booking-101', open_amount: 50 }], {})).toBeNull();
+  });
+
+  it('rejects a room allocation whose total differs from the payment', () => {
+    expect(validateCityLedgerPaymentAllocations(
+      '50',
+      [{ booking_id: 'booking-101', open_amount: 100 }],
+      { 'booking-101': '49.99' },
+    )).toBe('Oda bazlı dağıtım toplamı ödeme tutarına eşit olmalıdır');
+  });
+
+  it('rejects an allocation over the selected room balance', () => {
+    expect(validateCityLedgerPaymentAllocations(
+      '51',
+      [{ booking_id: 'booking-101', open_amount: 50 }],
+      { 'booking-101': '51' },
+    )).toBe('Bir odaya ayrılan tahsilat o odanın açık bakiyesini aşamaz');
   });
 });

@@ -4,9 +4,11 @@ import math
 import re
 import uuid
 from datetime import UTC, datetime
+from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Body, Depends, HTTPException
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from pydantic import BaseModel, Field
 from pymongo.errors import DuplicateKeyError
 
 try:
@@ -50,6 +52,139 @@ router = APIRouter()
 security = HTTPBearer()
 folio_balance_read_service = FolioBalanceReadService()
 open_folio_service = OpenFolioService()
+
+
+class CityLedgerPaymentAllocation(BaseModel):
+    """A payment amount explicitly settled against one reservation's AR item."""
+
+    booking_id: str = Field(min_length=1, max_length=200)
+    amount: float = Field(gt=0, le=1_000_000_000)
+
+
+def _as_finite_money(value: object, *, default: float = 0.0) -> float:
+    try:
+        amount = float(value)
+    except (TypeError, ValueError):
+        return default
+    return amount if math.isfinite(amount) else default
+
+
+def _city_ledger_booking_label(booking: dict | None, booking_id: str) -> dict:
+    """Keep the city-ledger source item readable even for a deleted legacy booking."""
+    booking = booking or {}
+    room_number = booking.get("room_number") or booking.get("room_no") or "Atanmamış"
+    guest_name = booking.get("guest_name") or booking.get("primary_guest_name") or "Misafir bilgisi yok"
+    return {
+        "booking_id": booking_id,
+        "room_number": str(room_number),
+        "guest_name": guest_name,
+        "check_in": booking.get("check_in") or booking.get("check_in_date"),
+        "check_out": booking.get("check_out") or booking.get("check_out_date"),
+        "booking_status": booking.get("status"),
+    }
+
+
+async def _city_ledger_booking_items(tenant_id: str, account_id: str) -> tuple[list[dict], dict]:
+    """Return room/reservation open items and clearly separate legacy unallocated money.
+
+    A city-ledger charge created by ``transfer_to_cari`` or direct billing stores
+    its ``booking_id``.  New payments may store a list of allocations.  Older
+    generic payments intentionally remain visible as *unallocated* instead of
+    being guessed against a room; guessing would silently settle the wrong room.
+    """
+    transactions = await db.city_ledger_transactions.find(
+        {"tenant_id": tenant_id, "account_id": account_id},
+        {"_id": 0},
+    ).to_list(5000)
+
+    items_by_booking: dict[str, dict] = {}
+    allocated_payment_total = 0.0
+    all_payment_total = 0.0
+    adjustment_total = 0.0
+
+    for transaction in transactions:
+        if transaction.get("status") not in {None, "completed"}:
+            continue
+        transaction_type = transaction.get("transaction_type")
+        amount = round(_as_finite_money(transaction.get("amount")), 2)
+        if amount <= 0:
+            continue
+
+        if transaction_type == "charge" and transaction.get("booking_id"):
+            booking_id = str(transaction["booking_id"])
+            item = items_by_booking.setdefault(
+                booking_id,
+                {
+                    "booking_id": booking_id,
+                    "charged_amount": 0.0,
+                    "allocated_payment_amount": 0.0,
+                    "source_transactions": [],
+                },
+            )
+            item["charged_amount"] += amount
+            item["source_transactions"].append(
+                {
+                    "transaction_id": transaction.get("id"),
+                    "date": transaction.get("transaction_date") or transaction.get("created_at"),
+                    "description": transaction.get("description"),
+                    "amount": amount,
+                    "reference_number": transaction.get("reference_number"),
+                }
+            )
+        elif transaction_type == "payment":
+            all_payment_total += amount
+            for allocation in transaction.get("allocations") or []:
+                booking_id = str(allocation.get("booking_id") or "").strip()
+                allocated_amount = round(_as_finite_money(allocation.get("amount")), 2)
+                if not booking_id or allocated_amount <= 0:
+                    continue
+                item = items_by_booking.setdefault(
+                    booking_id,
+                    {
+                        "booking_id": booking_id,
+                        "charged_amount": 0.0,
+                        "allocated_payment_amount": 0.0,
+                        "source_transactions": [],
+                    },
+                )
+                item["allocated_payment_amount"] += allocated_amount
+                allocated_payment_total += allocated_amount
+        elif transaction_type == "adjustment":
+            adjustment_total += amount
+
+    booking_ids = list(items_by_booking)
+    bookings_by_id: dict[str, dict] = {}
+    if booking_ids:
+        bookings = await db.bookings.find(
+            {"tenant_id": tenant_id, "id": {"$in": booking_ids}},
+            {"_id": 0},
+        ).to_list(len(booking_ids))
+        bookings_by_id = {str(booking.get("id")): booking for booking in bookings if booking.get("id")}
+
+    items: list[dict] = []
+    for booking_id, item in items_by_booking.items():
+        charged_amount = round(item["charged_amount"], 2)
+        allocated_amount = round(item["allocated_payment_amount"], 2)
+        open_amount = round(max(0.0, charged_amount - allocated_amount), 2)
+        if charged_amount <= 0 and allocated_amount <= 0:
+            continue
+        items.append(
+            {
+                **_city_ledger_booking_label(bookings_by_id.get(booking_id), booking_id),
+                "charged_amount": charged_amount,
+                "allocated_payment_amount": allocated_amount,
+                "open_amount": open_amount,
+                "source_transactions": item["source_transactions"],
+            }
+        )
+
+    items.sort(key=lambda item: (item.get("check_in") or "", item["booking_id"]), reverse=True)
+    return items, {
+        "room_open_total": round(sum(item["open_amount"] for item in items), 2),
+        "allocated_payment_total": round(allocated_payment_total, 2),
+        "unallocated_payment_total": round(max(0.0, all_payment_total - allocated_payment_total), 2),
+        "adjustment_total": round(adjustment_total, 2),
+    }
 
 
 @router.post("/cashiering/city-ledger")
@@ -394,6 +529,47 @@ async def get_outstanding_balances(credentials: HTTPAuthorizationCredentials = D
     return {"accounts": accounts, "total_accounts": len(accounts), "total_outstanding": round(total_outstanding, 2)}
 
 
+@router.get("/cashiering/city-ledger/{account_id}/open-items")
+async def get_city_ledger_open_items(
+    account_id: str,
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+):
+    """Show which reservation rooms make up an account's city-ledger balance.
+
+    Only source transactions that are explicitly linked to a booking are shown
+    as room items.  Legacy generic payments and write-offs are reported
+    separately so an operator can reconcile them without falsely assigning
+    them to a room.
+    """
+    current_user = await get_current_user(credentials)
+    _enforce(current_user.role, "view_city_ledger_transactions")
+
+    account = await db.city_ledger_accounts.find_one(
+        {"id": account_id, "tenant_id": current_user.tenant_id},
+        {"_id": 0},
+    )
+    if not account:
+        raise HTTPException(status_code=404, detail="Cari hesap bulunamadı")
+
+    items, totals = await _city_ledger_booking_items(current_user.tenant_id, account_id)
+    account_balance = round(_as_finite_money(account.get("current_balance")), 2)
+    tracked_balance = round(
+        totals["room_open_total"] - totals["unallocated_payment_total"] - totals["adjustment_total"],
+        2,
+    )
+    return {
+        "account_id": account_id,
+        "account_name": account.get("account_name"),
+        "items": items,
+        "summary": {
+            **totals,
+            "account_balance": account_balance,
+            "tracked_balance": tracked_balance,
+            "balance_difference": round(account_balance - tracked_balance, 2),
+        },
+    }
+
+
 @router.post("/cashiering/city-ledger-payment")
 async def post_city_ledger_payment(
     account_id: str,
@@ -401,9 +577,13 @@ async def post_city_ledger_payment(
     payment_method: str,
     reference: str | None = None,
     idempotency_key: str | None = None,
+    # ``embed=True`` keeps the HTTP contract explicit: {"allocations": [...]}.
+    # The rest of this legacy endpoint remains query parameters for backwards
+    # compatibility with existing payment clients.
+    allocations: Annotated[list[CityLedgerPaymentAllocation] | None, Body(embed=True)] = None,
     credentials: HTTPAuthorizationCredentials = Depends(security),
 ):
-    """Post payment to city ledger account"""
+    """Post a general or reservation-allocated payment to a city ledger account."""
     current_user = await get_current_user(credentials)
     _enforce(current_user.role, "post_city_ledger_payment")  # Bug CT
 
@@ -432,6 +612,31 @@ async def post_city_ledger_payment(
     if amount > current_balance:
         raise HTTPException(status_code=409, detail="Payment amount exceeds outstanding balance")
 
+    normalized_allocations: list[dict] = []
+    if allocations:
+        allocation_total = 0.0
+        allocation_booking_ids: set[str] = set()
+        for allocation in allocations:
+            booking_id = allocation.booking_id.strip()
+            allocation_amount = round(float(allocation.amount), 2)
+            if booking_id in allocation_booking_ids:
+                raise HTTPException(status_code=400, detail="Aynı rezervasyon ödeme dağıtımında birden fazla kez seçilemez")
+            allocation_booking_ids.add(booking_id)
+            allocation_total += allocation_amount
+            normalized_allocations.append({"booking_id": booking_id, "amount": allocation_amount})
+
+        if round(allocation_total, 2) != round(amount, 2):
+            raise HTTPException(status_code=400, detail="Oda dağıtım toplamı ödeme tutarına eşit olmalıdır")
+
+        items, _ = await _city_ledger_booking_items(current_user.tenant_id, account_id)
+        open_by_booking = {item["booking_id"]: item["open_amount"] for item in items}
+        for allocation in normalized_allocations:
+            available = open_by_booking.get(allocation["booking_id"])
+            if available is None:
+                raise HTTPException(status_code=409, detail="Seçilen rezervasyon bu carinin açık oda bakiyesinde bulunamadı")
+            if allocation["amount"] - available > 0.005:
+                raise HTTPException(status_code=409, detail="Bir odaya ayrılan tahsilat o odanın açık bakiyesini aşamaz")
+
     transaction_mongo_id = str(uuid.uuid5(uuid.NAMESPACE_URL, f"city-ledger-payment:{current_user.tenant_id}:{account_id}:{request_key}"))
     existing = await db.city_ledger_transactions.find_one({"_id": transaction_mongo_id, "tenant_id": current_user.tenant_id})
     if existing:
@@ -443,6 +648,7 @@ async def post_city_ledger_payment(
                 "account_name": account["account_name"],
                 "amount_paid": existing["amount"],
                 "new_balance": existing["new_balance"],
+                "allocations": existing.get("allocations", []),
             }
         raise HTTPException(status_code=409, detail="Payment is already being processed")
 
@@ -457,6 +663,10 @@ async def post_city_ledger_payment(
     )
     transaction_doc = transaction.model_dump()
     transaction_doc.update({"_id": transaction_mongo_id, "idempotency_key": request_key, "status": "pending"})
+    if normalized_allocations:
+        transaction_doc["allocations"] = normalized_allocations
+        if len(normalized_allocations) == 1:
+            transaction_doc["booking_id"] = normalized_allocations[0]["booking_id"]
     try:
         await db.city_ledger_transactions.insert_one(transaction_doc)
     except DuplicateKeyError as exc:
@@ -497,6 +707,7 @@ async def post_city_ledger_payment(
         "account_name": account["account_name"],
         "amount_paid": amount,
         "new_balance": new_balance,
+        "allocations": normalized_allocations,
     }
 
 
