@@ -9,7 +9,17 @@ import {
   AutonomousCollectionJobs, PhysicalSecurityDashboard, ContactCenterDashboard,
 } from "./lazyPages";
 
-export function securityAdminRoutes({ p, pa }) {
+const CALL_CENTER_ROLES = ["call_center_agent", "supervisor", "admin", "super_admin"];
+
+export function securityAdminRoutes({ p, pa, pm }) {
+  // Route-section unit tests exercise unrelated entries with only the generic
+  // factories. Keep that lightweight contract intact while the application
+  // always supplies `pm` for the entitlement-aware Call Center route.
+  const moduleRoute = pm || ((Component, _moduleKey, extra, opts = {}) => ({
+    ...p(Component, extra),
+    allowedRoles: opts.allowedRoles,
+  }));
+
   return [
     // ── Security & Compliance ──────────────────────────
     { path: "/app/physical-security", ...pa(PhysicalSecurityDashboard), wrapLayout: true, layoutModule: "physical_security" },
@@ -27,7 +37,8 @@ export function securityAdminRoutes({ p, pa }) {
     { path: "/admin/vendors", ...pa(AdminVendors), wrapLayout: true, layoutModule: "admin_vendors" },
     { path: "/admin/quick-id", ...pa(QuickIdSettings), wrapLayout: true, layoutModule: "quick_id_settings" },
     { path: "/admin/voice-numbers", ...p(VoiceNumberMapping), wrapLayout: true, layoutModule: "voice-number-mapping" },
-    { path: "/admin/contact-center", ...pa(ContactCenterDashboard), wrapLayout: true, layoutModule: "contact-center" },
+    { path: "/app/call-center", ...moduleRoute(ContactCenterDashboard, "contact_center", {}, { allowedRoles: CALL_CENTER_ROLES }), wrapLayout: true, layoutModule: "contact-center" },
+    { path: "/admin/contact-center", type: "redirect", to: "/app/call-center" },
     { path: "/admin/room-qr-codes", ...p(RoomQrCodes), wrapLayout: true, layoutModule: "room_qr_codes" },
     { path: "/app/room-requests", ...p(RoomRequests), wrapLayout: true, layoutModule: "room_qr_requests" },
     { path: "/admin/module-report", ...pa(ModuleReport), wrapLayout: true, layoutModule: "admin-module-report" },

@@ -89,6 +89,7 @@ export function getRouteConfigs({ user, tenant, modules, isAuthenticated, onLogo
     type: "module",
     moduleKey,
     strict: !!opts.strict,
+    allowedRoles: opts.allowedRoles,
     component: Component,
     props: { user, tenant, onLogout, modules, ...extra },
   });

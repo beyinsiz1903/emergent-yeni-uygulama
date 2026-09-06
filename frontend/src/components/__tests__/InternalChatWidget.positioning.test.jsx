@@ -31,4 +31,12 @@ describe('InternalChatWidget positioning', () => {
       'safe-fixed-bottom-chat',
     );
   });
+
+  it('opens the guest-request workspace with its own accessible title', () => {
+    render(<InternalChatWidget user={{ id: 'operator' }} hideLauncher />);
+
+    fireEvent(window, new CustomEvent('syroce:open-guest-requests'));
+
+    expect(screen.getByRole('dialog', { name: 'Misafir Talepleri' })).toBeInTheDocument();
+  });
 });
