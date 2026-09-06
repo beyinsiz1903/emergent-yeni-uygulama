@@ -1457,6 +1457,44 @@ async def test_voucher_requires_maker_checker_before_posting(_patch):
     assert replay["already_posted"] is True
     assert replay["entry"]["id"] == posted["entry"]["id"]
     assert len(_patch.gl_journal_entries.docs) == 1
+    assert [event["action"] for event in posted["voucher"]["history"]] == [
+        "created", "submitted", "approved", "posting", "posted",
+    ]
+
+
+async def test_voucher_post_failure_is_returned_to_approved_and_audited(_patch, monkeypatch):
+    await _seed_basic_coa()
+    maker = _user("finance", user_id="maker")
+    approver = _user("finance", user_id="approver")
+    voucher = (await gl.create_voucher(_voucher_payload(), current_user=maker))["voucher"]
+    await gl.submit_voucher(
+        voucher["id"],
+        gl.VoucherActionIn(reason="İncelemeye sunuldu"),
+        current_user=maker,
+    )
+    await gl.approve_voucher(
+        voucher["id"],
+        gl.VoucherActionIn(reason="Belge doğrulandı"),
+        current_user=approver,
+    )
+
+    async def _posting_failure(*_args, **_kwargs):
+        raise gl.GLPostingError("Sıra numarası kesinleşmedi")
+
+    monkeypatch.setattr(gl, "post_journal_entry", _posting_failure)
+    with pytest.raises(HTTPException) as exc:
+        await gl.post_approved_voucher(voucher["id"], current_user=approver)
+    assert exc.value.status_code == 409
+
+    current = (await gl.get_voucher(voucher["id"], current_user=approver))["voucher"]
+    assert current["status"] == "approved"
+    assert current["last_post_error"] == "Sıra numarası kesinleşmedi"
+    history = current["history"][-1]
+    assert history["by"] == "approver"
+    assert history["action"] == "post_failed"
+    assert history["status"] == "approved"
+    assert history["reason"] == "Sıra numarası kesinleşmedi"
+    assert history["at"]
 
 
 async def test_voucher_rejects_unknown_accounts_before_entering_workflow(_patch):

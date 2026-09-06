@@ -237,6 +237,32 @@ export const voucherActionNames = (status) => ({
   rejected: ['edit', 'cancel'],
 }[status] || []);
 
+const VOUCHER_HISTORY_ACTION_LABELS = {
+  created: 'Taslak oluşturuldu',
+  updated: 'Taslak güncellendi',
+  submitted: 'İncelemeye gönderildi',
+  approved: 'Onaylandı',
+  rejected: 'Reddedildi',
+  cancelled: 'İptal edildi',
+  posting: 'Yevmiyeye işleme başlatıldı',
+  posted: 'Yevmiyeye işlendi',
+  post_failed: 'Yevmiyeye işleme başarısız oldu',
+};
+
+// Voucher actions are already persisted by the API.  Keep their presentation
+// in one deterministic, accessible string so the same audit facts are visible
+// to the accountant without having to inspect server logs.
+export const formatVoucherHistoryEntry = (entry = {}) => {
+  const action = VOUCHER_HISTORY_ACTION_LABELS[entry.action] || entry.action || 'İşlem kaydı';
+  const details = [
+    entry.at ? String(entry.at).replace('T', ' ').replace(/\.\d+(?=(Z|[+-]\d\d:\d\d)$)/, '') : '',
+    entry.by ? `Kullanıcı: ${entry.by}` : '',
+    entry.reason ? `Gerekçe: ${entry.reason}` : '',
+    entry.entry_no ? `Yevmiye: ${entry.entry_no}` : '',
+  ].filter(Boolean);
+  return [action, ...details].join(' · ');
+};
+
 const VOUCHER_LABEL_BY_TYPE = {
   mahsup: 'Mahsup',
   tahsil: 'Tahsilat',
@@ -1229,7 +1255,18 @@ const GeneralLedgerModule = () => {
                           <span className={`shrink-0 rounded-full px-2 py-1 text-[11px] font-semibold ${status.className}`}>{status.label}</span>
                         </div>
                         {voucher.rejection_reason && <p className="mt-2 text-xs text-red-700">Ret: {voucher.rejection_reason}</p>}
+                        {voucher.last_post_error && <p className="mt-2 text-xs text-red-700">Yevmiye hatası: {voucher.last_post_error}</p>}
                         {voucher.journal_entry_no && <p className="mt-2 text-xs text-emerald-700">Yevmiye: {voucher.journal_entry_no}</p>}
+                        <details className="mt-3 rounded border border-slate-100 bg-slate-50 px-2 py-1.5 text-xs text-slate-600">
+                          <summary className="cursor-pointer font-medium text-slate-700">İşlem geçmişi ({(voucher.history || []).length})</summary>
+                          {(voucher.history || []).length > 0 ? (
+                            <ol className="mt-2 space-y-1 border-l border-slate-200 pl-3" aria-label={`${voucher.voucher_no} işlem geçmişi`}>
+                              {voucher.history.map((entry, index) => (
+                                <li key={`${entry.at || 'history'}-${entry.action || 'action'}-${index}`}>{formatVoucherHistoryEntry(entry)}</li>
+                              ))}
+                            </ol>
+                          ) : <p className="mt-2">Geçmiş kaydı bulunmuyor.</p>}
+                        </details>
                         {voucherActionNames(voucher.status).length > 0 && (
                           <div className="mt-3 flex flex-wrap gap-2">
                             {voucherActionNames(voucher.status).includes('edit') && (

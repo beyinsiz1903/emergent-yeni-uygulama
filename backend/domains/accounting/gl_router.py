@@ -1353,17 +1353,37 @@ async def post_approved_voucher(voucher_id: str, current_user: User = Depends(ge
             idempotency_key=f"gl-voucher:{voucher['id']}",
         )
     except GLPostingError as exc:
+        failed_at = _now_iso()
+        error_text = str(exc)[:500]
         await db.gl_vouchers.update_one(
             {"tenant_id": tenant_id, "id": voucher_id, "status": "posting", "posting_claim_id": claim_id},
             {
                 "$set": {
                     "status": "approved",
-                    "last_post_error": str(exc)[:500],
-                    "updated_at": _now_iso(),
+                    "last_post_error": error_text,
+                    "updated_at": failed_at,
                     "updated_by": actor,
                 },
                 "$unset": {"posting_claim_id": ""},
+                "$push": {
+                    "history": {
+                        "at": failed_at,
+                        "by": actor,
+                        "action": "post_failed",
+                        "status": "approved",
+                        "reason": error_text,
+                    },
+                },
             },
+        )
+        await _audit_voucher_transition(
+            tenant_id=tenant_id,
+            actor=actor,
+            voucher=voucher,
+            action="gl_voucher_post_failed",
+            before_status="posting",
+            after_status="approved",
+            reason=error_text,
         )
         raise HTTPException(status_code=409, detail=str(exc)) from exc
     completed_at = _now_iso()
