@@ -8,6 +8,7 @@ import {
   isForeignCurrency,
   markReversedJournalEntries,
   mergeAccountBalances,
+  normalizeAccountCode,
   normalizeTrialBalance,
   parseAccountMapping,
   toJournalPayload,
@@ -89,6 +90,19 @@ describe('GeneralLedgerModule persistent GL contract', () => {
         { account_code: '600', debit: 0, credit: 100, memo: null },
       ],
     });
+  });
+
+  it('uses the account code when a picker supplies a code-and-name label', () => {
+    expect(normalizeAccountCode(' 100 Kasa ')).toBe('100');
+    expect(toVoucherPayload({
+      date: '2026-08-13',
+      type: 'Mahsup',
+      description: 'Hesap seçimi',
+      lines: [
+        { account_code: '100 Kasa', debit: 10, credit: 0, description: '' },
+        { account_code: '320 Satıcılar', debit: 0, credit: 10, description: '' },
+      ],
+    }).lines.map((line) => line.account_code)).toEqual(['100', '320']);
   });
 
   it('exposes only the valid actions for each voucher state', () => {

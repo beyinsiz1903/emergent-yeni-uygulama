@@ -1459,6 +1459,28 @@ async def test_voucher_requires_maker_checker_before_posting(_patch):
     assert len(_patch.gl_journal_entries.docs) == 1
 
 
+async def test_voucher_rejects_unknown_accounts_before_entering_workflow(_patch):
+    await _seed_basic_coa()
+
+    with pytest.raises(HTTPException) as exc:
+        await gl.create_voucher(
+            gl.VoucherCreateIn(
+                date="2026-08-10",
+                voucher_type="mahsup",
+                memo="Geçersiz hesap doğrulaması",
+                lines=[
+                    gl.JournalLineIn(account_code="999 Geçersiz Hesap", debit=1),
+                    gl.JournalLineIn(account_code="600", credit=1),
+                ],
+            ),
+            current_user=_user("finance"),
+        )
+
+    assert exc.value.status_code == 409
+    assert "999 Geçersiz Hesap" in exc.value.detail
+    assert _patch.gl_vouchers.docs == []
+
+
 async def test_voucher_numbers_are_monotonic_and_cancelled_numbers_remain_auditable(_patch):
     await _seed_basic_coa()
     maker = _user("finance", user_id="maker")

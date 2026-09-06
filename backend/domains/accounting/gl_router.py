@@ -919,6 +919,11 @@ async def _validate_voucher_context(tenant_id: str, voucher: dict, actor: str) -
         await assert_gl_period_open(db, tenant_id, voucher["date"], actor=actor)
     except GLPeriodError as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
+    await _validate_voucher_accounts(tenant_id, voucher)
+
+
+async def _validate_voucher_accounts(tenant_id: str, voucher: dict) -> None:
+    """Reject non-existent or inactive accounts before a draft enters workflow."""
     codes = sorted({line["account_code"] for line in voucher.get("lines", [])})
     accounts = await db.gl_accounts.find(
         {"tenant_id": tenant_id, "code": {"$in": codes}},
@@ -997,6 +1002,7 @@ async def create_voucher(payload: VoucherCreateIn, current_user: User = Depends(
     tenant_id = _tenant_of(current_user)
     actor = _actor_id(current_user)
     normalized = _normalized_voucher_payload(payload)
+    await _validate_voucher_accounts(tenant_id, normalized)
     now = _now_iso()
     voucher_id = str(uuid.uuid4())
     fiscal_year = int(normalized["date"][:4])
@@ -1055,6 +1061,7 @@ async def update_voucher(
         raise HTTPException(status_code=409, detail="Fiş başka bir kullanıcı tarafından güncellendi")
     now = _now_iso()
     normalized = _normalized_voucher_payload(payload)
+    await _validate_voucher_accounts(tenant_id, normalized)
     revision = {
         "version": before.get("version", 1),
         "at": now,

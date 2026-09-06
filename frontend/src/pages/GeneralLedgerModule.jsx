@@ -160,12 +160,18 @@ export const isForeignCurrency = (currency, baseCurrency = 'TRY') => {
   return Boolean(normalized) && normalized !== String(baseCurrency || 'TRY').trim().toUpperCase();
 };
 
+// Account pickers commonly render labels such as "100 Kasa". The API, however,
+// must always receive the immutable chart-of-accounts code rather than that
+// presentation label. Keeping this at the payload boundary also protects older
+// screens and pasted values.
+export const normalizeAccountCode = (value) => String(value || '').trim().split(/\s+/)[0] || '';
+
 export const toVoucherPayload = (journal, baseCurrency = 'TRY') => ({
   date: journal.date,
   memo: journal.description.trim(),
   voucher_type: VOUCHER_TYPE_BY_LABEL[journal.type] || 'mahsup',
   lines: journal.lines.map((line) => ({
-    account_code: line.account_code.trim(),
+    account_code: normalizeAccountCode(line.account_code),
     debit: Number(line.debit) || 0,
     credit: Number(line.credit) || 0,
     memo: line.description?.trim() || null,
@@ -325,6 +331,7 @@ const GeneralLedgerModule = () => {
   const [periodActionReason, setPeriodActionReason] = useState('');
   const [voucherActionDialog, setVoucherActionDialog] = useState(null);
   const [voucherActionReason, setVoucherActionReason] = useState('');
+  const [voucherActionError, setVoucherActionError] = useState('');
   const [reversalDialog, setReversalDialog] = useState(null);
   const [reversalReason, setReversalReason] = useState('');
   const [reversalDate, setReversalDate] = useState(businessDate);
@@ -858,6 +865,7 @@ const GeneralLedgerModule = () => {
 
   const handleLineChange = (index, field, value) => {
     const updated = [...newJournal.lines];
+    if (field === 'account_code') value = normalizeAccountCode(value);
     if (field === 'debit' || field === 'credit') {
       value = parseFloat(value) || 0;
       // You can only have debit OR credit
@@ -917,6 +925,7 @@ const GeneralLedgerModule = () => {
     };
     const busyKey = `${voucher.id}:${action}`;
     setVoucherBusy(busyKey);
+    setVoucherActionError('');
     try {
       await axios.post(
         `${GL_ENDPOINTS.vouchers}/${voucher.id}/${action}`,
@@ -926,7 +935,9 @@ const GeneralLedgerModule = () => {
       await fetchJournals();
       return true;
     } catch (error) {
-      toast.error(error.response?.data?.detail || `Fiş ${labels[action]} işlemi tamamlanamadı.`);
+      const message = error.response?.data?.detail || `Fiş ${labels[action]} işlemi tamamlanamadı.`;
+      setVoucherActionError(message);
+      toast.error(message);
       return false;
     } finally {
       setVoucherBusy('');
@@ -939,13 +950,16 @@ const GeneralLedgerModule = () => {
       return;
     }
     setVoucherActionReason('');
+    setVoucherActionError('');
     setVoucherActionDialog({ voucher, action });
   };
 
   const confirmVoucherAction = async () => {
     const reason = voucherActionReason.trim();
     if (reason.length < 3) {
-      toast.error('Gerekçe en az 3 karakter olmalıdır.');
+      const message = 'Gerekçe en az 3 karakter olmalıdır.';
+      setVoucherActionError(message);
+      toast.error(message);
       return;
     }
     if (await runVoucherAction(voucherActionDialog.voucher, voucherActionDialog.action, reason)) {
@@ -1799,6 +1813,7 @@ const GeneralLedgerModule = () => {
           if (!open && !voucherBusy) {
             setVoucherActionDialog(null);
             setVoucherActionReason('');
+            setVoucherActionError('');
           }
         }}
       >
@@ -1812,6 +1827,7 @@ const GeneralLedgerModule = () => {
           <div className="space-y-2">
             <label className="text-sm font-medium" htmlFor="gl-voucher-action-reason">Gerekçe</label>
             <Input id="gl-voucher-action-reason" autoFocus value={voucherActionReason} onChange={(event) => setVoucherActionReason(event.target.value)} placeholder="En az 3 karakter" disabled={Boolean(voucherBusy)} />
+            {voucherActionError && <p className="text-sm text-red-700" role="alert">{voucherActionError}</p>}
           </div>
           <DialogFooter className="gap-2">
             <Button variant="outline" onClick={() => setVoucherActionDialog(null)} disabled={Boolean(voucherBusy)}>Vazgeç</Button>
