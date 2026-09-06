@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Calendar, Loader2, Search, Download, Printer, Shield } from 'lucide-react';
 import { SectionHeader } from './ReportHelpers';
 import { GuestTable } from './GuestSection';
+import { reservationLabel } from '@/utils/displayIdentifiers';
 
 export const OfficialSection = ({
   officialDate, setOfficialDate, officialRows, officialLoading,
@@ -99,7 +100,7 @@ export const OfficialSection = ({
                 <tr><td colSpan={7} className="py-12 text-center"><Loader2 className="w-5 h-5 animate-spin text-sky-500 mx-auto mb-2" /><span className="text-gray-400 text-xs">Yükleniyor...</span></td></tr>
               ) : filteredOfficialRows.length > 0 ? filteredOfficialRows.map((r, i) => (
                 <tr key={r.booking_id || i} className="border-b hover:bg-sky-50/30 transition-colors">
-                  <td className="px-3 py-2"><div className="font-medium text-gray-800">{r.guest_name || 'Misafir'}</div><div className="text-[10px] text-gray-400">Rez: {r.booking_id}</div></td>
+                  <td className="px-3 py-2"><div className="font-medium text-gray-800">{r.guest_name || 'Misafir'}</div><div className="text-[10px] text-gray-400">Rez: {reservationLabel(r)}</div></td>
                   <td className="px-3 py-2"><div className="text-[11px] text-gray-700">TCKN: {r.national_id || '-'}</div><div className="text-[11px] text-gray-500">Pasaport: {r.passport_number || '-'}</div></td>
                   <td className="px-3 py-2"><div className="text-[11px] text-gray-700">{r.country || '-'}</div><div className="text-[11px] text-gray-500">{r.city || ''}</div></td>
                   <td className="px-3 py-2 font-medium">{r.room_number || '-'}</td>

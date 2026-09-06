@@ -21,6 +21,7 @@ import {
   Plus, RefreshCw, Search, Settings2, UserRound, X,
 } from "lucide-react";
 import { useTranslation } from 'react-i18next';
+import { guestLabel } from '@/utils/displayIdentifiers';
 
 const TYPES = ["golf", "tennis", "yoga", "fitness", "bike", "diving", "kids", "other"];
 const HOURS = Array.from({ length: 13 }, (_, i) => 8 + i); // 08:00 → 20:00
@@ -168,7 +169,7 @@ export default function ActivitySchedulerPage() {
     const act = activityById[b.activity_id];
     setCancelTarget({
       id: b.id,
-      label: `${act?.name || b.activity_id} · ${b.starts_at?.slice(11, 16)}-${b.ends_at?.slice(11, 16)} · ${b.guest_name || b.guest_id}`,
+      label: `${act?.name || 'Aktivite'} · ${b.starts_at?.slice(11, 16)}-${b.ends_at?.slice(11, 16)} · ${guestLabel(b)}`,
     });
   };
 
@@ -425,10 +426,10 @@ export default function ActivitySchedulerPage() {
                                               ? "bg-blue-200 hover:bg-blue-300 font-medium"
                                               : "bg-blue-100 hover:bg-blue-200 italic opacity-80"
                                         }`}
-                                        title={`${act?.name || b.activity_id} · ${b.guest_name || b.guest_id} · ${b.starts_at?.slice(11, 16)}-${b.ends_at?.slice(11, 16)}${isStart ? "" : " (devam)"}`}
+                                        title={`${act?.name || 'Aktivite'} · ${guestLabel(b)} · ${b.starts_at?.slice(11, 16)}-${b.ends_at?.slice(11, 16)}${isStart ? "" : " (devam)"}`}
                                       >
                                         {isStart
-                                          ? `${act?.name || "?"} · ${b.guest_name || b.guest_id?.slice(0, 6)}`
+                                          ? `${act?.name || 'Aktivite'} · ${guestLabel(b)}`
                                           : "↳"}
                                       </button>
                                     );
@@ -476,9 +477,9 @@ export default function ActivitySchedulerPage() {
                             <TableCell className="text-xs">
                               {b.starts_at?.slice(11, 16)}-{b.ends_at?.slice(11, 16)}
                             </TableCell>
-                            <TableCell>{act?.name || b.activity_id}</TableCell>
-                            <TableCell>{res?.name || b.resource_id}</TableCell>
-                            <TableCell className="text-xs">{b.guest_name || b.guest_id}</TableCell>
+                            <TableCell>{act?.name || 'Aktivite'}</TableCell>
+                            <TableCell>{res?.name || 'Kaynak bilgisi yok'}</TableCell>
+                            <TableCell className="text-xs">{guestLabel(b)}</TableCell>
                             <TableCell>
                               {!cancelled && (
                                 <Button size="sm" variant="ghost" onClick={() => requestCancel(b)}>

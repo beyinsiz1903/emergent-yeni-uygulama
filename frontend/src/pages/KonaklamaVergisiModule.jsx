@@ -33,6 +33,7 @@ import {
   Wallet,
 } from "lucide-react";
 import { useTranslation } from 'react-i18next';
+import { folioLabel, reservationLabel } from '@/utils/displayIdentifiers';
 
 const TABS = [
   { key: "config", label: "Yapılandırma", icon: Settings },
@@ -318,8 +319,8 @@ export default function KonaklamaVergisiModule({ user, tenant, onLogout }) {
   const exportReportCSV = () => {
     if (!report) return;
     const rows = [
-      ["Folio ID", "Booking ID", "Geceleme", "Matrah (KDV hariç, TRY)"],
-      ...report.rows.map((r) => [r._id, r.booking_id, r.nights, r.base_amount?.toFixed(2)]),
+      ["Folyo", "Rezervasyon", "Geceleme", "Matrah (KDV hariç, TRY)"],
+      ...report.rows.map((r) => [folioLabel(r), reservationLabel(r), r.nights, r.base_amount?.toFixed(2)]),
       [],
       ["TOPLAM", "", report.total_nights, report.total_base?.toFixed(2)],
       ["VERGİ (%" + report.rate_percent + ")", "", "", report.total_tax?.toFixed(2)],
@@ -607,8 +608,8 @@ export default function KonaklamaVergisiModule({ user, tenant, onLogout }) {
                 <table className="min-w-full text-sm">
                   <thead className="bg-gray-50">
                     <tr>
-                      <th className="text-left px-3 py-2">Folio ID</th>
-                      <th className="text-left px-3 py-2">Booking</th>
+                      <th className="text-left px-3 py-2">Folyo</th>
+                      <th className="text-left px-3 py-2">Rezervasyon</th>
                       <th className="text-right px-3 py-2">Geceleme</th>
                       <th className="text-right px-3 py-2">{t('cm.pages_KonaklamaVergisiModule.matrah_kdv_haric_270bc')}</th>
                     </tr>
@@ -616,8 +617,8 @@ export default function KonaklamaVergisiModule({ user, tenant, onLogout }) {
                   <tbody>
                     {report.rows.map((r) => (
                       <tr key={r._id} className="border-t">
-                        <td className="px-3 py-2 font-mono text-xs">{r._id}</td>
-                        <td className="px-3 py-2 font-mono text-xs">{r.booking_id}</td>
+                        <td className="px-3 py-2 text-xs">{folioLabel(r)}</td>
+                        <td className="px-3 py-2 text-xs">{reservationLabel(r)}</td>
                         <td className="px-3 py-2 text-right">{r.nights}</td>
                         <td className="px-3 py-2 text-right">{fmtTRY(r.base_amount)}</td>
                       </tr>

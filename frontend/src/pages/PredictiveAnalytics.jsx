@@ -9,6 +9,7 @@ import { AlertTriangle, TrendingUp, Target, CheckCircle, Lightbulb, Activity, Ch
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
 import AITabs from '@/components/AITabs';
+import { reservationLabel } from '@/utils/displayIdentifiers';
 
 const PredictiveAnalytics = ({ user, tenant, onLogout, embedded }) => {
   const { t } = useTranslation();
@@ -186,7 +187,7 @@ const PredictiveAnalytics = ({ user, tenant, onLogout, embedded }) => {
                     <div key={idx} className="p-4 hover:bg-slate-50 transition-colors">
                       <div className="flex items-start justify-between mb-2">
                         <div>
-                          <p className="font-bold text-slate-800 font-mono text-sm">#{pred.booking_id.substring(0, 8).toUpperCase()}</p>
+                          <p className="font-bold text-slate-800 text-sm">{reservationLabel(pred)}</p>
                           <p className="text-xs text-slate-500 mt-0.5">
                             Risk Skoru: <span className="font-medium text-slate-700">%{(pred.risk_score * 100).toFixed(0)}</span>
                           </p>

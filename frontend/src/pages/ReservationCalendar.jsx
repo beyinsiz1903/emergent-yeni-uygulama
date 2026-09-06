@@ -39,6 +39,7 @@ import {
   validateStayResize,
 } from './calendar';
 import { useTranslation } from 'react-i18next';
+import { roomLabel } from '@/utils/displayIdentifiers';
 
 import { parseBookingConflict } from '@/lib/bookingConflict';
 import { getRoomBlockForDate } from './calendar/calendarHelpers';
@@ -1433,7 +1434,7 @@ const ReservationCalendar = ({ user, tenant, onLogout }) => {
                   <div key={idx} className="border border-red-200 rounded-lg p-3 bg-red-50/50" data-testid={`conflict-row-${idx}`}>
                     <div className="flex items-center justify-between mb-2">
                       <div className="font-semibold text-sm text-red-700">
-                        {t('cm.pages_ReservationCalendar.oda')} {c.room_number || c.room_id}
+                        {t('cm.pages_ReservationCalendar.oda')} {roomLabel(c)}
                       </div>
                       <div className="text-xs text-gray-600">
                         {t('cm.pages_ReservationCalendar.cakisma')} {fmt(c.overlap_start)} – {fmt(c.overlap_end)}

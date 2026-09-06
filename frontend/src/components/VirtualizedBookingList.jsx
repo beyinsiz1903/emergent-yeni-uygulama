@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Calendar, User, DollarSign, Eye } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { roomLabel } from '@/utils/displayIdentifiers';
 
 const BookingRow = memo(({ index, style, data }) => {
   const { t } = useTranslation();
@@ -43,7 +44,7 @@ const BookingRow = memo(({ index, style, data }) => {
             <div>
               <div className="text-xs text-gray-500">{t('cm.components_VirtualizedBookingList.oda')}</div>
               <div className="font-medium">
-                {booking.room_number || `Oda ${booking.room_id}`}
+                {roomLabel(booking)}
               </div>
             </div>
             

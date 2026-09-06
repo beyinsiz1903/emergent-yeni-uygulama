@@ -8,6 +8,7 @@ import { PageHeader } from "@/components/ui/page-header";
 import { KpiCard } from "@/components/ui/kpi-card";
 import { Calendar, AlertTriangle, CheckCircle, RefreshCw, Users, FileText, LogOut, DoorOpen } from "lucide-react";
 import { useTranslation } from 'react-i18next';
+import { folioLabel, reservationLabel } from '@/utils/displayIdentifiers';
 
 const FrontdeskAuditChecklist = ({ user, tenant, onLogout }) => {
   const { t } = useTranslation();
@@ -128,7 +129,7 @@ const FrontdeskAuditChecklist = ({ user, tenant, onLogout }) => {
                     <tbody>
                       {data.unchecked_in_arrivals.map((a) => (
                         <tr key={a.booking_id} className="border-b last:border-0 hover:bg-gray-50">
-                          <td className="py-2 pr-3 font-mono text-[11px]">{a.reservation_number || a.booking_id}</td>
+                          <td className="py-2 pr-3 text-[11px]">{reservationLabel(a)}</td>
                           <td className="py-2 pr-3">{a.guest_name}</td>
                           <td className="py-2 pr-3">{a.room_number || "-"}</td>
                           <td className="py-2 pr-3">
@@ -188,7 +189,7 @@ const FrontdeskAuditChecklist = ({ user, tenant, onLogout }) => {
                     <tbody>
                       {data.open_folios.map((f) => (
                         <tr key={f.folio_id} className="border-b last:border-0 hover:bg-gray-50">
-                          <td className="py-2 pr-3 font-mono text-[11px]">{f.folio_number || f.folio_id}</td>
+                          <td className="py-2 pr-3 text-[11px]">{folioLabel(f)}</td>
                           <td className="py-2 pr-3 text-[11px] capitalize">{f.folio_type}</td>
                           <td className="py-2 pr-3">{f.owner_name || "-"}</td>
                           <td className="py-2 pr-3 text-right">
@@ -236,7 +237,7 @@ const FrontdeskAuditChecklist = ({ user, tenant, onLogout }) => {
                     <tbody>
                       {data.unbalanced_folios.map((f) => (
                         <tr key={f.folio_id} className="border-b last:border-0 hover:bg-gray-50">
-                          <td className="py-2 pr-3 font-mono text-[11px]">{f.folio_number || f.folio_id}</td>
+                          <td className="py-2 pr-3 text-[11px]">{folioLabel(f)}</td>
                           <td className="py-2 pr-3">{f.owner_name || "-"}</td>
                           <td className="py-2 pr-3 text-right">
                             €{f.balance != null ? f.balance.toFixed ? f.balance.toFixed(2) : f.balance : "-"}
@@ -282,7 +283,7 @@ const FrontdeskAuditChecklist = ({ user, tenant, onLogout }) => {
                     <tbody>
                       {data.overdue_departures.map((o) => (
                         <tr key={o.booking_id} className="border-b last:border-0 hover:bg-gray-50">
-                          <td className="py-2 pr-3 font-mono text-[11px]">{o.reservation_number || o.booking_id}</td>
+                          <td className="py-2 pr-3 text-[11px]">{reservationLabel(o)}</td>
                           <td className="py-2 pr-3">{o.guest_name || "-"}</td>
                           <td className="py-2 pr-3">{o.room_number || "-"}</td>
                           <td className="py-2 pr-3 text-[11px]">

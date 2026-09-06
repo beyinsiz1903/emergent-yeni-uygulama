@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
+import { roomLabel as displayRoomLabel } from '@/utils/displayIdentifiers';
 import axios from 'axios';
 import { toast } from 'sonner';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -286,7 +287,7 @@ const StaffTaskManager = ({ currentUser }) => {
             const prColor = PRIORITY_COLORS[task.priority] || PRIORITY_COLORS.normal;
             const dash = '—';
             const taskTitle = (task.title || '').trim() || dash;
-            const roomLabel = (task.room_number || task.room_id || dash);
+            const roomLabel = displayRoomLabel(task, dash);
             const descLabel = (task.description || '').trim() || dash;
             const assignedLabel = (task.assigned_to || '').trim() || dash;
             return (
@@ -470,7 +471,7 @@ const StaffTaskManager = ({ currentUser }) => {
           </DialogHeader>
           <div className="space-y-4">
             <div className="rounded-lg border bg-slate-50 p-3 text-sm">
-              <div className="font-semibold">Oda {taskToComplete?.room_number || taskToComplete?.room_id}</div>
+              <div className="font-semibold">Oda {displayRoomLabel(taskToComplete)}</div>
               <div className="text-slate-600">{taskToComplete?.title}</div>
             </div>
             <div>

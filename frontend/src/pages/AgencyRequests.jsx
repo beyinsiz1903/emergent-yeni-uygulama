@@ -283,7 +283,7 @@ const AgencyRequests = () => {
                 
                 <div className="flex items-center gap-2 text-sm">
                   <Bed className="w-4 h-4 text-gray-400" />
-                  <span className="text-gray-700">{request.room_type_id}</span>
+                  <span className="text-gray-700">{request.room_type_name || 'Oda tipi bilgisi yok'}</span>
                 </div>
 
                 <div className="flex items-center gap-2 text-sm">
@@ -361,7 +361,7 @@ const AgencyRequests = () => {
                 {getStatusBadge(selectedRequest.status)}
               </DialogTitle>
               <DialogDescription>
-                Talep ID: {selectedRequest.request_id.substring(0, 8)}...
+                Talep tarihi: {formatDateTime(selectedRequest.created_at || selectedRequest.requested_at)}
               </DialogDescription>
             </DialogHeader>
 
@@ -412,11 +412,11 @@ const AgencyRequests = () => {
                   </div>
                   <div>
                     <p className="text-xs text-gray-600 mb-1">Oda Tipi</p>
-                    <p className="font-medium">{selectedRequest.room_type_id}</p>
+                    <p className="font-medium">{selectedRequest.room_type_name || 'Oda tipi bilgisi yok'}</p>
                   </div>
                   <div>
                     <p className="text-xs text-gray-600 mb-1">Fiyat Planı</p>
-                    <p className="font-medium">{selectedRequest.rate_plan_id}</p>
+                    <p className="font-medium">{selectedRequest.rate_plan_name || 'Fiyat planı bilgisi yok'}</p>
                   </div>
                 </div>
               </div>
@@ -518,7 +518,7 @@ const AgencyRequests = () => {
                 <div className="bg-green-50 rounded-lg p-4 border border-green-200">
                   <h3 className="font-semibold text-green-900 mb-2">Oluşturulan Rezervasyon</h3>
                   <p className="text-sm text-green-800">
-                    Rezervasyon ID: {selectedRequest.booking_id.substring(0, 12)}...
+                    Rezervasyon oluşturuldu.
                   </p>
                   <Button
                     size="sm"
