@@ -6,6 +6,7 @@ Tests real router endpoint functions with mocked DB.
 import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 from datetime import UTC, datetime, timedelta, date
+from types import SimpleNamespace
 
 
 class FakeUser:
@@ -171,6 +172,59 @@ class TestPerformanceMetrics:
 
 @pytest.mark.asyncio
 class TestHRRouterEndpoints:
+    @pytest.mark.asyncio
+    async def test_clock_in_uses_pms_business_date_and_blocks_any_open_shift(self, monkeypatch):
+        from domains.hr import router as hr_router
+
+        attendance = FakeCollection()
+        monkeypatch.setattr(hr_router, "db", SimpleNamespace(attendance_records=attendance))
+        monkeypatch.setattr(
+            hr_router,
+            "_verify_staff_in_tenant",
+            AsyncMock(return_value={"id": "s1", "name": "Test Personel"}),
+        )
+        monkeypatch.setattr(
+            hr_router,
+            "ensure_business_date_initialized",
+            AsyncMock(return_value={"business_date": "2026-09-03"}),
+        )
+
+        result = await hr_router.clock_in(hr_router.ClockInRequest(staff_id="s1"), FakeUser())
+
+        assert result["success"] is True
+        assert attendance.inserted[0]["date"] == "2026-09-03"
+        assert attendance.inserted[0]["clock_out"] is None
+
+    @pytest.mark.asyncio
+    async def test_clock_out_closes_legacy_open_shift_after_business_day_changes(self, monkeypatch):
+        from domains.hr import router as hr_router
+
+        attendance = FakeCollection(
+            [
+                {
+                    "id": "legacy-open",
+                    "tenant_id": "t1",
+                    "staff_id": "s1",
+                    "date": "2026-09-06",
+                    "clock_in": "2026-09-06T08:00:00+00:00",
+                    "clock_out": None,
+                }
+            ]
+        )
+        monkeypatch.setattr(hr_router, "db", SimpleNamespace(attendance_records=attendance))
+
+        result = await hr_router.clock_out(hr_router.ClockInRequest(staff_id="s1"), FakeUser())
+
+        assert result["success"] is True
+        assert attendance.updated[0][0] == {"id": "legacy-open", "tenant_id": "t1"}
+
+    async def test_attendance_default_range_accepts_pms_business_date(self):
+        from domains.hr.router import _parse_date_range
+
+        start, end = _parse_date_range(None, None, days=7, default_today=date(2026, 9, 3))
+        assert start == date(2026, 8, 27)
+        assert end == date(2026, 9, 3)
+
     async def test_clock_in_creates_record(self):
         fake_attendance = FakeCollection()
 

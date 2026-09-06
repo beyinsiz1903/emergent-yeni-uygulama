@@ -25,6 +25,7 @@ from pydantic import BaseModel, Field, field_validator
 from pymongo.errors import DuplicateKeyError
 
 from common.json_safe import json_safe
+from core.business_date_service import ensure_business_date_initialized
 from core.database import db, get_motor_database
 from core.entitlements.enforcement import get_tenant_limit, require_feature
 from core.entitlements.quota import QuotaExceededException, bootstrap_hr_active_employees, release_quota, reserve_quota
@@ -327,6 +328,20 @@ def _today_local() -> date:
     return datetime.now(TR_TZ).date()
 
 
+async def _attendance_business_date(tenant_id: str) -> date:
+    """Devam kayıtları için PMS'nin açık iş gününü döndür.
+
+    Personel giriş/çıkışları operasyonel günün parçasıdır. Takvim tarihini
+    kullanmak, gün sonu yapılmamışken kayıtların bir sonraki güne yazılmasına
+    ve bordro/devam ekranlarının PMS ile ayrışmasına yol açar.
+    """
+    business_date = (await ensure_business_date_initialized(db, tenant_id)).get("business_date")
+    try:
+        return date.fromisoformat(str(business_date))
+    except (TypeError, ValueError) as exc:
+        raise RuntimeError(f"Geçersiz PMS iş günü: {business_date!r}") from exc
+
+
 # ============= HR COMPLETE SUITE =============
 
 
@@ -500,18 +515,18 @@ class JobDecisionPayload(BaseModel):
 
 @router.post("/hr/clock-in", dependencies=[Depends(require_feature("hr", "shift"))])
 async def clock_in(payload: ClockInRequest, current_user: User = Depends(get_current_user)):
-    """Personel giriş kaydı — tenant scoped, TR-TZ tarih, validated staff_id."""
+    """Personel giriş kaydı — tenant scoped, PMS iş günü, validated staff_id."""
     staff = await _verify_staff_in_tenant(payload.staff_id, current_user.tenant_id)
     if not staff:
         raise HTTPException(status_code=404, detail="Personel bulunamadı veya bu tenant'a ait değil")
 
-    today_iso = _today_local().isoformat()
-    # Aynı gün içinde açık clock-in varsa, çift kayıt önle
+    business_date_iso = (await _attendance_business_date(current_user.tenant_id)).isoformat()
+    # Açık giriş kaydını iş gününden bağımsız engelle: gece yarısı / gün sonu
+    # sonrasında aynı personel için ikinci açık vardiya oluşmamalı.
     existing = await db.attendance_records.find_one(
         {
             "tenant_id": current_user.tenant_id,
             "staff_id": payload.staff_id,
-            "date": today_iso,
             "clock_out": None,
         }
     )
@@ -523,7 +538,7 @@ async def clock_in(payload: ClockInRequest, current_user: User = Depends(get_cur
         "tenant_id": current_user.tenant_id,
         "staff_id": payload.staff_id,
         "staff_name": staff.get("name"),
-        "date": today_iso,
+        "date": business_date_iso,
         "clock_in": datetime.now(UTC).isoformat(),
         "clock_out": None,
         "status": "present",
@@ -535,13 +550,12 @@ async def clock_in(payload: ClockInRequest, current_user: User = Depends(get_cur
 
 @router.post("/hr/clock-out", dependencies=[Depends(require_feature("hr", "shift"))])
 async def clock_out(payload: ClockInRequest, current_user: User = Depends(get_current_user)):
-    # v109 Bug DAK round-6 (T08 P1): tenant_id scoped on both find and update.
-    today_iso = _today_local().isoformat()
+    # Tenant scoped; açık vardiya gün sonu sonrasında da kapatılabilsin.
+    # Böylece eski takvim-tarihli kayıtlar da kilitli kalmaz.
     record = await db.attendance_records.find_one(
         {
             "tenant_id": current_user.tenant_id,
             "staff_id": payload.staff_id,
-            "date": today_iso,
             "clock_out": None,
         }
     )
@@ -554,8 +568,8 @@ async def clock_out(payload: ClockInRequest, current_user: User = Depends(get_cu
     return {"success": False, "message": "Açık giriş kaydı bulunamadı"}
 
 
-def _parse_date_range(start: str | None, end: str | None, days: int = 7):
-    today = _today_local()
+def _parse_date_range(start: str | None, end: str | None, days: int = 7, *, default_today: date | None = None):
+    today = default_today or _today_local()
     start_date = datetime.fromisoformat(start).date() if start else today - timedelta(days=days)
     end_date = datetime.fromisoformat(end).date() if end else today
     if start_date > end_date:
@@ -565,7 +579,12 @@ def _parse_date_range(start: str | None, end: str | None, days: int = 7):
 
 @router.get("/hr/attendance/records", dependencies=[Depends(require_feature("hr", "shift"))])
 async def get_attendance_records(start_date: str | None = None, end_date: str | None = None, staff_id: str | None = None, limit: int = 500, current_user: User = Depends(get_current_user)):
-    start_dt, end_dt = _parse_date_range(start_date, end_date, days=7)
+    start_dt, end_dt = _parse_date_range(
+        start_date,
+        end_date,
+        days=7,
+        default_today=await _attendance_business_date(current_user.tenant_id),
+    )
     query: dict[str, Any] = {"tenant_id": current_user.tenant_id, "date": {"$gte": start_dt.isoformat(), "$lte": end_dt.isoformat()}}
     if staff_id:
         query["staff_id"] = staff_id
@@ -582,7 +601,12 @@ async def get_attendance_records(start_date: str | None = None, end_date: str | 
 
 @router.get("/hr/attendance/summary", dependencies=[Depends(require_feature("hr", "shift"))])
 async def get_attendance_summary(start_date: str | None = None, end_date: str | None = None, current_user: User = Depends(get_current_user)):
-    start_dt, end_dt = _parse_date_range(start_date, end_date, days=30)
+    start_dt, end_dt = _parse_date_range(
+        start_date,
+        end_date,
+        days=30,
+        default_today=await _attendance_business_date(current_user.tenant_id),
+    )
     query = {"tenant_id": current_user.tenant_id, "date": {"$gte": start_dt.isoformat(), "$lte": end_dt.isoformat()}}
     records = await db.attendance_records.find(query, {"_id": 0}).to_list(2000)
     staff_map = await _get_staff_map(current_user.tenant_id)
@@ -6620,7 +6644,12 @@ async def attendance_department_summary(
     _perm=Depends(require_op("view_hr")),
 ):
     """Departman bazlı çalışma saati özet kartları."""
-    start_dt, end_dt = _parse_date_range(start, end, days=30)
+    start_dt, end_dt = _parse_date_range(
+        start,
+        end,
+        days=30,
+        default_today=await _attendance_business_date(current_user.tenant_id),
+    )
     records = await db.attendance_records.find(
         {
             "tenant_id": current_user.tenant_id,
