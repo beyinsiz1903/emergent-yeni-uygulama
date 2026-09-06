@@ -768,12 +768,12 @@ const HRComplete = () => {
       setCreatingLeave(true);
       await axios.post('/hr/leave-request', leaveForm);
       toast.success('İzin talebi oluşturuldu');
-      setLeaveForm({
-        ...leaveForm,
+      setLeaveForm(prev => ({
+        ...prev,
         start_date: '',
         end_date: '',
         reason: ''
-      });
+      }));
       leavePage.refresh();
     } catch (error) {
       const msg = error.response?.data?.detail || 'İzin talebi oluşturulamadı';
@@ -831,15 +831,15 @@ const HRComplete = () => {
         competency_scores: perfForm.competency_scores || {}
       });
       toast.success('Performans değerlendirmesi kaydedildi');
-      setPerfForm({
-        ...perfForm,
+      setPerfForm(prev => ({
+        ...prev,
         period: '',
         overall_score: '',
         strengths: '',
         improvement_areas: '',
         goals: '',
         competency_scores: {}
-      });
+      }));
       performancePage.refresh();
     } catch (error) {
       const msg = error.response?.data?.detail || 'Kaydedilemedi';
@@ -860,13 +860,13 @@ const HRComplete = () => {
       setCreatingJob(true);
       await axios.post('/hr/job-posting', jobForm);
       toast.success('İş ilanı yayınlandı');
-      setJobForm({
-        ...jobForm,
+      setJobForm(prev => ({
+        ...prev,
         title: '',
         location: '',
         salary_range: '',
         description: ''
-      });
+      }));
       loadJobs();
     } catch (error) {
       const msg = error.response?.data?.detail || 'Yayınlanamadı';
