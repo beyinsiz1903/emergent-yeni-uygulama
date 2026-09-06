@@ -200,6 +200,55 @@ async def test_swap_allows_checked_in_guest_to_exchange_with_not_checked_in_rese
 
 
 @pytest.mark.asyncio
+async def test_swap_allows_not_checked_in_reservation_to_exchange_with_checked_in_guest(monkeypatch):
+    source = _booking("booking-101", "room-101", "Ali")
+    target = _checked_in_booking("booking-102", "room-102", "Ayse")
+
+    async def find_booking(query, *args, **kwargs):
+        if query.get("id") == "booking-101":
+            return source
+        if query.get("id") == "booking-102":
+            return target
+        return None
+
+    rooms = SimpleNamespace(
+        find=lambda *args, **kwargs: _Cursor([
+            {"id": "room-101", "room_number": "101", "status": "dirty", "current_booking_id": None},
+            {"id": "room-102", "room_number": "102", "current_booking_id": "booking-102"},
+        ]),
+        update_one=AsyncMock(return_value=SimpleNamespace(matched_count=1)),
+    )
+    fake_db = SimpleNamespace(
+        bookings=SimpleNamespace(
+            find_one=AsyncMock(side_effect=find_booking),
+            update_one=AsyncMock(return_value=SimpleNamespace(matched_count=1)),
+        ),
+        rooms=rooms,
+        room_night_locks=SimpleNamespace(
+            find=lambda *args, **kwargs: _Cursor([]),
+            delete_many=AsyncMock(),
+            insert_many=AsyncMock(),
+        ),
+        room_move_history=SimpleNamespace(insert_many=AsyncMock()),
+    )
+    monkeypatch.setattr(room_swap_module, "db", fake_db)
+    monkeypatch.setenv("MONGO_DISABLE_TRANSACTIONS", "1")
+
+    result = await room_swap_module.room_swap_service.swap(
+        tenant_id=TENANT,
+        booking_id="booking-101",
+        target_booking_id="booking-102",
+        reason="Misafir talebi",
+        moved_by="Operatör",
+    )
+
+    assert result["checked_in_swap"] is True
+    occupied_room_call, released_room_call = rooms.update_one.await_args_list
+    assert occupied_room_call.args[1]["$set"] == {"status": "occupied", "current_booking_id": "booking-102"}
+    assert released_room_call.args[1]["$set"] == {"status": "dirty", "current_booking_id": None}
+
+
+@pytest.mark.asyncio
 async def test_swap_rejects_a_third_party_target_lock(monkeypatch):
     source = _booking("booking-101", "room-101", "Ali")
     target = _booking("booking-102", "room-102", "Ayse")
