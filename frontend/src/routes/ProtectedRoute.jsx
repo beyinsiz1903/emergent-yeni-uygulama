@@ -47,6 +47,15 @@ function withOptionalLayout(element, { wrapLayout, layoutModule, user, tenant, o
   );
 }
 
+function hasAllowedRole(user, allowedRoles) {
+  if (!Array.isArray(allowedRoles) || allowedRoles.length === 0) return true;
+  const roles = new Set([
+    user?.role,
+    ...(Array.isArray(user?.roles) ? user.roles : []),
+  ].filter(Boolean).map((role) => String(role).toLowerCase()));
+  return roles.has("super_admin") || roles.has("demo_manager_readonly") || allowedRoles.some((role) => roles.has(String(role).toLowerCase()));
+}
+
 export function ProtectedRoute({
   isAuthenticated,
   element,
@@ -101,10 +110,19 @@ export function ModuleGuardedRoute({
   user,
   tenant,
   onLogout,
+  allowedRoles,
 }) {
   const { hasModule, hasFeature, loading, error, refresh } = useEntitlements();
 
   if (!isAuthenticated) return <Navigate to="/auth" replace />;
+
+  if (!hasAllowedRole(user, allowedRoles)) {
+    return (
+      <Suspense fallback={<LoadingFallback />}>
+        {withOptionalLayout(<ModuleAvailabilityState reason="disabled" />, { wrapLayout, layoutModule, user, tenant, onLogout })}
+      </Suspense>
+    );
+  }
 
   if (loading) {
     return <LoadingFallback />;

@@ -11,7 +11,7 @@ beforeEach(() => sessionStorage.clear());
 afterEach(() => cleanup());
 
 describe('CommunicationCenter', () => {
-  it('combines messaging and phone into one collapsed launcher', () => {
+  it('opens the internal communication destinations from one collapsed launcher', () => {
     render(<CommunicationCenter user={{ id: 'operator', role: 'front_desk' }} />);
 
     expect(screen.getByRole('button', { name: 'İletişim merkezini aç' })).toBeInTheDocument();
@@ -21,7 +21,9 @@ describe('CommunicationCenter', () => {
     expect(screen.getByRole('menu', { name: 'İletişim merkezi seçenekleri' })).toBeInTheDocument();
     expect(screen.getByText('Personel mesajları')).toBeInTheDocument();
     expect(screen.getByText('Misafir talepleri')).toBeInTheDocument();
-    expect(screen.getByText('Telefon')).toBeInTheDocument();
+    expect(screen.queryByText('Telefon')).not.toBeInTheDocument();
+    expect(screen.getByText('Ekip: 3')).toBeInTheDocument();
+    expect(screen.getByText('Misafir: 2')).toBeInTheDocument();
   });
 
   it('opens unread guest requests from the same launcher', () => {

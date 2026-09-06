@@ -77,8 +77,12 @@ const AGENT_STATE_LABELS = {
   offline: "Çevrimdışı",
 };
 
-export default function ContactCenterDashboard() {
+export default function ContactCenterDashboard({ user }) {
   const { t } = useTranslation();
+  const roles = [user?.role, ...(Array.isArray(user?.roles) ? user.roles : [])]
+    .filter(Boolean)
+    .map((role) => String(role).toLowerCase());
+  const canManageCallCenter = roles.some((role) => ["supervisor", "admin", "super_admin", "demo_manager_readonly"].includes(role));
   const [tab, setTab] = useState("history"); // "history" or "supervisor"
   const [calls, setCalls] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -128,12 +132,12 @@ export default function ContactCenterDashboard() {
 
   useEffect(() => {
     let interval;
-    if (tab === "supervisor") {
+    if (tab === "supervisor" && canManageCallCenter) {
       fetchSupervisorData();
       interval = setInterval(fetchSupervisorData, 3000);
     }
     return () => clearInterval(interval);
-  }, [tab]);
+  }, [tab, canManageCallCenter]);
 
   // Compute Daily Stats
   const todayCalls = calls.filter(c => isToday(c.started_at));
@@ -209,7 +213,17 @@ export default function ContactCenterDashboard() {
           </p>
         </div>
 
-        <div className="flex bg-gray-100 p-1 rounded-lg">
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={() => window.dispatchEvent(new CustomEvent('syroce:open-softphone'))}
+            className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-3 py-2 text-xs font-semibold text-white shadow-sm hover:bg-emerald-700"
+            data-testid="button-open-phone-console"
+          >
+            <PhoneCall className="w-4 h-4" /> Telefon konsolunu aç
+          </button>
+          <span className="text-xs text-gray-500">{user?.name || user?.email || 'Operatör'}</span>
+          <div className="flex bg-gray-100 p-1 rounded-lg">
           <button
             onClick={() => setTab("history")}
             className={`px-4 py-1.5 rounded-md text-xs font-semibold transition-colors ${
@@ -220,17 +234,20 @@ export default function ContactCenterDashboard() {
           >
             Çağrı Raporları
           </button>
-          <button
-            onClick={() => setTab("supervisor")}
-            className={`px-4 py-1.5 rounded-md text-xs font-semibold transition-colors flex items-center gap-1.5 ${
-              tab === "supervisor" 
-                ? "bg-white text-gray-900 shadow-sm" 
-                : "text-gray-500 hover:text-gray-900"
-            }`}
-          >
-            <Radio className="w-3.5 h-3.5 text-indigo-600 animate-pulse" />
-            Supervisor Canlı Ekranı
-          </button>
+          {canManageCallCenter ? (
+            <button
+              onClick={() => setTab("supervisor")}
+              className={`px-4 py-1.5 rounded-md text-xs font-semibold transition-colors flex items-center gap-1.5 ${
+                tab === "supervisor"
+                  ? "bg-white text-gray-900 shadow-sm"
+                  : "text-gray-500 hover:text-gray-900"
+              }`}
+            >
+              <Radio className="w-3.5 h-3.5 text-indigo-600 animate-pulse" />
+              Supervisor Canlı Ekranı
+            </button>
+          ) : null}
+          </div>
         </div>
       </div>
 

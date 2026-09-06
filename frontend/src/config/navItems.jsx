@@ -177,12 +177,13 @@ export const NAV_ITEMS = [
   {
     key: "contact_center_dashboard",
     label: "Çağrı Merkezi",
-    path: "/admin/contact-center",
+    path: "/app/call-center",
     tier: "basic",
     group: "core",
-    navGroup: "admin",
-    navSection: "platform",
-    requireSuperAdmin: true,
+    navGroup: "operations",
+    navSection: "daily",
+    moduleKey: "contact_center",
+    allowedRoles: ["call_center_agent", "supervisor", "admin", "super_admin"],
   },
   {
     // Task #282: numara -> otel/ajan eşleme yönetimi (operatör ekranı).

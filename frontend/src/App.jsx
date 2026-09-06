@@ -438,14 +438,12 @@ function App() {
                         />
                       );
                     } else if (rc.type === "module") {
-                      const uRoles = (user?.roles || []).map(r => r.toLowerCase());
-                      const uRole = (user?.role || "").toLowerCase();
-                      const isSuperAdmin = uRoles.includes("super_admin") || uRole === "super_admin" || uRole === "demo_manager_readonly";
                       element = (
                         <ModuleGuardedRoute
                           isAuthenticated={isAuthenticated}
                           moduleKey={rc.moduleKey}
                           strict={rc.strict}
+                          allowedRoles={rc.allowedRoles}
                           element={<rc.component {...rc.props} />}
                           wrapLayout={rc.wrapLayout}
                           layoutModule={rc.layoutModule}

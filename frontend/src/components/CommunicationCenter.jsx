@@ -1,13 +1,10 @@
 import { useEffect, useState } from 'react';
-import { Headset, MessageCircleMore, MessagesSquare, Minus, Phone, X } from 'lucide-react';
+import { Headset, MessageCircleMore, MessagesSquare, Minus, X } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { useNotifications } from '@/context/NotificationContext';
 
 const OPEN_CHAT_EVENT = 'syroce:open-internal-chat';
-const CLOSE_CHAT_EVENT = 'syroce:close-internal-chat';
-const OPEN_PHONE_EVENT = 'syroce:open-softphone';
-const CLOSE_PHONE_EVENT = 'syroce:close-softphone';
 const DISPLAY_MODE_KEY = 'syroce_communication_center_mode';
 
 const readDisplayMode = () => {
@@ -41,8 +38,7 @@ export default function CommunicationCenter({ user }) {
     try { sessionStorage.setItem(DISPLAY_MODE_KEY, nextMode); } catch { /* private mode */ }
   };
 
-  const openPanel = (eventName, closeEventName) => {
-    window.dispatchEvent(new CustomEvent(closeEventName));
+  const openPanel = (eventName) => {
     window.dispatchEvent(new CustomEvent(eventName));
     window.dispatchEvent(new CustomEvent('syroce:communication-panel-opened'));
     setOpen(false);
@@ -78,7 +74,7 @@ export default function CommunicationCenter({ user }) {
           <div className="flex items-center justify-between px-2 py-1.5">
             <div>
               <div className="text-sm font-bold text-slate-900">İletişim merkezi</div>
-              <div className="text-[11px] text-slate-500">Mesaj ve telefon tek noktada</div>
+              <div className="text-[11px] text-slate-500">Ekip mesajları ve misafir talepleri</div>
             </div>
             <div className="flex items-center gap-0.5">
               <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => changeDisplayMode('minimized')} aria-label="İletişim merkezini küçült">
@@ -93,7 +89,7 @@ export default function CommunicationCenter({ user }) {
             type="button"
             role="menuitem"
             className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left hover:bg-slate-50 dark:hover:bg-slate-900"
-            onClick={() => openPanel(OPEN_CHAT_EVENT, CLOSE_PHONE_EVENT)}
+            onClick={() => openPanel(OPEN_CHAT_EVENT)}
             data-testid="communication-open-chat"
           >
             <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-50 text-blue-700"><MessagesSquare className="h-4 w-4" /></span>
@@ -107,7 +103,7 @@ export default function CommunicationCenter({ user }) {
             type="button"
             role="menuitem"
             className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left hover:bg-slate-50 dark:hover:bg-slate-900"
-            onClick={() => openPanel('syroce:open-guest-requests', CLOSE_PHONE_EVENT)}
+            onClick={() => openPanel('syroce:open-guest-requests')}
             data-testid="communication-open-guest-requests"
           >
             <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-amber-50 text-amber-700"><MessageCircleMore className="h-4 w-4" /></span>
@@ -117,19 +113,10 @@ export default function CommunicationCenter({ user }) {
             </span>
             {guestUnread > 0 && <span className="rounded-full bg-rose-500 px-1.5 py-0.5 text-[10px] font-bold text-white">{guestUnread > 99 ? '99+' : guestUnread}</span>}
           </button>
-          <button
-            type="button"
-            role="menuitem"
-            className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left hover:bg-slate-50 dark:hover:bg-slate-900"
-            onClick={() => openPanel(OPEN_PHONE_EVENT, CLOSE_CHAT_EVENT)}
-            data-testid="communication-open-phone"
-          >
-            <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-50 text-emerald-700"><Phone className="h-4 w-4" /></span>
-            <span>
-              <span className="block text-sm font-semibold text-slate-800">Telefon</span>
-              <span className="block text-[11px] text-slate-500">Softphone ve geri aramalar</span>
-            </span>
-          </button>
+          <div className="mx-2 mt-1 flex items-center justify-between rounded-lg bg-slate-50 px-2.5 py-1.5 text-[10px] text-slate-500 dark:bg-slate-900">
+            <span>Ekip: {staffUnread}</span>
+            <span>Misafir: {guestUnread}</span>
+          </div>
         </div>
       )}
 
