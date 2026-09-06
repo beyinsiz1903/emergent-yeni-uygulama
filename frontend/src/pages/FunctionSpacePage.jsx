@@ -18,6 +18,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { Building2, Plus, RefreshCw, X, Loader2 } from "lucide-react";
 import { useTranslation } from 'react-i18next';
+import { roomLabel } from '@/utils/displayIdentifiers';
 
 /**
  * Opera #6 — Function Space.
@@ -393,7 +394,7 @@ export default function FunctionSpacePage() {
                               {b.starts_at?.slice(11, 16)}-{b.ends_at?.slice(11, 16)}
                             </TableCell>
                             <TableCell>{b.event_name}</TableCell>
-                            <TableCell>{room?.name || b.room_id}</TableCell>
+                            <TableCell>{room?.name || roomLabel(b, 'Salon bilgisi yok')}</TableCell>
                             <TableCell className="text-center">
                               <Badge variant="outline">{setupLabel(b.setup_type)}</Badge>
                             </TableCell>

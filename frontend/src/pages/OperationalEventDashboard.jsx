@@ -4,6 +4,7 @@ import { Activity, Bell, Radio, Users, Home, Wrench, AlertTriangle, CheckCircle,
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { roomLabel } from '@/utils/displayIdentifiers';
 const API = "";
 const PRIORITY_STYLES = {
   critical: 'bg-red-100 text-red-800 border-red-300',
@@ -305,7 +306,7 @@ export default function OperationalEventDashboard({
                     {(fdQueue?.arrivals || []).map((a, i) => <div key={a.id || i} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
                         <div>
                           <p className="font-medium text-sm">{a.guest_name || 'Misafir'}</p>
-                          <p className="text-xs text-slate-500">Oda: {a.room_id}</p>
+                          <p className="text-xs text-slate-500">Oda: {roomLabel(a)}</p>
                         </div>
                         {a.vip && <Badge variant="destructive">VIP</Badge>}
                       </div>)}
@@ -321,7 +322,7 @@ export default function OperationalEventDashboard({
                     {(fdQueue?.departures || []).map((d, i) => <div key={d.id || i} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
                         <div>
                           <p className="font-medium text-sm">{d.guest_name || 'Misafir'}</p>
-                          <p className="text-xs text-slate-500">Oda: {d.room_id}</p>
+                          <p className="text-xs text-slate-500">Oda: {roomLabel(d)}</p>
                         </div>
                       </div>)}
                   </div>}

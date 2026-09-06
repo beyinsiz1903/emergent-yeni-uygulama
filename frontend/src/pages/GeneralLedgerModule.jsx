@@ -249,14 +249,22 @@ const VOUCHER_HISTORY_ACTION_LABELS = {
   post_failed: 'Yevmiyeye işleme başarısız oldu',
 };
 
-// Voucher actions are already persisted by the API.  Keep their presentation
-// in one deterministic, accessible string so the same audit facts are visible
-// to the accountant without having to inspect server logs.
+// Voucher actions are already persisted by the API. Keep the audit trail
+// legible in the operational screen: the actor's immutable id remains in the
+// server audit log, while this list shows the action, local time and reason.
 export const formatVoucherHistoryEntry = (entry = {}) => {
   const action = VOUCHER_HISTORY_ACTION_LABELS[entry.action] || entry.action || 'İşlem kaydı';
+  let occurredAt = '';
+  if (entry.at) {
+    const parsed = new Date(entry.at);
+    occurredAt = Number.isNaN(parsed.valueOf())
+      ? String(entry.at).replace('T', ' ').replace(/\.\d+(?=(Z|[+-]\d\d:\d\d)$)/, '')
+      : new Intl.DateTimeFormat('tr-TR', {
+        day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit',
+      }).format(parsed);
+  }
   const details = [
-    entry.at ? String(entry.at).replace('T', ' ').replace(/\.\d+(?=(Z|[+-]\d\d:\d\d)$)/, '') : '',
-    entry.by ? `Kullanıcı: ${entry.by}` : '',
+    occurredAt,
     entry.reason ? `Gerekçe: ${entry.reason}` : '',
     entry.entry_no ? `Yevmiye: ${entry.entry_no}` : '',
   ].filter(Boolean);
@@ -1258,7 +1266,7 @@ const GeneralLedgerModule = () => {
                         {voucher.last_post_error && <p className="mt-2 text-xs text-red-700">Yevmiye hatası: {voucher.last_post_error}</p>}
                         {voucher.journal_entry_no && <p className="mt-2 text-xs text-emerald-700">Yevmiye: {voucher.journal_entry_no}</p>}
                         <details className="mt-3 rounded border border-slate-100 bg-slate-50 px-2 py-1.5 text-xs text-slate-600">
-                          <summary className="cursor-pointer font-medium text-slate-700">İşlem geçmişi ({(voucher.history || []).length})</summary>
+                          <summary className="cursor-pointer font-medium text-slate-700">Geçmiş ({(voucher.history || []).length})</summary>
                           {(voucher.history || []).length > 0 ? (
                             <ol className="mt-2 space-y-1 border-l border-slate-200 pl-3" aria-label={`${voucher.voucher_no} işlem geçmişi`}>
                               {voucher.history.map((entry, index) => (

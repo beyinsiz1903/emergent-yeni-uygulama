@@ -134,10 +134,8 @@ const ReservationSidebar = ({
                     </div>
                     <div className="space-y-2 text-sm">
                       <div className="flex justify-between">
-                        <span className="text-gray-600">Group ID:</span>
-                        <span className="font-mono text-xs bg-white px-2 py-0.5 rounded border border-blue-100">
-                          {booking.group_booking_id?.slice(0, 8)}…
-                        </span>
+                        <span className="text-gray-600">Grup rezervasyonu:</span>
+                        <span className="text-xs bg-white px-2 py-0.5 rounded border border-blue-100">Evet</span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-gray-600">Rooms in Group:</span>

@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Calendar, CheckCircle2, XCircle } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { reservationLabel } from '@/utils/displayIdentifiers';
 
 const BOOL = (v) => v
   ? <CheckCircle2 className="w-4 h-4 text-emerald-600 inline" aria-label="evet" />
@@ -182,7 +183,7 @@ const OfficialGuestList = ({ user, tenant, onLogout }) => {
                       <td className="px-3 py-2">
                         <div className="flex flex-col">
                           <span className="font-medium text-gray-800">{r.guest_name || 'Misafir'}</span>
-                          <span className="text-[10px] text-gray-400">RezID: {r.booking_id}</span>
+                          <span className="text-[10px] text-gray-400">Rez: {reservationLabel(r)}</span>
                         </div>
                       </td>
                       <td className="px-3 py-2">

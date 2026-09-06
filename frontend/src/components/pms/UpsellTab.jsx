@@ -451,7 +451,7 @@ const UpsellTab = ({
               return <div key={offer.id} className="flex items-center justify-between border rounded-lg px-3 py-2">
                       <div className="flex items-center gap-2 min-w-0">
                         <Badge className={`text-xs shrink-0 ${typeInfo.color}`}>{typeInfo.label}</Badge>
-                        <span className="text-xs text-gray-500 truncate">{offer.booking_id?.slice(0, 8)}...</span>
+                        <span className="text-xs text-gray-500 truncate">{offer.guest_name || offer.room_number || 'Rezervasyon teklifi'}</span>
                       </div>
                       <div className="flex items-center gap-3">
                         <span className="text-sm font-medium">{offer.price?.toFixed(0)} TL</span>

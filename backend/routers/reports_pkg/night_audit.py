@@ -470,6 +470,7 @@ async def handle_no_shows(
 
         fee_posted = False
         folio_id = None
+        folio_number = None
 
         # Post no-show fee if configured
         if charge_no_show_fee:
@@ -477,6 +478,7 @@ async def handle_no_shows(
 
             if folio:
                 folio_id = folio.get("id")
+                folio_number = folio.get("folio_number")
                 charge = {
                     "id": str(uuid.uuid4()),
                     "tenant_id": current_user.tenant_id,
@@ -497,10 +499,12 @@ async def handle_no_shows(
         no_show_details.append(
             {
                 "booking_id": booking_id,
+                "reservation_number": booking.get("reservation_number") or booking.get("booking_reference"),
                 "guest_id": guest_id,
                 "room_id": room_id,
                 "room_number": room_number,
                 "folio_id": folio_id,
+                "folio_number": folio_number,
                 "fee_posted": fee_posted,
                 "fee_amount": no_show_fee if fee_posted else 0.0,
             }

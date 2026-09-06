@@ -7,6 +7,7 @@ import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import MaybeLayout from '@/components/MaybeLayout';
+import { roomLabel } from '@/utils/displayIdentifiers';
 
 const GuestRelationsDashboard = ({ user, tenant, onLogout, embedded = false }) => {
   const { t } = useTranslation();
@@ -114,7 +115,6 @@ const GuestRelationsDashboard = ({ user, tenant, onLogout, embedded = false }) =
                       </div>
                       <div>
                         <p className="text-sm font-medium text-indigo-900">{analysis.guest_name}</p>
-                        <p className="text-xs text-indigo-600">ID: {analysis.guest_id}</p>
                       </div>
                     </div>
                     
@@ -179,7 +179,7 @@ const GuestRelationsDashboard = ({ user, tenant, onLogout, embedded = false }) =
                       <div key={dir.id} className="flex flex-col md:flex-row md:items-center justify-between p-4 bg-white border rounded-xl hover:shadow-sm transition-all gap-4">
                         <div>
                           <div className="flex items-center gap-2 mb-1">
-                            <span className="px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 text-xs font-semibold">Oda {dir.room_number || dir.room_id || '-'}</span>
+                            <span className="px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 text-xs font-semibold">Oda {roomLabel(dir)}</span>
                             <span className="text-sm font-medium text-gray-900">{dir.guest_name}</span>
                           </div>
                           <p className="text-sm text-gray-600">{directiveText || 'Özel hazırlık direktifi'}</p>
