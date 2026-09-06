@@ -115,6 +115,23 @@ async def test_create_success(current_user, mock_db, mock_idempotency, mock_quot
 
 
 @pytest.mark.asyncio
+async def test_create_with_unlimited_limit_skips_quota_reservation(current_user, mock_db, mock_idempotency, mock_quota, mock_audit):
+    """0 tanımsız/sınırsız limittir; İK modülündeki ilk personeli engellemez."""
+    mock_begin, mock_complete, mock_release = mock_idempotency
+    mock_res, mock_rel, mock_limit = mock_quota
+    mock_limit.return_value = 0
+    mock_db.staff_members.insert_one = AsyncMock()
+
+    res = await add_staff_member(_make_request(), {"name": "QA Personel"}, current_user=current_user)
+
+    assert res["success"] is True
+    mock_res.assert_not_called()
+    mock_db.staff_members.insert_one.assert_called_once()
+    mock_complete.assert_called_once()
+    mock_release.assert_not_called()
+
+
+@pytest.mark.asyncio
 async def test_create_quota_exceeded_403(current_user, mock_db, mock_idempotency, mock_quota, mock_audit):
     """Kota aşıldığında 403 döner, idem lock serbest bırakılır, insert yapılmaz."""
     mock_begin, mock_complete, mock_release = mock_idempotency

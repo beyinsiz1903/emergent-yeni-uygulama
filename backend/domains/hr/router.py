@@ -2442,8 +2442,38 @@ async def list_performance_reviews(
     agg = await db.performance_reviews.aggregate(pipeline).to_list(1)
     avg = round(agg[0]["avg_score"], 2) if agg and agg[0].get("avg_score") is not None else 0
 
+    # KPI'lar sayfalanmış liste üzerinden hesaplanamaz: 25 kaydın dışındaki
+    # değerlendirmeler görünmez ve aynı personelin eski değerlendirmeleri iki
+    # kez sayılabilir. Her personelin son değerlendirmesini alarak tesis geneli
+    # doğru yüksek/düşük performans sayısını üret.
+    latest_score_pipeline = [
+        {"$match": query},
+        {"$sort": {"staff_id": 1, "reviewed_at": -1}},
+        {"$group": {"_id": "$staff_id", "overall_score": {"$first": "$overall_score"}}},
+        {"$group": {
+            "_id": None,
+            "high_performers": {
+                "$sum": {"$cond": [{"$gte": ["$overall_score", 8]}, 1, 0]}
+            },
+            "low_performers": {
+                "$sum": {"$cond": [{"$lt": ["$overall_score", 5]}, 1, 0]}
+            },
+        }},
+    ]
+    metric_rows = await db.performance_reviews.aggregate(latest_score_pipeline).to_list(1)
+    metrics = metric_rows[0] if metric_rows else {}
+
     total_pages = (total + limit - 1) // limit if limit > 0 else 0
-    return {"items": items, "total": total, "avg_score": avg, "page": page, "limit": limit, "total_pages": total_pages}
+    return {
+        "items": items,
+        "total": total,
+        "avg_score": avg,
+        "high_performers": metrics.get("high_performers", 0),
+        "low_performers": metrics.get("low_performers", 0),
+        "page": page,
+        "limit": limit,
+        "total_pages": total_pages,
+    }
 
 
 # ============= Recruitment =============
@@ -3142,16 +3172,21 @@ async def add_staff_member(
         "created_at": datetime.now(UTC).isoformat(),
     }
 
-    try:
-        await reserve_quota(current_user.tenant_id, "hr", "active_employees", staff_id, staff_limit)
-    except QuotaExceededException as e:
-        await guard.release(error=str(e))
-        raise HTTPException(status_code=403, detail=str(e))
+    # Entitlement ekranı ve istemci `0` değerini tanımsız/sınırsız limit olarak
+    # gösterir. Aynı anlamı burada da koru; aksi halde observe modunda açık olan
+    # İK modülünde ilk personel dahi eklenemiyordu.
+    if staff_limit and staff_limit > 0:
+        try:
+            await reserve_quota(current_user.tenant_id, "hr", "active_employees", staff_id, staff_limit)
+        except QuotaExceededException as e:
+            await guard.release(error=str(e))
+            raise HTTPException(status_code=403, detail=str(e))
 
     try:
         await db.staff_members.insert_one(staff)
     except Exception as e:
-        await release_quota(current_user.tenant_id, "hr", "active_employees", staff_id)
+        if staff_limit and staff_limit > 0:
+            await release_quota(current_user.tenant_id, "hr", "active_employees", staff_id)
         await guard.release(error=str(e))
         raise e
 
@@ -3427,15 +3462,16 @@ async def update_staff_member(
             # Ensure legacy active staff are reflected in ledger before enforcing.
             await bootstrap_hr_active_employees(current_user.tenant_id)
             staff_limit = await get_tenant_limit(current_user.tenant_id, "hr", "active_employees")
-            try:
-                await reserve_quota(current_user.tenant_id, "hr", "active_employees", resource_id, staff_limit)
-            except QuotaExceededException as e:
-                raise HTTPException(status_code=403, detail=str(e))
+            if staff_limit and staff_limit > 0:
+                try:
+                    await reserve_quota(current_user.tenant_id, "hr", "active_employees", resource_id, staff_limit)
+                except QuotaExceededException as e:
+                    raise HTTPException(status_code=403, detail=str(e))
 
         try:
             await db.staff_members.update_one({"tenant_id": current_user.tenant_id, "id": staff_id}, {"$set": update})
         except Exception as e:
-            if is_reactivating:
+            if is_reactivating and staff_limit and staff_limit > 0:
                 await release_quota(current_user.tenant_id, "hr", "active_employees", resource_id)
             raise e
 
