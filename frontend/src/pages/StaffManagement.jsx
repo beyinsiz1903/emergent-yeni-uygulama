@@ -758,7 +758,7 @@ const StaffManagement = () => {
           setStaffDialog({ ...staffDialog, open: false });
         }
       }}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-h-[calc(100vh-2rem)] max-w-2xl overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
               {staffDialog.mode === 'create' ? 'Yeni Personel Ekle' : staffDialog.derived ? 'İletişim Bilgilerini Düzenle' : 'Personeli Düzenle'}
