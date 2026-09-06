@@ -114,13 +114,20 @@ describe('GeneralLedgerModule persistent GL contract', () => {
     expect(voucherActionNames('posted')).toEqual([]);
   });
 
-  it('renders every persisted voucher workflow event with actor and reason', () => {
+  it('renders persisted voucher workflow events in concise local form', () => {
     expect(formatVoucherHistoryEntry({
       at: '2026-09-06T10:15:30+00:00',
       by: 'approver-1',
       action: 'post_failed',
       reason: 'Hesap planında yok: 999',
-    })).toContain('Yevmiyeye işleme başarısız oldu · 2026-09-06 10:15:30+00:00 · Kullanıcı: approver-1 · Gerekçe: Hesap planında yok: 999');
+    })).toContain('Yevmiyeye işleme başarısız oldu');
+    expect(formatVoucherHistoryEntry({
+      at: '2026-09-06T10:15:30+00:00',
+      by: 'approver-1',
+      action: 'post_failed',
+      reason: 'Hesap planında yok: 999',
+    })).toContain('Gerekçe: Hesap planında yok: 999');
+    expect(formatVoucherHistoryEntry({ action: 'created', by: 'approver-1' })).not.toContain('approver-1');
   });
 
   it('keeps the journal save action disabled until the form is valid', () => {
