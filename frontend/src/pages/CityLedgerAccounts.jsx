@@ -31,6 +31,28 @@ export const validateCityLedgerPayment = (amountValue, balanceValue) => {
   return null;
 };
 
+export const getCityLedgerPaymentAllocations = (openItems, allocationValues) => (
+  openItems
+    .map((item) => ({ booking_id: item.booking_id, amount: Number(allocationValues[item.booking_id] || 0) }))
+    .filter((allocation) => Number.isFinite(allocation.amount) && allocation.amount > 0)
+);
+
+export const validateCityLedgerPaymentAllocations = (amountValue, openItems, allocationValues) => {
+  const amount = Number(amountValue);
+  const allocations = getCityLedgerPaymentAllocations(openItems, allocationValues);
+  if (!allocations.length) return null; // A general city-ledger payment remains supported.
+
+  const allocationTotal = allocations.reduce((sum, allocation) => sum + allocation.amount, 0);
+  if (Math.abs(allocationTotal - amount) > 0.005) {
+    return 'Oda bazlı dağıtım toplamı ödeme tutarına eşit olmalıdır';
+  }
+  const oversubscribed = allocations.some((allocation) => {
+    const item = openItems.find((candidate) => candidate.booking_id === allocation.booking_id);
+    return item && allocation.amount - Number(item.open_amount || 0) > 0.005;
+  });
+  return oversubscribed ? 'Bir odaya ayrılan tahsilat o odanın açık bakiyesini aşamaz' : null;
+};
+
 const EMPTY_ACCOUNT = {
   account_name: '',
   company_name: '',
@@ -60,6 +82,15 @@ const CityLedgerAccounts = ({ user, tenant, onLogout }) => {
   const [paymentReference, setPaymentReference] = useState('');
   const [paymentRequestId, setPaymentRequestId] = useState('');
   const [postingPayment, setPostingPayment] = useState(false);
+  const [paymentOpenItems, setPaymentOpenItems] = useState([]);
+  const [paymentAllocations, setPaymentAllocations] = useState({});
+  const [loadingPaymentItems, setLoadingPaymentItems] = useState(false);
+
+  const [openItemsDialogOpen, setOpenItemsDialogOpen] = useState(false);
+  const [openItemsAccount, setOpenItemsAccount] = useState(null);
+  const [openItems, setOpenItems] = useState([]);
+  const [openItemsSummary, setOpenItemsSummary] = useState(null);
+  const [loadingOpenItems, setLoadingOpenItems] = useState(false);
 
   const [adjustDialogOpen, setAdjustDialogOpen] = useState(false);
   const [adjustAccount, setAdjustAccount] = useState(null);
@@ -99,13 +130,50 @@ const CityLedgerAccounts = ({ user, tenant, onLogout }) => {
     );
   });
 
-  const handleOpenPaymentDialog = (account) => {
+  const loadOpenItems = async (account) => {
+    const response = await axios.get(`/cashiering/city-ledger/${account.id}/open-items`);
+    return response.data;
+  };
+
+  const handleOpenPaymentDialog = async (account) => {
     setSelectedAccount(account);
     setPaymentAmount('');
     setPaymentReference('');
     setPaymentMethod('bank_transfer');
     setPaymentRequestId(globalThis.crypto?.randomUUID?.() || `payment-${Date.now()}`);
+    setPaymentOpenItems([]);
+    setPaymentAllocations({});
     setPaymentDialogOpen(true);
+    setLoadingPaymentItems(true);
+    try {
+      const data = await loadOpenItems(account);
+      setPaymentOpenItems(data.items || []);
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Oda bazlı cari bakiyesi yüklenemedi');
+    } finally {
+      setLoadingPaymentItems(false);
+    }
+  };
+
+  const handleOpenItemsDialog = async (account) => {
+    setOpenItemsAccount(account);
+    setOpenItems([]);
+    setOpenItemsSummary(null);
+    setOpenItemsDialogOpen(true);
+    setLoadingOpenItems(true);
+    try {
+      const data = await loadOpenItems(account);
+      setOpenItems(data.items || []);
+      setOpenItemsSummary(data.summary || null);
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Oda bazlı cari bakiyesi yüklenemedi');
+    } finally {
+      setLoadingOpenItems(false);
+    }
+  };
+
+  const setPaymentAllocation = (bookingId, value) => {
+    setPaymentAllocations((current) => ({ ...current, [bookingId]: value }));
   };
 
   const handleOpenAdjustDialog = (account) => {
@@ -166,6 +234,12 @@ const CityLedgerAccounts = ({ user, tenant, onLogout }) => {
       return;
     }
     const amount = Number(paymentAmount);
+    const allocations = getCityLedgerPaymentAllocations(paymentOpenItems, paymentAllocations);
+    const allocationError = validateCityLedgerPaymentAllocations(paymentAmount, paymentOpenItems, paymentAllocations);
+    if (allocationError) {
+      toast.error(allocationError);
+      return;
+    }
 
     setPostingPayment(true);
     try {
@@ -176,7 +250,7 @@ const CityLedgerAccounts = ({ user, tenant, onLogout }) => {
       params.append('idempotency_key', paymentRequestId);
       if (paymentReference) params.append('reference', paymentReference);
 
-      const response = await axios.post(`/cashiering/city-ledger-payment?${params.toString()}`);
+      const response = await axios.post(`/cashiering/city-ledger-payment?${params.toString()}`, allocations.length ? { allocations } : undefined);
       if (response.data?.success) {
         toast.success('Ödeme başarıyla işlendi');
         setPaymentDialogOpen(false);
@@ -361,6 +435,15 @@ const CityLedgerAccounts = ({ user, tenant, onLogout }) => {
                           Kullanım {creditLimit > 0 ? `${utilization.toFixed(0)}%` : 'Limitsiz'}
                         </Badge>
                         <div className="flex gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleOpenItemsDialog(account)}
+                            title="Bakiyenin rezervasyon ve oda dağılımını gör"
+                          >
+                            <FileText className="w-4 h-4 mr-1" />
+                            Oda Bakiyeleri
+                          </Button>
                           <Button
                             variant="outline"
                             size="sm"
@@ -577,6 +660,49 @@ const CityLedgerAccounts = ({ user, tenant, onLogout }) => {
                   />
                 </div>
 
+                <div className="border rounded-md p-3 space-y-2">
+                  <div>
+                    <div className="text-sm font-medium text-gray-800">Oda bazlı tahsilat dağıtımı</div>
+                    <p className="text-xs text-gray-500 mt-1">
+                      Tahsilatı belirli odalara kapatmak için tutarı ilgili rezervasyona yazın. Alanları boş bırakırsanız genel cari ödemesi olarak kaydedilir.
+                    </p>
+                  </div>
+                  {loadingPaymentItems ? (
+                    <div className="text-sm text-gray-500">Oda bakiyeleri yükleniyor...</div>
+                  ) : paymentOpenItems.length === 0 ? (
+                    <div className="text-sm text-gray-500">Bu cari için oda bağlantılı açık bakiye bulunmuyor.</div>
+                  ) : (
+                    <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
+                      {paymentOpenItems.map((item) => (
+                        <div key={item.booking_id} className="grid grid-cols-[1fr_120px] gap-3 items-center rounded border bg-slate-50 p-2">
+                          <div className="min-w-0">
+                            <div className="text-sm font-medium truncate">Oda {item.room_number} · {item.guest_name}</div>
+                            <div className="text-xs text-gray-500">
+                              Açık: ₺{Number(item.open_amount || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
+                              {item.check_in && ` · ${String(item.check_in).slice(0, 10)}`}
+                            </div>
+                          </div>
+                          <Input
+                            aria-label={`Oda ${item.room_number} tahsilat tutarı`}
+                            type="number"
+                            min="0"
+                            max={item.open_amount}
+                            step="0.01"
+                            value={paymentAllocations[item.booking_id] || ''}
+                            onChange={(event) => setPaymentAllocation(item.booking_id, event.target.value)}
+                            placeholder="0,00"
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {Object.values(paymentAllocations).some((value) => Number(value) > 0) && (
+                    <div className="text-xs text-gray-600 pt-1 border-t">
+                      Oda dağıtım toplamı: <strong>₺{Object.values(paymentAllocations).reduce((sum, value) => sum + (Number(value) || 0), 0).toLocaleString('tr-TR', { minimumFractionDigits: 2 })}</strong>
+                    </div>
+                  )}
+                </div>
+
                 <div className="flex justify-end gap-2 mt-4">
                   <Button variant="outline" onClick={() => setPaymentDialogOpen(false)}>
                     İptal
@@ -585,6 +711,52 @@ const CityLedgerAccounts = ({ user, tenant, onLogout }) => {
                     {postingPayment ? 'Kaydediliyor...' : 'Ödemeyi Kaydet'}
                   </Button>
                 </div>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={openItemsDialogOpen} onOpenChange={setOpenItemsDialogOpen}>
+          <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Oda Bazlı Cari Bakiye</DialogTitle>
+              <DialogDescription>
+                {openItemsAccount ? `${openItemsAccount.account_name} hesabındaki bakiyenin hangi rezervasyonlardan kaynaklandığını inceleyin.` : 'Cari bakiyenin rezervasyon dağılımı'}
+              </DialogDescription>
+            </DialogHeader>
+
+            {loadingOpenItems ? (
+              <div className="py-8 text-center text-sm text-gray-500">Oda bakiyeleri yükleniyor...</div>
+            ) : (
+              <div className="space-y-3">
+                {openItems.map((item) => (
+                  <div key={item.booking_id} className="rounded-lg border p-3">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <div>
+                        <div className="font-medium">Oda {item.room_number} · {item.guest_name}</div>
+                        <div className="text-xs text-gray-500 mt-1">
+                          {item.check_in ? `${String(item.check_in).slice(0, 10)} → ${String(item.check_out || '').slice(0, 10)}` : `Rezervasyon: ${item.booking_id}`}
+                        </div>
+                      </div>
+                      <Badge variant={Number(item.open_amount) > 0 ? 'destructive' : 'secondary'}>
+                        Açık ₺{Number(item.open_amount || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
+                      </Badge>
+                    </div>
+                    <div className="mt-2 grid grid-cols-2 gap-2 text-xs text-gray-600">
+                      <div>Tahakkuk: ₺{Number(item.charged_amount || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2 })}</div>
+                      <div>Odaya işlenen tahsilat: ₺{Number(item.allocated_payment_amount || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2 })}</div>
+                    </div>
+                  </div>
+                ))}
+                {openItems.length === 0 && <div className="py-6 text-center text-sm text-gray-500">Oda bağlantılı cari hareketi bulunmuyor.</div>}
+                {openItemsSummary && (
+                  <div className="rounded-md bg-slate-50 border p-3 text-sm space-y-1">
+                    <div>Odaların açık toplamı: <strong>₺{Number(openItemsSummary.room_open_total || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2 })}</strong></div>
+                    {Number(openItemsSummary.unallocated_payment_total || 0) > 0 && <div className="text-amber-700">Oda atanmamış eski tahsilat: ₺{Number(openItemsSummary.unallocated_payment_total).toLocaleString('tr-TR', { minimumFractionDigits: 2 })}</div>}
+                    {Number(openItemsSummary.adjustment_total || 0) > 0 && <div className="text-amber-700">Komisyon / fark düşümü: ₺{Number(openItemsSummary.adjustment_total).toLocaleString('tr-TR', { minimumFractionDigits: 2 })}</div>}
+                    {Math.abs(Number(openItemsSummary.balance_difference || 0)) > 0.005 && <div className="text-amber-700">Cari bakiyesi ile oda dağılımı arasında ₺{Number(openItemsSummary.balance_difference).toLocaleString('tr-TR', { minimumFractionDigits: 2 })} fark var. Eski hareketleri oda seçmeden kaydetmiş olabilirsiniz.</div>}
+                  </div>
+                )}
               </div>
             )}
           </DialogContent>

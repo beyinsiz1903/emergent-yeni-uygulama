@@ -124,6 +124,147 @@ async def test_payment_updates_balance_once_and_replays_idempotently(user, colle
 
 
 @pytest.mark.asyncio
+async def test_room_allocated_payment_is_persisted_against_the_selected_booking(user, collections, monkeypatch):
+    accounts, transactions, _ = collections
+    accounts.find_one.return_value = {
+        "id": "account-1",
+        "tenant_id": "tenant-a",
+        "account_name": "Demo",
+        "current_balance": 10.0,
+    }
+    accounts.update_one.return_value = SimpleNamespace(modified_count=1)
+    monkeypatch.setattr(
+        cashiering,
+        "_city_ledger_booking_items",
+        AsyncMock(
+            return_value=(
+                [{"booking_id": "booking-101", "open_amount": 4.0}],
+                {"room_open_total": 4.0},
+            )
+        ),
+    )
+
+    result = await cashiering.post_city_ledger_payment(
+        account_id="account-1",
+        amount=4.0,
+        payment_method="bank_transfer",
+        idempotency_key="room-payment-1",
+        allocations=[cashiering.CityLedgerPaymentAllocation(booking_id="booking-101", amount=4.0)],
+        credentials=None,
+    )
+
+    stored = transactions.insert_one.await_args.args[0]
+    assert stored["allocations"] == [{"booking_id": "booking-101", "amount": 4.0}]
+    assert stored["booking_id"] == "booking-101"
+    assert result["allocations"] == [{"booking_id": "booking-101", "amount": 4.0}]
+
+
+@pytest.mark.asyncio
+async def test_room_allocated_payment_rejects_an_amount_above_that_rooms_open_balance(user, collections, monkeypatch):
+    accounts, transactions, _ = collections
+    accounts.find_one.return_value = {
+        "id": "account-1",
+        "tenant_id": "tenant-a",
+        "account_name": "Demo",
+        "current_balance": 10.0,
+    }
+    monkeypatch.setattr(
+        cashiering,
+        "_city_ledger_booking_items",
+        AsyncMock(return_value=([{"booking_id": "booking-101", "open_amount": 3.99}], {})),
+    )
+
+    with pytest.raises(HTTPException) as exc:
+        await cashiering.post_city_ledger_payment(
+            account_id="account-1",
+            amount=4.0,
+            payment_method="bank_transfer",
+            idempotency_key="room-payment-too-large",
+            allocations=[cashiering.CityLedgerPaymentAllocation(booking_id="booking-101", amount=4.0)],
+            credentials=None,
+        )
+
+    assert exc.value.status_code == 409
+    assert transactions.insert_one.await_count == 0
+
+
+@pytest.mark.asyncio
+async def test_room_allocated_payment_requires_allocations_to_equal_the_payment_total(user, collections):
+    accounts, transactions, _ = collections
+    accounts.find_one.return_value = {
+        "id": "account-1",
+        "tenant_id": "tenant-a",
+        "account_name": "Demo",
+        "current_balance": 10.0,
+    }
+
+    with pytest.raises(HTTPException) as exc:
+        await cashiering.post_city_ledger_payment(
+            account_id="account-1",
+            amount=4.0,
+            payment_method="bank_transfer",
+            idempotency_key="room-payment-mismatch",
+            allocations=[cashiering.CityLedgerPaymentAllocation(booking_id="booking-101", amount=3.0)],
+            credentials=None,
+        )
+
+    assert exc.value.status_code == 400
+    assert transactions.insert_one.await_count == 0
+
+
+@pytest.mark.asyncio
+async def test_room_open_items_keep_legacy_unallocated_payments_separate(monkeypatch):
+    class Cursor:
+        def __init__(self, rows):
+            self.rows = rows
+
+        async def to_list(self, _limit):
+            return self.rows
+
+    class Collection:
+        def __init__(self, rows):
+            self.rows = rows
+
+        def find(self, *_args, **_kwargs):
+            return Cursor(self.rows)
+
+    monkeypatch.setattr(
+        cashiering,
+        "db",
+        SimpleNamespace(
+            city_ledger_transactions=Collection(
+                [
+                    {"transaction_type": "charge", "booking_id": "booking-101", "amount": 100, "status": "completed"},
+                    {"transaction_type": "charge", "booking_id": "booking-102", "amount": 50},
+                    {"transaction_type": "payment", "amount": 40, "allocations": [{"booking_id": "booking-101", "amount": 40}]},
+                    {"transaction_type": "payment", "amount": 10},
+                    {"transaction_type": "adjustment", "amount": 5},
+                ]
+            ),
+            bookings=Collection(
+                [
+                    {"id": "booking-101", "room_number": "101", "guest_name": "Ayşe"},
+                    {"id": "booking-102", "room_number": "102", "guest_name": "Mehmet"},
+                ]
+            ),
+        ),
+    )
+
+    items, summary = await cashiering._city_ledger_booking_items("tenant-a", "account-1")
+    items_by_booking = {item["booking_id"]: item for item in items}
+
+    assert items_by_booking["booking-101"]["open_amount"] == 60.0
+    assert items_by_booking["booking-101"]["room_number"] == "101"
+    assert items_by_booking["booking-102"]["open_amount"] == 50.0
+    assert summary == {
+        "room_open_total": 110.0,
+        "allocated_payment_total": 40.0,
+        "unallocated_payment_total": 10.0,
+        "adjustment_total": 5.0,
+    }
+
+
+@pytest.mark.asyncio
 async def test_payment_fails_closed_when_balance_changes_concurrently(user, collections):
     accounts, transactions, _ = collections
     accounts.find_one.return_value = {
