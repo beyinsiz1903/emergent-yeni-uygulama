@@ -27,6 +27,13 @@ DEFAULT_EMPTY_FIELDS = {
 }
 
 
+def _reservation_activity_action(changes: dict[str, dict[str, Any]]) -> str:
+    """Choose an operator-facing label for a structured reservation change."""
+    if {"check_in", "check_out"} & set(changes):
+        return "stay_dates_updated"
+    return "reservation_modified"
+
+
 def _operator_room_conflict_message(conflict_type: str) -> str:
     """Return a safe, actionable message without exposing internal IDs."""
     if conflict_type == "ooo":
@@ -306,6 +313,15 @@ class UpdateReservationService:
             }
 
             if changes:
+                activity_action = _reservation_activity_action(changes)
+                activity_details = {
+                    "changed_fields": list(changes.keys()),
+                    "changes": changes,
+                    "source": "PMS",
+                    "correlation_id": correlation_id,
+                    "actor_id": current_user.id,
+                    "actor_role": tenant_context.role,
+                }
                 event_envelope = build_event_envelope(
                     event_type=RESERVATION_MODIFIED_EVENT,
                     tenant_id=tenant_context.tenant_id,
@@ -346,11 +362,31 @@ class UpdateReservationService:
                     action="reservation_modified",
                     correlation_id=correlation_id,
                     metadata={
+                        "activity_action": activity_action,
                         "changed_fields": list(changes.keys()),
                         "changes": changes,
                         "room_id": updated_booking.get("room_id"),
                         "guest_id": updated_booking.get("guest_id"),
+                        "source": "PMS",
+                        "actor_name": current_user.name,
+                        "actor_role": tenant_context.role,
                     },
+                )
+
+                # The full-detail screen reads reservation_activity_log.  Keep
+                # this operator-facing timeline in sync with the immutable
+                # audit log, including the exact before/after values.
+                await db.reservation_activity_log.insert_one(
+                    {
+                        "id": str(uuid.uuid4()),
+                        "tenant_id": tenant_context.tenant_id,
+                        "booking_id": booking_id,
+                        "action": activity_action,
+                        "actor": current_user.name,
+                        "details": activity_details,
+                        "correlation_id": correlation_id,
+                        "created_at": event_envelope["timestamp"],
+                    }
                 )
 
                 # Af-sadakat marketplace integration: outbound olay (best-effort)

@@ -852,6 +852,35 @@ async def _log_activity(tenant_id: str, booking_id: str, action: str, actor: str
     return log_entry
 
 
+def _audit_log_to_reservation_history_entry(audit_entry: dict) -> dict:
+    """Expose legacy reservation audit entries in the operator-facing timeline."""
+    metadata = audit_entry.get("metadata") or {}
+    return {
+        "id": f"audit:{audit_entry.get('id') or audit_entry.get('_id')}",
+        "action": metadata.get("activity_action") or audit_entry.get("action") or "reservation_modified",
+        "actor": metadata.get("actor_name") or metadata.get("channel") or "Sistem",
+        "details": {
+            **metadata,
+            "source": metadata.get("source") or "PMS denetim kaydı",
+            "correlation_id": audit_entry.get("correlation_id"),
+        },
+        "correlation_id": audit_entry.get("correlation_id"),
+        "created_at": audit_entry.get("timestamp") or audit_entry.get("created_at"),
+    }
+
+
+def _history_correlation_ids(history: list[dict]) -> set[str]:
+    return {
+        str(correlation_id)
+        for entry in history
+        for correlation_id in (
+            entry.get("correlation_id"),
+            (entry.get("details") or {}).get("correlation_id"),
+        )
+        if correlation_id
+    }
+
+
 # ── Endpoints ──
 
 
@@ -926,6 +955,25 @@ async def get_reservation_full_detail(booking_id: str, current_user: User = Depe
         history = []
         async for h in db.reservation_activity_log.find({"booking_id": booking_id, "tenant_id": tid}, {"_id": 0}).sort("created_at", -1):
             history.append(h)
+
+        # Reservation changes were historically recorded in the immutable
+        # audit ledger but not copied to the detail timeline.  Surface those
+        # older entries too, without duplicating newly written activity rows.
+        activity_correlations = _history_correlation_ids(history)
+        async for audit_entry in db.audit_logs.find(
+            {
+                "tenant_id": tid,
+                "entity_type": "reservation",
+                "entity_id": booking_id,
+                "action": "reservation_modified",
+            },
+            {"_id": 0},
+        ).sort("timestamp", -1):
+            correlation_id = audit_entry.get("correlation_id")
+            if correlation_id and str(correlation_id) in activity_correlations:
+                continue
+            history.append(_audit_log_to_reservation_history_entry(audit_entry))
+        history.sort(key=lambda entry: str(entry.get("created_at") or ""), reverse=True)
 
         # Room move history
         room_moves = []
