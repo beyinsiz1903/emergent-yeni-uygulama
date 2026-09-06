@@ -33,6 +33,11 @@ class RoomSwapError(Exception):
 class RoomSwapService:
     """Swap the rooms of two active reservations without an unassigned gap."""
 
+    # A checked-in guest is physically occupying a room.  Any swap involving
+    # that guest must be handled atomically; moving either booking on its own
+    # would briefly create double occupancy or a stale room board state.
+    CHECKED_IN_STATUSES = {"checked_in", "in_house"}
+
     @staticmethod
     def _is_active(booking: dict[str, Any]) -> bool:
         return (booking.get("status") or "").lower() not in TERMINAL_BOOKING_STATUSES
@@ -71,11 +76,8 @@ class RoomSwapService:
                 raise RoomSwapError("Takas edilecek rezervasyon bulunamadı.", "BOOKING_NOT_FOUND")
             if not self._is_active(source) or not self._is_active(target):
                 raise RoomSwapError("İptal, no-show veya çıkış yapılmış rezervasyon takas edilemez.", "INACTIVE_BOOKING")
-            if source.get("status") == "checked_in" or target.get("status") == "checked_in":
-                raise RoomSwapError(
-                    "Giriş yapılmış misafirlerde oda takası yerine ön büro oda taşıma işlemini kullanın.",
-                    "CHECKED_IN_BOOKING",
-                )
+            source_checked_in = (source.get("status") or "").lower() in self.CHECKED_IN_STATUSES
+            target_checked_in = (target.get("status") or "").lower() in self.CHECKED_IN_STATUSES
 
             source_room_id = source.get("room_id")
             target_room_id = target.get("room_id")
@@ -102,7 +104,7 @@ class RoomSwapService:
             source_room = rooms_by_id[source_room_id]
             target_room = rooms_by_id[target_room_id]
 
-            active_statuses = ["confirmed", "guaranteed", "checked_in", "pending"]
+            active_statuses = ["confirmed", "guaranteed", "checked_in", "in_house", "pending"]
             for booking, destination_room_id in ((source, target_room_id), (target, source_room_id)):
                 conflict = await db.bookings.find_one(
                     {
@@ -175,6 +177,7 @@ class RoomSwapService:
                 {
                     "$set": {
                         "room_id": target_room_id,
+                        "room_number": target_room.get("room_number"),
                         "room_type": target_room.get("room_type", source.get("room_type")),
                         "room_moved_at": now_iso,
                         "room_move_reason": reason,
@@ -189,6 +192,7 @@ class RoomSwapService:
                 {
                     "$set": {
                         "room_id": source_room_id,
+                        "room_number": source_room.get("room_number"),
                         "room_type": source_room.get("room_type", target.get("room_type")),
                         "room_moved_at": now_iso,
                         "room_move_reason": reason,
@@ -200,6 +204,77 @@ class RoomSwapService:
             )
             if source_result.matched_count != 1 or target_result.matched_count != 1:
                 raise RoomSwapError("Rezervasyon başka bir kullanıcı tarafından güncellendi. Yeniden deneyin.", "CONCURRENT_MODIFICATION")
+
+            # Room state labels (dirty, available, inspected, etc.) are not
+            # eligibility rules for a swap.  The booking/room-night locks are
+            # authoritative.  We only realign the physical room board when a
+            # checked-in guest is involved.
+            if source_checked_in and target_checked_in:
+                source_room_result = await db.rooms.update_one(
+                    {
+                        "id": source_room_id,
+                        "tenant_id": tenant_id,
+                    },
+                    {"$set": {"status": "occupied", "current_booking_id": target_booking_id}},
+                    session=session,
+                )
+                target_room_result = await db.rooms.update_one(
+                    {
+                        "id": target_room_id,
+                        "tenant_id": tenant_id,
+                    },
+                    {"$set": {"status": "occupied", "current_booking_id": booking_id}},
+                    session=session,
+                )
+                if source_room_result.matched_count != 1 or target_room_result.matched_count != 1:
+                    raise RoomSwapError(
+                        "Odaların doluluk bilgisi değişti. Takas yapılmadı; takvimi yenileyip tekrar deneyin.",
+                        "CONCURRENT_ROOM_OCCUPANCY",
+                    )
+            elif source_checked_in:
+                released_room_result = await db.rooms.update_one(
+                    {
+                        "id": source_room_id,
+                        "tenant_id": tenant_id,
+                    },
+                    {"$set": {"status": "dirty", "current_booking_id": None}},
+                    session=session,
+                )
+                occupied_room_result = await db.rooms.update_one(
+                    {
+                        "id": target_room_id,
+                        "tenant_id": tenant_id,
+                    },
+                    {"$set": {"status": "occupied", "current_booking_id": booking_id}},
+                    session=session,
+                )
+                if released_room_result.matched_count != 1 or occupied_room_result.matched_count != 1:
+                    raise RoomSwapError(
+                        "Odaların doluluk bilgisi değişti. Takas yapılmadı; takvimi yenileyip tekrar deneyin.",
+                        "CONCURRENT_ROOM_OCCUPANCY",
+                    )
+            elif target_checked_in:
+                occupied_room_result = await db.rooms.update_one(
+                    {
+                        "id": source_room_id,
+                        "tenant_id": tenant_id,
+                    },
+                    {"$set": {"status": "occupied", "current_booking_id": target_booking_id}},
+                    session=session,
+                )
+                released_room_result = await db.rooms.update_one(
+                    {
+                        "id": target_room_id,
+                        "tenant_id": tenant_id,
+                    },
+                    {"$set": {"status": "dirty", "current_booking_id": None}},
+                    session=session,
+                )
+                if occupied_room_result.matched_count != 1 or released_room_result.matched_count != 1:
+                    raise RoomSwapError(
+                        "Odaların doluluk bilgisi değişti. Takas yapılmadı; takvimi yenileyip tekrar deneyin.",
+                        "CONCURRENT_ROOM_OCCUPANCY",
+                    )
 
             history_records = [
                 {
@@ -214,6 +289,7 @@ class RoomSwapService:
                     "moved_by": moved_by,
                     "moved_at": now_iso,
                     "swap_booking_id": target_booking_id,
+                    "operation_type": "checked_in_room_swap" if source_checked_in or target_checked_in else "room_swap",
                 },
                 {
                     "id": str(uuid.uuid4()),
@@ -227,6 +303,7 @@ class RoomSwapService:
                     "moved_by": moved_by,
                     "moved_at": now_iso,
                     "swap_booking_id": booking_id,
+                    "operation_type": "checked_in_room_swap" if source_checked_in or target_checked_in else "room_swap",
                 },
             ]
             await db.room_move_history.insert_many(history_records, session=session)
@@ -238,6 +315,7 @@ class RoomSwapService:
                 "source_room": target_room.get("room_number"),
                 "target_room": source_room.get("room_number"),
                 "moved_at": now_iso,
+                "checked_in_swap": source_checked_in or target_checked_in,
             }
 
         # Atlas/production is a replica set.  Local standalone development may

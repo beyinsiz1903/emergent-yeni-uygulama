@@ -32,6 +32,10 @@ def _booking(booking_id, room_id, guest_name):
     }
 
 
+def _checked_in_booking(booking_id, room_id, guest_name):
+    return _booking(booking_id, room_id, guest_name) | {"status": "checked_in"}
+
+
 @pytest.mark.asyncio
 async def test_swap_replaces_both_room_assignments_and_locks_together(monkeypatch):
     source = _booking("booking-101", "room-101", "Ali")
@@ -90,6 +94,109 @@ async def test_swap_replaces_both_room_assignments_and_locks_together(monkeypatc
     }
     assert bookings.update_one.await_count == 2
     history.insert_many.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_swap_allows_two_checked_in_guests_and_exchanges_room_occupancy(monkeypatch):
+    source = _checked_in_booking("booking-101", "room-101", "Ali")
+    target = _checked_in_booking("booking-102", "room-102", "Ayse")
+
+    async def find_booking(query, *args, **kwargs):
+        if query.get("id") == "booking-101":
+            return source
+        if query.get("id") == "booking-102":
+            return target
+        return None
+
+    rooms = SimpleNamespace(
+        find=lambda *args, **kwargs: _Cursor([
+            {"id": "room-101", "room_number": "101", "current_booking_id": "booking-101"},
+            {"id": "room-102", "room_number": "102", "current_booking_id": "booking-102"},
+        ]),
+        update_one=AsyncMock(return_value=SimpleNamespace(matched_count=1)),
+    )
+    locks = SimpleNamespace(
+        find=lambda *args, **kwargs: _Cursor([]),
+        delete_many=AsyncMock(),
+        insert_many=AsyncMock(),
+    )
+    history = SimpleNamespace(insert_many=AsyncMock())
+    fake_db = SimpleNamespace(
+        bookings=SimpleNamespace(
+            find_one=AsyncMock(side_effect=find_booking),
+            update_one=AsyncMock(return_value=SimpleNamespace(matched_count=1)),
+        ),
+        rooms=rooms,
+        room_night_locks=locks,
+        room_move_history=history,
+    )
+    monkeypatch.setattr(room_swap_module, "db", fake_db)
+    monkeypatch.setenv("MONGO_DISABLE_TRANSACTIONS", "1")
+
+    result = await room_swap_module.room_swap_service.swap(
+        tenant_id=TENANT,
+        booking_id="booking-101",
+        target_booking_id="booking-102",
+        reason="Yanlış check-in oda ataması",
+        moved_by="Operatör",
+    )
+
+    assert result["checked_in_swap"] is True
+    source_booking_call, target_booking_call = fake_db.bookings.update_one.await_args_list
+    assert source_booking_call.args[1]["$set"]["room_number"] == "102"
+    assert target_booking_call.args[1]["$set"]["room_number"] == "101"
+    assert rooms.update_one.await_count == 2
+    source_room_call, target_room_call = rooms.update_one.await_args_list
+    assert source_room_call.args[1]["$set"]["current_booking_id"] == "booking-102"
+    assert target_room_call.args[1]["$set"]["current_booking_id"] == "booking-101"
+
+
+@pytest.mark.asyncio
+async def test_swap_allows_checked_in_guest_to_exchange_with_not_checked_in_reservation(monkeypatch):
+    source = _checked_in_booking("booking-101", "room-101", "Ali")
+    target = _booking("booking-102", "room-102", "Ayse")
+
+    async def find_booking(query, *args, **kwargs):
+        if query.get("id") == "booking-101":
+            return source
+        if query.get("id") == "booking-102":
+            return target
+        return None
+
+    fake_db = SimpleNamespace(
+        bookings=SimpleNamespace(
+            find_one=AsyncMock(side_effect=find_booking),
+            update_one=AsyncMock(return_value=SimpleNamespace(matched_count=1)),
+        ),
+        rooms=SimpleNamespace(
+            find=lambda *args, **kwargs: _Cursor([
+                {"id": "room-101", "room_number": "101", "current_booking_id": "booking-101"},
+                {"id": "room-102", "room_number": "102", "status": "dirty", "current_booking_id": None},
+            ]),
+            update_one=AsyncMock(return_value=SimpleNamespace(matched_count=1)),
+        ),
+        room_night_locks=SimpleNamespace(
+            find=lambda *args, **kwargs: _Cursor([]),
+            delete_many=AsyncMock(),
+            insert_many=AsyncMock(),
+        ),
+        room_move_history=SimpleNamespace(insert_many=AsyncMock()),
+    )
+    monkeypatch.setattr(room_swap_module, "db", fake_db)
+    monkeypatch.setenv("MONGO_DISABLE_TRANSACTIONS", "1")
+
+    result = await room_swap_module.room_swap_service.swap(
+        tenant_id=TENANT,
+        booking_id="booking-101",
+        target_booking_id="booking-102",
+        reason="Misafir talebi",
+        moved_by="Operatör",
+    )
+
+    assert result["checked_in_swap"] is True
+    released_room_call, occupied_room_call = fake_db.rooms.update_one.await_args_list
+    assert released_room_call.args[1]["$set"] == {"status": "dirty", "current_booking_id": None}
+    assert occupied_room_call.args[1]["$set"] == {"status": "occupied", "current_booking_id": "booking-101"}
 
 
 @pytest.mark.asyncio

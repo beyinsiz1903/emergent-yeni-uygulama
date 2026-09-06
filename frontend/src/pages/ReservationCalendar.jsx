@@ -1207,6 +1207,14 @@ const ReservationCalendar = ({ user, tenant, onLogout }) => {
     }
   };
 
+  const hasCheckedInGuestInRoomSwap = Boolean(
+    swapData
+      && (
+        ['checked_in', 'in_house'].includes(swapData.source?.status)
+        || ['checked_in', 'in_house'].includes(swapData.target?.status)
+      )
+  );
+
   // ─── No-Show Handler ────────────────────────────────────────
   const handleNoShowConfirm = async () => {
     if (!noShowBookingId) return;
@@ -1502,7 +1510,9 @@ const ReservationCalendar = ({ user, tenant, onLogout }) => {
           {swapData && (
             <div className="space-y-4">
               <p className="text-sm text-slate-600">
-                Bu işlem iki rezervasyonun oda atamalarını ve tüm oda-gece kilitlerini tek işlemde değiştirir. Tarihler ve fiyatlar değişmez.
+                {hasCheckedInGuestInRoomSwap
+                  ? 'Giriş yapılmış misafir yeni odaya tek işlemde taşınır; diğer rezervasyon eski odaya atanır. Oda durum etiketleri takası engellemez; doluluk ve temizlik durumu işlem sonunda güncellenir. Folyo, ödeme, tarih ve fiyat bilgileri kendi rezervasyonlarında kalır.'
+                  : 'Bu işlem iki rezervasyonun oda atamalarını ve tüm oda-gece kilitlerini tek işlemde değiştirir. Tarihler ve fiyatlar değişmez.'}
               </p>
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <div className="rounded-lg border border-blue-200 bg-blue-50 p-3">

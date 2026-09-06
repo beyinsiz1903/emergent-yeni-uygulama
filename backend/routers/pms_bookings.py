@@ -718,6 +718,7 @@ async def swap_booking_rooms(
                 "TARGET_ROOM_CONFLICT",
                 "TARGET_LOCK_CONFLICT",
                 "CONCURRENT_MODIFICATION",
+                "CONCURRENT_ROOM_OCCUPANCY",
             } else 400,
             detail={"message": str(exc), "code": exc.code},
         ) from exc
